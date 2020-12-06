@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
+#include "helloworld-task/HelloWorld.h"
 #include "debug.h"
 
 //static
@@ -24,6 +25,14 @@ LinuxViewerApplication::~LinuxViewerApplication()
 void LinuxViewerApplication::on_startup()
 {
   DoutEntering(dc::notice, "LinuxViewerApplication::on_startup()");
+
+  auto task = task::create<task::HelloWorld>();
+  task->initialize(42);
+  task->run(&m_gtkmm_idle_engine, [=](bool CWDEBUG_ONLY(success)){
+      Dout(dc::notice, "Inside the call-back (" <<
+          (success ? "success" : "failure") << ").");
+      task->run();
+  });
 
   // Call the base class's implementation.
   Gtk::Application::on_startup();

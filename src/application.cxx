@@ -1,5 +1,4 @@
 #include "sys.h"
-#include "helloworld-task/HelloWorld.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
 #include "statefultask/AIEngine.h"
@@ -19,11 +18,12 @@ int main(int argc, char* argv[])
   int const max_number_of_threads = 16;                 // This can later dynamically increased to 16 if needed.
   int const queue_capacity = number_of_threads;
   int const reserved_threads = 1;                       // Reserve 1 thread for each priority.
-
+  // Create the thread pool.
   AIThreadPool thread_pool(number_of_threads, max_number_of_threads);
-  [[maybe_unused]] AIQueueHandle high_priority_queue = thread_pool.new_queue(queue_capacity, reserved_threads);
+  // And the thread pool queues.
+  [[maybe_unused]] AIQueueHandle high_priority_queue   = thread_pool.new_queue(queue_capacity, reserved_threads);
   [[maybe_unused]] AIQueueHandle medium_priority_queue = thread_pool.new_queue(queue_capacity, reserved_threads);
-  AIQueueHandle low_priority_queue = thread_pool.new_queue(queue_capacity);
+                   AIQueueHandle low_priority_queue    = thread_pool.new_queue(queue_capacity);
 
   // Main application begin.
   try
@@ -37,18 +37,10 @@ int main(int argc, char* argv[])
     // Create main application.
     auto application = LinuxViewerApplication::create(gtkmm_idle_engine);
 
-    auto task = task::create<task::HelloWorld>();
-    task->initialize(42);
-    task->run(&gtkmm_idle_engine, [&](bool CWDEBUG_ONLY(success)){
-        application->quit();
-        Dout(dc::notice, "Inside the call-back (" <<
-            (success ? "success" : "failure") << ").");
-    });
-
     // Run main application.
     application->run(argc, argv);
 
-    // Application terminated.
+    // Application terminated cleanly.
     event_loop.join();
   }
   catch (AIAlert::Error const& error)
