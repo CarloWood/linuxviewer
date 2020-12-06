@@ -1,0 +1,32 @@
+[submodule "cwm4"]
+	path = cwm4
+	url = github-carlo:CarloWood/cwm4.git
+	branch = master
+[submodule "statefultask"]
+	path = statefultask
+	url = https://github.com/CarloWood/ai-statefultask.git
+	branch = master
+[submodule "cwds"]
+	path = cwds
+	url = https://github.com/CarloWood/cwds.git
+	branch = master
+[submodule "utils"]
+	path = utils
+	url = github-carlo:CarloWood/ai-utils.git
+	branch = master
+[submodule "threadsafe"]
+	path = threadsafe
+	url = github-carlo:CarloWood/ai-threadsafe.git
+	branch = master
+[submodule "threadpool"]
+	path = threadpool
+	url = github-carlo:CarloWood/threadpool.git
+	branch = master
+[submodule "evio"]
+	path = evio
+	url = github-carlo:CarloWood/evio.git
+	branch = master
+[submodule "helloworld-task"]
+	path = helloworld-task
+	url = github-carlo:CarloWood/helloworld-task.git
+	branch = master
