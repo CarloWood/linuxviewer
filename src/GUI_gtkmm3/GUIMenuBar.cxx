@@ -1,13 +1,15 @@
 #include "sys.h"
-#include "LinuxViewerMenuBar.h"
-#include "LinuxViewerWindow.h"
-#include "LinuxViewerApplication.h"
+#include "GUIMenuBar.h"
+#include "GUIWindow.h"
+#include "GUIApplication.h"
 #include "utils/macros.h"
 
 using namespace menu_keys;
 
+namespace gtkmm3 {
+
 //static
-char const* LinuxViewerMenuBar::top_entry_label(TopEntries top_entry)
+char const* GUIMenuBar::top_entry_label(TopEntries top_entry)
 {
   switch (top_entry)
   {
@@ -19,7 +21,7 @@ char const* LinuxViewerMenuBar::top_entry_label(TopEntries top_entry)
   return "";
 }
 
-LinuxViewerMenuBar::LinuxViewerMenuBar(LinuxViewerWindow* main_window)
+GUIMenuBar::GUIMenuBar(GUIWindow* main_window)
 {
   // Prepare top level entries.
   for (int tl = 0; tl < number_of_top_entries; ++tl)
@@ -34,3 +36,5 @@ LinuxViewerMenuBar::LinuxViewerMenuBar(LinuxViewerWindow* main_window)
   main_window->append_menu_entries(this);
   main_window->application().append_menu_entries(this);
 }
+
+} // namespace gtkmm3

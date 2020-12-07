@@ -1,11 +1,6 @@
 #include "sys.h"
-#include "LinuxViewerIconFactory.h"
+#include "GUIIconFactory.h"
 #include "debug.h"
-
-//static
-std::array<LinuxViewerIconFactory::icon_info_st, menu_keys::number_of_custom_icons> LinuxViewerIconFactory::s_icon_info = {{
-//  { "pixmaps/export.png", "export", "Export" },
-}};
 
 namespace menu_keys {
 
@@ -19,7 +14,14 @@ std::string get_label(MenuEntryWithoutIconId menu_entry_id)
 
 } // namespace menukeys
 
-LinuxViewerIconFactory::LinuxViewerIconFactory()
+namespace gtkmm3 {
+
+//static
+std::array<GUIIconFactory::icon_info_st, menu_keys::number_of_custom_icons> GUIIconFactory::s_icon_info = {{
+//  { "pixmaps/export.png", "export", "Export" },
+}};
+
+GUIIconFactory::GUIIconFactory()
 {
   Glib::RefPtr<Gtk::IconFactory> factory = Gtk::IconFactory::create();
   for (int i = 0; i < s_icon_info.size(); ++i)
@@ -46,3 +48,5 @@ LinuxViewerIconFactory::LinuxViewerIconFactory()
   for (int i = 0; i < s_icon_info.size(); ++i)
     m_icon_ids[i] = Gtk::StockID(s_icon_info[i].id);
 }
+
+} // namespace gtkmm3

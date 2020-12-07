@@ -34,14 +34,14 @@ set_property(
 # The list of source files.
 target_sources(gtkmmgui_ObjLib
   PRIVATE
-    "LinuxViewerApplication.cxx"
-    "LinuxViewerApplication.h"
-    "LinuxViewerWindow.cxx"
-    "LinuxViewerWindow.h"
-    "LinuxViewerIconFactory.cxx"
-    "LinuxViewerIconFactory.h"
-    "LinuxViewerMenuBar.cxx"
-    "LinuxViewerMenuBar.h"
+    "GUIApplication.cxx"
+    "GUIApplication.h"
+    "GUIWindow.cxx"
+    "GUIWindow.h"
+    "GUIIconFactory.cxx"
+    "GUIIconFactory.h"
+    "GUIMenuBar.cxx"
+    "GUIMenuBar.h"
 )
 
 # Required include search-paths.

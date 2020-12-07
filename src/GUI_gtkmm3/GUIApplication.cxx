@@ -1,33 +1,35 @@
 #include "sys.h"
-#include "LinuxViewerApplication.h"
-#include "LinuxViewerWindow.h"
-#include "LinuxViewerMenuBar.h"
+#include "GUIApplication.h"
+#include "GUIWindow.h"
+#include "GUIMenuBar.h"
 #include "helloworld-task/HelloWorld.h"
 #include "statefultask/AIEngine.h"
 #include <gtkmm.h>
 #include "debug.h"
 
+namespace gtkmm3 {
+
 //static
-Glib::RefPtr<LinuxViewerApplication> LinuxViewerApplication::create(AIEngine& main_engine)
+Glib::RefPtr<GUIApplication> GUIApplication::create(AIEngine& main_engine)
 {
-  return Glib::RefPtr<LinuxViewerApplication>(new LinuxViewerApplication(main_engine));
+  return Glib::RefPtr<GUIApplication>(new GUIApplication(main_engine));
 }
 
-LinuxViewerApplication::LinuxViewerApplication(AIEngine& gtkmm_idle_engine) : m_gtkmm_idle_engine(gtkmm_idle_engine)
+GUIApplication::GUIApplication(AIEngine& gtkmm_idle_engine) : m_gtkmm_idle_engine(gtkmm_idle_engine)
 {
-  DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(gtkmm_idle_engine)");
-  Glib::set_application_name("LinuxViewer");
-  Glib::signal_idle().connect(sigc::mem_fun(*this, &LinuxViewerApplication::on_idle));
+  DoutEntering(dc::notice, "GUIApplication::GUIApplication(gtkmm_idle_engine)");
+  Glib::set_application_name("GUI");
+  Glib::signal_idle().connect(sigc::mem_fun(*this, &GUIApplication::on_idle));
 }
 
-LinuxViewerApplication::~LinuxViewerApplication()
+GUIApplication::~GUIApplication()
 {
-  Dout(dc::notice, "Calling LinuxViewerApplication::~LinuxViewerApplication()");
+  Dout(dc::notice, "Calling GUIApplication::~GUIApplication()");
 }
 
-void LinuxViewerApplication::on_startup()
+void GUIApplication::on_startup()
 {
-  DoutEntering(dc::notice, "LinuxViewerApplication::on_startup()");
+  DoutEntering(dc::notice, "GUIApplication::on_startup()");
 
   auto task = task::create<task::HelloWorld>();
   task->initialize(42);
@@ -41,17 +43,17 @@ void LinuxViewerApplication::on_startup()
   Gtk::Application::on_startup();
 }
 
-void LinuxViewerApplication::on_activate()
+void GUIApplication::on_activate()
 {
-  DoutEntering(dc::notice, "LinuxViewerViewer::on_activate()");
+  DoutEntering(dc::notice, "GUIViewer::on_activate()");
 
   // The application has been started, create and show the main window.
   m_main_window = create_window();
 }
 
-LinuxViewerWindow* LinuxViewerApplication::create_window()
+GUIWindow* GUIApplication::create_window()
 {
-  LinuxViewerWindow* main_window = new LinuxViewerWindow(this);
+  GUIWindow* main_window = new GUIWindow(this);
 
   // Make sure that the application runs as long this window is still open.
   add_window(*main_window);
@@ -60,15 +62,15 @@ LinuxViewerWindow* LinuxViewerApplication::create_window()
   ASSERT(G_IS_OBJECT(main_window->gobj()));
 
   // Delete the window when it is hidden.
-  main_window->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &LinuxViewerApplication::on_window_hide), main_window));
+  main_window->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &GUIApplication::on_window_hide), main_window));
 
   main_window->show_all();
   return main_window;
 }
 
-void LinuxViewerApplication::on_window_hide(Gtk::Window* window)
+void GUIApplication::on_window_hide(Gtk::Window* window)
 {
-  DoutEntering(dc::notice, "LinuxViewerApplication::on_window_hide(" << window << ")");
+  DoutEntering(dc::notice, "GUIApplication::on_window_hide(" << window << ")");
   // There is only one window, no?
   ASSERT(window == m_main_window);
 
@@ -81,22 +83,22 @@ void LinuxViewerApplication::on_window_hide(Gtk::Window* window)
     delete window;
   }
 
-  Dout(dc::notice, "Leaving LinuxViewerApplication::on_window_hide()");
+  Dout(dc::notice, "Leaving GUIApplication::on_window_hide()");
 }
 
-void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
+void GUIApplication::append_menu_entries(GUIMenuBar* menubar)
 {
   using namespace menu_keys;
   using namespace Gtk::Stock;
 #define ADD(top, entry) \
-  menubar->append_menu_entry({top, entry},   this, &LinuxViewerApplication::on_menu_##top##_##entry)
+  menubar->append_menu_entry({top, entry},   this, &GUIApplication::on_menu_##top##_##entry)
 
   ADD(File, QUIT);
 }
 
-void LinuxViewerApplication::on_menu_File_QUIT()
+void GUIApplication::on_menu_File_QUIT()
 {
-  DoutEntering(dc::notice, "LinuxViewerApplication::on_menu_File_QUIT()");
+  DoutEntering(dc::notice, "GUIApplication::on_menu_File_QUIT()");
 
   quit(); // Not really necessary, when Gtk::Widget::hide() is called.
 
@@ -112,11 +114,13 @@ void LinuxViewerApplication::on_menu_File_QUIT()
   for (auto window : windows)
     window->hide();
 
-  Dout(dc::notice, "Leaving LinuxViewerApplication::on_menu_File_QUIT()");
+  Dout(dc::notice, "Leaving GUIApplication::on_menu_File_QUIT()");
 }
 
-bool LinuxViewerApplication::on_idle()
+bool GUIApplication::on_idle()
 {
   m_gtkmm_idle_engine.mainloop();
   return true;
 }
+
+} // namespace gtkmm3

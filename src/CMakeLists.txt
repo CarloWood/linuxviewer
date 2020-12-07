@@ -19,4 +19,4 @@ add_executable(linuxviewer
 
 target_link_libraries(linuxviewer PRIVATE LinuxViewer::gtkmmgui AICxx::helloworld-task ${AICXX_OBJECTS_LIST})
 
-add_subdirectory(gtkmmgui)
+add_subdirectory(GUI_gtkmm3)

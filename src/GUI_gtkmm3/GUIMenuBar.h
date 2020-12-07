@@ -1,13 +1,11 @@
 #pragma once
 
-#include "LinuxViewerIconFactory.h"
+#include "GUIIconFactory.h"
 #include "debug.h"
 #include <gtkmm.h>
 #include <array>
 #include <map>
 #include <any>
-
-class LinuxViewerWindow;
 
 namespace menu_keys {
 
@@ -19,14 +17,19 @@ namespace menu_keys {
 
 } // namespace menu_keys
 
-class LinuxViewerMenuBar : public Gtk::MenuBar, public LinuxViewerIconFactory
+// This is the GUI implementation that is implemented on top of gtkmm3.
+namespace gtkmm3 {
+
+class GUIWindow;
+
+class GUIMenuBar : public Gtk::MenuBar, public GUIIconFactory
 {
   using TopEntries = menu_keys::TopEntries;
   using MenuEntryWithIconId = menu_keys::MenuEntryWithIconId;
   using MenuEntryWithoutIconId = menu_keys::MenuEntryWithoutIconId;
 
  public:
-  LinuxViewerMenuBar(LinuxViewerWindow* main_window);
+  GUIMenuBar(GUIWindow* main_window);
 
   struct MenuEntryKey
   {
@@ -149,3 +152,5 @@ class LinuxViewerMenuBar : public Gtk::MenuBar, public LinuxViewerIconFactory
  private:
   static char const* top_entry_label(TopEntries top_entry);
 };
+
+} // namespace gtkmm3

@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "gtkmmgui/LinuxViewerApplication.h"
+#include "LinuxViewerApplication.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/AIEngine.h"
 #include "evio/EventLoop.h"
@@ -32,10 +32,10 @@ int main(int argc, char* argv[])
     evio::EventLoop event_loop(low_priority_queue);
 
     // Task engine to run tasks from the main loop of GTK+.
-    AIEngine gtkmm_idle_engine("gtkmm_idle_engine", 2.0);
+    AIEngine gui_idle_engine("gui_idle_engine", 2.0);
 
     // Create main application.
-    auto application = LinuxViewerApplication::create(gtkmm_idle_engine);
+    auto application = LinuxViewerApplication::create(gui_idle_engine);
 
     // Run main application.
     application->run(argc, argv);
