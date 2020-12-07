@@ -13,16 +13,13 @@ class GUIMenuBar;
 class GUIApplication : public Gtk::Application
 {
  private:
-  AIEngine& m_gtkmm_idle_engine;
   GUIWindow* m_main_window;
 
  protected:
-  GUIApplication(AIEngine& main_engine);
+  GUIApplication(std::string const& application_name);
   ~GUIApplication() override;
 
  public:
-  static Glib::RefPtr<GUIApplication> create(AIEngine& main_engine);
-
   void append_menu_entries(GUIMenuBar* menubar);
 
  private:
@@ -34,7 +31,11 @@ class GUIApplication : public Gtk::Application
 
   void on_menu_File_QUIT();
   void on_window_hide(Gtk::Window* window);
-  bool on_idle();
+
+ protected:
+  virtual void on_main_instance_startup() = 0;  // This must be called when this is the main instance of the application (aka, from on_startup()).
+  virtual bool on_gui_idle() = 0;               // This must be called frequently from the main loop of the GUI.
+                                                // Return false when there is nothing to be done anymore.
 };
 
 } // namespace gtkmm3

@@ -2,45 +2,31 @@
 #include "GUIApplication.h"
 #include "GUIWindow.h"
 #include "GUIMenuBar.h"
-#include "helloworld-task/HelloWorld.h"
-#include "statefultask/AIEngine.h"
 #include <gtkmm.h>
 #include "debug.h"
 
 namespace gtkmm3 {
 
-//static
-Glib::RefPtr<GUIApplication> GUIApplication::create(AIEngine& main_engine)
+GUIApplication::GUIApplication(std::string const& application_name)
 {
-  return Glib::RefPtr<GUIApplication>(new GUIApplication(main_engine));
-}
-
-GUIApplication::GUIApplication(AIEngine& gtkmm_idle_engine) : m_gtkmm_idle_engine(gtkmm_idle_engine)
-{
-  DoutEntering(dc::notice, "GUIApplication::GUIApplication(gtkmm_idle_engine)");
-  Glib::set_application_name("GUI");
-  Glib::signal_idle().connect(sigc::mem_fun(*this, &GUIApplication::on_idle));
+  Glib::set_application_name(application_name);
+  Glib::signal_idle().connect(sigc::mem_fun(*this, &GUIApplication::on_gui_idle));
 }
 
 GUIApplication::~GUIApplication()
 {
-  Dout(dc::notice, "Calling GUIApplication::~GUIApplication()");
 }
 
 void GUIApplication::on_startup()
 {
   DoutEntering(dc::notice, "GUIApplication::on_startup()");
 
-  auto task = task::create<task::HelloWorld>();
-  task->initialize(42);
-  task->run(&m_gtkmm_idle_engine, [=](bool CWDEBUG_ONLY(success)){
-      Dout(dc::notice, "Inside the call-back (" <<
-          (success ? "success" : "failure") << ").");
-      task->run();
-  });
-
-  // Call the base class's implementation.
+  // Call the base class's implementation. This is required.
   Gtk::Application::on_startup();
+
+  // This is the main instance of the application (it could not be,
+  // if multiple instances of the application is/are already running).
+  on_main_instance_startup();
 }
 
 void GUIApplication::on_activate()
@@ -115,12 +101,6 @@ void GUIApplication::on_menu_File_QUIT()
     window->hide();
 
   Dout(dc::notice, "Leaving GUIApplication::on_menu_File_QUIT()");
-}
-
-bool GUIApplication::on_idle()
-{
-  m_gtkmm_idle_engine.mainloop();
-  return true;
 }
 
 } // namespace gtkmm3
