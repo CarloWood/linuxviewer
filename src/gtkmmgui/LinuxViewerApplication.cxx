@@ -1,7 +1,10 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
+#include "LinuxViewerWindow.h"
 #include "LinuxViewerMenuBar.h"
 #include "helloworld-task/HelloWorld.h"
+#include "statefultask/AIEngine.h"
+#include <gtkmm.h>
 #include "debug.h"
 
 //static

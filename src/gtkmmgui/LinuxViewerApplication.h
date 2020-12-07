@@ -1,8 +1,10 @@
 #pragma once
 
-#include "LinuxViewerWindow.h"
-#include "statefultask/AIEngine.h"
 #include <gtkmm.h>
+
+class AIEngine;
+class LinuxViewerWindow;
+class LinuxViewerMenuBar;
 
 class LinuxViewerApplication : public Gtk::Application
 {

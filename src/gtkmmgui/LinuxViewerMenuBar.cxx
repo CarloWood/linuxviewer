@@ -2,6 +2,7 @@
 #include "LinuxViewerMenuBar.h"
 #include "LinuxViewerWindow.h"
 #include "LinuxViewerApplication.h"
+#include "utils/macros.h"
 
 using namespace menu_keys;
 

@@ -60,17 +60,6 @@ set(BUILD_GMOCK OFF CACHE BOOL "")
 # Disable installation of googletest.
 set(INSTALL_GTEST OFF CACHE BOOL "")
 
-#==============================================================================
-# DEPENDENCIES
-#
-
-find_package(PkgConfig REQUIRED)
-
-pkg_check_modules(gtk REQUIRED IMPORTED_TARGET gtk+-3.0)
-pkg_check_modules(giomm REQUIRED IMPORTED_TARGET giomm-2.4)
-pkg_check_modules(glibmm REQUIRED IMPORTED_TARGET glibmm-2.4)
-pkg_check_modules(gtkmm REQUIRED IMPORTED_TARGET gtkmm-3.0)
-
 add_subdirectory(helloworld-task)
 #add_subdirectory(filelock-task)
 #add_subdirectory(resolver-task)

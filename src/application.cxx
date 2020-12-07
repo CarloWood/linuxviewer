@@ -1,8 +1,8 @@
 #include "sys.h"
+#include "gtkmmgui/LinuxViewerApplication.h"
 #include "statefultask/DefaultMemoryPagePool.h"
-#include "evio/EventLoop.h"
 #include "statefultask/AIEngine.h"
-#include "LinuxViewerApplication.h"
+#include "evio/EventLoop.h"
 #include "utils/debug_ostream_operators.h"
 
 int main(int argc, char* argv[])

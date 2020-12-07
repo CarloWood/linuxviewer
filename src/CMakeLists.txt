@@ -15,14 +15,8 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 
 add_executable(linuxviewer 
   application.cxx
-  LinuxViewerApplication.cxx
-  LinuxViewerApplication.h
-  LinuxViewerWindow.cxx
-  LinuxViewerWindow.h
-  LinuxViewerMenuBar.cxx
-  LinuxViewerMenuBar.h
-  LinuxViewerIconFactory.cxx
-  LinuxViewerIconFactory.h
 )
 
-target_link_libraries(linuxviewer PRIVATE AICxx::helloworld-task ${AICXX_OBJECTS_LIST} PkgConfig::gtkmm)
+target_link_libraries(linuxviewer PRIVATE LinuxViewer::gtkmmgui AICxx::helloworld-task ${AICXX_OBJECTS_LIST})
+
+add_subdirectory(gtkmmgui)
