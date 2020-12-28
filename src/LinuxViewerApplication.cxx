@@ -2,7 +2,6 @@
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
 #include "statefultask/AIEngine.h"
-#include "helloworld-task/HelloWorld.h"
 #include "socket-task/ConnectToEndPoint.h"
 #include "evio/Socket.h"
 #include <functional>
