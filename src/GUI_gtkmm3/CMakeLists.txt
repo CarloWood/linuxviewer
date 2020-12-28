@@ -49,6 +49,7 @@ get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INC
 target_include_directories(gtkmmgui_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
+    "${CMAKE_SOURCE_DIR}/src"               # For LinuxViewerMenuBar.h.
 )
 
 # Require support for C++17.

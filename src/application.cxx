@@ -3,6 +3,7 @@
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/AIEngine.h"
 #include "evio/EventLoop.h"
+#include "resolver-task/DnsResolver.h"
 #include "utils/debug_ostream_operators.h"
 
 int main(int argc, char* argv[])
@@ -30,6 +31,7 @@ int main(int argc, char* argv[])
   {
     // Set up the I/O event loop.
     evio::EventLoop event_loop(low_priority_queue);
+    resolver::Scope resolver_scope(low_priority_queue, false);
 
     // Task engine to run tasks from the main loop of GTK+.
     AIEngine gui_idle_engine("gui_idle_engine", 2.0);

@@ -26,7 +26,15 @@
 	path = evio
 	url = github-carlo:CarloWood/evio.git
 	branch = master
-[submodule "helloworld-task"]
-	path = helloworld-task
-	url = github-carlo:CarloWood/helloworld-task.git
+[submodule "socket-task"]
+	path = socket-task
+	url = github-carlo:CarloWood/socket-task.git
+	branch = master
+[submodule "resolver-task"]
+	path = resolver-task
+	url = github-carlo:CarloWood/resolver-task.git
+	branch = master
+[submodule "events"]
+	path = events
+	url = github-carlo:CarloWood/events.git
 	branch = master

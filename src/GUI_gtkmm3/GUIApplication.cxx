@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "GUIApplication.h"
 #include "GUIWindow.h"
-#include "GUIMenuBar.h"
 #include <gtkmm.h>
 #include "debug.h"
 
@@ -69,22 +68,15 @@ void GUIApplication::on_window_hide(Gtk::Window* window)
     delete window;
   }
 
+  // This doesn't really do anything anymore, but well.
+  terminate();
+
   Dout(dc::notice, "Leaving GUIApplication::on_window_hide()");
 }
 
-void GUIApplication::append_menu_entries(GUIMenuBar* menubar)
+void GUIApplication::terminate()
 {
-  using namespace menu_keys;
-  using namespace Gtk::Stock;
-#define ADD(top, entry) \
-  menubar->append_menu_entry({top, entry},   this, &GUIApplication::on_menu_##top##_##entry)
-
-  ADD(File, QUIT);
-}
-
-void GUIApplication::on_menu_File_QUIT()
-{
-  DoutEntering(dc::notice, "GUIApplication::on_menu_File_QUIT()");
+  DoutEntering(dc::notice, "GUIApplication::terminate()");
 
   quit(); // Not really necessary, when Gtk::Widget::hide() is called.
 
@@ -92,15 +84,15 @@ void GUIApplication::on_menu_File_QUIT()
   // but it's a crude way of ending the program. The window is not removed
   // from the application. Neither the window's nor the application's
   // destructors will be called, because there will be remaining reference
-  // counts in both of them. If we want the destructors to be called, we  
-  // must remove the window from the application. One way of doing this 
+  // counts in both of them. If we want the destructors to be called, we
+  // must remove the window from the application. One way of doing this
   // is to hide the window.
   std::vector<Gtk::Window*> windows = get_windows();
-  Dout(dc::notice, "The application has " << windows.size() << " windows.");
+  Dout(dc::notice, "Hiding all " << windows.size() << " windows of the application.");
   for (auto window : windows)
     window->hide();
 
-  Dout(dc::notice, "Leaving GUIApplication::on_menu_File_QUIT()");
+  Dout(dc::notice, "Leaving GUIApplication::terminate()");
 }
 
 } // namespace gtkmm3

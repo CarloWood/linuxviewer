@@ -1,22 +1,8 @@
 #pragma once
 
+#include "LinuxViewerMenuEntries.h"
 #include <gtkmm.h>
 #include <array>
-
-namespace menu_keys {
-
-enum MenuEntryWithIconId
-{
-  number_of_custom_icons
-};
-
-enum MenuEntryWithoutIconId
-{
-};
-
-std::string get_label(MenuEntryWithoutIconId menu_entry_id);
-
-} // namespace menu_keys
 
 // This is the GUI implementation that is implemented on top of gtkmm3.
 namespace gtkmm3 {

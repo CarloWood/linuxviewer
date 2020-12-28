@@ -2,18 +2,6 @@
 #include "GUIIconFactory.h"
 #include "debug.h"
 
-namespace menu_keys {
-
-std::string get_label(MenuEntryWithoutIconId menu_entry_id)
-{
-  switch (menu_entry_id)
-  {
-  }
-  return "Unknown label";
-}
-
-} // namespace menukeys
-
 namespace gtkmm3 {
 
 //static
