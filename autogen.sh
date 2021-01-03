@@ -62,6 +62,23 @@ else
   fi
 fi
 
+# Do some git sanity checks.
+if test -d .git; then
+  PUSH_RECURSESUBMODULES="$(git config push.recurseSubmodules)"
+  if test -z "$PUSH_RECURSESUBMODULES"; then
+    # Use this as default for now.
+    git config push.recurseSubmodules check
+    echo -e "\n*** WARNING: git config push.recurseSubmodules was not set!"
+    echo "***      To prevent pushing a project that references unpushed submodules,"
+    echo "***      this config was set to 'check'. Use instead the command"
+    echo "***      > git config push.recurseSubmodules on-demand"
+    echo "***      to automatically push submodules when pushing a reference to them."
+    echo "***      See http://stackoverflow.com/a/10878273/1487069 and"
+    echo "***      http://stackoverflow.com/a/34615803/1487069 for more info."
+    echo
+  fi
+fi
+
 if test -z "$AUTOGEN_CMAKE_ONLY"; then
   # Run the autotool commands.
   exec cwm4/scripts/bootstrap.sh
