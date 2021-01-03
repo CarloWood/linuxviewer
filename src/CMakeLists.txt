@@ -19,6 +19,10 @@ add_executable(linuxviewer
   LinuxViewerApplication.h
   LinuxViewerMenuEntries.cxx
   LinuxViewerMenuEntries.h
+  GridInfo.cxx
+  GridInfo.h
+  GridInfoDecoder.cxx
+  GridInfoDecoder.h
 
   LinuxViewerMenuBar.h
 )

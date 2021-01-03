@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
+#include "GridInfoDecoder.h"
+#include "GridInfo.h"
 #include "statefultask/AIEngine.h"
 #include "socket-task/ConnectToEndPoint.h"
 #include "evio/Socket.h"
@@ -15,24 +17,18 @@ std::unique_ptr<LinuxViewerApplication> LinuxViewerApplication::create(AIEngine&
   return std::make_unique<LinuxViewerApplication>(gui_idle_engine);
 }
 
-class XMLDecoder : public evio::protocol::Decoder
-{
- private:
-  void decode(int& allow_deletion_count, evio::MsgBlock&& msg) override
-  {
-    Dout(dc::notice, "Received: \"" << msg << "\"");
-  }
-};
-
 class MySocket : public evio::Socket
 {
  private:
-  http::ResponseHeadersDecoder m_input_decoder;
-  XMLDecoder m_xml_decoder;
+  GridInfoDecoder m_grid_info_decoder;
   evio::OutputStream m_output_stream;
+  GridInfo m_grid_info;
+  http::ResponseHeadersDecoder m_input_decoder;
 
  public:
-  MySocket() : m_input_decoder({{"application/xml", m_xml_decoder}})
+  MySocket() :
+    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }),
+    m_input_decoder({{"application/xml", m_grid_info_decoder}})
   {
     set_protocol_decoder(m_input_decoder);
     set_source(m_output_stream);
@@ -66,6 +62,7 @@ void LinuxViewerApplication::on_main_instance_startup()
   // or connected but then the connection was terminated for whatever reason; then the
   // flush will print a debug output (WARNING: The device is not writable!) and the contents
   // of the buffer are discarded.
+#if 0
   socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
                              "Host: misfitzgrid.com:8002\r\n"
                              "Accept-Encoding: deflate, gzip\r\n"
@@ -74,6 +71,13 @@ void LinuxViewerApplication::on_main_instance_startup()
                              "Accept: application/llsd+xml\r\n"
                              "Content-Type: application/llsd+xml\r\n"
                              "X-SecondLife-UDP-Listen-Port: 46055\r\n"
+                             "\r\n" << std::flush;
+#endif
+  socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
+                             "Host: misfitzgrid.com:8002\r\n"
+                             "Accept-Encoding:\r\n"
+                             "Accept: application/xml\r\n"
+                             "Connection: close\r\n"
                              "\r\n" << std::flush;
   socket->flush_output_device();
 }

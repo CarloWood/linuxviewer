@@ -38,3 +38,7 @@
 	path = events
 	url = github-carlo:CarloWood/events.git
 	branch = master
+[submodule "xml"]
+	path = xml
+	url = https://github.com/CarloWood/ai-xml.git
+	branch = master
