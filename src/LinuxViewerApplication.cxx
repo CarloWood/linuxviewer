@@ -46,6 +46,16 @@ void LinuxViewerApplication::on_main_instance_startup()
   auto socket = evio::create<MySocket>();
   task->set_socket(socket);
   task->set_end_point(AIEndPoint("misfitzgrid.com", 8002));
+  task->on_connected([socket](bool success){
+      if (success)
+        socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
+                                   "Host: misfitzgrid.com:8002\r\n"
+                                   "Accept-Encoding:\r\n"
+                                   "Accept: application/xml\r\n"
+                                   "Connection: close\r\n"
+                                   "\r\n" << std::flush;
+      socket->flush_output_device();
+    });
 
   task->run([this, task](bool success){
       if (!success)
@@ -74,13 +84,6 @@ void LinuxViewerApplication::on_main_instance_startup()
                              "X-SecondLife-UDP-Listen-Port: 46055\r\n"
                              "\r\n" << std::flush;
 #endif
-  socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
-                             "Host: misfitzgrid.com:8002\r\n"
-                             "Accept-Encoding:\r\n"
-                             "Accept: application/xml\r\n"
-                             "Connection: close\r\n"
-                             "\r\n" << std::flush;
-  socket->flush_output_device();
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.
