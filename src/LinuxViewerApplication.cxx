@@ -7,6 +7,7 @@
 #include "socket-task/ConnectToEndPoint.h"
 #include "evio/Socket.h"
 #include "evio/protocol/http.h"
+#include "evio/protocol/EOFDecoder.h"
 #include <functional>
 
 namespace http = evio::protocol::http;
@@ -27,7 +28,7 @@ class MySocket : public evio::Socket
 
  public:
   MySocket() :
-    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }),
+    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }, evio::protocol::EOFDecoder::instance()),
     m_input_decoder({{"application/xml", m_grid_info_decoder}})
   {
     set_protocol_decoder(m_input_decoder);

@@ -5,7 +5,7 @@
 #include "xml/Writer.h"
 #endif
 
-std::streamsize GridInfoDecoder::end_of_msg_finder(char const* new_data, size_t rlen)
+size_t GridInfoDecoder::end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result)
 {
   DoutEntering(dc::io, "GridInfoDecoder::end_of_msg_finder(..., " << rlen << ")");
 
@@ -17,8 +17,9 @@ std::streamsize GridInfoDecoder::end_of_msg_finder(char const* new_data, size_t 
   if (m_total_len < m_message_length)
     return 0;
 
-  // Return negative value, because we are a DecoderStream.
-  return -m_message_length;
+  result.m_new_decoder = &m_next_decoder;
+  result.m_sink_type = evio::decoder_stream_sink;
+  return m_message_length;
 }
 
 void GridInfoDecoder::decode(int& allow_deletion_count)
@@ -41,9 +42,6 @@ void GridInfoDecoder::decode(int& allow_deletion_count)
     close_input_device(allow_deletion_count);
     THROW_FALERT("XML parse error: [ERROR]", AIArgs("[ERROR]", error.what()));
   }
-
-  // We're done.
-  close_input_device(allow_deletion_count);
 
   Debug(libcw_do.off());
   xml::Writer writer(std::cout);
