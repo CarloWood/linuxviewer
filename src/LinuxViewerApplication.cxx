@@ -21,15 +21,15 @@ std::unique_ptr<LinuxViewerApplication> LinuxViewerApplication::create(AIEngine&
 class MySocket : public evio::Socket
 {
  private:
+  http::ResponseHeadersDecoder m_input_decoder;
   GridInfoDecoder m_grid_info_decoder;
   evio::OutputStream m_output_stream;
   GridInfo m_grid_info;
-  http::ResponseHeadersDecoder m_input_decoder;
 
  public:
   MySocket() :
-    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }, evio::protocol::EOFDecoder::instance()),
-    m_input_decoder({{"application/xml", m_grid_info_decoder}})
+    m_input_decoder({{"application/xml", m_grid_info_decoder}}),
+    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }, evio::protocol::EOFDecoder::instance())
   {
     set_protocol_decoder(m_input_decoder);
     set_source(m_output_stream);
@@ -66,24 +66,6 @@ void LinuxViewerApplication::on_main_instance_startup()
       }
       this->quit();
     });
-  // Must do a flush or else the buffer won't be written to the socket at all; this flush
-  // does not block though, it only starts watching the fd for readability and then writes
-  // the buffer to the fd when possible.
-  // If the socket was closed in the meantime because it permanently failed to connect
-  // or connected but then the connection was terminated for whatever reason; then the
-  // flush will print a debug output (WARNING: The device is not writable!) and the contents
-  // of the buffer are discarded.
-#if 0
-  socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
-                             "Host: misfitzgrid.com:8002\r\n"
-                             "Accept-Encoding: deflate, gzip\r\n"
-                             "Connection: keep-alive\r\n"
-                             "Keep-alive: 300\r\n"
-                             "Accept: application/llsd+xml\r\n"
-                             "Content-Type: application/llsd+xml\r\n"
-                             "X-SecondLife-UDP-Listen-Port: 46055\r\n"
-                             "\r\n" << std::flush;
-#endif
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.
