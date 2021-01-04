@@ -25,14 +25,6 @@ void GridInfoDecoder::decode(int& allow_deletion_count)
 {
   DoutEntering(dc::notice, "GridInfoDecoder::decode({" << allow_deletion_count << "})");
 
-//  rdbuf(m_input_device->rddbbuf());
-#if 0
-  std::istream& foo(*this);
-  std::istreambuf_iterator<char> begin(foo), end;
-  std::string s(begin, end);
-  Dout(dc::notice, "Input: \"" << s << "\".");
-#endif
-
   xml::Reader reader;
   try
   {
@@ -49,6 +41,9 @@ void GridInfoDecoder::decode(int& allow_deletion_count)
     close_input_device(allow_deletion_count);
     THROW_FALERT("XML parse error: [ERROR]", AIArgs("[ERROR]", error.what()));
   }
+
+  // We're done.
+  close_input_device(allow_deletion_count);
 
   Debug(libcw_do.off());
   xml::Writer writer(std::cout);
