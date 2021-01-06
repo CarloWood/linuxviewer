@@ -19,14 +19,11 @@ add_executable(linuxviewer
   LinuxViewerApplication.h
   LinuxViewerMenuEntries.cxx
   LinuxViewerMenuEntries.h
-  GridInfo.cxx
-  GridInfo.h
-  GridInfoDecoder.cxx
-  GridInfoDecoder.h
 
   LinuxViewerMenuBar.h
 )
 
-target_link_libraries(linuxviewer PRIVATE LinuxViewer::gtkmmgui AICxx::socket-task AICxx::resolver-task dns::dns ${AICXX_OBJECTS_LIST} farmhash::farmhash)
+target_link_libraries(linuxviewer PRIVATE LinuxViewer::protocols LinuxViewer::gtkmmgui AICxx::socket-task AICxx::resolver-task dns::dns ${AICXX_OBJECTS_LIST} farmhash::farmhash)
 
 add_subdirectory(GUI_gtkmm3)
+add_subdirectory(protocols)

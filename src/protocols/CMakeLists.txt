@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12...3.19)
 
-project(gtkmmgui
-  DESCRIPTION "LinuxViewer GUI implementation on top of gtkmm3."
+project(protocols
+  DESCRIPTION "LinuxViewer protocol decoders and related stuff."
   LANGUAGES CXX
 )
 
@@ -13,55 +13,49 @@ include(AICxxProject)
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(gtk REQUIRED IMPORTED_TARGET gtk+-3.0)
-pkg_check_modules(giomm REQUIRED IMPORTED_TARGET giomm-2.4)
-pkg_check_modules(glibmm REQUIRED IMPORTED_TARGET glibmm-2.4)
-pkg_check_modules(gtkmm REQUIRED IMPORTED_TARGET gtkmm-3.0)
+pkg_check_modules(Libxmlpp30 REQUIRED IMPORTED_TARGET libxml++-3.0)
 
 #==============================================================================
 # BUILD PROJECT
 #
 
 # This project is an OBJECT-library, used by other git submodules and the main project.
-add_library(gtkmmgui_ObjLib OBJECT)
+add_library(protocols_ObjLib OBJECT)
 
 # Set SOURCE_DIR to the current directory.
 set_property(
-  TARGET gtkmmgui_ObjLib
+  TARGET protocols_ObjLib
   PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 # The list of source files.
-target_sources(gtkmmgui_ObjLib
+target_sources(protocols_ObjLib
   PRIVATE
-    "GUIApplication.cxx"
-    "GUIApplication.h"
-    "GUIWindow.cxx"
-    "GUIWindow.h"
-    "GUIIconFactory.cxx"
-    "GUIIconFactory.h"
-    "GUIMenuBar.cxx"
-    "GUIMenuBar.h"
+    "GridInfo.cxx"
+    "GridInfo.h"
+    "GridInfoDecoder.cxx"
+    "GridInfoDecoder.h"
 )
 
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(gtkmmgui_ObjLib
+target_include_directories(protocols_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
-    "${CMAKE_SOURCE_DIR}/src"               # For LinuxViewerMenuBar.h.
 )
 
 # Require support for C++17.
-target_compile_features(gtkmmgui_ObjLib
+target_compile_features(protocols_ObjLib
   PUBLIC cxx_std_17
 )
 
 # Set link dependencies.
-target_link_libraries(gtkmmgui_ObjLib
+target_link_libraries(protocols_ObjLib
+  PRIVATE
+    AICxx::utils
   PUBLIC
-    PkgConfig::gtkmm
+    PkgConfig::Libxmlpp30
 )
 
 # Create an ALIAS target.
-add_library(LinuxViewer::gtkmmgui ALIAS gtkmmgui_ObjLib)
+add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
