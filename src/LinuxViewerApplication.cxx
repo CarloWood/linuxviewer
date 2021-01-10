@@ -6,8 +6,10 @@
 #include "statefultask/AIEngine.h"
 #include "socket-task/ConnectToEndPoint.h"
 #include "evio/Socket.h"
+#include "evio/File.h"
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
+#include "protocols/LlsdDecoder.h"
 #include <functional>
 
 namespace http = evio::protocol::http;
@@ -23,16 +25,20 @@ class MySocket : public evio::Socket
  private:
   http::ResponseHeadersDecoder m_input_decoder;
   GridInfoDecoder m_grid_info_decoder;
+  LlsdDecoder m_llsd_decoder;
   evio::OutputStream m_output_stream;
   GridInfo m_grid_info;
 
  public:
   MySocket() :
-    m_input_decoder({{"application/xml", m_grid_info_decoder}}),
+    m_input_decoder(
+        {{"application/xml", m_grid_info_decoder},
+         {"text/xml", m_llsd_decoder}}
+        ),
     m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }, evio::protocol::EOFDecoder::instance())
   {
     set_protocol_decoder(m_input_decoder);
-    set_source(m_output_stream);
+    //set_source(m_output_stream);
   }
 
   evio::OutputStream& output_stream() { return m_output_stream; }
@@ -48,13 +54,21 @@ void LinuxViewerApplication::on_main_instance_startup()
   task->set_end_point(AIEndPoint("misfitzgrid.com", 8002));
   task->on_connected([socket](bool success){
       if (success)
+      {
+#if 0
         socket->output_stream() << "GET /get_grid_info HTTP/1.1\r\n"
                                    "Host: misfitzgrid.com:8002\r\n"
                                    "Accept-Encoding:\r\n"
                                    "Accept: application/xml\r\n"
                                    "Connection: close\r\n"
                                    "\r\n" << std::flush;
-      socket->flush_output_device();
+#else
+        auto post_login_file = evio::create<evio::File>();
+        socket->set_source(post_login_file, 1000000, 500000, 1000000);
+        post_login_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login.xml", std::ios_base::in);
+#endif
+      }
+//      socket->flush_output_device();
     });
 
   task->run([this, task](bool success){

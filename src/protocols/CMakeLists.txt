@@ -35,6 +35,8 @@ target_sources(protocols_ObjLib
     "GridInfo.h"
     "GridInfoDecoder.cxx"
     "GridInfoDecoder.h"
+    "LlsdDecoder.cxx"
+    "LlsdDecoder.h"
 )
 
 # Required include search-paths.
@@ -59,3 +61,13 @@ target_link_libraries(protocols_ObjLib
 
 # Create an ALIAS target.
 add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
+
+add_executable(test_llsd_decoder_end_of_msg_finder
+  "test_llsd_decoder_end_of_msg_finder.cxx"
+)
+
+target_link_libraries(test_llsd_decoder_end_of_msg_finder
+  PRIVATE
+    ${AICXX_OBJECTS_LIST}
+    LinuxViewer::protocols
+)

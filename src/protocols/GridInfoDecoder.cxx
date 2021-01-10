@@ -7,7 +7,7 @@
 
 size_t GridInfoDecoder::end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result)
 {
-  DoutEntering(dc::io, "GridInfoDecoder::end_of_msg_finder(..., " << rlen << ")");
+  DoutEntering(dc::notice, "GridInfoDecoder::end_of_msg_finder(..., " << rlen << ")");
 
   if (AI_UNLIKELY(m_message_length == -1))        // Not initialized yet.
     m_message_length = m_get_message_length();
