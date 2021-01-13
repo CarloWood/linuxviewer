@@ -5,7 +5,7 @@
 class TestLlsdDecoder : public LlsdDecoder
 {
  public:
-  size_t end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result) override
+  size_t end_of_msg_finder_test(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result)
   {
     return LlsdDecoder::end_of_msg_finder(new_data, rlen, result);
   }
@@ -33,8 +33,8 @@ int main()
       int i = 0;
       do
       {
-        Dout(dc::notice|flush_cf|continued_cf, "end_of_msg_finder(\"" << libcwd::buf2str(new_data, rlen) << "\", " << rlen << ", result) = ");
-        size_t len = llsd_decoder.end_of_msg_finder(new_data, rlen, result);
+        Dout(dc::notice|flush_cf|continued_cf, "end_of_msg_finder_test(\"" << libcwd::buf2str(new_data, rlen) << "\", " << rlen << ", result) = ");
+        size_t len = llsd_decoder.end_of_msg_finder_test(new_data, rlen, result);
         Dout(dc::finish, len);
         ASSERT(i != 0 || (len == (l1 < 12 ? 0 : l1 < 17 ? 12 : 17)));
         ASSERT(i != 1 || len == 0 || (l1 + len == (l2 < 12 ? 0 : l2 < 17 ? 12 : 17)));

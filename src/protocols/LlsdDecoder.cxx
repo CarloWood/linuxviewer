@@ -3,12 +3,13 @@
 #include "debug.h"
 #include <cstring>
 
+#if 0
 // Return till the last </nodename>
 //                                ^__ include that character.
 //
 // The content of the buffer could look like this:
 //
-size_t LlsdDecoder::end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result)
+size_t LlsdDecoder::end_of_msg_finder_stream(char const* new_data, size_t rlen)
 {
   if (AI_UNLIKELY(rlen == 0))
     return 0;
@@ -73,8 +74,13 @@ size_t LlsdDecoder::end_of_msg_finder(char const* new_data, size_t rlen, evio::E
     rlen = slash - new_data;
   }
 }
+#endif
 
-void LlsdDecoder::decode(int& allow_deletion_count, evio::MsgBlock&& msg)
+void LlsdDecoder::decode(int& allow_deletion_count, size_t msg_len)
 {
-  DoutEntering(dc::notice, "LlsdDecoder::decode({" << allow_deletion_count << "}, " << msg << ")");
+  DoutEntering(dc::notice, "LlsdDecoder::decode({" << allow_deletion_count << "}, " << msg_len << ")");
+
+  std::vector<char> s(msg_len);
+  rdbuf()->sgetn(&s[0], msg_len);
+  Dout(dc::notice, "Received: \"" << libcwd::buf2str(s.data(), msg_len) << "\"");
 }

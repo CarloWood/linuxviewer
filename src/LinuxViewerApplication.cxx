@@ -35,13 +35,27 @@ class MySocket : public evio::Socket
         {{"application/xml", m_grid_info_decoder},
          {"text/xml", m_llsd_decoder}}
         ),
-    m_grid_info_decoder(m_grid_info, [this](){ return m_input_decoder.content_length(); }, evio::protocol::EOFDecoder::instance())
+    m_grid_info_decoder(m_grid_info)
   {
+    m_grid_info_decoder.set_next_decoder(evio::protocol::EOFDecoder::instance(), [this](){ return m_input_decoder.content_length(); });
+    m_llsd_decoder.set_next_decoder(evio::protocol::EOFDecoder::instance(), [this](){ return m_input_decoder.content_length(); });
     set_protocol_decoder(m_input_decoder);
-    //set_source(m_output_stream);
+    set_source(m_output_stream);
   }
 
   evio::OutputStream& output_stream() { return m_output_stream; }
+};
+
+class MyFile : public evio::File
+{
+ private:
+  boost::intrusive_ptr<MySocket> m_linked_output_device;
+
+ public:
+  MyFile(boost::intrusive_ptr<MySocket> linked_output_device) : m_linked_output_device(std::move(linked_output_device)) { }
+
+  // If the file is closed we wrote everything, so call flush on the socket.
+  void closed(int& UNUSED_ARG(allow_deletion_count)) override { m_linked_output_device->flush_output_device(); }
 };
 
 // Called when the main instance (as determined by the GUI) of the application is starting.
@@ -62,13 +76,13 @@ void LinuxViewerApplication::on_main_instance_startup()
                                    "Accept: application/xml\r\n"
                                    "Connection: close\r\n"
                                    "\r\n" << std::flush;
+        socket->flush_output_device();
 #else
-        auto post_login_file = evio::create<evio::File>();
+        auto post_login_file = evio::create<MyFile>(socket);
         socket->set_source(post_login_file, 1000000, 500000, 1000000);
         post_login_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login.xml", std::ios_base::in);
 #endif
       }
-//      socket->flush_output_device();
     });
 
   task->run([this, task](bool success){
