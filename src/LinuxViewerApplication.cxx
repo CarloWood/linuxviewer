@@ -9,7 +9,7 @@
 #include "evio/File.h"
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
-#include "protocols/LlsdDecoder.h"
+#include "protocols/UTF8_LLSD_Decoder.h"
 #include <functional>
 
 namespace http = evio::protocol::http;
@@ -25,7 +25,7 @@ class MySocket : public evio::Socket
  private:
   http::ResponseHeadersDecoder m_input_decoder;
   GridInfoDecoder m_grid_info_decoder;
-  LlsdDecoder m_llsd_decoder;
+  UTF8_LLSD_Decoder m_utf8_llsd_decoder;
   evio::OutputStream m_output_stream;
   GridInfo m_grid_info;
 
@@ -33,12 +33,11 @@ class MySocket : public evio::Socket
   MySocket() :
     m_input_decoder(
         {{"application/xml", m_grid_info_decoder},
-         {"text/xml", m_llsd_decoder}}
+         {"text/xml", m_utf8_llsd_decoder}}
         ),
     m_grid_info_decoder(m_grid_info)
   {
     m_grid_info_decoder.set_next_decoder(evio::protocol::EOFDecoder::instance(), [this](){ return m_input_decoder.content_length(); });
-    m_llsd_decoder.set_next_decoder(evio::protocol::EOFDecoder::instance(), [this](){ return m_input_decoder.content_length(); });
     set_protocol_decoder(m_input_decoder);
     set_source(m_output_stream);
   }

@@ -35,8 +35,8 @@ target_sources(protocols_ObjLib
     "GridInfo.h"
     "GridInfoDecoder.cxx"
     "GridInfoDecoder.h"
-    "LlsdDecoder.cxx"
-    "LlsdDecoder.h"
+    "UTF8_LLSD_Decoder.cxx"
+    "UTF8_LLSD_Decoder.h"
 )
 
 # Required include search-paths.

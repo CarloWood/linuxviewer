@@ -1,13 +1,13 @@
 #include "sys.h"
-#include "LlsdDecoder.h"
+#include "UTF8_LLSD_Decoder.h"
 #include "debug.h"
 
-class TestLlsdDecoder : public LlsdDecoder
+class TestUTF8_LLSD_Decoder : public UTF8_LLSD_Decoder
 {
  public:
   size_t end_of_msg_finder_test(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result)
   {
-    return LlsdDecoder::end_of_msg_finder(new_data, rlen, result);
+    return UTF8_LLSD_Decoder::end_of_msg_finder(new_data, rlen, result);
   }
 };
 
@@ -15,7 +15,7 @@ int main()
 {
   Debug(debug::init());
 
-  TestLlsdDecoder llsd_decoder;
+  TestUTF8_LLSD_Decoder llsd_decoder;
 
   std::string buf = "<n> <m>f</m> </n> \n";
 
