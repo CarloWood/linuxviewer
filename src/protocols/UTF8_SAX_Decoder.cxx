@@ -6,11 +6,13 @@
 
 size_t UTF8_SAX_Decoder::end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& UNUSED_ARG(result))
 {
-  DoutEntering(dc::io, "UTF8_SAX_Decoder::end_of_msg_finder");
+  DoutEntering(dc::io|continued_cf, "UTF8_SAX_Decoder::end_of_msg_finder(..., " << rlen << ") = ");
   // ASCII bytes (< 128) do not occur when encoding non-ASCII code points into UTF-8 (all extension bytes are >= 128).
   // It is therefore safe to simply search byte for byte for a '>'.
   char const* right_angle_bracket = static_cast<char const*>(memchr(new_data, '>', rlen));
-  return right_angle_bracket ? right_angle_bracket - new_data + 1 : 0;
+  size_t found_len = right_angle_bracket ? right_angle_bracket - new_data + 1 : 0;
+  Dout(dc::finish, found_len);
+  return found_len;
 }
 
 UTF8_SAX_Decoder::element_id_type UTF8_SAX_Decoder::get_element_id(std::string_view name)
@@ -60,10 +62,9 @@ void UTF8_SAX_Decoder::decode(int& allow_deletion_count, evio::MsgBlock&& msg)
         while (*attributes == ' ')
           ++attributes;
         // FIXME
-        size_t content_length = 0;
         std::string version;
         std::string encoding;
-        start_document(content_length, version, encoding);
+        start_document(m_content_length, version, encoding);
         return;
       }
       if (data[1] == '/')
@@ -103,6 +104,12 @@ void UTF8_SAX_Decoder::decode(int& allow_deletion_count, evio::MsgBlock&& msg)
   {
     THROW_FALERT("Parse error decoding \"[DATA]\"", AIArgs("[DATA]", msg));
   }
+}
+
+void UTF8_SAX_Decoder::end_of_content(int& CWDEBUG_ONLY(allow_delection_count))
+{
+  DoutEntering(dc::notice, "UTF8_SAX_Decoder::end_of_content({" << allow_delection_count << "})");
+  end_document();
 }
 
 namespace xml {

@@ -37,7 +37,6 @@ class MySocket : public evio::Socket
         ),
     m_grid_info_decoder(m_grid_info)
   {
-    m_grid_info_decoder.set_next_decoder(evio::protocol::EOFDecoder::instance(), [this](){ return m_input_decoder.content_length(); });
     set_protocol_decoder(m_input_decoder);
     set_source(m_output_stream);
   }

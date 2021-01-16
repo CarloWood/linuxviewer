@@ -53,9 +53,13 @@ class UTF8_SAX_Decoder : public evio::protocol::Decoder
  protected:
   size_t end_of_msg_finder(char const* new_data, size_t rlen, evio::EndOfMsgFinderResult& result) final;
   void decode(int& allow_deletion_count, evio::MsgBlock&& msg) override;
+  void end_of_content(int& allow_deletion_count) override;
 
  protected:
-  virtual void start_document(size_t content_length, std::string version, std::string encoding) { DoutEntering(dc::notice, "UTF8_SAX_Decoder::start_document(" << content_length << ")"); }
+  virtual void start_document(size_t content_length, std::string version, std::string encoding)
+  {
+    DoutEntering(dc::notice, "UTF8_SAX_Decoder::start_document(" << content_length << ", \"" << version << "\", \"" << encoding << "\")");
+  }
   virtual void end_document() { DoutEntering(dc::notice, "UTF8_SAX_Decoder::end_document()"); }
   virtual void start_element(element_id_type element_id) { DoutEntering(dc::notice, "UTF8_SAX_Decoder::start_element({" << m_unique_elements[element_id] << "})"); }
   virtual void end_element(element_id_type element_id) { DoutEntering(dc::notice, "UTF8_SAX_Decoder::end_element({" << m_unique_elements[element_id] << "})"); }
