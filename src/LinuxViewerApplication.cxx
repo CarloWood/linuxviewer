@@ -1,15 +1,17 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
+#include "protocols/xmlrpc/LoginResponse.h"
+#include "protocols/XML_RPC_Data.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
+#include "protocols/XML_RPC_Decoder.h"
 #include "statefultask/AIEngine.h"
 #include "socket-task/ConnectToEndPoint.h"
 #include "evio/Socket.h"
 #include "evio/File.h"
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
-#include "evio/protocol/UTF8_SAX_Decoder.h"
 #include <functional>
 
 namespace http = evio::protocol::http;
@@ -25,35 +27,41 @@ class MySocket : public evio::Socket
  private:
   http::ResponseHeadersDecoder m_input_decoder;
   GridInfoDecoder m_grid_info_decoder;
-  evio::protocol::UTF8_SAX_Decoder m_utf8_sax_decoder;
-  evio::OutputStream m_output_stream;
   GridInfo m_grid_info;
+  XML_RPC_Decoder m_xml_rpc_decoder;
+  XML_RPC_Data<xmlrpc::LoginResponse> m_login_response;
+  evio::OutputStream m_output_stream;
 
  public:
   MySocket() :
     m_input_decoder(
         {{"application/xml", m_grid_info_decoder},
-         {"text/xml", m_utf8_sax_decoder}}
+         {"text/xml", m_xml_rpc_decoder}}
         ),
-    m_grid_info_decoder(m_grid_info)
+    m_grid_info_decoder(m_grid_info),
+    m_xml_rpc_decoder(m_login_response)
   {
-    set_protocol_decoder(m_input_decoder);
     set_source(m_output_stream);
+    set_protocol_decoder(m_input_decoder);
   }
 
   evio::OutputStream& output_stream() { return m_output_stream; }
 };
 
-class MyFile : public evio::File
+class MyInputFile : public evio::File
 {
  private:
   boost::intrusive_ptr<MySocket> m_linked_output_device;
 
  public:
-  MyFile(boost::intrusive_ptr<MySocket> linked_output_device) : m_linked_output_device(std::move(linked_output_device)) { }
+  MyInputFile(boost::intrusive_ptr<MySocket> linked_output_device) : m_linked_output_device(std::move(linked_output_device)) { }
 
   // If the file is closed we wrote everything, so call flush on the socket.
   void closed(int& UNUSED_ARG(allow_deletion_count)) override { m_linked_output_device->flush_output_device(); }
+};
+
+class MyOutputFile : public evio::File
+{
 };
 
 // Called when the main instance (as determined by the GUI) of the application is starting.
@@ -76,20 +84,24 @@ void LinuxViewerApplication::on_main_instance_startup()
                                    "\r\n" << std::flush;
         socket->flush_output_device();
 #else
-        auto post_login_file = evio::create<MyFile>(socket);
+        auto post_login_file = evio::create<MyInputFile>(socket);
         socket->set_source(post_login_file, 1000000, 500000, 1000000);
         post_login_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login.xml", std::ios_base::in);
 #endif
       }
     });
 
+#if 0
+  auto output_file = evio::create<MyOutputFile>();
+  output_file->set_source(socket, 4096, 3000, std::numeric_limits<size_t>::max());
+  output_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response.xml", std::ios_base::out);
+#endif
+
   task->run([this, task](bool success){
       if (!success)
         Dout(dc::warning, "task::ConnectToEndPoint was aborted");
       else
-      {
         Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished.");
-      }
       this->quit();
     });
 }

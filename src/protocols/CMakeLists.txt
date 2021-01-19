@@ -35,6 +35,9 @@ target_sources(protocols_ObjLib
     "GridInfo.h"
     "GridInfoDecoder.cxx"
     "GridInfoDecoder.h"
+    "XML_RPC_Decoder.cxx"
+    "XML_RPC_Decoder.h"
+    "XML_RPC_Response.h"
 )
 
 # Required include search-paths.
@@ -59,3 +62,5 @@ target_link_libraries(protocols_ObjLib
 
 # Create an ALIAS target.
 add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
+
+add_subdirectory(xmlrpc)

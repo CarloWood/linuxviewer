@@ -7,7 +7,7 @@
 
 void GridInfoDecoder::decode(int& allow_deletion_count, size_t msg_len)
 {
-  DoutEntering(dc::notice, "GridInfoDecoder::decode({" << allow_deletion_count << "}, " << msg_len << ")");
+  DoutEntering(dc::decoder, "GridInfoDecoder::decode({" << allow_deletion_count << "}, " << msg_len << ")");
 
   xml::Reader reader;
   try
