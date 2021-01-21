@@ -26,7 +26,7 @@ enum elements {
   element_string,
 };
 
-int constexpr number_of_elements = element_string + 1;
+size_t constexpr number_of_elements = element_string + 1;
 
 #define XMLRPC_CASE_RETURN(x) case x: return & #x [8];
 
@@ -57,11 +57,10 @@ void XML_RPC_Decoder::start_document(size_t content_length, std::string version,
 {
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_document(" << content_length << ", " << version << ", " << encoding << ")");
 
-  for (int i = 0; i < number_of_elements; ++i)
+  for (size_t i = 0; i < number_of_elements; ++i)
   {
-    elements element = static_cast<elements>(i);
-    char const* name = element_to_string(element);
-    m_dictionary.add(element, name, {element, name});
+    char const* name = element_to_string(static_cast<elements>(i));
+    add(i, name);
   }
 }
 
@@ -70,67 +69,69 @@ void XML_RPC_Decoder::end_document()
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::end_document()");
 }
 
-void XML_RPC_Decoder::start_element(element_id_type element_id)
+void XML_RPC_Decoder::start_element(index_type element_id)
 {
-  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_element({" << element(element_id).name() << "})");
+  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_element(" << element_id << " [" << element(element_id) << "])");
 
+  evio::protocol::xml::Element& element = this->element(element_id);
+  std::string name{element.name()};
   switch (element_id)
   {
     case element_methodResponse:
-      ASSERT(element(element_id).name() == "methodResponse");
+      ASSERT(name == "methodResponse");
       break;
     case element_params:
-      ASSERT(element(element_id).name() == "params");
+      ASSERT(name == "params");
       break;
     case element_param:
-      ASSERT(element(element_id).name() == "param");
+      ASSERT(name == "param");
       break;
     case element_value:
-      ASSERT(element(element_id).name() == "value");
+      ASSERT(name == "value");
       break;
     case element_struct:
-      ASSERT(element(element_id).name() == "struct");
+      ASSERT(name == "struct");
       break;
     case element_member:
-      ASSERT(element(element_id).name() == "member");
+      ASSERT(name == "member");
       break;
     case element_name:
-      ASSERT(element(element_id).name() == "name");
+      ASSERT(name == "name");
       break;
     case element_array:
-      ASSERT(element(element_id).name() == "array");
+      ASSERT(name == "array");
       break;
     case element_data:
-      ASSERT(element(element_id).name() == "data");
+      ASSERT(name == "data");
       break;
     case element_base64:
-      ASSERT(element(element_id).name() == "base64");
+      ASSERT(name == "base64");
       break;
     case element_boolean:
-      ASSERT(element(element_id).name() == "boolean");
+      ASSERT(name == "boolean");
       break;
     case element_dateTime_iso8601:
-      ASSERT(element(element_id).name() == "dateTime.iso8601");
+      ASSERT(name == "dateTime.iso8601");
       break;
     case element_double:
-      ASSERT(element(element_id).name() == "double");
+      ASSERT(name == "double");
       break;
     case element_int:
-      ASSERT(element(element_id).name() == "int");
+      ASSERT(name == "int");
       break;
     case element_i4:
-      ASSERT(element(element_id).name() == "i4");
+      ASSERT(name == "i4");
       break;
     case element_string:
-      ASSERT(element(element_id).name() == "string");
+      ASSERT(name == "string");
       break;
     default:
-      DoutFatal(dc::core, "Unknown element \"" << element(element_id).name() << "\"");
+      DoutFatal(dc::core, "Unknown element \"" << name << "\"");
       break;
   }
 }
 
-void XML_RPC_Decoder::end_element(element_id_type element_id)
+void XML_RPC_Decoder::end_element(index_type element_id)
 {
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::end_element({" << element(element_id).name() << "})");
 }
