@@ -5,8 +5,12 @@
 
 class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
 {
+ public:
+  using ElementBase = evio::protocol::xml::ElementBase;
+
  private:
   XML_RPC_Response& m_response;
+  ElementBase* m_current_element;
 
  protected:
   void start_document(size_t content_length, std::string version, std::string encoding) final;

@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
   }
   catch (AIAlert::Error const& error)
   {
-    Dout(dc::warning, error);
+    Dout(dc::warning, error << " caught in application.cxx");
   }
 
   Dout(dc::notice, "Leaving main()");
