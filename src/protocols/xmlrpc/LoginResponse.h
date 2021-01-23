@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/Dictionary.h"
 #include <array>
 
 namespace xmlrpc {
@@ -52,7 +53,7 @@ class LoginResponse
   };
 
   static constexpr size_t s_number_of_members = ui_config + 1;
-  static std::array<char const*, s_number_of_members> const s_member2name;
+  utils::Dictionary<members, int> m_dictionary;
 };
 
 } // namespace xmlrpc
