@@ -8,7 +8,9 @@ channel_ct xmlrpc("XMLRPC");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 
-namespace {
+namespace xmlrpc {
+
+// See https://en.wikipedia.org/wiki/XML-RPC
 
 #define FOREACH_ELEMENT(X) \
   X(methodResponse) \
@@ -50,12 +52,10 @@ char const* element_to_string(elements element)
 template<elements enum_type>
 class Element;
 
-using ElementBase = evio::protocol::xml::ElementBase;
-
 class ElementBase2 : public ElementBase
 {
  protected:
-  using evio::protocol::xml::ElementBase::ElementBase;
+  using ElementBase::ElementBase;
 
   std::string name() const override
   {
@@ -75,7 +75,7 @@ class ElementBase2 : public ElementBase
         AIArgs("[ELEMENT]", name())("[DATA]", data));
   }
 
-  void end_element() override { }
+  void end_element(XML_RPC_Response&) override { }
 };
 
 class UnknownElement : public ElementBase2
@@ -253,7 +253,7 @@ class Element<element_name> : public ElementBase2
     m_name = data;
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Response&) override
   {
     if (m_name.empty())
       THROW_ALERT("Empty element <name>");
@@ -301,7 +301,7 @@ class Element<element_boolean> : public ElementVariable
       THROW_ALERT("Invalid characters in element <bool> (\"[DATA]\")", AIArgs("[DATA]", data));
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Response&) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->transfer_value(m_data);
@@ -334,7 +334,7 @@ class ElementInt : public ElementVariable
       THROW_ALERTC(result.ec, "Element<element_i4>::characters: \"[DATA]\"", AIArgs("[DATA]", data));
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Response&) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->transfer_value(m_val);
@@ -366,7 +366,7 @@ class Element<element_string> : public ElementVariable
     m_data = data;
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Response&) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->transfer_value(std::move(m_data));
@@ -398,15 +398,15 @@ ElementBase* destroy_element(ElementBase* current_element)
   return parent;
 }
 
-} // namespace
+} // namespace xmlrpc
 
 void XML_RPC_Decoder::start_document(size_t content_length, std::string version, std::string encoding)
 {
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_document(" << content_length << ", " << version << ", " << encoding << ")");
 
-  for (size_t i = 0; i < number_of_elements; ++i)
+  for (size_t i = 0; i < xmlrpc::number_of_elements; ++i)
   {
-    char const* name = element_to_string(static_cast<elements>(i));
+    char const* name = element_to_string(static_cast<xmlrpc::elements>(i));
     add(i, name);
   }
 
@@ -420,11 +420,10 @@ void XML_RPC_Decoder::end_document()
 
 void XML_RPC_Decoder::start_element(index_type element_id)
 {
-  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_element(" << element_id << " [" << element_type(element_id) << "])");
+  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::start_element(" << element_id << " [" << name_of(element_id) << "])");
 
-  ElementBase* parent = m_current_element;
+  xmlrpc::ElementBase* parent = m_current_element;
   m_current_element = create_element(element_id, parent);
-  Dout(dc::notice, m_current_element->tree());
   if (!m_current_element->has_allowed_parent())
     THROW_ALERT("Element <[PARENT]> is not expected to have child element <[CHILD]>",
         AIArgs("[PARENT]", parent->name())("[CHILD]", m_current_element->name()));
@@ -432,8 +431,8 @@ void XML_RPC_Decoder::start_element(index_type element_id)
 
 void XML_RPC_Decoder::end_element(index_type element_id)
 {
-  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::end_element(" << element_id << " [" << element_type(element_id) << "])");
-  m_current_element->end_element();
+  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::end_element(" << element_id << " [" << name_of(element_id) << "])");
+  m_current_element->end_element(m_response);
   m_current_element = destroy_element(m_current_element);
 }
 
