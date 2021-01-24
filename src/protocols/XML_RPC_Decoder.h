@@ -1,6 +1,7 @@
 #pragma once
 
 #include "evio/protocol/UTF8_SAX_Decoder.h"
+#include <stack>
 
 class XML_RPC_Response;
 
@@ -30,7 +31,7 @@ class ElementBase
   virtual std::string name() const = 0;
   virtual bool has_allowed_parent() = 0;
   virtual void characters(std::string_view const& data) = 0;
-  virtual void end_element(XML_RPC_Response& response) = 0;
+  virtual void end_element() = 0;
 };
 
 } // namespace xmlrpc
@@ -38,7 +39,8 @@ class ElementBase
 class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
 {
  private:
-  XML_RPC_Response& m_response;
+  XML_RPC_Response& m_response;                     // The XML_RPC_ ...
+  std::stack<XML_RPC_Response*> m_current_response; // Pointer to XML_RPC_Data<> objects.
   xmlrpc::ElementBase* m_current_element;
 
  protected:

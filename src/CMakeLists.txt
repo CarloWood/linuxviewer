@@ -27,3 +27,4 @@ target_link_libraries(linuxviewer PRIVATE LinuxViewer::protocols LinuxViewer::gt
 
 add_subdirectory(GUI_gtkmm3)
 add_subdirectory(protocols)
+add_subdirectory(data_types)
