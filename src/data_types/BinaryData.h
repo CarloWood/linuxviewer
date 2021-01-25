@@ -23,10 +23,4 @@ class BinaryData
   std::string as_string() const { return {m_data.begin(), m_data.end()}; }
 
   void print_on(std::ostream& os) const;        // Print as hexadecimal string.
-
-  friend std::ostream& operator<<(std::ostream& os, BinaryData const& binary_data)
-  {
-    binary_data.print_on(os);
-    return os;
-  }
 };
