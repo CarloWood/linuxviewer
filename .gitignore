@@ -13,3 +13,10 @@ install-sh
 ltmain.sh
 missing
 test-driver
+
+src/.gdbinit
+src/POST_login.xml
+src/gdb.cmds
+src/http_login_Response
+src/login_Response.xml
+src/login_Response_formatted.xml
