@@ -55,4 +55,7 @@ target_link_libraries(data_types_ObjLib
 add_library(LinuxViewer::date_types ALIAS data_types_ObjLib)
 
 add_executable(base64_test EXCLUDE_FROM_ALL base64_test.cxx)
-target_link_libraries(base64_test PRIVATE LinuxViewer::date_types ${AICXX_OBJECTS_LIST})
+target_link_libraries(base64_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+
+add_executable(uuid_test EXCLUDE_FROM_ALL uuid_test.cxx)
+target_link_libraries(uuid_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
