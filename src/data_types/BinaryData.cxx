@@ -1,10 +1,12 @@
 #include "sys.h"
 #include "BinaryData.h"
 #include "utils/AIAlert.h"
+#include "utils/c_escape_iterator.h"
 #include "debug.h"
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
+#include <boost/archive/iterators/xml_escape.hpp>
 #include <boost/archive/iterators/escape.hpp>
 #include <iostream>
 
@@ -18,6 +20,7 @@ unsigned int required_padding(int n)
   return ((n << 1) | (n >> 1)) & 3;
 }
 
+// Replace all '=' with 'A'.
 template<class Base>
 class convert : public escape<convert<Base>, Base>
 {
@@ -93,7 +96,24 @@ std::string BinaryData::to_hexadecimal_string() const
   return result;
 }
 
+std::string BinaryData::to_xml_escaped_string() const
+{
+  using it_escaped_t = xml_escape<data_type::const_iterator>;
+  std::string escaped(it_escaped_t(m_data.begin()), it_escaped_t(m_data.end()));
+  return escaped;
+}
+
+std::string BinaryData::to_c_escaped_string() const
+{
+  using it_escaped_t = utils::c_escape_iterator<data_type::const_iterator>;
+  std::string escaped(it_escaped_t(m_data.begin(), m_data.end()), it_escaped_t(m_data.end()));
+  return escaped;
+}
+
 void BinaryData::print_on(std::ostream& os) const
 {
-  os << '{' << to_hexadecimal_string() << '}';
+  os << '"';
+  using it_escaped_t = utils::c_escape_iterator<data_type::const_iterator>;
+  std::copy(it_escaped_t(m_data.begin(), m_data.end()), it_escaped_t(m_data.end()), std::ostreambuf_iterator<char>(os));
+  os << '"';
 }
