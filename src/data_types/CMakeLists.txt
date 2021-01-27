@@ -31,6 +31,10 @@ target_sources(data_types_ObjLib
   PRIVATE
     "BinaryData.cxx"
     "BinaryData.h"
+    "UUID.cxx"
+    "UUID.h"
+    "DateTime.cxx"
+    "DateTime.h"
 )
 
 # Required include search-paths.
@@ -59,3 +63,6 @@ target_link_libraries(base64_test PRIVATE LinuxViewer::date_types AICxx::utils A
 
 add_executable(uuid_test EXCLUDE_FROM_ALL uuid_test.cxx)
 target_link_libraries(uuid_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+
+add_executable(datetime_test EXCLUDE_FROM_ALL datetime_test.cxx)
+target_link_libraries(datetime_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
