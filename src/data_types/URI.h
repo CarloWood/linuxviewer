@@ -12,13 +12,13 @@
 #include <string>
 #include <string_view>
 
-//  Url is compliant with
+//  URI is compliant with
 //      https://tools.ietf.org/html/rfc3986
 //      https://tools.ietf.org/html/rfc6874
 //      https://tools.ietf.org/html/rfc7320
 //      and adheres to https://rosettacode.org/wiki/URI_parser examples.
 //
-//  Url will use default ports for known schemes, if the port is not explicitly provided.
+//  URI will use default ports for known schemes, if the port is not explicitly provided.
 //
 
 class URI
