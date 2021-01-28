@@ -16,12 +16,12 @@
 //      https://tools.ietf.org/html/rfc3986
 //      https://tools.ietf.org/html/rfc6874
 //      https://tools.ietf.org/html/rfc7320
-//      and adheres to https://rosettacode.org/wiki/URL_parser examples.
+//      and adheres to https://rosettacode.org/wiki/URI_parser examples.
 //
 //  Url will use default ports for known schemes, if the port is not explicitly provided.
 //
 
-class URL
+class URI
 {
  private:
   std::string m_scheme;
@@ -40,14 +40,14 @@ class URL
   bool m_ipv6_host         = false;
   bool m_authority_present = false;
 
-  std::string m_whole_url_storage;
+  std::string m_whole_uri_storage;
   size_t m_left_position  = 0;
   size_t m_right_position = 0;
   std::string_view m_parse_target;
 
  public:
-  URL() { }
-  URL(std::string_view const& data) { from_string(data); }
+  URI() { }
+  URI(std::string_view const& data) { from_string(data); }
 
   void from_string(std::string_view const& data);
   void set_secure(bool secure) { m_secure = secure; }
@@ -65,9 +65,9 @@ class URL
   unsigned short get_port() const;
   std::string get_path() const;
 
-  friend bool operator==(URL const& a, URL const& b);
-  friend bool operator!=(URL const& a, URL const& b);
-  friend bool operator<(URL const& a, URL const& b);
+  friend bool operator==(URI const& a, URI const& b);
+  friend bool operator!=(URI const& a, URI const& b);
+  friend bool operator<(URI const& a, URI const& b);
 
   std::string to_string() const;
   explicit operator std::string() const;

@@ -3,14 +3,14 @@
 // https://github.com/homer6/url
 
 #include "sys.h"
-#include "URL.h"
+#include "URI.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
 
-unsigned short URL::get_port() const
+unsigned short URI::get_port() const
 {
   if (m_port.size() > 0)
     return std::atoi(m_port.c_str());
@@ -33,14 +33,14 @@ unsigned short URL::get_port() const
   return 0;
 }
 
-std::string URL::get_path() const
+std::string URI::get_path() const
 {
   std::string tmp_path;
   unescape_path(m_path, tmp_path);
   return tmp_path;
 }
 
-std::string_view URL::capture_up_to(std::string_view const right_delimiter, std::string const& error_message)
+std::string_view URI::capture_up_to(std::string_view const right_delimiter, std::string const& error_message)
 {
   m_right_position = m_parse_target.find_first_of(right_delimiter, m_left_position);
 
@@ -51,7 +51,7 @@ std::string_view URL::capture_up_to(std::string_view const right_delimiter, std:
   return captured;
 }
 
-bool URL::moveBefore(std::string_view const right_delimiter)
+bool URI::move_before(std::string_view const right_delimiter)
 {
   size_t position = m_parse_target.find_first_of(right_delimiter, m_left_position);
 
@@ -64,7 +64,7 @@ bool URL::moveBefore(std::string_view const right_delimiter)
   return false;
 }
 
-bool URL::exists_forward(std::string_view const right_delimiter)
+bool URI::exists_forward(std::string_view const right_delimiter)
 {
   size_t position = m_parse_target.find_first_of(right_delimiter, m_left_position);
 
@@ -73,25 +73,25 @@ bool URL::exists_forward(std::string_view const right_delimiter)
   return false;
 }
 
-void URL::fromString(std::string const& source_string)
+void URI::from_string(std::string_view const& data)
 {
-  m_whole_url_storage = source_string;  // Copy
+  m_whole_uri_storage = data;  // Copy
 
   // Reset target.
-  m_parse_target   = m_whole_url_storage;
+  m_parse_target   = m_whole_uri_storage;
   m_left_position  = 0;
   m_right_position = 0;
 
   m_authority_present = false;
 
   // scheme
-  m_scheme = capture_up_to(":", "Expected : in URL");
+  m_scheme = capture_up_to(":", "Expected : in URI");
   std::transform(m_scheme.begin(), m_scheme.end(), m_scheme.begin(), [](std::string_view::value_type c) { return std::tolower(c); });
   m_left_position += m_scheme.size() + 1;
 
   // authority
 
-  if (moveBefore("//"))
+  if (move_before("//"))
   {
     m_authority_present = true;
     m_left_position += 2;
@@ -103,18 +103,18 @@ void URL::fromString(std::string const& source_string)
 
     bool path_exists = false;
 
-    if (moveBefore("/")) { path_exists = true; }
+    if (move_before("/")) { path_exists = true; }
 
     if (exists_forward("?"))
     {
       m_path = capture_up_to("?");
-      moveBefore("?");
+      move_before("?");
       m_left_position++;
 
       if (exists_forward("#"))
       {
         m_query = capture_up_to("#");
-        moveBefore("#");
+        move_before("#");
         m_left_position++;
         m_fragment = capture_up_to("#");
       }
@@ -130,7 +130,7 @@ void URL::fromString(std::string const& source_string)
       if (exists_forward("#"))
       {
         m_path = capture_up_to("#");
-        moveBefore("#");
+        move_before("#");
         m_left_position++;
         m_fragment = capture_up_to("#");
       }
@@ -156,7 +156,7 @@ void URL::fromString(std::string const& source_string)
   if (exists_forward("@"))
   {
     m_user_info = capture_up_to("@");
-    moveBefore("@");
+    move_before("@");
     m_left_position++;
   }
   else
@@ -177,7 +177,7 @@ void URL::fromString(std::string const& source_string)
     if (exists_forward(":"))
     {
       m_host = capture_up_to(":");
-      moveBefore(":");
+      move_before(":");
       m_left_position++;
       m_port = capture_up_to("#");
     }
@@ -198,7 +198,7 @@ void URL::fromString(std::string const& source_string)
   if (exists_forward(":"))
   {
     m_username = capture_up_to(":");
-    moveBefore(":");
+    move_before(":");
     m_left_position++;
 
     m_password = capture_up_to("#");
@@ -226,7 +226,7 @@ void URL::fromString(std::string const& source_string)
   }
 }
 
-bool URL::unescape_path(std::string const& in, std::string& out)
+bool URI::unescape_path(std::string const& in, std::string& out)
 {
   out.clear();
   out.reserve(in.size());
@@ -324,18 +324,18 @@ bool URL::unescape_path(std::string const& in, std::string& out)
   return true;
 }
 
-bool operator==(URL const& a, URL const& b)
+bool operator==(URI const& a, URI const& b)
 {
   return a.m_scheme == b.m_scheme && a.m_username == b.m_username && a.m_password == b.m_password && a.m_host == b.m_host && a.m_port == b.m_port && a.m_path == b.m_path &&
          a.m_query == b.m_query && a.m_fragment == b.m_fragment;
 }
 
-bool operator!=(URL const& a, URL const& b)
+bool operator!=(URI const& a, URI const& b)
 {
   return !(a == b);
 }
 
-bool operator<(URL const& a, URL const& b)
+bool operator<(URI const& a, URI const& b)
 {
   if (a.m_scheme < b.m_scheme) return true;
   if (b.m_scheme < a.m_scheme) return false;
@@ -361,14 +361,12 @@ bool operator<(URL const& a, URL const& b)
   return a.m_fragment < b.m_fragment;
 }
 
-std::string URL::to_string() const
+std::string URI::to_string() const
 {
-  return m_whole_url_storage;
+  return m_whole_uri_storage;
 }
 
-URL::operator std::string() const
+URI::operator std::string() const
 {
   return to_string();
 }
-
-} // namespace homer6
