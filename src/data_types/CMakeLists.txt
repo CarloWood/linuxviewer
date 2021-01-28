@@ -35,6 +35,8 @@ target_sources(data_types_ObjLib
     "UUID.h"
     "DateTime.cxx"
     "DateTime.h"
+    "URL.cxx"
+    "URL.h"
 )
 
 # Required include search-paths.
@@ -66,3 +68,6 @@ target_link_libraries(uuid_test PRIVATE LinuxViewer::date_types AICxx::utils AIC
 
 add_executable(datetime_test EXCLUDE_FROM_ALL datetime_test.cxx)
 target_link_libraries(datetime_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+
+add_executable(url_test EXCLUDE_FROM_ALL url_test.cxx)
+target_link_libraries(url_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
