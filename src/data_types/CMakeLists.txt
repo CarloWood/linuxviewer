@@ -37,6 +37,8 @@ target_sources(data_types_ObjLib
     "DateTime.h"
     "URI.cxx"
     "URI.h"
+    "Vector3d.cxx"
+    "Vector3d.h"
 )
 
 # Required include search-paths.
@@ -55,6 +57,7 @@ target_compile_features(data_types_ObjLib
 target_link_libraries(data_types_ObjLib
   PRIVATE
     AICxx::utils
+    blaze::blaze
 )
 
 # Create an ALIAS target.
@@ -71,3 +74,6 @@ target_link_libraries(datetime_test PRIVATE LinuxViewer::date_types AICxx::utils
 
 add_executable(uri_test EXCLUDE_FROM_ALL uri_test.cxx)
 target_link_libraries(uri_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+
+add_executable(blaze_test EXCLUDE_FROM_ALL blaze_test.cxx)
+target_link_libraries(blaze_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds blaze::blaze)

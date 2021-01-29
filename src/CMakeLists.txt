@@ -3,6 +3,7 @@ include(AICxxProject)
 #find_package(Threads REQUIRED)
 #find_package(Boost REQUIRED COMPONENTS filesystem iostreams program_options system)
 find_package(farmhash REQUIRED)
+find_package(blaze REQUIRED)
 
 # Use --disable-new-dtags when linking executables. This is to avoid setting the RUNPATH
 # entry in the dynamic section of executables when using -rpath. As a result the path
@@ -23,7 +24,17 @@ add_executable(linuxviewer
   LinuxViewerMenuBar.h
 )
 
-target_link_libraries(linuxviewer PRIVATE LinuxViewer::protocols LinuxViewer::gtkmmgui AICxx::socket-task AICxx::resolver-task dns::dns ${AICXX_OBJECTS_LIST} farmhash::farmhash)
+target_link_libraries(linuxviewer
+  PRIVATE
+    LinuxViewer::protocols
+    LinuxViewer::gtkmmgui
+    AICxx::socket-task
+    AICxx::resolver-task
+    dns::dns
+    ${AICXX_OBJECTS_LIST}
+    farmhash::farmhash
+    blaze::blaze
+)
 
 add_subdirectory(GUI_gtkmm3)
 add_subdirectory(protocols)
