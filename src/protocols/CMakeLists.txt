@@ -38,12 +38,15 @@ target_sources(protocols_ObjLib
     "XML_RPC_Decoder.cxx"
     "XML_RPC_Decoder.h"
     "XML_RPC_Response.h"
+    "xmlrpc_initialize.cxx"
+    "xmlrpc_initialize.h"
 )
 
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(protocols_ObjLib
   PUBLIC
+    ".."
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
@@ -57,6 +60,7 @@ target_link_libraries(protocols_ObjLib
   PRIVATE
     AICxx::utils
   PUBLIC
+    blaze::blaze
     PkgConfig::Libxmlpp30
 )
 
@@ -64,3 +68,7 @@ target_link_libraries(protocols_ObjLib
 add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
 
 add_subdirectory(xmlrpc)
+
+add_executable(xmlrpc_test EXCLUDE_FROM_ALL xmlrpc_test.cxx)
+target_link_libraries(xmlrpc_test PRIVATE LinuxViewer::protocols LinuxViewer::data_types ${AICXX_OBJECTS_LIST})
+target_include_directories(xmlrpc_test PUBLIC "..")

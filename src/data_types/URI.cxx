@@ -73,10 +73,9 @@ bool URI::exists_forward(std::string_view const right_delimiter)
   return false;
 }
 
-void URI::from_string(std::string_view const& data)
+// This function is called only from assign, after having updated m_whole_uri_storage.
+void URI::decode()
 {
-  m_whole_uri_storage = data;  // Copy
-
   // Reset target.
   m_parse_target   = m_whole_uri_storage;
   m_left_position  = 0;

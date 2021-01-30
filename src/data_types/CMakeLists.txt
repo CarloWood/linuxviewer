@@ -57,23 +57,24 @@ target_compile_features(data_types_ObjLib
 target_link_libraries(data_types_ObjLib
   PRIVATE
     AICxx::utils
+  PUBLIC
     blaze::blaze
 )
 
 # Create an ALIAS target.
-add_library(LinuxViewer::date_types ALIAS data_types_ObjLib)
+add_library(LinuxViewer::data_types ALIAS data_types_ObjLib)
 
 add_executable(base64_test EXCLUDE_FROM_ALL base64_test.cxx)
-target_link_libraries(base64_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+target_link_libraries(base64_test PRIVATE LinuxViewer::data_types AICxx::utils AICxx::cwds)
 
 add_executable(uuid_test EXCLUDE_FROM_ALL uuid_test.cxx)
-target_link_libraries(uuid_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+target_link_libraries(uuid_test PRIVATE LinuxViewer::data_types AICxx::utils AICxx::cwds)
 
 add_executable(datetime_test EXCLUDE_FROM_ALL datetime_test.cxx)
-target_link_libraries(datetime_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+target_link_libraries(datetime_test PRIVATE LinuxViewer::data_types AICxx::utils AICxx::cwds)
 
 add_executable(uri_test EXCLUDE_FROM_ALL uri_test.cxx)
-target_link_libraries(uri_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds)
+target_link_libraries(uri_test PRIVATE LinuxViewer::data_types AICxx::utils AICxx::cwds)
 
 add_executable(blaze_test EXCLUDE_FROM_ALL blaze_test.cxx)
-target_link_libraries(blaze_test PRIVATE LinuxViewer::date_types AICxx::utils AICxx::cwds blaze::blaze)
+target_link_libraries(blaze_test PRIVATE LinuxViewer::data_types AICxx::utils AICxx::cwds)

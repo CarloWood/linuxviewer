@@ -62,11 +62,9 @@ void DateTime::assign_from_iso8601_string(std::string_view const& data)
   if (parse_error)
     THROW_FALERTE("Failed to parse ISO8601 date/time \"[DATA]\"", AIArgs("[DATA]", data));
   date_time.tm_isdst = 0;       // Zulu time has no DST.
-  Dout(dc::notice, "date_time = " << date_time);
   m_posix_time = timegm(&date_time);
   if (m_posix_time == -1)
     THROW_ALERTE("mktime: could not convert \"[DATETIME]\" to a time_t!", AIArgs("[DATETIME]", std::put_time(&date_time, "%FT%TZ")));
-  Dout(dc::notice, "m_posix_time = " << m_posix_time);
 }
 
 std::string DateTime::to_iso8601_string() const

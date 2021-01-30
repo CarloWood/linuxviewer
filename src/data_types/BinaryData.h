@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string_view>
 #include <string>
 #include <cstddef>
 #include <iosfwd>

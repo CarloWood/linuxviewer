@@ -46,10 +46,25 @@ class URI
   std::string_view m_parse_target;
 
  public:
-  URI() { }
-  URI(std::string_view const& data) { from_string(data); }
+  URI() {}
+  URI(std::string_view const& data) { assign(data); }
+  template <typename InputIt>
+  URI(InputIt first, InputIt last)
+  {
+    assign(first, last);
+  }
 
-  void from_string(std::string_view const& data);
+  void assign(std::string_view const& data)
+  {
+    m_whole_uri_storage.assign(data);
+    decode();
+  }
+  template <typename InputIt>
+  void assign(InputIt first, InputIt last)
+  {
+    m_whole_uri_storage.assign(first, last);
+    decode();
+  }
   void set_secure(bool secure) { m_secure = secure; }
 
   std::string get_scheme() const { return m_scheme; }
@@ -72,10 +87,17 @@ class URI
   std::string to_string() const;
   explicit operator std::string() const;
 
+  friend std::ostream& operator<<(std::ostream& os, URI const& uri)
+  {
+    return os << uri.to_string();
+  }
+
  protected:
   static bool unescape_path(std::string const& in, std::string& out);
 
   std::string_view capture_up_to(std::string_view const right_delimiter, std::string const& error_message = "");
   bool move_before(std::string_view const right_delimiter);
   bool exists_forward(std::string_view const right_delimiter);
+
+  void decode();
 };

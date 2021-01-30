@@ -13,6 +13,12 @@ class UUID : public boost::uuids::uuid
   // Generate from string view.
   UUID(std::string_view const& sv) : boost::uuids::uuid(boost::uuids::string_generator()(sv.begin(), sv.end())) { }
 
+  void assign_from_string(std::string_view const& sv)
+  {
+    // I don't like this. It seems slow.
+    new(this) boost::uuids::uuid{boost::uuids::string_generator()(sv.begin(), sv.end())};
+  }
+
   void print_on(std::ostream& os) const
   {
     os << '{' << *static_cast<boost::uuids::uuid const*>(this) << '}';
