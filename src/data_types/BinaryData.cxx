@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "BinaryData.h"
 #include "utils/AIAlert.h"
-#include "utils/c_escape_iterator.h"
+#include "utils/c_escape.h"
 #include "debug.h"
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/binary_from_base64.hpp>
@@ -113,7 +113,6 @@ std::string BinaryData::to_c_escaped_string() const
 void BinaryData::print_on(std::ostream& os) const
 {
   os << '"';
-  using it_escaped_t = utils::c_escape_iterator<data_type::const_iterator>;
-  std::copy(it_escaped_t(m_data.begin(), m_data.end()), it_escaped_t(m_data.end()), std::ostreambuf_iterator<char>(os));
+  utils::c_escape(os, m_data);
   os << '"';
 }

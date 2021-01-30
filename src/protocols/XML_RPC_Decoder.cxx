@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "XML_RPC_Decoder.h"
 #include "XML_RPC_Struct.h"
+#include "utils/print_using.h"
+#include "utils/c_escape.h"
 #include <charconv>
 
 #ifdef CWDEBUG
@@ -71,9 +73,8 @@ class ElementBase2 : public ElementBase
 
   void characters(std::string_view const& data) override
   {
-    // FIXME? Escape 'data' so that the output is always printable.
     THROW_ALERT("Element <[ELEMENT]> contains unexpected characters \"[DATA]\"",
-        AIArgs("[ELEMENT]", name())("[DATA]", data));
+        AIArgs("[ELEMENT]", name())("[DATA]", utils::print_using(data, utils::c_escape)));
   }
 
   void end_element() override { }
@@ -242,7 +243,8 @@ class Element<element_name> : public ElementBase2
   void characters(std::string_view const& data) override
   {
     if (data.size() > 256)
-      THROW_ALERT("Refusing to allocate a <name> of more than 256 characters (\"[DATA]\")", AIArgs("[DATA]", data));
+      THROW_ALERT("Refusing to allocate a <name> of more than 256 characters (\"[DATA]\")",
+          AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
     m_name = data;
   }
 
@@ -305,8 +307,8 @@ class Element<element_boolean> : public ElementVariable
     if (data == "true")
       val = true;
     else if (data != "false")
-      // FIXME? Escape 'data' so that the output is always printable.
-      THROW_ALERT("Invalid characters in element <bool> (\"[DATA]\")", AIArgs("[DATA]", data));
+      THROW_ALERT("Invalid characters in element <bool> (\"[DATA]\")",
+          AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->transfer_value(val);
   }
@@ -336,7 +338,8 @@ class ElementInt : public ElementVariable
     std::from_chars_result result = std::from_chars(data.data(), data.data() + data.size(), val);
     // Throw if there wasn't any digit, or if the result doesn't fit in a int32_t.
     if (AI_UNLIKELY(result.ec != std::errc()))
-      THROW_ALERTC(result.ec, "Element<element_i4>::characters: \"[DATA]\"", AIArgs("[DATA]", data));
+      THROW_ALERTC(result.ec, "Element<element_i4>::characters: \"[DATA]\"",
+          AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
 
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->transfer_value(val);
