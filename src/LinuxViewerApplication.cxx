@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
-#include "protocols/xmlrpc/LoginResponse.h"
+#include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
 #include "protocols/XML_RPC_Decoder.h"

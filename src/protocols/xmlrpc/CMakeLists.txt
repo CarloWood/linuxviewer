@@ -23,8 +23,16 @@ set_property(
 # The list of source files.
 target_sources(protocols_xmlrpc_ObjLib
   PRIVATE
-    "LoginResponse.h"
-    "LoginResponse.cxx"
+    "ElementDecoder.cxx"
+    "ElementDecoder.h"
+    "SingleStructResponse.cxx"
+    "SingleStructResponse.h"
+    "IgnoreElement.cxx"
+    "IgnoreElement.h"
+    "initialize.cxx"
+    "initialize.h"
+    "response/LoginResponse.h"
+    "response/LoginResponse.cxx"
 )
 
 # Required include search-paths.
@@ -33,6 +41,7 @@ target_include_directories(protocols_xmlrpc_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
     "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/src/protocols"
 )
 
 # Require support for C++17.

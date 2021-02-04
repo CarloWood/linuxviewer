@@ -1,5 +1,7 @@
 #pragma once
 
+#include "protocols/xmlrpc/StructWrapper.h"
+#include "protocols/xmlrpc/create_member_wrapper.h"
 #include <array>
 
 #define xmlrpc_LoginFlags_FOREACH_ELEMENT(X) \
@@ -14,28 +16,40 @@
 class LoginFlags
 {
  public:
-  LoginFlags() { }
-
   enum members {
     xmlrpc_LoginFlags_FOREACH_ELEMENT(xmlrpc_LoginFlags_ENUMERATOR_NAME_COMMA)
   };
 
- public:
   xmlrpc_LoginFlags_FOREACH_ELEMENT(xmlrpc_LoginFlags_DECLARATION)
 
- public:
-#if 0
-  switch (member)
-  {
-    #define xmlrpc_LoginFlags_CREATE_XMLRPC_MEMBER_WRAPPER(flags, type, el) \
-    case LoginFlags::member_##el: \
-      return create_xmlrpc_member_wrapper(m_member.m_##el, flags COMMA_CWDEBUG_ONLY(#el));
-
-    xmlrpc_LoginFlags_FOREACH_ELEMENT(xmlrpc_LoginFlags_CREATE_XMLRPC_MEMBER_WRAPPER)
-  }
-#endif
-
- public:
   static constexpr size_t s_number_of_members = member_daylight_savings + 1;
   static std::array<char const*, s_number_of_members> s_member2name;
 };
+
+namespace xmlrpc {
+
+template<>
+class StructWrapper<LoginFlags> : public StructWrapperBase<LoginFlags>
+{
+ protected:
+  ElementDecoder* get_member(std::string_view const& name) override;
+
+#ifdef CWDEBUG
+  ElementDecoder* get_struct() override
+  {
+    m_struct_name = "LoginFlags";
+    return this;
+  }
+#endif
+
+  using StructWrapperBase<LoginFlags>::StructWrapperBase;
+};
+
+template<>
+inline ElementDecoder* create_member_wrapper(LoginFlags& member, int flags COMMA_CWDEBUG_ONLY(char const* name))
+{
+  //FIXME: this is not freed anywhere yet.
+  return new StructWrapper<LoginFlags>{member, flags COMMA_CWDEBUG_ONLY(name)};
+}
+
+} // namespace xmlrpc

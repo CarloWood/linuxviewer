@@ -24,9 +24,7 @@ enum data_type
 extern std::array<char const*, 8> data_type_to_str;
 extern std::ostream& operator<<(std::ostream& os, data_type type);
 
-} // namespace xmlrpc
-
-class XML_RPC_Response
+class ElementDecoder
 {
  protected:
 #ifdef CWDEBUG
@@ -34,9 +32,9 @@ class XML_RPC_Response
 #endif
 
  public:
-  virtual XML_RPC_Response* get_struct();
-  virtual XML_RPC_Response* get_array();
-  virtual XML_RPC_Response* get_member(std::string_view const& name);
+  virtual ElementDecoder* get_struct();
+  virtual ElementDecoder* get_array();
+  virtual ElementDecoder* get_member(std::string_view const& name);
   virtual void got_characters(std::string_view const& data);
   virtual void got_data();
 
@@ -45,3 +43,5 @@ class XML_RPC_Response
   virtual char const* get_struct_name() const { return m_struct_name; }
 #endif
 };
+
+} // namespace xmlrpc

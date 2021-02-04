@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "xmlrpc_initialize.h"
+#include "xmlrpc/initialize.h"
 #include "utils/AIAlert.h"
 #include "utils/debug_ostream_operators.h"
 #include "debug.h"

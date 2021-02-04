@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "xmlrpc_initialize.h"
+#include "initialize.h"
 #include "utils/macros.h"
 #include "utils/AIAlert.h"
 #include <boost/iostreams/device/array.hpp>

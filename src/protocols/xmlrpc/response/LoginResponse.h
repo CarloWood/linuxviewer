@@ -1,6 +1,6 @@
 #pragma once
 
-#include "protocols/XML_RPC_SingleStructResponse.h"
+#include "protocols/xmlrpc/SingleStructResponse.h"
 #include "data_types/UUID.h"
 #include "data_types/URI.h"
 #include "data_types/Vector3d.h"
@@ -11,14 +11,20 @@
 #include "utils/Dictionary.h"
 #include <vector>
 
+namespace xmlrpc {
+
 #define DECLARE_UNKNOWN(T) \
   struct T { \
     enum members { }; \
     static constexpr size_t s_number_of_members = 0; \
   }; \
-  template<> class XML_RPC_MemberWrapper<T> : public XML_RPC_UnknownMemberWrapper \
+  template<> class MemberWrapper<T> : public UnknownMemberWrapper \
   { \
-    using XML_RPC_UnknownMemberWrapper::XML_RPC_UnknownMemberWrapper; \
+    using UnknownMemberWrapper::UnknownMemberWrapper; \
+  }; \
+  template<> class ArrayWrapper<T> : public ArrayWrapperBase<T> \
+  { \
+    using ArrayWrapperBase<T>::ArrayWrapperBase; \
   }
 
 DECLARE_UNKNOWN(Buddy);
@@ -29,8 +35,6 @@ DECLARE_UNKNOWN(AgentID);
 DECLARE_UNKNOWN(FolderID);
 DECLARE_UNKNOWN(InventoryFolder);
 DECLARE_UNKNOWN(UIConfig);
-
-namespace xmlrpc {
 
 #define xmlrpc_LoginResponse_FOREACH_ELEMENT(X) \
   X(0, AgentAccess,                     agent_access) \
@@ -75,7 +79,7 @@ namespace xmlrpc {
   X(0, std::string,                     start_location) \
   X(1, UIConfig,                        ui_config)
 
-class LoginResponse : public XML_RPC_SingleStructResponse
+class LoginResponse : public SingleStructResponse
 {
  public:
   LoginResponse();
@@ -99,7 +103,7 @@ class LoginResponse : public XML_RPC_SingleStructResponse
   char const* lm_last_name;      // Name of the members enumerator corresponding to the last name of the call to get_member.
 #endif
 
-  XML_RPC_Response* get_member(std::string_view const& name) override;
+  ElementDecoder* get_member(std::string_view const& name) override;
 
 #ifdef CWDEBUG
   char const* member2str(LoginResponse::members member);
