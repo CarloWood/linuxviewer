@@ -1,6 +1,5 @@
 #include "sys.h"
 #include "XML_RPC_Decoder.h"
-#include "XML_RPC_Struct.h"
 #include "utils/print_using.h"
 #include "utils/c_escape.h"
 #include <charconv>
