@@ -50,4 +50,32 @@ void initialize(Vector3d& vec, std::string_view const& vector3d_data)
     THROW_FALERT("Parse error while decoding \"[DATA]\"", AIArgs("[DATA]", vector3d_data));
 }
 
+void initialize(AgentAccess& agent_access, std::string_view const& data)
+{
+  bool parse_error = data.size() != 1;
+  if (!parse_error)
+  {
+    if (data[0] == 'P')
+      agent_access.set_moderation_level(moderation_level_PG);
+    else if (data[0] == 'M')
+      agent_access.set_moderation_level(moderation_level_moderate);
+    else if (data[0] == 'A')
+      agent_access.set_moderation_level(moderation_level_adult);
+    else
+      parse_error = true;
+  }
+  if (parse_error)
+    THROW_ALERT("Invalid AgentAccess '[LEVEL]'", AIArgs("[LEVEL]", utils::print_using(data, utils::c_escape)));
+}
+
+void initialize(Gender& gender, std::string_view const& data)
+{
+  if (data == "female")
+    gender.m_gender = gender_female;
+  else if (data == "male")
+    gender.m_gender = gender_male;
+  else
+    THROW_ALERT("Invalid Gender '[GENDER]'", AIArgs("[GENDER]", utils::print_using(data, utils::c_escape)));
+}
+
 } // namespace xmlrpc

@@ -37,7 +37,10 @@ target_sources(protocols_ObjLib
     "GridInfoDecoder.h"
     "XML_RPC_Decoder.cxx"
     "XML_RPC_Decoder.h"
+    "XML_RPC_Response.cxx"
     "XML_RPC_Response.h"
+    "XML_RPC_SingleStructResponse.cxx"
+    "XML_RPC_SingleStructResponse.h"
     "xmlrpc_initialize.cxx"
     "xmlrpc_initialize.h"
 )
@@ -46,7 +49,6 @@ target_sources(protocols_ObjLib
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(protocols_ObjLib
   PUBLIC
-    ".."
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
@@ -58,6 +60,7 @@ target_compile_features(protocols_ObjLib
 # Set link dependencies.
 target_link_libraries(protocols_ObjLib
   PRIVATE
+    LinuxViewer::xmlrpc
     AICxx::utils
   PUBLIC
     blaze::blaze
@@ -70,5 +73,5 @@ add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
 add_subdirectory(xmlrpc)
 
 add_executable(xmlrpc_test EXCLUDE_FROM_ALL xmlrpc_test.cxx)
-target_link_libraries(xmlrpc_test PRIVATE LinuxViewer::protocols LinuxViewer::data_types ${AICXX_OBJECTS_LIST})
+target_link_libraries(xmlrpc_test PRIVATE LinuxViewer::protocols LinuxViewer::xmlrpc LinuxViewer::data_types ${AICXX_OBJECTS_LIST})
 target_include_directories(xmlrpc_test PUBLIC "..")

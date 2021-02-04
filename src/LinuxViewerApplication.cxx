@@ -2,7 +2,6 @@
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
 #include "protocols/xmlrpc/LoginResponse.h"
-#include "protocols/XML_RPC_Data.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
 #include "protocols/XML_RPC_Decoder.h"
@@ -29,7 +28,7 @@ class MySocket : public evio::Socket
   GridInfoDecoder m_grid_info_decoder;
   GridInfo m_grid_info;
   XML_RPC_Decoder m_xml_rpc_decoder;
-  XML_RPC_Data<xmlrpc::LoginResponse> m_login_response;
+  xmlrpc::LoginResponse m_login_response;
   evio::OutputStream m_output_stream;
 
  public:
@@ -46,6 +45,26 @@ class MySocket : public evio::Socket
   }
 
   evio::OutputStream& output_stream() { return m_output_stream; }
+};
+
+class MyTestFile : public evio::File
+{
+ private:
+  LinuxViewerApplication* m_application;
+  XML_RPC_Decoder m_xml_rpc_decoder;
+  xmlrpc::LoginResponse m_login_response;
+
+ public:
+  MyTestFile(LinuxViewerApplication* application) : m_application(application), m_xml_rpc_decoder(m_login_response)
+  {
+    set_protocol_decoder(m_xml_rpc_decoder);
+  }
+
+  void closed(int& CWDEBUG_ONLY(allow_deletion_count)) override
+  {
+    DoutEntering(dc::notice, "MyTestFile::closed({" << allow_deletion_count << "})");
+    m_application->quit();
+  }
 };
 
 class MyInputFile : public evio::File
@@ -67,6 +86,7 @@ class MyOutputFile : public evio::File
 // Called when the main instance (as determined by the GUI) of the application is starting.
 void LinuxViewerApplication::on_main_instance_startup()
 {
+#if 0
   // Run a test task.
   boost::intrusive_ptr<task::ConnectToEndPoint> task = new task::ConnectToEndPoint(CWDEBUG_ONLY(true));
   auto socket = evio::create<MySocket>();
@@ -90,6 +110,10 @@ void LinuxViewerApplication::on_main_instance_startup()
 #endif
       }
     });
+#else
+  auto input_file = evio::create<MyTestFile>(this);
+  input_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response_formatted.xml", std::ios_base::in);
+#endif
 
 #if 0
   auto output_file = evio::create<MyOutputFile>();
@@ -97,6 +121,7 @@ void LinuxViewerApplication::on_main_instance_startup()
   output_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response.xml", std::ios_base::out);
 #endif
 
+#if 0
   task->run([this, task](bool success){
       if (!success)
         Dout(dc::warning, "task::ConnectToEndPoint was aborted");
@@ -104,6 +129,7 @@ void LinuxViewerApplication::on_main_instance_startup()
         Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished.");
       this->quit();
     });
+#endif
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.

@@ -27,6 +27,8 @@ add_executable(linuxviewer
 target_link_libraries(linuxviewer
   PRIVATE
     LinuxViewer::protocols
+    LinuxViewer::xmlrpc
+    LinuxViewer::data_types
     LinuxViewer::gtkmmgui
     AICxx::socket-task
     AICxx::resolver-task

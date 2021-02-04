@@ -71,13 +71,14 @@ class ElementBase2 : public ElementBase
     return false;
   }
 
-  void characters(std::string_view const& data) override
+  void characters(XML_RPC_Decoder const* UNUSED_ARG(decoder), std::string_view const& data) override
   {
     THROW_ALERT("Element <[ELEMENT]> contains unexpected characters \"[DATA]\"",
         AIArgs("[ELEMENT]", name())("[DATA]", utils::print_using(data, utils::c_escape)));
   }
 
-  void end_element() override { }
+  void start_element(XML_RPC_Decoder* UNUSED_ARG(decoder)) override { }
+  void end_element(XML_RPC_Decoder* UNUSED_ARG(decoder)) override { }
 };
 
 class UnknownElement : public ElementBase2
@@ -124,52 +125,46 @@ class Element<element_param> : public ElementBase2
 };
 
 template<>
-class Element<element_struct> : public ElementBase2
-{
-  using ElementBase2::ElementBase2;
-  bool has_allowed_parent() override
-  {
-    // <struct> can only occur in <value>.
-    return m_parent && m_parent->id() == element_value;
-  }
-
-  XML_RPC_Struct* m_xml_rpc_struct;
-
- public:
-  template<typename T>
-  void transfer_key_value_pair(std::string&& name, T&& data)
-  {
-    m_xml_rpc_struct->transfer_key_value_pair(std::move(name), std::forward<T>(data));
-  }
-};
-
-template<>
 class Element<element_member> : public ElementBase2
 {
-  using ElementBase2::ElementBase2;
+  bool m_have_name;
+#ifdef CWDEBUG
+  data_type m_data_type;
+#endif
+
   bool has_allowed_parent() override
   {
     // <member> can only occur in <struct>.
     return m_parent && m_parent->id() == element_struct;
   }
 
-  std::string m_name;
+  void end_element(XML_RPC_Decoder* decoder) override
+  {
+    if (!m_have_name)
+      THROW_ALERT("<member> without <name>");
+#ifdef CWDEBUG
+    char const* struct_name;
+    if (m_data_type == data_type_struct)
+      struct_name = decoder->get_struct_name();
+#endif
+    decoder->end_member();
+    Debug(decoder->got_member_type(m_data_type, struct_name));
+  }
 
  public:
-  // Called from Element<element_name>::end_element.
-  void transfer_name(std::string&& name)
+  Element(index_type id, ElementBase* parent) : ElementBase2(id, parent), m_have_name(false) { }
+
+  void have_name()
   {
-    m_name = std::move(name);
+    m_have_name = true;
   }
 
-  template<typename T>
-  void transfer_value(T&& data)
+#ifdef CWDEBUG
+  void got_member_type(data_type type)
   {
-    if (m_name.empty())
-      THROW_ALERT("In element <member>, <name> is expected before <value>");
-    Element<element_struct>* parent = static_cast<Element<element_struct>*>(m_parent);
-    parent->transfer_key_value_pair(std::move(m_name), std::forward<T>(data));
+    m_data_type = type;
   }
+#endif
 };
 
 template<>
@@ -180,6 +175,11 @@ class Element<element_data> : public ElementBase2
   {
     // <data> can only occur in <array>.
     return m_parent && m_parent->id() == element_array;
+  }
+
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    decoder->got_data();
   }
 };
 
@@ -197,6 +197,21 @@ class Element<element_value> : public ElementBase2
   }
 
  public:
+  data_type m_data_type;
+
+#ifdef CWDEBUG
+  void end_element(XML_RPC_Decoder* decoder) override
+  {
+    if (m_parent->id() == element_member)
+    {
+      Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
+      parent->got_member_type(m_data_type);
+    }
+  }
+#endif
+
+#if 0
+ public:
   template<typename T>
   void transfer_value(T&& data)
   {
@@ -212,7 +227,9 @@ class Element<element_value> : public ElementBase2
       case element_member:
       {
         Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
-        parent->transfer_value(std::forward<T>(data));
+        //parent->transfer_value(std::forward<T>(data));
+        // Not implemented yet. What to do when transfer_value is called on <member><value>?
+        ASSERT(false);
         break;
       }
       case element_data:
@@ -227,6 +244,30 @@ class Element<element_value> : public ElementBase2
         ASSERT(false);
     }
   }
+#endif
+};
+
+template<>
+class Element<element_struct> : public ElementBase2
+{
+  using ElementBase2::ElementBase2;
+  bool has_allowed_parent() override
+  {
+    // <struct> can only occur in <value>.
+    return m_parent && m_parent->id() == element_value;
+  }
+
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
+    parent->m_data_type = data_type_struct;
+    decoder->start_struct();
+  }
+
+  void end_element(XML_RPC_Decoder* decoder) override
+  {
+    decoder->end_struct();
+  }
 };
 
 template<>
@@ -240,7 +281,7 @@ class Element<element_name> : public ElementBase2
   }
 
   std::string m_name;
-  void characters(std::string_view const& data) override
+  void characters(XML_RPC_Decoder const* decoder, std::string_view const& data) override
   {
     if (data.size() > 256)
       THROW_ALERT("Refusing to allocate a <name> of more than 256 characters (\"[DATA]\")",
@@ -248,12 +289,13 @@ class Element<element_name> : public ElementBase2
     m_name = data;
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Decoder* decoder) override
   {
     if (m_name.empty())
       THROW_ALERT("Empty element <name>");
+    decoder->start_member(m_name);
     Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
-    parent->transfer_name(std::move(m_name));
+    parent->have_name();
   }
 };
 
@@ -265,10 +307,16 @@ class ElementVariable : public ElementBase2
     return m_parent && m_parent->id() == element_value;
   }
 
-  void end_element() override
+  void end_element(XML_RPC_Decoder* decoder) override
   {
     if (!m_received_characters)
-      characters({});
+      characters(decoder, {});
+  }
+
+  void characters(XML_RPC_Decoder const* decoder, std::string_view const& data) override
+  {
+    m_received_characters = true;
+    decoder->got_characters(data);
   }
 
  protected:
@@ -283,9 +331,24 @@ class Element<element_array> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
-  void end_element() override
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
+    parent->m_data_type = data_type_array;
+    decoder->start_array();
+  }
+
+  void characters(XML_RPC_Decoder const* decoder, std::string_view const& data) override
   {
     // <array> is not allowed to contain characters.
+    THROW_ALERT("Element <array> contains unexpected characters \"[DATA]\"",
+        AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
+  }
+
+  void end_element(XML_RPC_Decoder* decoder) override
+  {
+    // <array> is not allowed to contain characters.
+    decoder->end_array();
   }
 };
 
@@ -293,6 +356,12 @@ template<>
 class Element<element_base64> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
+
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
+    parent->m_data_type = data_type_base64;
+  }
 };
 
 template<>
@@ -300,17 +369,10 @@ class Element<element_boolean> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
-  void characters(std::string_view const& data) override
+  void start_element(XML_RPC_Decoder* decoder) override
   {
-    m_received_characters = true;
-    bool val{false};
-    if (data == "true")
-      val = true;
-    else if (data != "false")
-      THROW_ALERT("Invalid characters in element <bool> (\"[DATA]\")",
-          AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
-    parent->transfer_value(val);
+    parent->m_data_type = data_type_boolean;
   }
 };
 
@@ -318,12 +380,24 @@ template<>
 class Element<element_dateTime_iso8601> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
+
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
+    parent->m_data_type = data_type_datetime;
+  }
 };
 
 template<>
 class Element<element_double> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
+
+  void start_element(XML_RPC_Decoder* decoder) override
+  {
+    Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
+    parent->m_data_type = data_type_double;
+  }
 };
 
 // A signed integer of 32 bytes.
@@ -331,18 +405,10 @@ class ElementInt : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
-  void characters(std::string_view const& data) override
+  void start_element(XML_RPC_Decoder* decoder) override
   {
-    m_received_characters = true;
-    int32_t val;
-    std::from_chars_result result = std::from_chars(data.data(), data.data() + data.size(), val);
-    // Throw if there wasn't any digit, or if the result doesn't fit in a int32_t.
-    if (AI_UNLIKELY(result.ec != std::errc()))
-      THROW_ALERTC(result.ec, "Element<element_i4>::characters: \"[DATA]\"",
-          AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
-
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
-    parent->transfer_value(val);
+    parent->m_data_type = data_type_int;
   }
 };
 
@@ -363,11 +429,10 @@ class Element<element_string> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
-  void characters(std::string_view const& data) override
+  void start_element(XML_RPC_Decoder* decoder) override
   {
-    m_received_characters = true;
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
-    parent->transfer_value(data);
+    parent->m_data_type = data_type_string;
   }
 };
 
@@ -377,7 +442,9 @@ constexpr size_t largest_size = std::max({FOREACH_ELEMENT(SIZEOF_ELEMENT_COMMA)}
 
 utils::NodeMemoryPool pool(128, largest_size);
 
-#define XMLRPC_CASE_CREATE(el) case element_##el: return new(pool) Element<element_##el>(element_##el, parent);
+#define XMLRPC_CASE_CREATE(el) \
+  case element_##el: \
+    return new(pool) Element<element_##el>(element_##el, parent);
 
 ElementBase* create_element(XML_RPC_Decoder::index_type element, ElementBase* parent)
 {
@@ -425,17 +492,18 @@ void XML_RPC_Decoder::start_element(index_type element_id)
   if (!m_current_element->has_allowed_parent())
     THROW_ALERT("Element <[PARENT]> is not expected to have child element <[CHILD]>",
         AIArgs("[PARENT]", parent->name())("[CHILD]", m_current_element->name()));
+  m_current_element->start_element(this);
 }
 
 void XML_RPC_Decoder::end_element(index_type element_id)
 {
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::end_element(" << element_id << " [" << name_of(element_id) << "])");
-  m_current_element->end_element();
+  m_current_element->end_element(this);
   m_current_element = destroy_element(m_current_element);
 }
 
 void XML_RPC_Decoder::characters(std::string_view const& data)
 {
   DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::characters(\"" << libcwd::buf2str(data.data(), data.size()) << "\")");
-  m_current_element->characters(data);
+  m_current_element->characters(this, data);
 }

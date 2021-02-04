@@ -24,6 +24,7 @@ set_property(
 target_sources(protocols_xmlrpc_ObjLib
   PRIVATE
     "LoginResponse.h"
+    "LoginResponse.cxx"
 )
 
 # Required include search-paths.
@@ -31,6 +32,7 @@ get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INC
 target_include_directories(protocols_xmlrpc_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
+    "${CMAKE_SOURCE_DIR}/src"
 )
 
 # Require support for C++17.
@@ -40,8 +42,9 @@ target_compile_features(protocols_xmlrpc_ObjLib
 
 # Set link dependencies.
 target_link_libraries(protocols_xmlrpc_ObjLib
-  #  PRIVATE
-  #  AICxx::utils
+  PRIVATE
+    AICxx::utils
+    blaze::blaze
 )
 
 # Create an ALIAS target.

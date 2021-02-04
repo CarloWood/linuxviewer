@@ -39,6 +39,12 @@ target_sources(data_types_ObjLib
     "URI.h"
     "Vector3d.cxx"
     "Vector3d.h"
+    "LoginFlags.cxx"
+    "LoginFlags.h"
+    "InitialOutfit.cxx"
+    "InitialOutfit.h"
+    "AssetIdItemIdPair.cxx"
+    "AssetIdItemIdPair.h"
 )
 
 # Required include search-paths.

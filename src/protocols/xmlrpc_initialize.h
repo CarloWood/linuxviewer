@@ -1,11 +1,18 @@
 #pragma once
 
+#include "utils/AIAlert.h"
+#include "utils/print_using.h"
+#include "utils/c_escape.h"
 #include "data_types/BinaryData.h"
 #include "data_types/DateTime.h"
 #include "data_types/URI.h"
 #include "data_types/UUID.h"
 #include "data_types/Vector3d.h"
+#include "data_types/ModerationLevel.h"
+#include "data_types/AgentAccess.h"
+#include "data_types/Gender.h"
 #include <boost/archive/iterators/xml_unescape.hpp>
+#include <charconv>
 
 namespace xmlrpc {
 
@@ -34,5 +41,51 @@ inline void initialize(UUID& uuid, std::string_view const& uuid_data)
 }
 
 void initialize(Vector3d& vec, std::string_view const& vector3d_data);
+
+inline void initialize(int32_t& value, std::string_view const& int_data)
+{
+  auto result = std::from_chars(int_data.begin(), int_data.end(), value);
+  if (result.ec == std::errc::invalid_argument || result.ptr != int_data.end())
+  {
+    THROW_ALERTC(result.ec, "Invalid characters [[DATA]] for integer", AIArgs("[DATA]", utils::print_using(int_data, utils::c_escape)));
+  }
+}
+
+inline void initialize(double& value, std::string_view const& double_data)
+{
+  std::string data{double_data};
+  try
+  {
+    value = std::stod(data);
+  }
+  catch (std::invalid_argument const& error)
+  {
+    THROW_ALERT("Invalid characters [[DATA]] for floating point", AIArgs("[DATA]", utils::print_using(double_data, utils::c_escape)));
+  }
+  catch (std::out_of_range  const& error)
+  {
+    THROW_ALERT("Data [[DATA]] is out of range for a double", AIArgs("[DATA]", utils::print_using(double_data, utils::c_escape)));
+  }
+}
+
+inline void initialize(bool& value, std::string_view const& bool_data)
+{
+  if (bool_data == "true" || bool_data == "Y")
+    value = true;
+  else if (bool_data == "false" || bool_data == "N")
+    value = false;
+  else
+  {
+    THROW_ALERT("Invalid characters [[DATA]] for boolean", AIArgs("[DATA]", utils::print_using(bool_data, utils::c_escape)));
+  }
+}
+
+inline void initialize(std::string& value, std::string_view const& string_data)
+{
+  value = string_data;
+}
+
+void initialize(AgentAccess& agent_access, std::string_view const& data);
+void initialize(Gender& gender, std::string_view const& data);
 
 } // namespace xmlrpc
