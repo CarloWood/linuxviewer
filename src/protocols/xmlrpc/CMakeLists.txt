@@ -31,6 +31,12 @@ target_sources(protocols_xmlrpc_ObjLib
     "IgnoreElement.h"
     "initialize.cxx"
     "initialize.h"
+    "ArrayDecoder.h"
+    "create_member_decoder.h"
+    "DecoderBase.h"
+    "macros.h"
+    "MemberDecoder.h"
+    "StructDecoder.h"
     "response/LoginResponse.h"
     "response/LoginResponse.cxx"
 )

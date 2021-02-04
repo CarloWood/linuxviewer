@@ -32,9 +32,9 @@ class ElementDecoder
 #endif
 
  public:
-  virtual ElementDecoder* get_struct();
-  virtual ElementDecoder* get_array();
-  virtual ElementDecoder* get_member(std::string_view const& name);
+  virtual ElementDecoder* get_struct_decoder();
+  virtual ElementDecoder* get_array_decoder();
+  virtual ElementDecoder* get_member_decoder(std::string_view const& name);
   virtual void got_characters(std::string_view const& data);
   virtual void got_data();
 

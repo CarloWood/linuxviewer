@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "LoginResponse.h"
 #include "xmlrpc/IgnoreElement.h"
-#include "xmlrpc/StructWrapper.h"
+#include "xmlrpc/StructDecoder.h"
 #include "debug.h"
 
 namespace xmlrpc {
@@ -63,32 +63,23 @@ char const* LoginResponse::member2str(LoginResponse::members member)
 {
   switch (member)
   {
-    #define xmlrpc_CASE_RETURN(flags, type, el) \
-      case member_##el: \
-        return #el;
-    xmlrpc_LoginResponse_FOREACH_ELEMENT(xmlrpc_CASE_RETURN)
+    xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_CASE_RETURN)
   }
   // Never reached.
   return "";
 }
 #endif
 
-ElementDecoder* LoginResponse::get_member(std::string_view const& name)
+ElementDecoder* LoginResponse::get_member_decoder(std::string_view const& name)
 {
   int index = m_dictionary.index(name);
   if (index >= s_number_of_members)
     return &IgnoreElement::s_ignore_element;
   members member = static_cast<members>(index);
-#ifdef CWDEBUG
-  lm_last_name = member2str(member);
-#endif
+  Debug(lm_last_name = member2str(member));
   switch (member)
   {
-    #define xmlrpc_LoginResponse_CREATE_XMLRPC_MEMBER_WRAPPER(flags, type, el) \
-      case member_##el: \
-        return create_member_wrapper(m_##el, flags COMMA_CWDEBUG_ONLY(#el));
-
-    xmlrpc_LoginResponse_FOREACH_ELEMENT(xmlrpc_LoginResponse_CREATE_XMLRPC_MEMBER_WRAPPER)
+    xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
 }
 

@@ -4,7 +4,7 @@
 
 namespace xmlrpc {
 
-ElementDecoder* SingleStructResponse::get_struct()
+ElementDecoder* SingleStructResponse::get_struct_decoder()
 {
   if (m_saw_struct)
     THROW_FALERT("Unexpected <struct>");

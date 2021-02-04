@@ -1,42 +1,28 @@
 #pragma once
 
 #include "protocols/xmlrpc/SingleStructResponse.h"
-#include "data_types/UUID.h"
-#include "data_types/URI.h"
-#include "data_types/Vector3d.h"
+#include "protocols/xmlrpc/macros.h"
 #include "data_types/AgentAccess.h"
-#include "data_types/LoginFlags.h"
-#include "data_types/InitialOutfit.h"
+#include "data_types/UUID.h"
+#include "data_types/Buddy.h"
+#include "data_types/Category.h"
+#include "data_types/URI.h"
 #include "data_types/AssetIdItemIdPair.h"
+#include "data_types/SunCloudMoonTextures.h"
+#include "data_types/RegionPositionLookAt.h"
+#include "data_types/InitialOutfit.h"
+#include "data_types/AgentID.h"
+#include "data_types/FolderID.h"
+#include "data_types/InventoryFolder.h"
+#include "data_types/LoginFlags.h"
+#include "data_types/Vector3d.h"
+#include "data_types/UIConfig.h"
 #include "utils/Dictionary.h"
 #include <vector>
 
 namespace xmlrpc {
 
-#define DECLARE_UNKNOWN(T) \
-  struct T { \
-    enum members { }; \
-    static constexpr size_t s_number_of_members = 0; \
-  }; \
-  template<> class MemberWrapper<T> : public UnknownMemberWrapper \
-  { \
-    using UnknownMemberWrapper::UnknownMemberWrapper; \
-  }; \
-  template<> class ArrayWrapper<T> : public ArrayWrapperBase<T> \
-  { \
-    using ArrayWrapperBase<T>::ArrayWrapperBase; \
-  }
-
-DECLARE_UNKNOWN(Buddy);
-DECLARE_UNKNOWN(Category);
-DECLARE_UNKNOWN(SunCloudMoonTextures);
-DECLARE_UNKNOWN(RegionPositionLookAt);
-DECLARE_UNKNOWN(AgentID);
-DECLARE_UNKNOWN(FolderID);
-DECLARE_UNKNOWN(InventoryFolder);
-DECLARE_UNKNOWN(UIConfig);
-
-#define xmlrpc_LoginResponse_FOREACH_ELEMENT(X) \
+#define xmlrpc_LoginResponse_FOREACH_MEMBER(X) \
   X(0, AgentAccess,                     agent_access) \
   X(0, AgentAccess,                     agent_access_max) \
   X(0, UUID,                            agent_id) \
@@ -84,15 +70,11 @@ class LoginResponse : public SingleStructResponse
  public:
   LoginResponse();
 
-  #define xmlrpc_LoginResponse_ENUMERATOR_NAME_COMMA(flags, type, el) member_##el,
-
   enum members {
-    xmlrpc_LoginResponse_FOREACH_ELEMENT(xmlrpc_LoginResponse_ENUMERATOR_NAME_COMMA)
+    xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  #define xmlrpc_LoginResponse_DECLARATION(flags, type, el) type m_##el;
-
-  xmlrpc_LoginResponse_FOREACH_ELEMENT(xmlrpc_LoginResponse_DECLARATION)
+  xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
   static constexpr size_t s_number_of_members = member_ui_config + 1;
   static std::array<char const*, s_number_of_members> s_member2name;
@@ -100,10 +82,10 @@ class LoginResponse : public SingleStructResponse
  private:
   utils::Dictionary<members, int> m_dictionary;
 #ifdef CWDEBUG
-  char const* lm_last_name;      // Name of the members enumerator corresponding to the last name of the call to get_member.
+  char const* lm_last_name;      // Name of the members enumerator corresponding to the last name of the call to get_member_decoder.
 #endif
 
-  ElementDecoder* get_member(std::string_view const& name) override;
+  ElementDecoder* get_member_decoder(std::string_view const& name) override;
 
 #ifdef CWDEBUG
   char const* member2str(LoginResponse::members member);

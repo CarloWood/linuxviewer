@@ -1,15 +1,15 @@
 #pragma once
 
 #include "ElementDecoder.h"
-#include "MemberWrapper.h"
-#include "ArrayWrapper.h"
+#include "MemberDecoder.h"
+#include "ArrayDecoder.h"
 #include "debug.h"
 
 namespace xmlrpc {
 
-class UnknownMemberWrapper : public ElementDecoder
+class UnknownMemberDecoder : public ElementDecoder
 {
-  ElementDecoder* get_struct() override
+  ElementDecoder* get_struct_decoder() override
   {
     // Implement struct type.
     ASSERT(false);
@@ -18,7 +18,7 @@ class UnknownMemberWrapper : public ElementDecoder
 
  public:
   template<typename T>
-  UnknownMemberWrapper(T& UNUSED_ARG(unknown_member), int UNUSED_ARG(flags) COMMA_CWDEBUG_ONLY(char const* name)) { }
+  UnknownMemberDecoder(T& UNUSED_ARG(unknown_member), int UNUSED_ARG(flags) COMMA_CWDEBUG_ONLY(char const* name)) { }
 };
 
 struct Unknown
@@ -28,15 +28,15 @@ struct Unknown
 };
 
 template<>
-class MemberWrapper<Unknown> : public UnknownMemberWrapper
+class MemberDecoder<Unknown> : public UnknownMemberDecoder
 {
-  using UnknownMemberWrapper::UnknownMemberWrapper;
+  using UnknownMemberDecoder::UnknownMemberDecoder;
 };
 
 template<>
-class ArrayWrapper<Unknown> : public ArrayWrapperBase<Unknown>
+class ArrayDecoder<Unknown> : public ArrayDecoderBase<Unknown>
 {
-  using ArrayWrapperBase<Unknown>::ArrayWrapperBase;
+  using ArrayDecoderBase<Unknown>::ArrayDecoderBase;
 };
 
 class SingleStructResponse : public ElementDecoder
@@ -47,7 +47,7 @@ class SingleStructResponse : public ElementDecoder
  protected:
   SingleStructResponse() : m_saw_struct(false) { }
 
-  ElementDecoder* get_struct() override;
+  ElementDecoder* get_struct_decoder() override;
 };
 
 } // namespace xmlrpc

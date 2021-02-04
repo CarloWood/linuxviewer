@@ -1,13 +1,13 @@
 #pragma once
 
-#include "WrapperBase.h"
+#include "DecoderBase.h"
 #include "initialize.h"
 #include "debug.h"
 
 namespace xmlrpc {
 
 template<typename T>
-class MemberWrapper : public WrapperBase<T>
+class MemberDecoder : public DecoderBase<T>
 {
   void got_characters(std::string_view const& data) override
   {
@@ -16,7 +16,7 @@ class MemberWrapper : public WrapperBase<T>
   }
 
  public:
-  using WrapperBase<T>::WrapperBase;
+  using DecoderBase<T>::DecoderBase;
 };
 
 } // namespace xmlrpc

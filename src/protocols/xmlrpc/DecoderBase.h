@@ -7,7 +7,7 @@
 namespace xmlrpc {
 
 template<typename T>
-class WrapperBase : public ElementDecoder
+class DecoderBase : public ElementDecoder
 {
  protected:
   T& m_member;
@@ -17,7 +17,7 @@ class WrapperBase : public ElementDecoder
 #endif
 
  public:
-  WrapperBase(T& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) : m_member(member), m_flags(flags), m_name(name) { }
+  DecoderBase(T& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) : m_member(member), m_flags(flags), m_name(name) { }
 };
 
 } // namespace xmlrpc

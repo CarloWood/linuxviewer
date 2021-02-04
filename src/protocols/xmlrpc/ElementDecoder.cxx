@@ -27,19 +27,19 @@ std::ostream& operator<<(std::ostream& os, data_type type)
 // Default virtual functions.
 
 // Called from XML_RPC_Decoder::start_struct called from Element<element_struct>::start_element.
-ElementDecoder* ElementDecoder::get_struct()
+ElementDecoder* ElementDecoder::get_struct_decoder()
 {
   THROW_ALERT("Unexpected <struct>");
 }
 
 // Called from XML_RPC_Decoder::start_array called from Element<element_array>::start_element.
-ElementDecoder* ElementDecoder::get_array()
+ElementDecoder* ElementDecoder::get_array_decoder()
 {
   THROW_ALERT("Unexpected <array>");
 }
 
 // Called from XML_RPC_Decoder::start_member called from Element<element_name>::end_element.
-ElementDecoder* ElementDecoder::get_member(std::string_view const& name)
+ElementDecoder* ElementDecoder::get_member_decoder(std::string_view const& name)
 {
   // Implement get_member in derived class.
   ASSERT(false);

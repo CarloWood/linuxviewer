@@ -65,14 +65,14 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
   void start_struct()
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_struct();
+    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_struct_decoder();
     ASSERT(m_current_xml_rpc_element_decoder);
   }
 
   void start_member(std::string_view const& name)
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_member(name);
+    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_member_decoder(name);
     ASSERT(m_current_xml_rpc_element_decoder);
   }
 
@@ -101,7 +101,7 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
   void start_array()
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_array();
+    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_array_decoder();
     ASSERT(m_current_xml_rpc_element_decoder);
   }
 

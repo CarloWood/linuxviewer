@@ -3,28 +3,27 @@
 
 constexpr size_t AssetIdItemIdPair::s_number_of_members;
 
-#define xmlrpc_NAMES_ARE_THE_SAME(flags, type, el) #el,
-
 std::array<char const*, AssetIdItemIdPair::s_number_of_members> AssetIdItemIdPair::s_member2name = {
-  xmlrpc_AssetIdItemIdPair_FOREACH_ELEMENT(xmlrpc_NAMES_ARE_THE_SAME)
+  xmlrpc_AssetIdItemIdPair_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER_NAME)
 };
+
+xmlrpc::ElementDecoder* AssetIdItemIdPair::get_member_decoder(members member)
+{
+  switch (member)
+  {
+    xmlrpc_AssetIdItemIdPair_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
+  }
+}
 
 namespace xmlrpc {
 
-ElementDecoder* ArrayWrapper<AssetIdItemIdPair>::get_member(std::string_view const& name)
+ElementDecoder* ArrayDecoder<AssetIdItemIdPair>::get_member_decoder(std::string_view const& name)
 {
   int index = m_dictionary.index(name);
   if (index >= AssetIdItemIdPair::s_number_of_members)
     return &IgnoreElement::s_ignore_element;
   AssetIdItemIdPair::members member = static_cast<AssetIdItemIdPair::members>(index);
-  switch (member)
-  {
-    #define xmlrpc_AssetIdItemIdPair_CREATE_XMLRPC_MEMBER_WRAPPER(flags, type, el) \
-    case AssetIdItemIdPair::member_##el: \
-      return create_member_wrapper(m_array_element->m_##el, flags COMMA_CWDEBUG_ONLY(#el));
-
-    xmlrpc_AssetIdItemIdPair_FOREACH_ELEMENT(xmlrpc_AssetIdItemIdPair_CREATE_XMLRPC_MEMBER_WRAPPER)
-  }
+  return m_array_element->get_member_decoder(member);
 }
 
 } // namespace xmlrpc

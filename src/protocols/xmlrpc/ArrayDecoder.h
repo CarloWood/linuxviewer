@@ -1,6 +1,6 @@
 #pragma once
 
-#include "WrapperBase.h"
+#include "DecoderBase.h"
 #include "IgnoreElement.h"      // Not used here, but needed for all specializatons.
 #include "utils/Dictionary.h"
 #include "utils/AIAlert.h"
@@ -10,14 +10,14 @@
 namespace xmlrpc {
 
 template<typename T>
-class ArrayWrapperBase : public WrapperBase<std::vector<T>>
+class ArrayDecoderBase : public DecoderBase<std::vector<T>>
 {
  protected:
   T* m_array_element;
   utils::Dictionary<typename T::members, int> m_dictionary;
 
  private:
-  ElementDecoder* get_array() override
+  ElementDecoder* get_array_decoder() override
   {
     if (!(this->m_flags & 2))
       THROW_ALERT("Unexpected <array>");
@@ -32,18 +32,18 @@ class ArrayWrapperBase : public WrapperBase<std::vector<T>>
     m_array_element = &this->m_member.back();
   }
 
-  ElementDecoder* get_struct() override
+  ElementDecoder* get_struct_decoder() override
   {
     return this;
   }
 
  public:
-  ArrayWrapperBase(std::vector<T>& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) :
-    WrapperBase<std::vector<T>>(member, flags COMMA_CWDEBUG_ONLY(name)), m_array_element(nullptr) { }
+  ArrayDecoderBase(std::vector<T>& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) :
+    DecoderBase<std::vector<T>>(member, flags COMMA_CWDEBUG_ONLY(name)), m_array_element(nullptr) { }
 };
 
-// This class needs to be specialized for every class T (all of them deriving from ArrayWrapperBase.
+// This class needs to be specialized for every class T (all of them deriving from ArrayDecoderBase.
 template<typename T>
-class ArrayWrapper;
+class ArrayDecoder;
 
 } // namespace xmlrpc

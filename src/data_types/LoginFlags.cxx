@@ -4,28 +4,27 @@
 
 constexpr size_t LoginFlags::s_number_of_members;
 
-#define xmlrpc_NAMES_ARE_THE_SAME(flags, type, el) #el,
-
 std::array<char const*, LoginFlags::s_number_of_members> LoginFlags::s_member2name = {
-  xmlrpc_LoginFlags_FOREACH_ELEMENT(xmlrpc_NAMES_ARE_THE_SAME)
+  xmlrpc_LoginFlags_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER_NAME)
 };
+
+xmlrpc::ElementDecoder* LoginFlags::get_member_decoder(members member)
+{
+  switch (member)
+  {
+    xmlrpc_LoginFlags_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
+  }
+}
 
 namespace xmlrpc {
 
-ElementDecoder* StructWrapper<LoginFlags>::get_member(std::string_view const& name)
+ElementDecoder* StructDecoder<LoginFlags>::get_member_decoder(std::string_view const& name)
 {
   int index = m_dictionary.index(name);
   if (index >= LoginFlags::s_number_of_members)
     return &IgnoreElement::s_ignore_element;
   LoginFlags::members member = static_cast<LoginFlags::members>(index);
-  switch (member)
-  {
-    #define xmlrpc_LoginFlags_CREATE_XMLRPC_MEMBER_WRAPPER(flags, type, el) \
-    case LoginFlags::member_##el: \
-      return create_member_wrapper(m_member.m_##el, flags COMMA_CWDEBUG_ONLY(#el));
-
-    xmlrpc_LoginFlags_FOREACH_ELEMENT(xmlrpc_LoginFlags_CREATE_XMLRPC_MEMBER_WRAPPER)
-  }
+  return m_member.get_member_decoder(member);
 }
 
 } // namespace xmlrpc
