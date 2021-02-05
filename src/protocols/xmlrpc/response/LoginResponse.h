@@ -22,6 +22,7 @@
 
 namespace xmlrpc {
 
+  // FIXME: event_notifications has unknown struct (not std::string)
 #define xmlrpc_LoginResponse_FOREACH_MEMBER(X) \
   X(0, AgentAccess,                     agent_access) \
   X(0, AgentAccess,                     agent_access_max) \
@@ -32,7 +33,7 @@ namespace xmlrpc {
   X(0, std::string,                     currency) \
   X(0, URI,                             destination_guide_url) \
   X(0, std::vector<Category>,           event_categories) \
-  X(0, std::vector<Unknown>,            event_notifications) \
+  X(0, std::vector<std::string>,        event_notifications) \
   X(0, std::string,                     first_name) \
   X(0, std::vector<AssetIdItemIdPair>,  gestures) \
   X(1, SunCloudMoonTextures,            global_textures) \
@@ -76,7 +77,7 @@ class LoginResponse : public SingleStructResponse
 
   xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
-  static constexpr size_t s_number_of_members = member_ui_config + 1;
+  static constexpr int s_number_of_members = member_ui_config + 1;
   static std::array<char const*, s_number_of_members> s_member2name;
 
  private:

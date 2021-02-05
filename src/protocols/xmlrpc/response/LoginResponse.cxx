@@ -2,11 +2,12 @@
 #include "LoginResponse.h"
 #include "xmlrpc/IgnoreElement.h"
 #include "xmlrpc/StructDecoder.h"
+#include "xmlrpc/create_member_decoder.h"
 #include "debug.h"
 
 namespace xmlrpc {
 
-constexpr size_t LoginResponse::s_number_of_members;
+constexpr int LoginResponse::s_number_of_members;
 
 std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_member2name = {
   "agent_access",
@@ -55,7 +56,7 @@ std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_mem
 LoginResponse::LoginResponse()
 {
   for (size_t i = 0; i < s_number_of_members; ++i)
-    m_dictionary.add(static_cast<members>(i), s_member2name[i]);
+    m_dictionary.add(static_cast<members>(i), std::string_view{s_member2name[i]});
 }
 
 #ifdef CWDEBUG

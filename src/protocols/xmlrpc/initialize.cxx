@@ -50,6 +50,50 @@ void initialize(Vector3d& vec, std::string_view const& vector3d_data)
     THROW_FALERT("Parse error while decoding \"[DATA]\"", AIArgs("[DATA]", vector3d_data));
 }
 
+void initialize(RegionHandle& region_handle, std::string_view const& data)
+{
+  // The format of the string is "[r254208,r261120]" even though these numbers are not reals, but integers.
+  // Hence, RegionHandle does not need xml unescaping, since it does not contain any of '"<>&.
+  boost::iostreams::stream<boost::iostreams::basic_array_source<char>> stream(data.begin(), data.end());
+  bool parse_error = false;
+  char expected = '[';
+  char c;
+  int i = 0;
+  for (;;)
+  {
+    // Read next expected character.
+    stream >> c;
+    if (AI_UNLIKELY(stream.eof()) || AI_UNLIKELY(c != expected))
+    {
+      // Allow white space in front of expected characters.
+      // This therefore allows " [ r254208 , r261120 ]".
+      if (std::isspace(c))
+        continue;
+      parse_error = true;
+      break;
+    }
+    if (expected == '[')
+      expected = 'r';
+    else if (expected == ',')
+    {
+      ++i;
+      expected = 'r';
+    }
+    else if (expected == 'r')
+    {
+      expected = (i == 1) ? ']' : ',';
+      if (i == 0)
+        stream >> region_handle.m_x;
+      else
+        stream >> region_handle.m_y;
+    }
+    else
+      break;
+  }
+  if (AI_UNLIKELY(parse_error))
+    THROW_FALERT("Parse error while decoding \"[DATA]\"", AIArgs("[DATA]", data));
+}
+
 void initialize(AgentAccess& agent_access, std::string_view const& data)
 {
   bool parse_error = data.size() != 1;

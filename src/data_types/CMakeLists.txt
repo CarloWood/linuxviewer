@@ -45,6 +45,25 @@ target_sources(data_types_ObjLib
     "InitialOutfit.h"
     "AssetIdItemIdPair.cxx"
     "AssetIdItemIdPair.h"
+    "Buddy.cxx"
+    "Buddy.h"
+    "Category.cxx"
+    "Category.h"
+    "SunCloudMoonTextures.cxx"
+    "SunCloudMoonTextures.h"
+    "RegionPositionLookAt.cxx"
+    "RegionPositionLookAt.h"
+    "RegionHandle.h"
+    "Position.h"
+    "LookAt.h"
+    "AgentID.cxx"
+    "AgentID.h"
+    "FolderID.cxx"
+    "FolderID.h"
+    "InventoryFolder.cxx"
+    "InventoryFolder.h"
+    "UIConfig.cxx"
+    "UIConfig.h"
 )
 
 # Required include search-paths.
@@ -66,6 +85,7 @@ target_link_libraries(data_types_ObjLib
     AICxx::utils
   PUBLIC
     blaze::blaze
+    magic_enum::magic_enum
 )
 
 # Create an ALIAS target.

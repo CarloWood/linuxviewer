@@ -4,6 +4,7 @@ include(AICxxProject)
 #find_package(Boost REQUIRED COMPONENTS filesystem iostreams program_options system)
 find_package(farmhash REQUIRED)
 find_package(blaze REQUIRED)
+find_package(magic_enum REQUIRED)
 
 # Use --disable-new-dtags when linking executables. This is to avoid setting the RUNPATH
 # entry in the dynamic section of executables when using -rpath. As a result the path
@@ -36,6 +37,7 @@ target_link_libraries(linuxviewer
     ${AICXX_OBJECTS_LIST}
     farmhash::farmhash
     blaze::blaze
+    magic_enum::magic_enum
 )
 
 add_subdirectory(GUI_gtkmm3)

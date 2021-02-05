@@ -1,12 +1,6 @@
 #include "sys.h"
 #include "InitialOutfit.h"
-#include "protocols/xmlrpc/IgnoreElement.h"
-
-constexpr size_t InitialOutfit::s_number_of_members;
-
-std::array<char const*, InitialOutfit::s_number_of_members> InitialOutfit::s_member2name = {
-  xmlrpc_InitialOutfit_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER_NAME)
-};
+#include "protocols/xmlrpc/create_member_decoder.h"
 
 xmlrpc::ElementDecoder* InitialOutfit::get_member_decoder(members member)
 {

@@ -11,6 +11,7 @@
 #include "data_types/ModerationLevel.h"
 #include "data_types/AgentAccess.h"
 #include "data_types/Gender.h"
+#include "data_types/RegionPositionLookAt.h"
 #include <boost/archive/iterators/xml_unescape.hpp>
 #include <charconv>
 
@@ -87,5 +88,22 @@ inline void initialize(std::string& value, std::string_view const& string_data)
 
 void initialize(AgentAccess& agent_access, std::string_view const& data);
 void initialize(Gender& gender, std::string_view const& data);
+
+inline void initialize(RegionPositionLookAt& region_position_look_at, std::string_view const& data)
+{
+  region_position_look_at.assign_from_string(data);
+}
+
+inline void initialize(Position& position, std::string_view const& data)
+{
+  initialize(position.m_position, data);
+}
+
+inline void initialize(LookAt& look_at, std::string_view const& data)
+{
+  initialize(look_at.m_look_at, data);
+}
+
+void initialize(RegionHandle& region_handle, std::string_view const& data);
 
 } // namespace xmlrpc
