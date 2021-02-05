@@ -28,24 +28,3 @@ class InitialOutfit
   static constexpr size_t s_number_of_members = XMLRPC_NUMBER_OF_MEMBERS(InitialOutfit);
   static std::array<char const*, s_number_of_members> s_member2name;
 };
-
-namespace xmlrpc {
-
-template<>
-class StructDecoder<InitialOutfit> : public StructDecoderBase<InitialOutfit>
-{
- protected:
-  ElementDecoder* get_member_decoder(std::string_view const& name) override;
-
-#ifdef CWDEBUG
-  ElementDecoder* get_struct_decoder() override
-  {
-    m_struct_name = "InitialOutfit";
-    return StructDecoderBase<InitialOutfit>::get_struct_decoder();
-  }
-#endif
-
-  using StructDecoderBase<InitialOutfit>::StructDecoderBase;
-};
-
-} // namespace xmlrpc
