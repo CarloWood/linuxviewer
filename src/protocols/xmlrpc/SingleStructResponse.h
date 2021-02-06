@@ -1,8 +1,6 @@
 #pragma once
 
 #include "ElementDecoder.h"
-#include "MemberDecoder.h"
-#include "ArrayDecoder.h"
 #include "debug.h"
 
 namespace xmlrpc {
