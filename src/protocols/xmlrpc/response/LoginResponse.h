@@ -1,7 +1,6 @@
 #pragma once
 
 #include "protocols/xmlrpc/SingleStructResponse.h"
-#include "protocols/xmlrpc/macros.h"
 #include "data_types/AgentAccess.h"
 #include "data_types/UUID.h"
 #include "data_types/Buddy.h"
@@ -17,12 +16,9 @@
 #include "data_types/LoginFlags.h"
 #include "data_types/Vector3d.h"
 #include "data_types/UIConfig.h"
-#include "utils/Dictionary.h"
-#include <vector>
+#include "protocols/xmlrpc/macros.h"
 
-namespace xmlrpc {
-
-  // FIXME: event_notifications has unknown struct (not std::string)
+// FIXME: event_notifications has unknown struct (not std::string)
 #define xmlrpc_LoginResponse_FOREACH_MEMBER(X) \
   X(0, AgentAccess,                     agent_access) \
   X(0, AgentAccess,                     agent_access_max) \
@@ -66,33 +62,19 @@ namespace xmlrpc {
   X(0, std::string,                     start_location) \
   X(1, UIConfig,                        ui_config)
 
-class LoginResponse : public SingleStructResponse
-{
- public:
-  LoginResponse();
+namespace xmlrpc {
 
+class LoginResponse : public SingleStructResponse<LoginResponse>
+{
+ private:
+  xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
+
+ public:
   enum members {
     xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
-
-  static constexpr int s_number_of_members = member_ui_config + 1;
-  static std::array<char const*, s_number_of_members> s_member2name;
-
- private:
-  utils::Dictionary<members, int> m_dictionary;
-#ifdef CWDEBUG
-  char const* lm_last_name;      // Name of the members enumerator corresponding to the last name of the call to get_member_decoder.
-#endif
-
-  ElementDecoder* get_member_decoder(std::string_view const& name) override;
-
-#ifdef CWDEBUG
-  char const* member2str(LoginResponse::members member);
-
-  void got_member_type(data_type type, char const* struct_name) override;
-#endif
+  ElementDecoder* get_member_decoder(members member);
 };
 
 } // namespace xmlrpc

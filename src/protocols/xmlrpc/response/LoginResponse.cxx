@@ -1,14 +1,10 @@
 #include "sys.h"
 #include "LoginResponse.h"
-#include "xmlrpc/IgnoreElement.h"
-#include "xmlrpc/StructDecoder.h"
 #include "xmlrpc/create_member_decoder.h"
-#include "debug.h"
 
 namespace xmlrpc {
 
-constexpr int LoginResponse::s_number_of_members;
-
+#if 0
 std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_member2name = {
   "agent_access",
   "agent_access_max",
@@ -52,44 +48,14 @@ std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_mem
   "start_location",
   "ui-config",
 };
-
-LoginResponse::LoginResponse()
-{
-  for (size_t i = 0; i < s_number_of_members; ++i)
-    m_dictionary.add(static_cast<members>(i), std::string_view{s_member2name[i]});
-}
-
-#ifdef CWDEBUG
-char const* LoginResponse::member2str(LoginResponse::members member)
-{
-  switch (member)
-  {
-    xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_CASE_RETURN)
-  }
-  // Never reached.
-  return "";
-}
 #endif
 
-ElementDecoder* LoginResponse::get_member_decoder(std::string_view const& name)
+ElementDecoder* LoginResponse::get_member_decoder(members member)
 {
-  int index = m_dictionary.index(name);
-  if (index >= s_number_of_members)
-    return &IgnoreElement::s_ignore_element;
-  members member = static_cast<members>(index);
-  Debug(lm_last_name = member2str(member));
   switch (member)
   {
     xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
 }
-
-#ifdef CWDEBUG
-void LoginResponse::got_member_type(data_type type, char const* struct_name)
-{
-  char const* type_name = (type == data_type_struct) ? struct_name : data_type_to_str[type];
-  Dout(dc::notice, "=== " << type_name << ' '<< lm_last_name << ';');
-}
-#endif
 
 } // namespace xmlrpc
