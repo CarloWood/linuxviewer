@@ -19,23 +19,35 @@ constexpr bool has_members_v<T, std::void_t<typename T::members>> = true;
 } // namespace
 
 template<typename T>
-ElementDecoder* create_member_decoder(T& member, int flags COMMA_CWDEBUG_ONLY(char const* name))
+ElementDecoder* create_member_decoder(T& member, int flags)
 {
   //FIXME: this is not freed anywhere yet.
   if constexpr (has_members_v<T>)      // Is T a <struct>?
-    return new StructDecoder<T>{member, flags COMMA_CWDEBUG_ONLY(name)};
+  {
+    Dout(dc::notice, ">>>" << sizeof(StructDecoder<T>));
+    return new StructDecoder<T>{member, flags};
+  }
   else
-    return new MemberDecoder<T>{member, flags COMMA_CWDEBUG_ONLY(name)};
+  {
+    Dout(dc::notice, ">>>" << sizeof(MemberDecoder<T>));
+    return new MemberDecoder<T>{member, flags};
+  }
 }
 
 template<typename T>
-ElementDecoder* create_member_decoder(std::vector<T>& member, int flags COMMA_CWDEBUG_ONLY(char const* name))
+ElementDecoder* create_member_decoder(std::vector<T>& member, int flags)
 {
   //FIXME: this is not freed anywhere yet.
   if constexpr (has_members_v<T>)      // Is T a <struct>?
-    return new ArrayOfStructDecoder<T>{member, flags|2 COMMA_CWDEBUG_ONLY(name)};
+  {
+    Dout(dc::notice, ">>>" << sizeof(ArrayOfStructDecoder<T>));
+    return new ArrayOfStructDecoder<T>{member, flags|2};
+  }
   else
-    return new ArrayOfMemberDecoder<T>{member, flags|2 COMMA_CWDEBUG_ONLY(name)};
+  {
+    Dout(dc::notice, ">>>" << sizeof(ArrayOfMemberDecoder<T>));
+    return new ArrayOfMemberDecoder<T>{member, flags|2};
+  }
 }
 
 } // namespace xmlrpc

@@ -81,11 +81,6 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
   {
     m_current_xml_rpc_element_decoder->got_member_type(type, struct_name);
   }
-
-  char const* get_struct_name() const
-  {
-    return m_current_xml_rpc_element_decoder->get_struct_name();
-  }
 #endif
 
   void end_member()

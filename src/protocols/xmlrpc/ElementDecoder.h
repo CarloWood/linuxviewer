@@ -3,9 +3,7 @@
 #include <string_view>
 #include <array>
 #include <iosfwd>
-#ifdef CWDEBUG
-#include <string>
-#endif
+#include "debug.h"
 
 namespace xmlrpc {
 
@@ -26,11 +24,6 @@ extern std::ostream& operator<<(std::ostream& os, data_type type);
 
 class ElementDecoder
 {
- protected:
-#ifdef CWDEBUG
-  char const* m_struct_name;
-#endif
-
  public:
   virtual ElementDecoder* get_struct_decoder();
   virtual ElementDecoder* get_array_decoder();
@@ -39,8 +32,10 @@ class ElementDecoder
   virtual void got_data();
 
 #ifdef CWDEBUG
-  virtual void got_member_type(xmlrpc::data_type type, char const* struct_name) { }
-  virtual char const* get_struct_name() const { return m_struct_name; }
+  virtual void got_member_type(xmlrpc::data_type type, char const* member_name)
+  {
+    Dout(dc::notice, "=== " << type << " " << member_name << ";");
+  }
 #endif
 };
 

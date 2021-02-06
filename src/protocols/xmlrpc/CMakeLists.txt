@@ -37,6 +37,7 @@ target_sources(protocols_xmlrpc_ObjLib
     "MemberDecoder.h"
     "StructDecoder.h"
     "SingleStructResponse.h"
+    "StructDictionary.h"
     "response/LoginResponse.h"
     "response/LoginResponse.cxx"
 )

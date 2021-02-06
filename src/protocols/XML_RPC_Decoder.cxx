@@ -128,6 +128,7 @@ class Element<element_member> : public ElementBase2
 {
   bool m_have_name;
 #ifdef CWDEBUG
+  std::string m_name;
   data_type m_data_type;
 #endif
 
@@ -142,9 +143,7 @@ class Element<element_member> : public ElementBase2
     if (!m_have_name)
       THROW_ALERT("<member> without <name>");
 #ifdef CWDEBUG
-    char const* struct_name;
-    if (m_data_type == data_type_struct)
-      struct_name = decoder->get_struct_name();
+    char const* struct_name = m_name.c_str();
 #endif
     decoder->end_member();
     Debug(decoder->got_member_type(m_data_type, struct_name));
@@ -153,9 +152,12 @@ class Element<element_member> : public ElementBase2
  public:
   Element(index_type id, ElementBase* parent) : ElementBase2(id, parent), m_have_name(false) { }
 
-  void have_name()
+  void have_name(CWDEBUG_ONLY(std::string name))
   {
     m_have_name = true;
+#ifdef CWDEBUG
+    m_name = std::move(name);
+#endif
   }
 
 #ifdef CWDEBUG
@@ -195,52 +197,16 @@ class Element<element_value> : public ElementBase2
        m_parent->id() == element_data);
   }
 
+#ifdef CWDEBUG
  public:
   data_type m_data_type;
 
-#ifdef CWDEBUG
   void end_element(XML_RPC_Decoder* decoder) override
   {
     if (m_parent->id() == element_member)
     {
       Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
       parent->got_member_type(m_data_type);
-    }
-  }
-#endif
-
-#if 0
- public:
-  template<typename T>
-  void transfer_value(T&& data)
-  {
-    switch (m_parent->id())
-    {
-      case element_param:
-      {
-        Element<element_param>* parent = static_cast<Element<element_param>*>(m_parent);
-        // Not implemented yet. What to do when transfer_value is called on <param><value>?
-        ASSERT(false);
-        break;
-      }
-      case element_member:
-      {
-        Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
-        //parent->transfer_value(std::forward<T>(data));
-        // Not implemented yet. What to do when transfer_value is called on <member><value>?
-        ASSERT(false);
-        break;
-      }
-      case element_data:
-      {
-        Element<element_data>* parent = static_cast<Element<element_data>*>(m_parent);
-        // Not implemented yet. What to do when transfer_value is called on <data><value>?
-        ASSERT(false);
-        break;
-      }
-      default:
-        // Impossible due to allowed_parent.
-        ASSERT(false);
     }
   }
 #endif
@@ -258,8 +224,10 @@ class Element<element_struct> : public ElementBase2
 
   void start_element(XML_RPC_Decoder* decoder) override
   {
+#ifdef CWDEBUG
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_struct;
+#endif
     decoder->start_struct();
   }
 
@@ -294,7 +262,7 @@ class Element<element_name> : public ElementBase2
       THROW_ALERT("Empty element <name>");
     decoder->start_member(m_name);
     Element<element_member>* parent = static_cast<Element<element_member>*>(m_parent);
-    parent->have_name();
+    parent->have_name(CWDEBUG_ONLY(m_name));
   }
 };
 
@@ -332,8 +300,10 @@ class Element<element_array> : public ElementVariable
 
   void start_element(XML_RPC_Decoder* decoder) override
   {
+#ifdef CWDEBUG
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_array;
+#endif
     decoder->start_array();
   }
 
@@ -356,11 +326,13 @@ class Element<element_base64> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_base64;
   }
+#endif
 };
 
 template<>
@@ -368,11 +340,13 @@ class Element<element_boolean> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_boolean;
   }
+#endif
 };
 
 template<>
@@ -380,11 +354,13 @@ class Element<element_dateTime_iso8601> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_datetime;
   }
+#endif
 };
 
 template<>
@@ -392,11 +368,13 @@ class Element<element_double> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_double;
   }
+#endif
 };
 
 // A signed integer of 32 bytes.
@@ -404,11 +382,13 @@ class ElementInt : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_int;
   }
+#endif
 };
 
 template<>
@@ -428,11 +408,13 @@ class Element<element_string> : public ElementVariable
 {
   using ElementVariable::ElementVariable;
 
+#ifdef CWDEBUG
   void start_element(XML_RPC_Decoder* decoder) override
   {
     Element<element_value>* parent = static_cast<Element<element_value>*>(m_parent);
     parent->m_data_type = data_type_string;
   }
+#endif
 };
 
 #define SIZEOF_ELEMENT_COMMA(el) sizeof(Element<element_##el>),

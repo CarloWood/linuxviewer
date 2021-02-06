@@ -36,8 +36,7 @@ class ArrayOfMemberDecoder : public DecoderBase<std::vector<T>>
   }
 
  public:
-  ArrayOfMemberDecoder(std::vector<T>& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) :
-    DecoderBase<std::vector<T>>(member, flags COMMA_CWDEBUG_ONLY(name)), m_array_element(nullptr) { }
+  ArrayOfMemberDecoder(std::vector<T>& member, int flags) : DecoderBase<std::vector<T>>(member, flags), m_array_element(nullptr) { }
 };
 
 } // namespace xmlrpc

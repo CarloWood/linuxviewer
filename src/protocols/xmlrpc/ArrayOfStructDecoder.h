@@ -1,24 +1,31 @@
 #pragma once
 
+#include "StructDictionary.h"
 #include "DecoderBase.h"
 #include "IgnoreElement.h"      // Not used here, but needed for all specializatons.
-#include "utils/Dictionary.h"
 #include "utils/AIAlert.h"
-#include <magic_enum.hpp>
 #include <vector>
-#include "debug.h"
 
 namespace xmlrpc {
 
 template<typename T>
-class ArrayOfStructDecoder : public DecoderBase<std::vector<T>>
+class ArrayOfStructDecoder : public StructDictionary<T>, public DecoderBase<std::vector<T>>
 {
  protected:
   T* m_array_element;
-  utils::Dictionary<typename T::members, int> m_dictionary;
 
  protected:
-  ElementDecoder* get_member_decoder(std::string_view const& name) override;
+  ElementDecoder* get_member_decoder(std::string_view const& name) override
+  {
+    try
+    {
+      return m_array_element->get_member_decoder(this->get_member(name));
+    }
+    catch (UnknownMember const& except)
+    {
+      return &IgnoreElement::s_ignore_element;
+    }
+  }
 
  private:
   ElementDecoder* get_array_decoder() override
@@ -42,18 +49,7 @@ class ArrayOfStructDecoder : public DecoderBase<std::vector<T>>
   }
 
  public:
-  ArrayOfStructDecoder(std::vector<T>& member, int flags COMMA_CWDEBUG_ONLY(char const* name)) :
-    DecoderBase<std::vector<T>>(member, flags COMMA_CWDEBUG_ONLY(name)), m_array_element(nullptr) { }
+  ArrayOfStructDecoder(std::vector<T>& member, int flags) : DecoderBase<std::vector<T>>(member, flags), m_array_element(nullptr) { }
 };
-
-template<typename T>
-ElementDecoder* ArrayOfStructDecoder<T>::get_member_decoder(std::string_view const& name)
-{
-  int index = m_dictionary.index(name);
-  if (index >= magic_enum::enum_count<typename T::members>())
-    return &IgnoreElement::s_ignore_element;
-  typename T::members member = static_cast<typename T::members>(index);
-  return m_array_element->get_member_decoder(member);
-}
 
 } // namespace xmlrpc
