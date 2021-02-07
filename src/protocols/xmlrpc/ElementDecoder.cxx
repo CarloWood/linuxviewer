@@ -1,5 +1,6 @@
 #include "sys.h"
-#include "ElementDecoder.h"
+#include "IgnoreElement.h"
+#include "ArrayOfStructDecoder.h"
 #include "utils/AIAlert.h"
 #include "utils/print_using.h"
 #include "utils/c_escape.h"
@@ -39,11 +40,18 @@ ElementDecoder* ElementDecoder::get_array_decoder()
 }
 
 // Called from XML_RPC_Decoder::start_member called from Element<element_name>::end_element.
-ElementDecoder* ElementDecoder::get_member_decoder(std::string_view const& name)
+ElementDecoder* ElementDecoder::create_member_decoder(std::string_view const& name)
 {
   // Implement get_member in derived class.
   ASSERT(false);
   return nullptr;
+}
+
+void ElementDecoder::destroy_member_decoder()
+{
+  // To be implemented.
+  if (this != &IgnoreElement::s_ignore_element)
+    delete this;
 }
 
 // Called from XML_RPC_Decoder::got_characters called from ElementVariable::characters.
@@ -57,5 +65,10 @@ void ElementDecoder::got_data()
   // Implement got_data in derived class.
   ASSERT(false);
 }
+
+// ArrayOfStructDecoder is the largest.
+struct Dummy { enum members { one_ }; };
+static constexpr size_t largest_size = sizeof(ArrayOfStructDecoder<Dummy>);
+utils::NodeMemoryPool ElementDecoder::s_pool(8, largest_size);
 
 } // namespace xmlrpc

@@ -2,7 +2,7 @@
 #include "AgentID.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* AgentID::get_member_decoder(members member)
+xmlrpc::ElementDecoder* AgentID::create_member_decoder(members member)
 {
   switch (member)
   {

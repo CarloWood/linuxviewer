@@ -2,7 +2,7 @@
 #include "Category.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* Category::get_member_decoder(members member)
+xmlrpc::ElementDecoder* Category::create_member_decoder(members member)
 {
   switch (member)
   {

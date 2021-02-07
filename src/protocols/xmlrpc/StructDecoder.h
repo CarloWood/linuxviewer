@@ -10,11 +10,11 @@ template<typename T>
 class StructDecoder : public StructDictionary<T>, public DecoderBase<T>
 {
  protected:
-  ElementDecoder* get_member_decoder(std::string_view const& name) override
+  ElementDecoder* create_member_decoder(std::string_view const& name) override
   {
     try
     {
-      return this->m_member.get_member_decoder(this->get_member(name));
+      return this->m_member.create_member_decoder(this->get_member(name));
     }
     catch (UnknownMember const& except)
     {

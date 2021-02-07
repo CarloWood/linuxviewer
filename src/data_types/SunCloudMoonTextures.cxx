@@ -2,7 +2,7 @@
 #include "SunCloudMoonTextures.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* SunCloudMoonTextures::get_member_decoder(members member)
+xmlrpc::ElementDecoder* SunCloudMoonTextures::create_member_decoder(members member)
 {
   switch (member)
   {

@@ -2,7 +2,7 @@
 #include "LoginFlags.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* LoginFlags::get_member_decoder(members member)
+xmlrpc::ElementDecoder* LoginFlags::create_member_decoder(members member)
 {
   switch (member)
   {

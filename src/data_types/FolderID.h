@@ -16,5 +16,5 @@ class FolderID
     xmlrpc_FolderID_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  xmlrpc::ElementDecoder* get_member_decoder(members member);
+  xmlrpc::ElementDecoder* create_member_decoder(members member);
 };

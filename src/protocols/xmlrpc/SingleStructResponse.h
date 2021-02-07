@@ -11,21 +11,19 @@ template<typename T>
 class SingleStructResponse : public ElementDecoder
 {
  private:
+  StructDecoder<T> m_struct_decoder;
   bool m_saw_struct;
 
  protected:
-  SingleStructResponse() : m_saw_struct(false) { }
+  ElementDecoder* get_struct_decoder() override
+  {
+    if (m_saw_struct)
+      THROW_FALERT("Unexpected <struct>");
+    m_saw_struct = true;
+    return &m_struct_decoder;
+  }
 
-  ElementDecoder* get_struct_decoder() override;
+  SingleStructResponse(T& response) : m_struct_decoder(response, 0), m_saw_struct(false) { }
 };
-
-template<typename T>
-ElementDecoder* SingleStructResponse<T>::get_struct_decoder()
-{
-  if (m_saw_struct)
-    THROW_FALERT("Unexpected <struct>");
-  m_saw_struct = true;
-  return create_member_decoder(*static_cast<T*>(this), 0);
-}
 
 } // namespace xmlrpc

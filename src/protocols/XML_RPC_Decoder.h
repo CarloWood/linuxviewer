@@ -41,14 +41,16 @@ class ElementBase
 class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
 {
  private:
-  xmlrpc::ElementDecoder* m_current_xml_rpc_element_decoder;
-  std::stack<xmlrpc::ElementDecoder*> m_xml_rpc_response_stack;
+  struct DecoderPtr { xmlrpc::ElementDecoder* ptr; bool need_destroy; };
+  DecoderPtr m_current_xml_rpc_element_decoder;
+  std::stack<DecoderPtr> m_xml_rpc_response_stack;
   xmlrpc::ElementBase* m_current_element;
 
   void restore_current_xml_rpc_element_decoder()
   {
+    if (m_current_xml_rpc_element_decoder.need_destroy)
+      m_current_xml_rpc_element_decoder.ptr->destroy_member_decoder();
     m_current_xml_rpc_element_decoder = m_xml_rpc_response_stack.top();
-    ASSERT(m_current_xml_rpc_element_decoder);
     m_xml_rpc_response_stack.pop();
   }
 
@@ -60,26 +62,24 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
   void characters(std::string_view const& data) final;
 
  public:
-  XML_RPC_Decoder(xmlrpc::ElementDecoder& xml_rpc_element_decoder) : m_current_xml_rpc_element_decoder(&xml_rpc_element_decoder) { }
+  XML_RPC_Decoder(xmlrpc::ElementDecoder& xml_rpc_element_decoder) : m_current_xml_rpc_element_decoder{&xml_rpc_element_decoder, false} { }
 
   void start_struct()
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_struct_decoder();
-    ASSERT(m_current_xml_rpc_element_decoder);
+    m_current_xml_rpc_element_decoder = { m_current_xml_rpc_element_decoder.ptr->get_struct_decoder(), false };
   }
 
   void start_member(std::string_view const& name)
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_member_decoder(name);
-    ASSERT(m_current_xml_rpc_element_decoder);
+    m_current_xml_rpc_element_decoder = { m_current_xml_rpc_element_decoder.ptr->create_member_decoder(name), true };
   }
 
 #ifdef CWDEBUG
   void got_member_type(xmlrpc::data_type type, char const* struct_name)
   {
-    m_current_xml_rpc_element_decoder->got_member_type(type, struct_name);
+    m_current_xml_rpc_element_decoder.ptr->got_member_type(type, struct_name);
   }
 #endif
 
@@ -96,8 +96,7 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
   void start_array()
   {
     m_xml_rpc_response_stack.push(m_current_xml_rpc_element_decoder);
-    m_current_xml_rpc_element_decoder = m_current_xml_rpc_element_decoder->get_array_decoder();
-    ASSERT(m_current_xml_rpc_element_decoder);
+    m_current_xml_rpc_element_decoder = { m_current_xml_rpc_element_decoder.ptr->get_array_decoder(), false };
   }
 
   void end_array()
@@ -107,11 +106,11 @@ class XML_RPC_Decoder : public evio::protocol::UTF8_SAX_Decoder
 
   void got_characters(std::string_view const& data) const
   {
-    m_current_xml_rpc_element_decoder->got_characters(data);
+    m_current_xml_rpc_element_decoder.ptr->got_characters(data);
   }
 
   void got_data()
   {
-    m_current_xml_rpc_element_decoder->got_data();
+    m_current_xml_rpc_element_decoder.ptr->got_data();
   }
 };

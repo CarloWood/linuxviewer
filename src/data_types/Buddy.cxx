@@ -2,7 +2,7 @@
 #include "Buddy.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* Buddy::get_member_decoder(members member)
+xmlrpc::ElementDecoder* Buddy::create_member_decoder(members member)
 {
   switch (member)
   {

@@ -29,17 +29,17 @@ target_sources(protocols_xmlrpc_ObjLib
     "IgnoreElement.h"
     "initialize.cxx"
     "initialize.h"
+    "create_member_decoder.h"
     "ArrayOfStructDecoder.h"
     "ArrayOfMemberDecoder.h"
-    "create_member_decoder.h"
     "DecoderBase.h"
     "macros.h"
     "MemberDecoder.h"
     "StructDecoder.h"
     "SingleStructResponse.h"
     "StructDictionary.h"
-    "response/LoginResponse.h"
     "response/LoginResponse.cxx"
+    "response/LoginResponse.h"
 )
 
 # Required include search-paths.

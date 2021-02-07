@@ -2,7 +2,7 @@
 #include "AssetIdItemIdPair.h"
 #include "protocols/xmlrpc/create_member_decoder.h"
 
-xmlrpc::ElementDecoder* AssetIdItemIdPair::get_member_decoder(members member)
+xmlrpc::ElementDecoder* AssetIdItemIdPair::create_member_decoder(members member)
 {
   switch (member)
   {

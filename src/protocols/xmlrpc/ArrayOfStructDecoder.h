@@ -15,11 +15,11 @@ class ArrayOfStructDecoder : public StructDictionary<T>, public DecoderBase<std:
   T* m_array_element;
 
  protected:
-  ElementDecoder* get_member_decoder(std::string_view const& name) override
+  ElementDecoder* create_member_decoder(std::string_view const& name) override
   {
     try
     {
-      return m_array_element->get_member_decoder(this->get_member(name));
+      return m_array_element->create_member_decoder(this->get_member(name));
     }
     catch (UnknownMember const& except)
     {

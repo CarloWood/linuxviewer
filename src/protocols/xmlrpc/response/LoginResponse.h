@@ -64,7 +64,7 @@
 
 namespace xmlrpc {
 
-class LoginResponse : public SingleStructResponse<LoginResponse>
+class LoginResponseData
 {
  private:
   xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
@@ -74,7 +74,12 @@ class LoginResponse : public SingleStructResponse<LoginResponse>
     xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  ElementDecoder* get_member_decoder(members member);
+  ElementDecoder* create_member_decoder(members member);
+};
+
+struct LoginResponse : public LoginResponseData, public SingleStructResponse<LoginResponseData>
+{
+  LoginResponse() : SingleStructResponse<LoginResponseData>(static_cast<LoginResponseData&>(*this)) { }
 };
 
 } // namespace xmlrpc

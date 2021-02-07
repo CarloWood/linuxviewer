@@ -50,7 +50,7 @@ std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_mem
 };
 #endif
 
-ElementDecoder* LoginResponse::get_member_decoder(members member)
+ElementDecoder* LoginResponseData::create_member_decoder(members member)
 {
   switch (member)
   {
