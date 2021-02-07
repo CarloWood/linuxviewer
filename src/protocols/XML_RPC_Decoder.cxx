@@ -485,6 +485,6 @@ void XML_RPC_Decoder::end_element(index_type element_id)
 
 void XML_RPC_Decoder::characters(std::string_view const& data)
 {
-  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::characters(\"" << libcwd::buf2str(data.data(), data.size()) << "\")");
+  DoutEntering(dc::xmlrpc, "XML_RPC_Decoder::characters(\"" << buf2str(data.data(), data.size()) << "\")");
   m_current_element->characters(this, data);
 }
