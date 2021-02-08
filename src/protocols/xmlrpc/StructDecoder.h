@@ -16,7 +16,7 @@ class StructDecoder : public StructDictionary<T>, public DecoderBase<T>
     {
       return this->m_member.create_member_decoder(this->get_member(name));
     }
-    catch (UnknownMember const& except)
+    catch (typename StructDictionary<T>::UnknownMember const&)
     {
       return &IgnoreElement::s_ignore_element;
     }
