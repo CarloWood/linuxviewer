@@ -1,24 +1,25 @@
 #include "sys.h"
-#include "GUIApplication.h"
-#include "GUIWindow.h"
+#include "gui_Application.h"
+#include "gui_Window.h"
 #include <gtkmm.h>
 #include "debug.h"
 
 namespace gtkmm3 {
+namespace gui {
 
-GUIApplication::GUIApplication(std::string const& application_name)
+Application::Application(std::string const& application_name)
 {
   Glib::set_application_name(application_name);
-  Glib::signal_idle().connect(sigc::mem_fun(*this, &GUIApplication::on_gui_idle));
+  Glib::signal_idle().connect(sigc::mem_fun(*this, &Application::on_gui_idle));
 }
 
-GUIApplication::~GUIApplication()
+Application::~Application()
 {
 }
 
-void GUIApplication::on_startup()
+void Application::on_startup()
 {
-  DoutEntering(dc::notice, "GUIApplication::on_startup()");
+  DoutEntering(dc::notice, "Application::on_startup()");
 
   // Call the base class's implementation. This is required.
   Gtk::Application::on_startup();
@@ -28,17 +29,17 @@ void GUIApplication::on_startup()
   on_main_instance_startup();
 }
 
-void GUIApplication::on_activate()
+void Application::on_activate()
 {
-  DoutEntering(dc::notice, "GUIViewer::on_activate()");
+  DoutEntering(dc::notice, "Viewer::on_activate()");
 
   // The application has been started, create and show the main window.
   m_main_window = create_window();
 }
 
-GUIWindow* GUIApplication::create_window()
+Window* Application::create_window()
 {
-  GUIWindow* main_window = new GUIWindow(this);
+  Window* main_window = new Window(this);
 
   // Make sure that the application runs as long this window is still open.
   add_window(*main_window);
@@ -47,15 +48,15 @@ GUIWindow* GUIApplication::create_window()
   ASSERT(G_IS_OBJECT(main_window->gobj()));
 
   // Delete the window when it is hidden.
-  main_window->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &GUIApplication::on_window_hide), main_window));
+  main_window->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &Application::on_window_hide), main_window));
 
   main_window->show_all();
   return main_window;
 }
 
-void GUIApplication::on_window_hide(Gtk::Window* window)
+void Application::on_window_hide(Gtk::Window* window)
 {
-  DoutEntering(dc::notice, "GUIApplication::on_window_hide(" << window << ")");
+  DoutEntering(dc::notice, "Application::on_window_hide(" << window << ")");
   // There is only one window, no?
   ASSERT(window == m_main_window);
 
@@ -71,12 +72,12 @@ void GUIApplication::on_window_hide(Gtk::Window* window)
   // This doesn't really do anything anymore, but well.
   terminate();
 
-  Dout(dc::notice, "Leaving GUIApplication::on_window_hide()");
+  Dout(dc::notice, "Leaving Application::on_window_hide()");
 }
 
-void GUIApplication::terminate()
+void Application::terminate()
 {
-  DoutEntering(dc::notice, "GUIApplication::terminate()");
+  DoutEntering(dc::notice, "Application::terminate()");
 
   quit(); // Not really necessary, when Gtk::Widget::hide() is called.
 
@@ -92,7 +93,8 @@ void GUIApplication::terminate()
   for (auto window : windows)
     window->hide();
 
-  Dout(dc::notice, "Leaving GUIApplication::terminate()");
+  Dout(dc::notice, "Leaving Application::terminate()");
 }
 
+} // namespace gui
 } // namespace gtkmm3

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "GUI_gtkmm3/GUIMenuEntryKey.h"
-using GUIMenuEntryKey = gtkmm3::GUIMenuEntryKey;
+#include "GUI_glfw3/gui_MenuEntryKey.h"
+using MenuEntryKey = glfw3::gui::MenuEntryKey;
 
 // Interface class.
 //
@@ -11,5 +11,5 @@ class LinuxViewerMenuBar
 {
  public:
   // Request to add a menu entry and use callback function cb for it.
-  virtual void append_menu_entry(GUIMenuEntryKey menu_entry_key, std::function<void ()> cb) = 0;
+  virtual void append_menu_entry(MenuEntryKey menu_entry_key, std::function<void ()> cb) = 0;
 };

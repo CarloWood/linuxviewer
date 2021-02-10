@@ -30,7 +30,7 @@ target_link_libraries(linuxviewer
     LinuxViewer::protocols
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
-    LinuxViewer::gtkmmgui
+    LinuxViewer::glfw3gui
     AICxx::socket-task
     AICxx::resolver-task
     dns::dns
@@ -40,6 +40,7 @@ target_link_libraries(linuxviewer
     magic_enum::magic_enum
 )
 
-add_subdirectory(GUI_gtkmm3)
+#add_subdirectory(GUI_gtkmm3)
+add_subdirectory(GUI_glfw3)
 add_subdirectory(protocols)
 add_subdirectory(data_types)

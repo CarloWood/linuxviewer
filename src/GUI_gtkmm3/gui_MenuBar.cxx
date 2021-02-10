@@ -1,15 +1,16 @@
 #include "sys.h"
-#include "GUIMenuBar.h"
-#include "GUIWindow.h"
-#include "GUIApplication.h"
+#include "gui_MenuBar.h"
+#include "gui_Window.h"
+#include "gui_Application.h"
 #include "utils/macros.h"
 
 using namespace menu_keys;
 
 namespace gtkmm3 {
+namespace gui {
 
 //static
-char const* GUIMenuBar::top_entry_label(TopEntries top_entry)
+char const* MenuBar::top_entry_label(TopEntries top_entry)
 {
   switch (top_entry)
   {
@@ -21,7 +22,7 @@ char const* GUIMenuBar::top_entry_label(TopEntries top_entry)
   return "";
 }
 
-GUIMenuBar::GUIMenuBar(GUIWindow* main_window)
+MenuBar::MenuBar(Window* main_window)
 {
   // Prepare top level entries.
   for (int tl = 0; tl < number_of_top_entries; ++tl)
@@ -37,4 +38,5 @@ GUIMenuBar::GUIMenuBar(GUIWindow* main_window)
   main_window->application().append_menu_entries(this);
 }
 
+| // namespace gui
 } // namespace gtkmm3

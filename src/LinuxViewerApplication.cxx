@@ -86,6 +86,7 @@ class MyOutputFile : public evio::File
 // Called when the main instance (as determined by the GUI) of the application is starting.
 void LinuxViewerApplication::on_main_instance_startup()
 {
+  DoutEntering(dc::notice, "LinuxViewerApplication::on_main_instance_startup()");
 #if 0
   // Run a test task.
   boost::intrusive_ptr<task::ConnectToEndPoint> task = new task::ConnectToEndPoint(CWDEBUG_ONLY(true));
@@ -151,7 +152,7 @@ void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
   //---------------------------------------------------------------------------
   // Menu buttons that have a call back to this object are added below.
   //
-  ADD(File, QUIT);
+//  ADD(File, QUIT);
 }
 
 void LinuxViewerApplication::on_menu_File_QUIT()

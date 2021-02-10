@@ -1,15 +1,16 @@
 #include "sys.h"
-#include "GUIIconFactory.h"
+#include "gui_IconFactory.h"
 #include "debug.h"
 
 namespace gtkmm3 {
+namepsace gui {
 
 //static
-std::array<GUIIconFactory::icon_info_st, menu_keys::number_of_custom_icons> GUIIconFactory::s_icon_info = {{
+std::array<IconFactory::icon_info_st, menu_keys::number_of_custom_icons> IconFactory::s_icon_info = {{
 //  { "pixmaps/export.png", "export", "Export" },
 }};
 
-GUIIconFactory::GUIIconFactory()
+IconFactory::IconFactory()
 {
   Glib::RefPtr<Gtk::IconFactory> factory = Gtk::IconFactory::create();
   for (int i = 0; i < s_icon_info.size(); ++i)
@@ -37,4 +38,5 @@ GUIIconFactory::GUIIconFactory()
     m_icon_ids[i] = Gtk::StockID(s_icon_info[i].id);
 }
 
+} // namepsace gui
 } // namespace gtkmm3

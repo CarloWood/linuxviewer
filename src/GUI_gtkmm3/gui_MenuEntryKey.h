@@ -7,8 +7,9 @@
 #endif
 
 namespace gtkmm3 {
+namespace gui {
 
-struct GUIMenuEntryKey
+struct MenuEntryKey
 {
   using TopEntries = menu_keys::TopEntries;
   using MenuEntryWithIconId = menu_keys::MenuEntryWithIconId;
@@ -19,10 +20,10 @@ struct GUIMenuEntryKey
   Gtk::StockID m_stock_id;                                            // Valid iff m_type == is_stock_id_n.
   MenuEntryWithoutIconId m_menu_entry_without_icon_id;                // Valid iff m_type == is_menu_entry_without_icon_id_n.
 
-  GUIMenuEntryKey(TopEntries top_entry, Gtk::StockID stock_id)
+  MenuEntryKey(TopEntries top_entry, Gtk::StockID stock_id)
     : m_top_entry(top_entry), m_type(is_stock_id_n), m_stock_id(stock_id) { }
 
-  GUIMenuEntryKey(TopEntries top_entry, MenuEntryWithoutIconId menu_entry_without_icon_id)
+  MenuEntryKey(TopEntries top_entry, MenuEntryWithoutIconId menu_entry_without_icon_id)
     : m_top_entry(top_entry), m_type(is_menu_entry_without_icon_id_n), m_menu_entry_without_icon_id(menu_entry_without_icon_id) { }
 
   bool is_stock_id() const
@@ -38,7 +39,7 @@ struct GUIMenuEntryKey
   Gtk::StockID get_stock_id() const { return m_stock_id; }
   MenuEntryWithoutIconId get_menu_entry_without_icon_id() const { return m_menu_entry_without_icon_id; }
 
-  friend bool operator<(GUIMenuEntryKey const& key1, GUIMenuEntryKey const& key2)
+  friend bool operator<(MenuEntryKey const& key1, MenuEntryKey const& key2)
   {
     return key1.m_top_entry < key2.m_top_entry ||
       (key1.m_top_entry == key2.m_top_entry &&
@@ -51,7 +52,7 @@ struct GUIMenuEntryKey
   }
 
 #ifdef CWDEBUG
-  friend std::ostream& operator<<(std::ostream& os, GUIMenuEntryKey const& menu_entry_key)
+  friend std::ostream& operator<<(std::ostream& os, MenuEntryKey const& menu_entry_key)
   {
     os << "{top_entry:" << menu_entry_key.m_top_entry << ", menu_entry:";
     if (menu_entry_key.is_stock_id())
@@ -59,10 +60,11 @@ struct GUIMenuEntryKey
     else if (menu_entry_key.is_menu_entry_without_icon_id())
       os << menu_keys::get_label(menu_entry_key.get_menu_entry_without_icon_id());
     else
-      os << "CORRUPT GUIMenuEntryKey";
+      os << "CORRUPT MenuEntryKey";
     return os << "}";
   }
 #endif
 };
 
+} // namespace gui
 } // namespace gtkmm3

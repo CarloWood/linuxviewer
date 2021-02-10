@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GUIIconFactory.h"
+#include "gui_IconFactory.h"
 #include "LinuxViewerMenuBar.h"
 #include "debug.h"
 #include <gtkmm.h>
@@ -10,26 +10,27 @@
 
 // This is the GUI implementation that is implemented on top of gtkmm3.
 namespace gtkmm3 {
+namespace gui {
 
-class GUIWindow;
+class Window;
 
-class GUIMenuBar : public Gtk::MenuBar, public GUIIconFactory, public LinuxViewerMenuBar
+class MenuBar : public Gtk::MenuBar, public IconFactory, public LinuxViewerMenuBar
 {
   using TopEntries = menu_keys::TopEntries;
   using MenuEntryWithIconId = menu_keys::MenuEntryWithIconId;
   using MenuEntryWithoutIconId = menu_keys::MenuEntryWithoutIconId;
 
  public:
-  GUIMenuBar(GUIWindow* main_window);
+  MenuBar(Window* main_window);
 
  protected:
   std::array<Gtk::Menu*, menu_keys::number_of_top_entries> m_submenus;
-  std::map<GUIMenuEntryKey, Gtk::MenuItem*> m_menu_items;
+  std::map<MenuEntryKey, Gtk::MenuItem*> m_menu_items;
 
   Gtk::SeparatorMenuItem* m_separator;
 
  public:
-  void append_menu_entry(GUIMenuEntryKey menu_entry_key, std::function<void ()> cb) override
+  void append_menu_entry(MenuEntryKey menu_entry_key, std::function<void ()> cb) override
   {
     Gtk::MenuItem* menu_item_ptr;
     if (menu_entry_key.is_stock_id())
@@ -50,20 +51,20 @@ class GUIMenuBar : public Gtk::MenuBar, public GUIIconFactory, public LinuxViewe
     m_submenus[top_entry]->append(*separator);
   }
 
-  struct GUIMenuEntryKeyStub
+  struct MenuEntryKeyStub
   {
     TopEntries m_top_entry;
     MenuEntryWithIconId m_menu_entry;
   };
 
   template<class T>
-  void append_menu_entry(GUIMenuEntryKeyStub menu_entry_key, T* obj, void (T::*cb)())
+  void append_menu_entry(MenuEntryKeyStub menu_entry_key, T* obj, void (T::*cb)())
   {
     append_menu_entry({menu_entry_key.m_top_entry, get_icon_id(menu_entry_key.m_menu_entry)}, obj, cb);
   }
 
   template<class T>
-  void append_radio_menu_entry(Gtk::RadioButtonGroup& group, GUIMenuEntryKey menu_entry_key, T* obj, void (T::*cb)())
+  void append_radio_menu_entry(Gtk::RadioButtonGroup& group, MenuEntryKey menu_entry_key, T* obj, void (T::*cb)())
   {
     ASSERT(menu_entry_key.is_menu_entry_without_icon_id());     // None of our radio menu items have icons.
     Gtk::RadioMenuItem* menu_item_ptr = Gtk::manage(new Gtk::RadioMenuItem(group, get_label(menu_entry_key.get_menu_entry_without_icon_id())));
@@ -72,14 +73,14 @@ class GUIMenuBar : public Gtk::MenuBar, public GUIIconFactory, public LinuxViewe
     menu_item_ptr->signal_activate().connect(sigc::mem_fun(*obj, cb));
   }
 
-  void activate(GUIMenuEntryKey menu_entry_key)
+  void activate(MenuEntryKey menu_entry_key)
   {
     auto item = m_menu_items.find(menu_entry_key);
     if (item != m_menu_items.end())
       item->second->activate();
   }
 
-  void set_sensitive(bool sensitive, GUIMenuEntryKey menu_entry_key)
+  void set_sensitive(bool sensitive, MenuEntryKey menu_entry_key)
   {
     auto item = m_menu_items.find(menu_entry_key);
     if (item != m_menu_items.end())
@@ -90,4 +91,5 @@ class GUIMenuBar : public Gtk::MenuBar, public GUIIconFactory, public LinuxViewe
   static char const* top_entry_label(TopEntries top_entry);
 };
 
+} // namespace gui
 } // namespace gtkmm3

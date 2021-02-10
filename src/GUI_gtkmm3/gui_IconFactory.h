@@ -6,11 +6,12 @@
 
 // This is the GUI implementation that is implemented on top of gtkmm3.
 namespace gtkmm3 {
+namespace gui {
 
-class GUIIconFactory
+class IconFactory
 {
  public:
-  GUIIconFactory();
+  IconFactory();
 
   Gtk::StockID get_icon_id(menu_keys::MenuEntryWithIconId menu_entry_id) const { return m_icon_ids[menu_entry_id]; }
 
@@ -27,4 +28,5 @@ class GUIIconFactory
   std::array<Gtk::StockID, menu_keys::number_of_custom_icons> m_icon_ids;
 };
 
+} // namespace gui
 } // namespace gtkmm3

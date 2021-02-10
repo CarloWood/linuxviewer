@@ -1,18 +1,17 @@
 #pragma once
 
-// We use the GUI implementation on top of gtkmm3.
-#include "GUI_gtkmm3/GUIApplication.h"
+// We use the GUI implementation on top of glfw3.
+#include "GUI_glfw3/gui_Application.h"
 #include "debug.h"
 #include <memory>
 
-class LinuxViewerApplication : public gtkmm3::GUIApplication
+class LinuxViewerApplication : public gui::Application
 {
  private:
   AIEngine& m_gui_idle_engine;
 
  public:
-  LinuxViewerApplication(AIEngine& gui_idle_engine) : gtkmm3::GUIApplication("LinuxViewer"), m_gui_idle_engine(gui_idle_engine)
-  {
+  LinuxViewerApplication(AIEngine& gui_idle_engine) : gui::Application("LinuxViewer"), m_gui_idle_engine(gui_idle_engine) {
     DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(gui_idle_engine)");
   }
 

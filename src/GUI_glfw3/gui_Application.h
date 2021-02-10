@@ -1,32 +1,31 @@
 #pragma once
 
-#include <gtkmm.h>
+#include <string>
+#include <mutex>
 
 class AIEngine;
 class LinuxViewerMenuBar;
 
-// This is the GUI implementation that is implemented on top of gtkmm3.
-namespace gtkmm3 {
+// This is the GUI implementation that is implemented on top of glfw3.
+namespace glfw3 {
+namespace gui {
 
-class GUIWindow;
+class Window;
 
-class GUIApplication : public Gtk::Application
+class Application
 {
  private:
-  GUIWindow* m_main_window;
+  static std::once_flag s_main_instance;
+  Window* m_main_window;
 
  protected:
-  GUIApplication(std::string const& application_name);
-  ~GUIApplication() override;
+  Application(std::string const& application_name);
+  virtual ~Application();
 
  private:
-  void on_startup() override;
-  void on_activate() override;
+  Window* create_window();
 
- private:
-  GUIWindow* create_window();
-
-  void on_window_hide(Gtk::Window* window);
+  //void on_window_hide(Gtk::Window* window);
 
   //---------------------------------------------------------------------------
   // Everything below is GTK independent interface implemented
@@ -37,16 +36,25 @@ class GUIApplication : public Gtk::Application
   void terminate();                             // Close the window and cause 'run' to return.
 
  protected:
-  virtual void on_main_instance_startup() = 0;  // This must be called when this is the main instance of the application (aka, from on_startup()).
+  virtual void on_main_instance_startup() = 0;  // This must be called when this is the main instance of the application.
   virtual bool on_gui_idle() = 0;               // This must be called frequently from the main loop of the GUI.
                                                 // Return false when there is nothing to be done anymore.
  public:
   virtual void append_menu_entries(LinuxViewerMenuBar* menubar) = 0;    // Derived class must implement this to add menu buttons and get call backs when they are clicked.
+
+ public:
+  void run(int argc, char* argv[]);             // Called to run the GUI main loop.
+  void quit();                                  // Called to make the GUI main loop terminate (return from run()).
 };
 
-} // namespace gtkmm3
+} // namespace gui
+} // namespace glfw3
+
+namespace gui = glfw3::gui;
 
 namespace menu_keys {
+#if 0
   // Make Gtk::Stock IDs available to LinuxViewerApplication::append_menu_entries.
   using namespace Gtk::Stock;
+#endif
 } // namespace menu_keys
