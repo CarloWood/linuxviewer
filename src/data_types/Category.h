@@ -4,8 +4,8 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_Category_FOREACH_MEMBER(X) \
-  X(0, std::string, category_name) \
-  X(0, int32_t, category_id)
+  X(std::string, category_name) \
+  X(int32_t, category_id)
 
 class Category
 {

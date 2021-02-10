@@ -4,7 +4,7 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_UIConfig_FOREACH_MEMBER(X) \
-  X(0, bool, allow_first_life)
+  X(bool, allow_first_life)
 
 class UIConfig
 {

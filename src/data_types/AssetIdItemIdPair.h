@@ -4,8 +4,8 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_AssetIdItemIdPair_FOREACH_MEMBER(X) \
-  X(0, UUID, asset_id) \
-  X(0, UUID, item_id)
+  X(UUID, asset_id) \
+  X(UUID, item_id)
 
 class AssetIdItemIdPair
 {

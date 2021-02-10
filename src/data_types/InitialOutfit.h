@@ -5,8 +5,8 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_InitialOutfit_FOREACH_MEMBER(X) \
-  X(0, std::string, folder_name) \
-  X(0, Gender, gender)
+  X(std::string, folder_name) \
+  X(Gender, gender)
 
 class InitialOutfit
 {

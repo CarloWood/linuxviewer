@@ -4,7 +4,7 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_AgentID_FOREACH_MEMBER(X) \
-  X(0, UUID, agent_id)
+  X(UUID, agent_id)
 
 class AgentID
 {

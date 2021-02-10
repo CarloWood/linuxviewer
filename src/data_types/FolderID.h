@@ -4,7 +4,7 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_FolderID_FOREACH_MEMBER(X) \
-  X(0, UUID, folder_id)
+  X(UUID, folder_id)
 
 class FolderID
 {

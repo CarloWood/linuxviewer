@@ -4,9 +4,9 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_SunCloudMoonTextures_FOREACH_MEMBER(X) \
-  X(0, UUID, sun_texture_id) \
-  X(0, UUID, cloud_texture_id) \
-  X(0, UUID, moon_texture_id)
+  X(UUID, sun_texture_id) \
+  X(UUID, cloud_texture_id) \
+  X(UUID, moon_texture_id)
 
 class SunCloudMoonTextures
 {

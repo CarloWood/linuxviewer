@@ -4,9 +4,9 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_Buddy_FOREACH_MEMBER(X) \
-  X(0, int32_t, buddy_rights_has) \
-  X(0, int32_t, buddy_rights_given) \
-  X(0, UUID, buddy_id)
+  X(int32_t, buddy_rights_has) \
+  X(int32_t, buddy_rights_given) \
+  X(UUID, buddy_id)
 
 class Buddy
 {

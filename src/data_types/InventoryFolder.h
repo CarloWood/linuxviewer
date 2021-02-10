@@ -4,11 +4,11 @@
 #include "protocols/xmlrpc/macros.h"
 
 #define xmlrpc_InventoryFolder_FOREACH_MEMBER(X) \
-  X(0, std::string, name) \
-  X(0, int32_t, version) \
-  X(0, UUID, folder_id) \
-  X(0, int32_t, type_default) \
-  X(0, UUID, parent_id)
+  X(std::string, name) \
+  X(int32_t, version) \
+  X(UUID, folder_id) \
+  X(int32_t, type_default) \
+  X(UUID, parent_id)
 
 class InventoryFolder
 {
