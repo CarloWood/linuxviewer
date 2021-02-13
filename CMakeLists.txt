@@ -33,7 +33,7 @@ endif ()
 FetchContent_Declare(
   gitache
   GIT_REPOSITORY "https://github.com/CarloWood/gitache.git"
-  GIT_TAG        "master"       # Normally use either "stable" or a fixed SHA1 to freeze the version here!
+  GIT_TAG        "stable"       # Normally use either "stable" or a fixed SHA1 to freeze the version here!
                                 # Using "master" might be *unstable*.
 )
 FetchContent_MakeAvailable(gitache)
