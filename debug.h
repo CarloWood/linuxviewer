@@ -29,4 +29,16 @@ operator<<(std::ostream& os, T const& data)
   data.print_on(os);
   return os;
 }
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
+{
+  char const* prefix = "{";
+  for (auto&& element : v)
+  {
+    os << prefix << element;
+    prefix = ", ";
+  }
+  return os << '}';
+}
 #endif

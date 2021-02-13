@@ -7,12 +7,6 @@ namespace xmlrpc {
 
 class RequestParam
 {
- private:
-  unsigned int m_version;
-
- protected:
-  RequestParam(unsigned int version) : m_version(version) { }
-
  public:
   virtual ~RequestParam() = default;
 

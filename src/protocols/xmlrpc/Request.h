@@ -14,14 +14,6 @@ class Request
   std::string m_method_name;
   std::vector<RequestParam const*> m_params;
 
-  friend class boost::serialization::access;
-  template<class Archive>
-  void serialize(Archive& ar, unsigned int const CWDEBUG_ONLY(version))
-  {
-    DoutEntering(dc::notice, "xmlrpc::Request(ar, " << version << ") [m_params.size() = " << m_params.size() << "]");
-    ar & m_params;
-  }
-
  protected:
   Request(std::string method_name = std::string{}) : m_method_name(std::move(method_name)) { }
 
