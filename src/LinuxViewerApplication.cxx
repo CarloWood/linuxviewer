@@ -2,8 +2,10 @@
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
+#include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
+#include "protocols/XML_RPC_Encoder.h"
 #include "protocols/XML_RPC_Decoder.h"
 #include "statefultask/AIEngine.h"
 #include "socket-task/ConnectToEndPoint.h"
@@ -11,7 +13,12 @@
 #include "evio/File.h"
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
+#include "utils/debug_ostream_operators.h"
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 #include <functional>
+#include <regex>
+#include <iterator>
 
 namespace http = evio::protocol::http;
 
@@ -87,12 +94,42 @@ class MyOutputFile : public evio::File
 void LinuxViewerApplication::on_main_instance_startup()
 {
   DoutEntering(dc::notice, "LinuxViewerApplication::on_main_instance_startup()");
+
+  xmlrpc::LoginToSimulatorCreate ltsc;
+  std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login_boost.xml");
+  boost::archive::text_iarchive ia(ifs);
+  ia >> ltsc;
+
+  xmlrpc::LoginToSimulator lts(ltsc);
+
+  AIEndPoint const end_point("misfitzgrid.com", 8002);
+  std::stringstream ss;
+  XML_RPC_Encoder encoder(ss);
+
+  try
+  {
+    encoder << lts;
+  }
+  catch (AIAlert::Error const& error)
+  {
+    Dout(dc::warning, error);
+  }
+
+  {
+    std::regex hash_re("[0-9a-f]{32}");
+    LibcwDoutScopeBegin(LIBCWD_DEBUGCHANNELS, libcwd::libcw_do, dc::notice)
+    LibcwDoutStream << "Encoding: ";
+    std::string const& text = ss.str();
+    std::regex_replace(std::ostreambuf_iterator<char>(LibcwDoutStream), text.begin(), text.end(), hash_re, "********************************");
+    LibcwDoutScopeEnd;
+  }
+
 #if 0
   // Run a test task.
   boost::intrusive_ptr<task::ConnectToEndPoint> task = new task::ConnectToEndPoint(CWDEBUG_ONLY(true));
   auto socket = evio::create<MySocket>();
   task->set_socket(socket);
-  task->set_end_point(AIEndPoint("misfitzgrid.com", 8002));
+  task->set_end_point(std::move(end_point));
   task->on_connected([socket](bool success){
       if (success)
       {
@@ -112,8 +149,8 @@ void LinuxViewerApplication::on_main_instance_startup()
       }
     });
 #else
-  auto input_file = evio::create<MyTestFile>(this);
-  input_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response_formatted.xml", std::ios_base::in);
+//  auto input_file = evio::create<MyTestFile>(this);
+//  input_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response_formatted.xml", std::ios_base::in);
 #endif
 
 #if 0
@@ -131,6 +168,8 @@ void LinuxViewerApplication::on_main_instance_startup()
       this->quit();
     });
 #endif
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.

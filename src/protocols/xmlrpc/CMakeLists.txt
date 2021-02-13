@@ -35,9 +35,13 @@ target_sources(protocols_xmlrpc_ObjLib
     "DecoderBase.h"
     "macros.h"
     "MemberDecoder.h"
+    "RequestParam.cxx"
+    "RequestParam.h"
     "StructDecoder.h"
     "SingleStructResponse.h"
     "StructDictionary.h"
+    "request/LoginToSimulator.cxx"
+    "request/LoginToSimulator.h"
     "response/LoginResponse.cxx"
     "response/LoginResponse.h"
 )

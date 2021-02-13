@@ -1,7 +1,7 @@
 include(AICxxProject)
 
 #find_package(Threads REQUIRED)
-#find_package(Boost REQUIRED COMPONENTS filesystem iostreams program_options system)
+find_package(Boost REQUIRED COMPONENTS serialization) #filesystem iostreams program_options system)
 find_package(farmhash REQUIRED)
 find_package(blaze REQUIRED)
 find_package(magic_enum REQUIRED)
@@ -38,6 +38,7 @@ target_link_libraries(linuxviewer
     farmhash::farmhash
     blaze::blaze
     magic_enum::magic_enum
+    Boost::serialization
 )
 
 #add_subdirectory(GUI_gtkmm3)

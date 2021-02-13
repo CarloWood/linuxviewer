@@ -37,6 +37,8 @@ target_sources(protocols_ObjLib
     "GridInfoDecoder.h"
     "XML_RPC_Decoder.cxx"
     "XML_RPC_Decoder.h"
+    "XML_RPC_Encoder.cxx"
+    "XML_RPC_Encoder.h"
 )
 
 # Required include search-paths.
