@@ -1,7 +1,10 @@
 #include "sys.h"
 #include "initialize.h"
+#include "data_types/AgentAccess.h"
+#include "data_types/Gender.h"
 #include "utils/macros.h"
 #include "utils/AIAlert.h"
+#include "utils/c_escape.h"
 #include <boost/iostreams/device/array.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <cctype>       // std::isspace
@@ -59,6 +62,7 @@ void initialize(RegionHandle& region_handle, std::string_view const& data)
   char expected = '[';
   char c;
   int i = 0;
+  int x, y;
   for (;;)
   {
     // Read next expected character.
@@ -83,15 +87,16 @@ void initialize(RegionHandle& region_handle, std::string_view const& data)
     {
       expected = (i == 1) ? ']' : ',';
       if (i == 0)
-        stream >> region_handle.m_x;
+        stream >> x;
       else
-        stream >> region_handle.m_y;
+        stream >> y;
     }
     else
       break;
   }
   if (AI_UNLIKELY(parse_error))
     THROW_FALERT("Parse error while decoding \"[DATA]\"", AIArgs("[DATA]", data));
+  region_handle.set_position(x, y);
 }
 
 void initialize(AgentAccess& agent_access, std::string_view const& data)
@@ -115,9 +120,9 @@ void initialize(AgentAccess& agent_access, std::string_view const& data)
 void initialize(Gender& gender, std::string_view const& data)
 {
   if (data == "female")
-    gender.m_gender = gender_female;
+    gender.set_gender(gender_female);
   else if (data == "male")
-    gender.m_gender = gender_male;
+    gender.set_gender(gender_male);
   else
     THROW_ALERT("Invalid Gender '[GENDER]'", AIArgs("[GENDER]", utils::print_using(data, utils::c_escape)));
 }

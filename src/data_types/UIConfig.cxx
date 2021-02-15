@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "UIConfig.h"
-#include "protocols/xmlrpc/create_member_decoder.h"
+#include "evio/protocol/xmlrpc/create_member_decoder.h"
 
 xmlrpc::ElementDecoder* UIConfig::create_member_decoder(members member)
 {

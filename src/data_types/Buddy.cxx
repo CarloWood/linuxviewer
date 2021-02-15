@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "Buddy.h"
-#include "protocols/xmlrpc/create_member_decoder.h"
+#include "evio/protocol/xmlrpc/create_member_decoder.h"
 
 xmlrpc::ElementDecoder* Buddy::create_member_decoder(members member)
 {

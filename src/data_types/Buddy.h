@@ -1,7 +1,8 @@
 #pragma once
 
 #include "UUID.h"
-#include "protocols/xmlrpc/macros.h"
+#include "protocols/xmlrpc/initialize.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 #define xmlrpc_Buddy_FOREACH_MEMBER(X) \
   X(int32_t, buddy_rights_has) \

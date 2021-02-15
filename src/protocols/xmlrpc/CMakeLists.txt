@@ -23,23 +23,8 @@ set_property(
 # The list of source files.
 target_sources(protocols_xmlrpc_ObjLib
   PRIVATE
-    "ElementDecoder.cxx"
-    "ElementDecoder.h"
-    "IgnoreElement.cxx"
-    "IgnoreElement.h"
     "initialize.cxx"
     "initialize.h"
-    "create_member_decoder.h"
-    "ArrayOfStructDecoder.h"
-    "ArrayOfMemberDecoder.h"
-    "DecoderBase.h"
-    "macros.h"
-    "MemberDecoder.h"
-    "RequestParam.cxx"
-    "RequestParam.h"
-    "StructDecoder.h"
-    "SingleStructResponse.h"
-    "StructDictionary.h"
     "request/LoginToSimulator.cxx"
     "request/LoginToSimulator.h"
     "response/LoginResponse.cxx"
@@ -52,7 +37,6 @@ target_include_directories(protocols_xmlrpc_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
     "${CMAKE_SOURCE_DIR}/src"
-    "${CMAKE_SOURCE_DIR}/src/protocols"
 )
 
 # Require support for C++17.

@@ -42,3 +42,7 @@
 	path = xml
 	url = https://github.com/CarloWood/ai-xml.git
 	branch = master
+[submodule "xmlrpc-task"]
+	path = xmlrpc-task
+	url = https://github.com/CarloWood/xmlrpc-task.git
+	branch = master

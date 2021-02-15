@@ -5,10 +5,10 @@
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
-#include "protocols/XML_RPC_Encoder.h"
-#include "protocols/XML_RPC_Decoder.h"
+#include "evio/protocol/XML_RPC_Encoder.h"
+#include "evio/protocol/XML_RPC_Decoder.h"
 #include "statefultask/AIEngine.h"
-#include "socket-task/ConnectToEndPoint.h"
+#include "xmlrpc-task/XML_RPC_MethodCall.h"
 #include "evio/Socket.h"
 #include "evio/File.h"
 #include "evio/protocol/http.h"
@@ -95,14 +95,22 @@ void LinuxViewerApplication::on_main_instance_startup()
 {
   DoutEntering(dc::notice, "LinuxViewerApplication::on_main_instance_startup()");
 
-  xmlrpc::LoginToSimulatorCreate ltsc;
+  xmlrpc::LoginToSimulatorCreate login_to_simulator;
   std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login_boost.xml");
   boost::archive::text_iarchive ia(ifs);
-  ia >> ltsc;
+  ia >> login_to_simulator;
 
-  xmlrpc::LoginToSimulator lts(ltsc);
+  auto login_request = std::make_shared<xmlrpc::LoginToSimulator>(login_to_simulator);
+  auto login_response = std::make_shared<xmlrpc::LoginResponse>();
 
-  AIEndPoint const end_point("misfitzgrid.com", 8002);
+  AIEndPoint end_point("misfitzgrid.com", 8002);
+
+  boost::intrusive_ptr<task::XML_RPC_MethodCall> task = new task::XML_RPC_MethodCall(CWDEBUG_ONLY(true));
+  task->set_end_point(std::move(end_point));
+  task->set_request_object(login_request);
+  task->set_response_object(login_response);
+
+#if 0
   std::stringstream ss;
   XML_RPC_Encoder encoder(ss);
 
@@ -123,6 +131,7 @@ void LinuxViewerApplication::on_main_instance_startup()
     std::regex_replace(std::ostreambuf_iterator<char>(LibcwDoutStream), text.begin(), text.end(), hash_re, "********************************");
     LibcwDoutScopeEnd;
   }
+#endif
 
 #if 0
   // Run a test task.
@@ -159,17 +168,13 @@ void LinuxViewerApplication::on_main_instance_startup()
   output_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response.xml", std::ios_base::out);
 #endif
 
-#if 0
   task->run([this, task](bool success){
       if (!success)
-        Dout(dc::warning, "task::ConnectToEndPoint was aborted");
+        Dout(dc::warning, "task::XML_RPC_MethodCall was aborted");
       else
         Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished.");
       this->quit();
     });
-#endif
-
-  std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.

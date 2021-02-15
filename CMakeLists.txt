@@ -64,5 +64,6 @@ set(INSTALL_GTEST OFF CACHE BOOL "")
 #add_subdirectory(filelock-task)
 add_subdirectory(resolver-task)
 add_subdirectory(socket-task)
+add_subdirectory(xmlrpc-task)
 
 add_subdirectory(src)

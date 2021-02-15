@@ -35,10 +35,6 @@ target_sources(protocols_ObjLib
     "GridInfo.h"
     "GridInfoDecoder.cxx"
     "GridInfoDecoder.h"
-    "XML_RPC_Decoder.cxx"
-    "XML_RPC_Decoder.h"
-    "XML_RPC_Encoder.cxx"
-    "XML_RPC_Encoder.h"
 )
 
 # Required include search-paths.
@@ -56,7 +52,6 @@ target_compile_features(protocols_ObjLib
 # Set link dependencies.
 target_link_libraries(protocols_ObjLib
   PRIVATE
-    LinuxViewer::xmlrpc
     AICxx::utils
   PUBLIC
     blaze::blaze
@@ -67,7 +62,3 @@ target_link_libraries(protocols_ObjLib
 add_library(LinuxViewer::protocols ALIAS protocols_ObjLib)
 
 add_subdirectory(xmlrpc)
-
-add_executable(xmlrpc_test EXCLUDE_FROM_ALL xmlrpc_test.cxx)
-target_link_libraries(xmlrpc_test PRIVATE LinuxViewer::protocols LinuxViewer::xmlrpc LinuxViewer::data_types ${AICXX_OBJECTS_LIST})
-target_include_directories(xmlrpc_test PUBLIC "..")

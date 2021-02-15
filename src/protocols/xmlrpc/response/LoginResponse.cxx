@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "LoginResponse.h"
-#include "xmlrpc/create_member_decoder.h"
+#include "evio/protocol/xmlrpc/create_member_decoder.h"
 
 namespace xmlrpc {
 

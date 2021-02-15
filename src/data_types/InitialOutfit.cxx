@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "InitialOutfit.h"
-#include "protocols/xmlrpc/create_member_decoder.h"
+#include "evio/protocol/xmlrpc/create_member_decoder.h"
 
 xmlrpc::ElementDecoder* InitialOutfit::create_member_decoder(members member)
 {

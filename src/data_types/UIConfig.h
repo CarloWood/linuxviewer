@@ -1,7 +1,7 @@
 #pragma once
 
 #include "UUID.h"
-#include "protocols/xmlrpc/macros.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 #define xmlrpc_UIConfig_FOREACH_MEMBER(X) \
   X(bool, allow_first_life)

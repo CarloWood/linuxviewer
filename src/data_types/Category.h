@@ -1,7 +1,7 @@
 #pragma once
 
 #include "UUID.h"
-#include "protocols/xmlrpc/macros.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 #define xmlrpc_Category_FOREACH_MEMBER(X) \
   X(std::string, category_name) \

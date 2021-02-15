@@ -1,6 +1,6 @@
 #pragma once
 
-#include "protocols/xmlrpc/SingleStructResponse.h"
+#include "protocols/xmlrpc/initialize.h"
 #include "data_types/AgentAccess.h"
 #include "data_types/UUID.h"
 #include "data_types/Buddy.h"
@@ -16,7 +16,8 @@
 #include "data_types/LoginFlags.h"
 #include "data_types/Vector3d.h"
 #include "data_types/UIConfig.h"
-#include "protocols/xmlrpc/macros.h"
+#include "evio/protocol/xmlrpc/SingleStructResponse.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 // FIXME: event_notifications has unknown struct (not std::string)
 #define xmlrpc_LoginResponse_FOREACH_MEMBER(X) \

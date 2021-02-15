@@ -24,4 +24,4 @@
 #define ClassName LoginToSimulator
 #define MethodName login_to_simulator
 
-#include "template.h"
+#include "evio/protocol/xmlrpc/request/template.h"

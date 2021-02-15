@@ -1,6 +1,6 @@
 #pragma once
 
-#include "protocols/xmlrpc/macros.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 #define xmlrpc_LoginFlags_FOREACH_MEMBER(X) \
   X(bool, ever_logged_in) \

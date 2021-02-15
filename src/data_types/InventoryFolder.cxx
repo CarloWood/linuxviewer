@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "InventoryFolder.h"
-#include "protocols/xmlrpc/create_member_decoder.h"
+#include "evio/protocol/xmlrpc/create_member_decoder.h"
 
 xmlrpc::ElementDecoder* InventoryFolder::create_member_decoder(members member)
 {

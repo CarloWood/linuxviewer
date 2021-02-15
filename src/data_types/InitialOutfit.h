@@ -2,7 +2,8 @@
 
 #include <string>
 #include "Gender.h"
-#include "protocols/xmlrpc/macros.h"
+#include "protocols/xmlrpc/initialize.h"
+#include "evio/protocol/xmlrpc/macros.h"
 
 #define xmlrpc_InitialOutfit_FOREACH_MEMBER(X) \
   X(std::string, folder_name) \

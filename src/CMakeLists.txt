@@ -33,6 +33,7 @@ target_link_libraries(linuxviewer
     LinuxViewer::glfw3gui
     AICxx::socket-task
     AICxx::resolver-task
+    AICxx::xmlrpc-task
     dns::dns
     ${AICXX_OBJECTS_LIST}
     farmhash::farmhash

@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "RegionPositionLookAt.h"
 #include "protocols/xmlrpc/initialize.h"
+#include "utils/c_escape.h"
 #include "utils/AIAlert.h"
 #include "debug.h"
 
