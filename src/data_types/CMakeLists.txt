@@ -53,8 +53,11 @@ target_sources(data_types_ObjLib
     "SunCloudMoonTextures.h"
     "RegionPositionLookAt.cxx"
     "RegionPositionLookAt.h"
+    "RegionHandle.cxx"
     "RegionHandle.h"
+    "Position.cxx"
     "Position.h"
+    "LookAt.cxx"
     "LookAt.h"
     "AgentID.cxx"
     "AgentID.h"
@@ -64,6 +67,12 @@ target_sources(data_types_ObjLib
     "InventoryFolder.h"
     "UIConfig.cxx"
     "UIConfig.h"
+    "AgentAccess.cxx"
+    "AgentAccess.h"
+    "Gender.cxx"
+    "Gender.h"
+    "ModerationLevel.cxx"
+    "ModerationLevel.h"
 )
 
 # Required include search-paths.

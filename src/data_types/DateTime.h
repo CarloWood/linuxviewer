@@ -3,6 +3,9 @@
 #include <ctime>
 #include <string_view>
 #include <iosfwd>
+#ifdef CWDEBUG
+#include <iosfwd>
+#endif
 
 class DateTime
 {
@@ -25,5 +28,7 @@ class DateTime
 
   std::string to_iso8601_string() const;
 
+#ifdef CWDEBUG
   void print_on(std::ostream& os) const;
+#endif
 };

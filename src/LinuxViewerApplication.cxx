@@ -5,8 +5,8 @@
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
 #include "protocols/GridInfo.h"
-#include "evio/protocol/XML_RPC_Encoder.h"
-#include "evio/protocol/XML_RPC_Decoder.h"
+#include "evio/protocol/xmlrpc/Encoder.h"
+#include "evio/protocol/xmlrpc/Decoder.h"
 #include "statefultask/AIEngine.h"
 #include "xmlrpc-task/XML_RPC_MethodCall.h"
 #include "evio/Socket.h"
@@ -34,7 +34,7 @@ class MySocket : public evio::Socket
   http::ResponseHeadersDecoder m_input_decoder;
   GridInfoDecoder m_grid_info_decoder;
   GridInfo m_grid_info;
-  XML_RPC_Decoder m_xml_rpc_decoder;
+  evio::protocol::xmlrpc::Decoder m_xml_rpc_decoder;
   xmlrpc::LoginResponse m_login_response;
   evio::OutputStream m_output_stream;
 
@@ -58,7 +58,7 @@ class MyTestFile : public evio::File
 {
  private:
   LinuxViewerApplication* m_application;
-  XML_RPC_Decoder m_xml_rpc_decoder;
+  evio::protocol::xmlrpc::Decoder m_xml_rpc_decoder;
   xmlrpc::LoginResponse m_login_response;
 
  public:
@@ -112,7 +112,7 @@ void LinuxViewerApplication::on_main_instance_startup()
 
 #if 0
   std::stringstream ss;
-  XML_RPC_Encoder encoder(ss);
+  evio::protocol::xmlrpc::Encoder encoder(ss);
 
   try
   {
@@ -172,7 +172,7 @@ void LinuxViewerApplication::on_main_instance_startup()
       if (!success)
         Dout(dc::warning, "task::XML_RPC_MethodCall was aborted");
       else
-        Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished.");
+        Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished; response: " << *static_cast<xmlrpc::LoginResponse*>(task->get_response_object().get()));
       this->quit();
     });
 }

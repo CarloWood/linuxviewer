@@ -3,7 +3,10 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/uuid/string_generator.hpp>
+#include <string_view>
+#ifdef CWDEBUG
 #include <iosfwd>
+#endif
 
 class UUID : public boost::uuids::uuid
 {
@@ -19,8 +22,13 @@ class UUID : public boost::uuids::uuid
     new(this) boost::uuids::uuid{boost::uuids::string_generator()(sv.begin(), sv.end())};
   }
 
-  void print_on(std::ostream& os) const
+  void assign_from_xmlrpc_string(std::string_view const& uuid_data)
   {
-    os << '{' << *static_cast<boost::uuids::uuid const*>(this) << '}';
+    // UUID does not need xml unescaping, since it does not contain any of '"<>&.
+    assign_from_string(uuid_data);
   }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };

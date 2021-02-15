@@ -17,5 +17,9 @@ class Category
     xmlrpc_Category_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  xmlrpc::ElementDecoder* create_member_decoder(members member);
+  evio::protocol::xmlrpc::ElementDecoder* create_member_decoder(members member);
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };

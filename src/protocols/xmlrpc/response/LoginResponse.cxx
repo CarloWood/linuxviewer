@@ -50,12 +50,22 @@ std::array<char const*, LoginResponse::s_number_of_members> LoginResponse::s_mem
 };
 #endif
 
-ElementDecoder* LoginResponseData::create_member_decoder(members member)
+evio::protocol::xmlrpc::ElementDecoder* LoginResponseData::create_member_decoder(members member)
 {
   switch (member)
   {
     xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
 }
+
+#ifdef CWDEBUG
+void LoginResponseData::print_on(std::ostream& os) const
+{
+  os << '{';
+  char const* prefix = "";
+  xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_WRITE_TO_OS)
+  os << '}';
+}
+#endif
 
 } // namespace xmlrpc

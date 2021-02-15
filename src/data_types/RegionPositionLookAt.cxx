@@ -30,13 +30,13 @@ void RegionPositionLookAt::assign_from_string(std::string_view data)
     switch (i)
     {
       case 0:
-        xmlrpc::initialize(m_region_handle, data);
+        m_region_handle.assign_from_xmlrpc_string(data);
         break;
       case 1:
-        xmlrpc::initialize(m_position, data);
+        m_position.assign_from_xmlrpc_string(data);
         break;
       case 2:
-        xmlrpc::initialize(m_look_at, data);
+        m_look_at.assign_from_xmlrpc_string(data);
         break;
     }
     data.remove_prefix(pos2);
@@ -44,3 +44,10 @@ void RegionPositionLookAt::assign_from_string(std::string_view data)
   if (parse_error)
     THROW_FALERT("Invalid characters [[DATA]]", AIArgs("[DATA]", utils::print_using(data, utils::c_escape)));
 }
+
+#ifdef CWDEBUG
+void RegionPositionLookAt::print_on(std::ostream& os) const
+{
+  os << '{' << m_region_handle << ", " << m_position << ", " << m_look_at << '}';
+}
+#endif

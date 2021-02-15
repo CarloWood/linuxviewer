@@ -5,6 +5,9 @@
 #include <string>
 #include <cstddef>
 #include <iosfwd>
+#ifdef CWDEBUG
+#include <iosfwd>
+#endif
 
 class BinaryData
 {
@@ -27,5 +30,7 @@ class BinaryData
 
   std::string to_string() const { return {m_data.begin(), m_data.end()}; }
 
+#ifdef CWDEBUG
   void print_on(std::ostream& os) const;        // Print as escaped string with quotes around it.
+#endif
 };

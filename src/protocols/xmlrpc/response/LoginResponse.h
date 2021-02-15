@@ -75,12 +75,16 @@ class LoginResponseData
     xmlrpc_LoginResponse_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
-  ElementDecoder* create_member_decoder(members member);
+  evio::protocol::xmlrpc::ElementDecoder* create_member_decoder(members member);
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
-struct LoginResponse : public LoginResponseData, public SingleStructResponse<LoginResponseData>
+struct LoginResponse : public LoginResponseData, public evio::protocol::xmlrpc::SingleStructResponse<LoginResponseData>
 {
-  LoginResponse() : SingleStructResponse<LoginResponseData>(static_cast<LoginResponseData&>(*this)) { }
+  LoginResponse() : evio::protocol::xmlrpc::SingleStructResponse<LoginResponseData>(static_cast<LoginResponseData&>(*this)) { }
 };
 
 } // namespace xmlrpc

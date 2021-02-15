@@ -16,4 +16,14 @@ class RegionPositionLookAt
   RegionPositionLookAt() = default;
 
   void assign_from_string(std::string_view data);
+
+  void assign_from_xmlrpc_string(std::string_view const& data)
+  {
+    // No xml escaping is necessary.
+    assign_from_string(data);
+  }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };

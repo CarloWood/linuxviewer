@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <boost/archive/iterators/xml_unescape.hpp>
 #include <map>
 #include <string>
 #include <string_view>
+#include <iostream>
 
 //  URI is compliant with
 //      https://tools.ietf.org/html/rfc3986
@@ -48,6 +50,7 @@ class URI
  public:
   URI() {}
   URI(std::string_view const& data) { assign(data); }
+
   template <typename InputIt>
   URI(InputIt first, InputIt last)
   {
@@ -59,12 +62,20 @@ class URI
     m_whole_uri_storage.assign(data);
     decode();
   }
+
+  void assign_from_xmlrpc_string(std::string_view const& uri_data)
+  {
+    using xml_unescape_t = boost::archive::iterators::xml_unescape<std::string_view::const_iterator>;
+    assign(xml_unescape_t(uri_data.begin()), xml_unescape_t(uri_data.end()));
+  }
+
   template <typename InputIt>
   void assign(InputIt first, InputIt last)
   {
     m_whole_uri_storage.assign(first, last);
     decode();
   }
+
   void set_secure(bool secure) { m_secure = secure; }
 
   std::string get_scheme() const { return m_scheme; }
