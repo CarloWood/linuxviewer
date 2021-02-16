@@ -14,6 +14,7 @@
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
 #include "utils/debug_ostream_operators.h"
+#include "threadsafe/Gate.h"
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <functional>
@@ -95,6 +96,9 @@ void LinuxViewerApplication::on_main_instance_startup()
 {
   DoutEntering(dc::notice, "LinuxViewerApplication::on_main_instance_startup()");
 
+  // Allow the main thread to wait until the test finished.
+  aithreadsafe::Gate test_finished;
+
   xmlrpc::LoginToSimulatorCreate login_to_simulator;
   std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login_boost.xml");
   boost::archive::text_iarchive ia(ifs);
@@ -168,13 +172,16 @@ void LinuxViewerApplication::on_main_instance_startup()
   output_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response.xml", std::ios_base::out);
 #endif
 
-  task->run([this, task](bool success){
+  task->run([this, task, &test_finished](bool success){
       if (!success)
         Dout(dc::warning, "task::XML_RPC_MethodCall was aborted");
       else
         Dout(dc::notice, "Task with endpoint " << task->get_end_point() << " finished; response: " << *static_cast<xmlrpc::LoginResponse*>(task->get_response_object().get()));
       this->quit();
+      test_finished.open();
     });
+
+  test_finished.wait();
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.
