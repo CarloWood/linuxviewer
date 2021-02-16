@@ -26,8 +26,10 @@ void GridInfoDecoder::decode(int& allow_deletion_count, size_t msg_len)
     THROW_FALERT("XML parse error: [ERROR]", AIArgs("[ERROR]", error.what()));
   }
 
+#ifdef CWDEBUG
   Debug(libcw_do.off());
   xml::Writer writer(std::cout);
   writer.write(m_grid_info);
   Debug(libcw_do.on());
+#endif
 }

@@ -29,12 +29,8 @@ set_property(
 # The list of source files.
 target_sources(data_types_ObjLib
   PRIVATE
-    "BinaryData.cxx"
-    "BinaryData.h"
     "UUID.cxx"
     "UUID.h"
-    "DateTime.cxx"
-    "DateTime.h"
     "URI.cxx"
     "URI.h"
     "Vector3d.cxx"

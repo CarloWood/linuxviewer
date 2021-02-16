@@ -1,6 +1,9 @@
 include(AICxxProject)
 
-#find_package(Threads REQUIRED)
+#==============================================================================
+# DEPENDENCIES
+#
+
 find_package(Boost REQUIRED COMPONENTS serialization) #filesystem iostreams program_options system)
 find_package(farmhash REQUIRED)
 find_package(blaze REQUIRED)

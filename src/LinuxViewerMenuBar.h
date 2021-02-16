@@ -3,6 +3,8 @@
 #include "GUI_glfw3/gui_MenuEntryKey.h"
 using MenuEntryKey = glfw3::gui::MenuEntryKey;
 
+#include <functional>
+
 // Interface class.
 //
 // GUIMenuBar derived from this class.
