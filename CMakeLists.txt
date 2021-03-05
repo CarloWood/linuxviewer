@@ -65,5 +65,6 @@ set(INSTALL_GTEST OFF CACHE BOOL "")
 add_subdirectory(resolver-task)
 add_subdirectory(socket-task)
 add_subdirectory(xmlrpc-task)
+add_subdirectory(dbus-task)
 
 add_subdirectory(src)

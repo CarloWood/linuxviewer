@@ -16,7 +16,7 @@ find_package(magic_enum REQUIRED)
 # In general, the CORRECT way to deal with this is to make sure that you do not have
 # libraries installed in your LD_LIBRARY_PATH that you don't want to link with (aka,
 # that are installed in gitache!).
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
+###set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 
 add_executable(linuxviewer 
   application.cxx
