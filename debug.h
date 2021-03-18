@@ -12,18 +12,10 @@ namespace libcwd {
 using utils::print_using;
 } // namespace libcwd
 
-namespace {
-
-template<typename T, typename = void>
-constexpr bool has_print_on = false;
+#include "utils/has_print_on.h"
 
 template<typename T>
-constexpr bool has_print_on<T, std::void_t<decltype(std::declval<T>().print_on(std::declval<std::ostream&>()))>> = true;
-
-} // namespace
-
-template<typename T>
-std::enable_if_t<has_print_on<T const>, std::ostream&>
+std::enable_if_t<utils::has_print_on<T const>, std::ostream&>
 operator<<(std::ostream& os, T const& data)
 {
   data.print_on(os);
