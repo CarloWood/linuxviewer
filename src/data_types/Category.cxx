@@ -11,6 +11,7 @@ evio::protocol::xmlrpc::ElementDecoder* Category::create_member_decoder(members 
   {
     xmlrpc_Category_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
+  AI_NEVER_REACHED
 }
 
 #ifdef CWDEBUG

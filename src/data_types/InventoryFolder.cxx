@@ -11,6 +11,7 @@ evio::protocol::xmlrpc::ElementDecoder* InventoryFolder::create_member_decoder(m
   {
     xmlrpc_InventoryFolder_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
+  AI_NEVER_REACHED
 }
 
 #ifdef CWDEBUG

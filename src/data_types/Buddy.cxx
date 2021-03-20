@@ -11,6 +11,7 @@ evio::protocol::xmlrpc::ElementDecoder* Buddy::create_member_decoder(members mem
   {
     xmlrpc_Buddy_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
+  AI_NEVER_REACHED
 }
 
 #ifdef CWDEBUG

@@ -11,6 +11,7 @@ evio::protocol::xmlrpc::ElementDecoder* SunCloudMoonTextures::create_member_deco
   {
     xmlrpc_SunCloudMoonTextures_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
+  AI_NEVER_REACHED
 }
 
 #ifdef CWDEBUG

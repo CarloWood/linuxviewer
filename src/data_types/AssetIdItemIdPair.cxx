@@ -11,6 +11,7 @@ evio::protocol::xmlrpc::ElementDecoder* AssetIdItemIdPair::create_member_decoder
   {
     xmlrpc_AssetIdItemIdPair_FOREACH_MEMBER(XMLRPC_CASE_RETURN_MEMBER_DECODER)
   }
+  AI_NEVER_REACHED
 }
 
 #ifdef CWDEBUG
