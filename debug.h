@@ -25,7 +25,8 @@ operator<<(std::ostream& os, T const& data)
 template<typename T>
 std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
 {
-  char const* prefix = "{";
+  os << '{';
+  char const* prefix = "";
   for (auto&& element : v)
   {
     os << prefix << element;
