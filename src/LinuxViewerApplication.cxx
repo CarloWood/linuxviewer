@@ -14,13 +14,14 @@
 #include "evio/protocol/http.h"
 #include "evio/protocol/EOFDecoder.h"
 #include "utils/debug_ostream_operators.h"
-#include "threadsafe/Gate.h"
+#include "utils/threading/Gate.h"
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <functional>
 #include <regex>
 #include <iterator>
 
+namespace utils { using namespace threading; }
 namespace http = evio::protocol::http;
 
 //static
@@ -97,7 +98,7 @@ void LinuxViewerApplication::on_main_instance_startup()
   DoutEntering(dc::notice, "LinuxViewerApplication::on_main_instance_startup()");
 
   // Allow the main thread to wait until the test finished.
-  aithreadsafe::Gate test_finished;
+  utils::Gate test_finished;
 
   xmlrpc::LoginToSimulatorCreate login_to_simulator;
   std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login_boost.xml");
