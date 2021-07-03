@@ -14,7 +14,7 @@ ltmain.sh
 missing
 test-driver
 
-src/.gdbinit
+.gdbinit
 src/POST_login.xml
 src/gdb.cmds
 src/http_login_Response
