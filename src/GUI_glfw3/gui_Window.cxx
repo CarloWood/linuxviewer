@@ -10,10 +10,9 @@ Window::Window(Application* application) : m_application(application)
 {
   DoutEntering(dc::notice, "Window::Window(" << application << ") [NOT IMPLEMENTED]");
 
-#if 0
-  set_title("GUI");
-  set_default_size(500, 800);
+  m_glfw_window = glfwCreateWindow(500, 800, "GUI", NULL, NULL);
 
+#if 0
   m_menubar = new MenuBar(this);
   m_grid.attach(*m_menubar, 0, 0);
 

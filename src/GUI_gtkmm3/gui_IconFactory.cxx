@@ -3,7 +3,7 @@
 #include "debug.h"
 
 namespace gtkmm3 {
-namepsace gui {
+namespace gui {
 
 //static
 std::array<IconFactory::icon_info_st, menu_keys::number_of_custom_icons> IconFactory::s_icon_info = {{

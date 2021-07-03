@@ -68,3 +68,5 @@ struct MenuEntryKey
 
 } // namespace gui
 } // namespace gtkmm3
+
+namespace gui = gtkmm3::gui;

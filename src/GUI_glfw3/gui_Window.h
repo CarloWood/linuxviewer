@@ -1,5 +1,10 @@
 #pragma once
 
+// Needed before including GLFW/glfw3.h.
+// GLFW/glfw3.h should not be included anywhere else.
+#define GLFW_INCLUDE_VULKAN
+#include "GLFW/glfw3.h"
+
 // This is the GUI implementation that is implemented on top of glfw3.
 namespace glfw3 {
 namespace gui {
@@ -10,7 +15,8 @@ class Application;
 class Window
 {
  private:
-  Application* m_application;        // The appliction that was passed to the constructor.
+  Application* m_application;           // The appliction that was passed to the constructor.
+  GLFWwindow* m_glfw_window;            // Pointer to the underlaying window implementation.
 
  public:
   Window(Application* application);

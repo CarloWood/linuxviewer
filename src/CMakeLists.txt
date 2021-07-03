@@ -33,7 +33,8 @@ target_link_libraries(linuxviewer
     LinuxViewer::protocols
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
-    LinuxViewer::glfw3gui
+    #LinuxViewer::glfw3gui
+    LinuxViewer::gtkmmgui
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task
@@ -45,7 +46,7 @@ target_link_libraries(linuxviewer
     Boost::serialization
 )
 
-#add_subdirectory(GUI_gtkmm3)
-add_subdirectory(GUI_glfw3)
+add_subdirectory(GUI_gtkmm3)
+#add_subdirectory(GUI_glfw3)
 add_subdirectory(protocols)
 add_subdirectory(data_types)

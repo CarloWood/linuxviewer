@@ -48,7 +48,7 @@ class Application : public Gtk::Application
 } // namespace gui
 } // namespace gtkmm3
 
-namespace gui = glfw3::gui;
+namespace gui = gtkmm3::gui;
 
 namespace menu_keys {
   // Make Gtk::Stock IDs available to LinuxViewerApplication::append_menu_entries.

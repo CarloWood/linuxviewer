@@ -73,3 +73,5 @@ struct MenuEntryKey
 
 } // namespace gui
 } // namespace glfw3
+
+namespace gui = glfw3::gui;

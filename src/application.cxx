@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
   int const reserved_threads = 1;                       // Reserve 1 thread for each priority.
   // Create the thread pool.
   AIThreadPool thread_pool(number_of_threads, max_number_of_threads);
+  Debug(thread_pool.set_color_functions([](int color){ std::string code{"\e[30m"}; code[3] = '1' + color; return code; }));
   // And the thread pool queues.
   [[maybe_unused]] AIQueueHandle high_priority_queue   = thread_pool.new_queue(queue_capacity, reserved_threads);
   [[maybe_unused]] AIQueueHandle medium_priority_queue = thread_pool.new_queue(queue_capacity, reserved_threads);
@@ -30,7 +31,7 @@ int main(int argc, char* argv[])
   try
   {
     // Set up the I/O event loop.
-    evio::EventLoop event_loop(low_priority_queue);
+    evio::EventLoop event_loop(low_priority_queue COMMA_CWDEBUG_ONLY("\e[36m", "\e[0m"));
     resolver::Scope resolver_scope(low_priority_queue, false);
 
     // Task engine to run tasks from the main loop of GTK+.

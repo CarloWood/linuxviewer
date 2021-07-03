@@ -60,6 +60,7 @@ target_compile_features(gtkmmgui_ObjLib
 # Set link dependencies.
 target_link_libraries(gtkmmgui_ObjLib
   PUBLIC
+    AICxx::cwds
     PkgConfig::gtkmm
 )
 

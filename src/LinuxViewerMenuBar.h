@@ -1,7 +1,9 @@
 #pragma once
 
-#include "GUI_glfw3/gui_MenuEntryKey.h"
-using MenuEntryKey = glfw3::gui::MenuEntryKey;
+// We use the GUI implementation on top of glfw3.
+//#include "GUI_glfw3/gui_MenuEntryKey.h"
+#include "GUI_gtkmm3/gui_MenuEntryKey.h"
+using MenuEntryKey = gui::MenuEntryKey;
 
 #include <functional>
 

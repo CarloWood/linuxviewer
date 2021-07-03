@@ -31,7 +31,7 @@ void Application::on_startup()
 
 void Application::on_activate()
 {
-  DoutEntering(dc::notice, "Viewer::on_activate()");
+  DoutEntering(dc::notice, "Application::on_activate()");
 
   // The application has been started, create and show the main window.
   m_main_window = create_window();
@@ -89,9 +89,12 @@ void Application::terminate()
   // must remove the window from the application. One way of doing this
   // is to hide the window.
   std::vector<Gtk::Window*> windows = get_windows();
-  Dout(dc::notice, "Hiding all " << windows.size() << " windows of the application.");
-  for (auto window : windows)
-    window->hide();
+  if (!windows.empty())
+  {
+    Dout(dc::notice, "Hiding all " << windows.size() << " remaining windows of the application.");
+    for (auto window : windows)
+      window->hide();
+  }
 
   Dout(dc::notice, "Leaving Application::terminate()");
 }

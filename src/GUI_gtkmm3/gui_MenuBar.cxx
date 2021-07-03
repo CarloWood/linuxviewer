@@ -38,5 +38,5 @@ MenuBar::MenuBar(Window* main_window)
   main_window->application().append_menu_entries(this);
 }
 
-| // namespace gui
+} // namespace gui
 } // namespace gtkmm3

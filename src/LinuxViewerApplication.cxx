@@ -100,8 +100,10 @@ void LinuxViewerApplication::on_main_instance_startup()
   // Allow the main thread to wait until the test finished.
   utils::Gate test_finished;
 
+#if 0
+  // This performs a login to MG, using pre-formatted data from a file.
   xmlrpc::LoginToSimulatorCreate login_to_simulator;
-  std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/POST_login_boost.xml");
+  std::ifstream ifs("/home/carlo/projects/aicxx/linuxviewer/POST_login_boost.xml");
   boost::archive::text_iarchive ia(ifs);
   ia >> login_to_simulator;
 
@@ -114,6 +116,7 @@ void LinuxViewerApplication::on_main_instance_startup()
   task->set_end_point(std::move(end_point));
   task->set_request_object(login_request);
   task->set_response_object(login_response);
+#endif
 
 #if 0
   std::stringstream ss;
@@ -173,6 +176,8 @@ void LinuxViewerApplication::on_main_instance_startup()
   output_file->open("/home/carlo/projects/aicxx/linuxviewer/linuxviewer/src/login_Response.xml", std::ios_base::out);
 #endif
 
+#if 0
+  // This run the task that was created above.
   task->run([this, task, &test_finished](bool success){
       if (!success)
         Dout(dc::warning, "task::XML_RPC_MethodCall was aborted");
@@ -183,6 +188,7 @@ void LinuxViewerApplication::on_main_instance_startup()
     });
 
   test_finished.wait();
+#endif
 }
 
 // This is called from the main loop of the GUI during "idle" cycles.
@@ -204,7 +210,7 @@ void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
   //---------------------------------------------------------------------------
   // Menu buttons that have a call back to this object are added below.
   //
-//  ADD(File, QUIT);
+  ADD(File, QUIT);
 }
 
 void LinuxViewerApplication::on_menu_File_QUIT()

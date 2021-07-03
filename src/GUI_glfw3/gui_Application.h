@@ -1,10 +1,17 @@
 #pragma once
 
+#include "debug.h"
 #include <string>
 #include <mutex>
 
 class AIEngine;
 class LinuxViewerMenuBar;
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct glfw;
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
 
 // This is the GUI implementation that is implemented on top of glfw3.
 namespace glfw3 {
@@ -17,10 +24,14 @@ class Application
  private:
   static std::once_flag s_main_instance;
   Window* m_main_window;
+  std::string m_application_name;               // Cache of what was passed to the constructor.
 
  protected:
   Application(std::string const& application_name);
   virtual ~Application();
+
+ public:
+  std::string const& application_name() const { return m_application_name; }
 
  private:
   Window* create_window();

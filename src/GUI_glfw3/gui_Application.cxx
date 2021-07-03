@@ -1,26 +1,46 @@
 #include "sys.h"
 #include "gui_Application.h"
-#include "gui_Window.h"
+#include "gui_Window.h"          // This includes GLFW/glfw3.h.
 #include <vector>
+#include <stdexcept>
 #include "debug.h"
+
+#ifdef CWDEBUG
+static void error_callback(int error, char const* description)
+{
+  Dout(dc::glfw, "Error: " << description);
+}
+#endif
 
 namespace glfw3 {
 namespace gui {
 
 std::once_flag Application::s_main_instance;
 
-Application::Application(std::string const& application_name) : m_main_window(nullptr)
+Application::Application(std::string const& application_name) : m_main_window(nullptr), m_application_name(application_name)
 {
-  DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\") [NOT IMPLEMENTED]");
+  DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\")");
+
+  if (!glfwInit())
+    throw std::runtime_error("glfwInit() returned a non-zero value.");
+
+#ifdef CWDEBUG
+  glfwSetErrorCallback(error_callback);
+  // These are warning level, so always turn them on.
+  if (DEBUGCHANNELS::dc::glfw.is_on())
+    DEBUGCHANNELS::dc::glfw.on();
+#endif
+
 #if 0
   // Initialize application.
-  Glib::set_application_name(application_name);
   Glib::signal_idle().connect(sigc::mem_fun(*this, &Application::on_gui_idle));
 #endif
 }
 
 Application::~Application()
 {
+  // Complement of glfwInit().
+  glfwTerminate();
 }
 
 Window* Application::create_window()
@@ -116,3 +136,9 @@ void Application::quit()
 
 } // namespace gui
 } // namespace glfw3
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+channel_ct glfw("GLFW");
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
