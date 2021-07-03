@@ -210,7 +210,9 @@ void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
   //---------------------------------------------------------------------------
   // Menu buttons that have a call back to this object are added below.
   //
-  ADD(File, QUIT);
+
+  //FIXME: not compiling with glfw3
+  //ADD(File, QUIT);
 }
 
 void LinuxViewerApplication::on_menu_File_QUIT()
