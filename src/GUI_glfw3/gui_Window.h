@@ -23,6 +23,7 @@ class Window
   virtual ~Window();
 
   void append_menu_entries(MenuBar* menubar);
+  GLFWwindow* get_glfw_window() const { return m_glfw_window; }
 
  protected:
   friend class MenuBar;              // Calls append_menu_entries on the two objects returned by the following accessors.
