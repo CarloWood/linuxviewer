@@ -22,8 +22,8 @@ class Window;
 class Application
 {
  private:
-  static std::once_flag s_main_instance;
-  Window* m_main_window;
+  static std::once_flag s_main_instance;        // Make sure that m_main_window is only initialized once.
+  Window* m_main_window;                        // Pointer to the main window.
   std::string m_application_name;               // Cache of what was passed to the constructor.
 
  protected:
@@ -39,7 +39,7 @@ class Application
   //void on_window_hide(Gtk::Window* window);
 
   //---------------------------------------------------------------------------
-  // Everything below is GTK independent interface implemented
+  // Everything below is glfw independent interface implemented
   // or used by the derived class LinuxViewerApplication.
   //
 
