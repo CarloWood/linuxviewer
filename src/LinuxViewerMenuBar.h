@@ -9,7 +9,7 @@ using MenuEntryKey = gui::MenuEntryKey;
 
 // Interface class.
 //
-// GUIMenuBar derived from this class.
+// gui::MenuBar derives from this class.
 
 class LinuxViewerMenuBar
 {
