@@ -12,7 +12,8 @@ class LinuxViewerApplication : public gui::Application
   AIEngine& m_gui_idle_engine;
 
  public:
-  LinuxViewerApplication(AIEngine& gui_idle_engine) : gui::Application("LinuxViewer"), m_gui_idle_engine(gui_idle_engine) {
+  LinuxViewerApplication(AIEngine& gui_idle_engine) : gui::Application("LinuxViewer"), m_gui_idle_engine(gui_idle_engine)
+  {
     DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(gui_idle_engine)");
   }
 
