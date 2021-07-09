@@ -12,7 +12,6 @@ include(AICxxProject)
 #
 
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)    # Link with glfw (it has no ALIAS).
 
 #==============================================================================
 # BUILD PROJECT
@@ -61,11 +60,5 @@ target_link_libraries(glfw3gui_ObjLib
 # Create an ALIAS target.
 add_library(LinuxViewer::glfw3gui ALIAS glfw3gui_ObjLib)
 
-# Has support for glfw3 and vulkan been installed on this machine?
-# See https://vulkan-tutorial.com/en/Development_environment
-add_executable(glfw3_test glfw3_test.cxx)
-
-target_link_libraries(glfw3_test
-  PRIVATE
-    LinuxViewer::glfw3gui
-)
+# C++ wrapper around glfw. Also includes external "dependencies" for imgui and glew (with cmake support).
+add_subdirectory(glfwpp)
