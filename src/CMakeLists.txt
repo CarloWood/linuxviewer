@@ -46,6 +46,14 @@ target_link_libraries(linuxviewer
     Boost::serialization
 )
 
+add_executable(hellotriangle
+  HelloTriangleVulkanApplication.cxx
+)
+
+target_link_libraries(hellotriangle
+  AICxx::cwds
+)
+
 #add_subdirectory(GUI_gtkmm3)
 add_subdirectory(GUI_glfw3)
 add_subdirectory(protocols)
