@@ -2,27 +2,25 @@
 
 // We use the GUI implementation on top of glfw3.
 #include "GUI_glfw3/gui_Application.h"
+#include "statefultask/AIEngine.h"
 #include "debug.h"
 #include <memory>
 
 class HelloTriangleVulkanApplication : public gui::Application
 {
  private:
-  AIEngine& m_gui_idle_engine;
+  AIEngine m_gui_idle_engine;           // Task engine to run tasks from the gui main loop.
 
  public:
-  HelloTriangleVulkanApplication(AIEngine& gui_idle_engine) : gui::Application("HelloTriangleVulkanApplication"), m_gui_idle_engine(gui_idle_engine)
+  HelloTriangleVulkanApplication(float max_duration = 0.0f) : gui::Application("HelloTriangleVulkanApplication"), m_gui_idle_engine("gui_idle_engine", max_duration)
   {
-    DoutEntering(dc::notice, "HelloTriangleVulkanApplication::HelloTriangleVulkanApplication()");
+    DoutEntering(dc::notice, "HelloTriangleVulkanApplication::HelloTriangleVulkanApplication(" << max_duration << ")");
   }
 
   ~HelloTriangleVulkanApplication() override
   {
     Dout(dc::notice, "Calling HelloTriangleVulkanApplication::~HelloTriangleVulkanApplication()");
   }
-
- public:
-  static std::unique_ptr<HelloTriangleVulkanApplication> create(AIEngine& gui_idle_engine);
 
  private:
   // Menu button events.

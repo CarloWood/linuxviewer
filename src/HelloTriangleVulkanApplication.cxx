@@ -1,19 +1,12 @@
 #include "sys.h"
 #include "HelloTriangleVulkanApplication.h"
 #include "statefultask/DefaultMemoryPagePool.h"
-#include "statefultask/AIEngine.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include "utils/threading/Gate.h"
 #include "utils/debug_ostream_operators.h"
 
 namespace utils { using namespace threading; }
-
-//static
-std::unique_ptr<HelloTriangleVulkanApplication> HelloTriangleVulkanApplication::create(AIEngine& gui_idle_engine)
-{
-  return std::make_unique<HelloTriangleVulkanApplication>(gui_idle_engine);
-}
 
 void HelloTriangleVulkanApplication::on_menu_File_QUIT()
 {
@@ -71,14 +64,11 @@ int main(int argc, char* argv[])
     evio::EventLoop event_loop(low_priority_queue COMMA_CWDEBUG_ONLY("\e[36m", "\e[0m"));
     resolver::Scope resolver_scope(low_priority_queue, false);
 
-    // Task engine to run tasks from the main loop of GTK+.
-    AIEngine gui_idle_engine("gui_idle_engine", 2.0);
-
     // Create main application.
-    auto application = HelloTriangleVulkanApplication::create(gui_idle_engine);
+    HelloTriangleVulkanApplication application(1.0);    // Run idle tasks for at most 1 ms per frame.
 
     // Run main application.
-    application->run(argc, argv);
+    application.run(argc, argv);
 
     // Application terminated cleanly.
     event_loop.join();
