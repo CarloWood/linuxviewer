@@ -38,6 +38,7 @@ int main(int argc, char* argv[])
   Dout(dc::notice, "Entering main()");
 
   ApplicationCreateInfo create_info = {
+    .application_name = "HelloTriangleVulkanApplication"
   };
 
   // Create main application.

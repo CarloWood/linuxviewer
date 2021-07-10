@@ -46,6 +46,9 @@ target_link_libraries(linuxviewer
     Boost::serialization
 )
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 add_executable(hellotriangle
   HelloTriangleVulkanApplication.cxx
   ApplicationCreateInfo.cxx
