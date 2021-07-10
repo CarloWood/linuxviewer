@@ -19,11 +19,14 @@ find_package(magic_enum REQUIRED)
 ###set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--disable-new-dtags")
 
 add_executable(linuxviewer 
-  application.cxx
   LinuxViewerApplication.cxx
   LinuxViewerApplication.h
   LinuxViewerMenuEntries.cxx
   LinuxViewerMenuEntries.h
+  ApplicationCreateInfo.cxx
+  ApplicationCreateInfo.h
+  Application.cxx
+  Application.h
 
   LinuxViewerMenuBar.h
 )
@@ -51,7 +54,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(hellotriangle
   HelloTriangleVulkanApplication.cxx
+  HelloTriangleVulkanApplication.h
   ApplicationCreateInfo.cxx
+  ApplicationCreateInfo.h
+  Application.cxx
+  Application.h
 )
 
 target_link_libraries(hellotriangle

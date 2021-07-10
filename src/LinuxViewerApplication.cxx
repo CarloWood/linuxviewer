@@ -24,12 +24,6 @@
 namespace utils { using namespace threading; }
 namespace http = evio::protocol::http;
 
-//static
-std::unique_ptr<LinuxViewerApplication> LinuxViewerApplication::create(AIEngine& gui_idle_engine)
-{
-  return std::make_unique<LinuxViewerApplication>(gui_idle_engine);
-}
-
 class MySocket : public evio::Socket
 {
  private:
@@ -191,15 +185,6 @@ void LinuxViewerApplication::on_main_instance_startup()
 #endif
 }
 
-// This is called from the main loop of the GUI during "idle" cycles.
-bool LinuxViewerApplication::on_gui_idle()
-{
-  m_gui_idle_engine.mainloop();
-
-  // Returning true means we want to be called again (more work is to be done).
-  return false;
-}
-
 void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
 {
   using namespace menu_keys;
@@ -222,4 +207,31 @@ void LinuxViewerApplication::on_menu_File_QUIT()
   // Close all windows and cause the application to return from run(),
   // which will terminate the application (see application.cxx).
   terminate();
+}
+
+int main(int argc, char* argv[])
+{
+  Debug(NAMESPACE_DEBUG::init());
+  Dout(dc::notice, "Entering main()");
+
+  ApplicationCreateInfo create_info = {
+    .application_name = "LinuxViewerApplication"
+  };
+
+  // Create main application.
+  LinuxViewerApplication application(create_info);
+  try
+  {
+    // Run main application.
+    application.run(argc, argv);
+
+    // Application terminated cleanly.
+    application.join_event_loop();
+  }
+  catch (AIAlert::Error const& error)
+  {
+    Dout(dc::warning, error << " caught in LinuxViewerApplication.cxx");
+  }
+
+  Dout(dc::notice, "Leaving main()");
 }

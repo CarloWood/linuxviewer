@@ -24,14 +24,6 @@ void HelloTriangleVulkanApplication::append_menu_entries(LinuxViewerMenuBar* men
   //FIXME - not implemented yet.
 }
 
-bool HelloTriangleVulkanApplication::on_gui_idle()
-{
-  m_gui_idle_engine.mainloop();
-
-  // Returning true means we want to be called again (more work is to be done).
-  return false;
-}
-
 int main(int argc, char* argv[])
 {
   Debug(NAMESPACE_DEBUG::init());

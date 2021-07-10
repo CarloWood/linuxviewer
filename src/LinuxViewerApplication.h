@@ -1,29 +1,19 @@
 #pragma once
 
-// We use the GUI implementation on top of glfw3.
-#include "GUI_glfw3/gui_Application.h"
-//#include "GUI_gtkmm3/gui_Application.h"
-#include "debug.h"
-#include <memory>
+#include "Application.h"
 
-class LinuxViewerApplication : public gui::Application
+class LinuxViewerApplication : public Application
 {
- private:
-  AIEngine& m_gui_idle_engine;
-
  public:
-  LinuxViewerApplication(AIEngine& gui_idle_engine) : gui::Application("LinuxViewer"), m_gui_idle_engine(gui_idle_engine)
+  LinuxViewerApplication(ApplicationCreateInfo const& create_info) : Application(create_info)
   {
-    DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(gui_idle_engine)");
+    DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(" << create_info << ")");
   }
 
   ~LinuxViewerApplication() override
   {
     Dout(dc::notice, "Calling LinuxViewerApplication::~LinuxViewerApplication()");
   }
-
- public:
-  static std::unique_ptr<LinuxViewerApplication> create(AIEngine& gui_idle_engine);
 
  private:
   // Menu button events.
@@ -35,7 +25,4 @@ class LinuxViewerApplication : public gui::Application
 
   // Implementation of append_menu_entries: add File->QUIT with callback on_menu_File_QUIT.
   void append_menu_entries(LinuxViewerMenuBar* menubar) override;
-
-  // Called from the main loop of the GUI.
-  bool on_gui_idle() override;
 };
