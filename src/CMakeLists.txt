@@ -51,7 +51,12 @@ add_executable(hellotriangle
 )
 
 target_link_libraries(hellotriangle
-  AICxx::cwds
+  PRIVATE
+    LinuxViewer::glfw3gui
+    AICxx::resolver-task
+    dns::dns
+    ${AICXX_OBJECTS_LIST}
+    farmhash::farmhash
 )
 
 #add_subdirectory(GUI_gtkmm3)
