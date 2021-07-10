@@ -48,6 +48,7 @@ target_link_libraries(linuxviewer
 
 add_executable(hellotriangle
   HelloTriangleVulkanApplication.cxx
+  ApplicationCreateInfo.cxx
 )
 
 target_link_libraries(hellotriangle
