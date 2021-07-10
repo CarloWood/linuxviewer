@@ -10,7 +10,17 @@ Window::Window(Application* application) : m_application(application)
 {
   DoutEntering(dc::notice, "Window::Window(" << application << ") [NOT IMPLEMENTED]");
 
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);    // Default is TRUE.
+  glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);      // Default is TRUE.
+  glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);    // Default is TRUE.
+  glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+  //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);  No effect?
   m_glfw_window = glfwCreateWindow(500, 800, "GUI", NULL, NULL);
+
+  if (!m_glfw_window)
+    throw std::runtime_error("Failed to create main window: glfwCreateWindow returned NULL");
+
+  glfwMakeContextCurrent(m_glfw_window);
 
 #if 0
   m_menubar = new MenuBar(this);
@@ -25,6 +35,7 @@ Window::Window(Application* application) : m_application(application)
 Window::~Window()
 {
   Dout(dc::notice, "Calling Window::~Window()");
+  glfwDestroyWindow(m_glfw_window);
 }
 
 void Window::append_menu_entries(MenuBar* menubar)

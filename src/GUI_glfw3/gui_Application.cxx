@@ -3,6 +3,7 @@
 #include "gui_Window.h"          // This includes GLFW/glfw3.h.
 #include <vector>
 #include <stdexcept>
+#include <thread>
 #include "debug.h"
 
 #ifdef CWDEBUG
@@ -107,6 +108,9 @@ void Application::terminate()
     window->hide();
 #endif
 
+  delete m_main_window;
+  m_main_window = nullptr;
+
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
@@ -127,6 +131,14 @@ void Application::run(int argc, char* argv[])
 
   // The application has been started, create and show the main window.
   m_main_window = create_window();
+
+  // Run the GUI main loop.
+  while (!glfwWindowShouldClose(m_main_window->get_glfw_window()))
+  {
+    // Keep running
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    glfwPollEvents();
+  }
 }
 
 void Application::quit()
