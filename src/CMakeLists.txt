@@ -53,6 +53,8 @@ target_link_libraries(linuxviewer
 )
 
 add_executable(hellotriangle
+  HelloTriangleVulkanApplicationCreateInfo.cxx
+  HelloTriangleVulkanApplicationCreateInfo.h
   HelloTriangleVulkanApplication.cxx
   HelloTriangleVulkanApplication.h
   ApplicationCreateInfo.cxx

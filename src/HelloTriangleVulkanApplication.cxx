@@ -29,8 +29,9 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  ApplicationCreateInfo create_info = {
-    .application_name = "HelloTriangleVulkanApplication"
+  HelloTriangleVulkanApplicationCreateInfo create_info = {
+    { .application_name = "HelloTriangleVulkanApplication" },
+    { .version = 1 }
   };
 
   // Create main application.

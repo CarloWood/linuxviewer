@@ -1,11 +1,15 @@
 #pragma once
 
 #include "Application.h"
+#include "HelloTriangleVulkanApplicationCreateInfo.h"
 
 class HelloTriangleVulkanApplication : public Application
 {
+ private:
+  int const m_version;
+
  public:
-  HelloTriangleVulkanApplication(ApplicationCreateInfo const& create_info) : Application(create_info)
+  HelloTriangleVulkanApplication(HelloTriangleVulkanApplicationCreateInfo const& create_info) : Application(create_info), m_version(create_info.version)
   {
     DoutEntering(dc::notice, "HelloTriangleVulkanApplication::HelloTriangleVulkanApplication(" << create_info << ")");
   }

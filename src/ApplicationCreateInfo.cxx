@@ -13,5 +13,6 @@ void ApplicationCreateInfo::print_on(std::ostream& os) const
   os << "queue_capacity:" << queue_capacity << ", ";
   os << "reserved_threads:" << reserved_threads << ", ";
   os << "application_name:\"" << application_name << "\"";
+  os << '}';
 }
 #endif
