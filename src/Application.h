@@ -31,13 +31,14 @@ class Application : public gui::Application
  public:
   Application(ApplicationCreateInfo const& create_info) :
     gui::Application(create_info.application_name),
-    m_gui_idle_engine("gui_idle_engine", create_info.max_duration),
+    m_mpp(create_info.block_size, create_info.minimum_chunk_size, create_info.maximum_chunk_size),
     m_thread_pool(create_info.number_of_threads, create_info.max_number_of_threads),
     m_high_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity, create_info.reserved_threads)),
     m_medium_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity, create_info.reserved_threads)),
     m_low_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity)),
     m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(create_info.event_loop_color, create_info.color_off_code)),
-    m_resolver_scope(m_low_priority_queue, false)
+    m_resolver_scope(m_low_priority_queue, false),
+    m_gui_idle_engine("gui_idle_engine", create_info.max_duration)
   {
     Debug(m_thread_pool.set_color_functions(create_info.thread_pool_color_function));
   }

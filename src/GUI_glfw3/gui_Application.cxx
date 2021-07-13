@@ -121,6 +121,7 @@ void Application::run(int argc, char* argv[])
   // Do one-time initialization.
   std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
 
+  // Print the commandline arguments used.
   char const* prefix = "{";
   for (char** arg = argv; *arg; ++arg)
   {

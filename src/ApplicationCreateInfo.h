@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/MemoryPagePool.h"
 #include <iosfwd>
 #include <functional>
 #include <string>
@@ -7,6 +8,13 @@
 // Default values for the creation of an Application object.
 struct ApplicationCreateInfo
 {
+  using blocks_t = utils::MemoryPagePool::blocks_t;
+
+  // Default values passed to utils::MemoryPagePool.
+  size_t const block_size = 0x8000;                     // The size of a block as returned by allocate(), in bytes.
+  blocks_t const minimum_chunk_size;                    // The minimum size of internally allocated contiguous memory blocks, in blocks.
+  blocks_t const maximum_chunk_size;                    // The maximum size of internally allocated contiguous memory blocks, in blocks.
+
   float const max_duration = 1.0;                       // Try not to spend more time per frame than 1 ms in the idle engine.
 
   // Set up the thread pool for the application.
@@ -16,7 +24,7 @@ struct ApplicationCreateInfo
   int const reserved_threads = 1;                       // Reserve 1 thread for each priority.
 
   // Application initialization.
-  char const* const application_name = "Application Name";
+  char const* const application_name = "Application";
 
 #ifdef CWDEBUG
   // Debug colors.

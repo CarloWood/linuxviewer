@@ -36,6 +36,7 @@ int main(int argc, char* argv[])
 
   // Create main application.
   HelloTriangleVulkanApplication application(create_info);
+
   try
   {
     // Run main application.
@@ -46,6 +47,7 @@ int main(int argc, char* argv[])
   }
   catch (AIAlert::Error const& error)
   {
+    // Application terminated with an error.
     Dout(dc::warning, error << " caught in HelloTriangleVulkanApplication.cxx");
   }
 
