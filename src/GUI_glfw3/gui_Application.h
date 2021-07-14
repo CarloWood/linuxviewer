@@ -1,8 +1,9 @@
 #pragma once
 
-#include "debug.h"
 #include <string>
 #include <mutex>
+#include <glfwpp/glfwpp.h>
+#include "debug.h"
 
 class AIEngine;
 class LinuxViewerMenuBar;
@@ -24,6 +25,7 @@ class Application
  private:
   static std::once_flag s_main_instance;        // Make sure that m_main_window is only initialized once.
   std::string m_application_name;               // Cache of what was passed to the constructor.
+  glfw::GlfwLibrary library = glfw::init();     // Initialize libglfw.
   Window* m_main_window;                        // Pointer to the main window.
 
  protected:

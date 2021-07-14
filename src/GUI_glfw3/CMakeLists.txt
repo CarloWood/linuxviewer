@@ -54,7 +54,7 @@ target_link_libraries(glfw3gui_ObjLib
   PUBLIC
     AICxx::utils
     Vulkan::Vulkan
-    glfw
+    GLFWPP
 )
 
 # Create an ALIAS target.

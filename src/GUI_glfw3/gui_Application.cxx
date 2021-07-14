@@ -22,9 +22,6 @@ Application::Application(std::string const& application_name) : m_main_window(nu
 {
   DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\")");
 
-  if (!glfwInit())
-    throw std::runtime_error("glfwInit() returned a non-zero value.");
-
 #ifdef CWDEBUG
   glfwSetErrorCallback(error_callback);
   // These are warning level, so always turn them on.
