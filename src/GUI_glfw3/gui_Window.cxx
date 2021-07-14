@@ -7,22 +7,16 @@
 namespace glfw3 {
 namespace gui {
 
-Window::Window(Application* application, int width, int height, char const* title, glfw::Monitor const* monitor, glfw::Window const* share) :
-  glfw::Window(width, height, title ? title : application->application_name().c_str(), monitor, share), m_application(application)
+Window::Window(Application* application, WindowCreateInfoExt const& create_info) :
+  glfw::Window(
+      create_info.width,
+      create_info.height,
+      create_info.title ? create_info.title : application->application_name().c_str(),
+      create_info.monitor,
+      create_info.share),
+  m_application(application)
 {
-  DoutEntering(dc::notice, "Window::Window(" << application << ", " << width << ", " << height << ", \"" << title << "\", " << monitor << ", " << share << ") [" << (void*)this << "] [INCOMPLETE]");
-
-#if 0
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);    // Default is TRUE.
-  glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);      // Default is TRUE.
-  glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);    // Default is TRUE.
-  glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
-  //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_FALSE);  No effect?
-  m_glfw_window = glfwCreateWindow(500, 800, "GUI", NULL, NULL);
-
-  if (!m_glfw_window)
-    throw std::runtime_error("Failed to create main window: glfwCreateWindow returned NULL");
-#endif
+  DoutEntering(dc::notice, "Window::Window(" << application << ", " << create_info << ") [" << (void*)this << "] [INCOMPLETE]");
 
 #if 0
   // FIXME: is this still possible now that we do glfw::makeContextCurrent() after returning from this constructor?

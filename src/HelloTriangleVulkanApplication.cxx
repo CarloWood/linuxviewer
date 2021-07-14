@@ -29,18 +29,30 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  HelloTriangleVulkanApplicationCreateInfo create_info = {
+  HelloTriangleVulkanApplicationCreateInfo application_create_info = {
     { .application_name = "HelloTriangleVulkanApplication" },
     { .version = 1 }
   };
 
+  WindowCreateInfo main_window_create_info = {
+    {
+      { .resizable = false,
+        .focused = false,
+        .centerCursor = false,
+        .clientApi = glfw::ClientApi::None },
+      { .width = 500,
+        .height = 800,
+        .title = "Main window title" }
+    }
+  };
+
   // Create main application.
-  HelloTriangleVulkanApplication application(create_info);
+  HelloTriangleVulkanApplication application(application_create_info);
 
   try
   {
     // Run main application.
-    application.run(argc, argv);
+    application.run(argc, argv, main_window_create_info);
 
     // Application terminated cleanly.
     application.join_event_loop();

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "utils/MemoryPagePool.h"
+#ifdef CWDEBUG
 #include <iosfwd>
 #include <functional>
 #include <string>
+#endif
 
 // Default values for the creation of an Application object.
 struct ApplicationCreateInfo

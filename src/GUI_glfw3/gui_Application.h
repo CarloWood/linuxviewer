@@ -2,7 +2,7 @@
 
 #include <string>
 #include <mutex>
-#include <glfwpp/glfwpp.h>
+#include "gui_Window.h"         // Needed for glfw::GlfwLibrary (this includes <glfwpp/glfwpp.h>).
 #include "debug.h"
 
 class AIEngine;
@@ -17,8 +17,6 @@ NAMESPACE_DEBUG_CHANNELS_END
 // This is the GUI implementation that is implemented on top of glfw3.
 namespace glfw3 {
 namespace gui {
-
-class Window;
 
 class Application
 {
@@ -36,7 +34,7 @@ class Application
   std::string const& application_name() const { return m_application_name; }
 
  private:
-  Window* create_window();
+  Window* create_window(WindowCreateInfo const& create_info);
 
   //void on_window_hide(Gtk::Window* window);
 
@@ -56,7 +54,7 @@ class Application
   virtual void append_menu_entries(LinuxViewerMenuBar* menubar) = 0;    // Derived class must implement this to add menu buttons and get call backs when they are clicked.
 
  public:
-  void run(int argc, char* argv[]);             // Called to run the GUI main loop.
+  void run(WindowCreateInfo const& main_window_create_info);            // Called to run the GUI main loop.
   void quit();                                  // Called to make the GUI main loop terminate (return from run()).
 };
 

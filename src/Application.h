@@ -3,6 +3,7 @@
 // We use the GUI implementation on top of glfw3.
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
+#include "WindowCreateInfo.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
@@ -49,6 +50,9 @@ class Application : public gui::Application
 
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
+
+  // Start the GUI main loop.
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info);
 
  private:
   // Called from the main loop of the GUI.

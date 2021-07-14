@@ -34,6 +34,8 @@ target_sources(glfw3gui_ObjLib
     "gui_Window.cxx"
     "gui_Window.h"
     "gui_MenuEntryKey.h"
+    "gui_WindowCreateInfo.cxx"
+    "gui_WindowCreateInfo.h"
 )
 
 # Required include search-paths.
@@ -42,6 +44,11 @@ target_include_directories(glfw3gui_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
     "${CMAKE_SOURCE_DIR}/src"               # For LinuxViewerMenuBar.h.
+)
+
+target_compile_definitions(glfw3gui_ObjLib
+  PUBLIC
+    GLFW_INCLUDE_VULKAN
 )
 
 # Require support for C++17.

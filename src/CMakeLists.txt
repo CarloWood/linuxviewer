@@ -28,6 +28,8 @@ add_executable(linuxviewer
   LinuxViewerMenuEntries.h
   ApplicationCreateInfo.cxx
   ApplicationCreateInfo.h
+  WindowCreateInfo.cxx
+  WindowCreateInfo.h
   Application.cxx
   Application.h
 
@@ -59,6 +61,8 @@ add_executable(hellotriangle
   HelloTriangleVulkanApplication.h
   ApplicationCreateInfo.cxx
   ApplicationCreateInfo.h
+  WindowCreateInfo.cxx
+  WindowCreateInfo.h
   Application.cxx
   Application.h
 )

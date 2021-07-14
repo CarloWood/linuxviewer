@@ -41,10 +41,12 @@ Application::~Application()
   glfwTerminate();
 }
 
-Window* Application::create_window()
+Window* Application::create_window(WindowCreateInfo const& create_info)
 {
   DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
-  Window* main_window = new Window(this, 500, 800, "GUI");
+
+  create_info.apply();  // Call glfw::WindowHints::apply.
+  Window* main_window = new Window(this, create_info);
 
 #if 0
   // Make sure that the application runs as long this window is still open.
@@ -111,24 +113,15 @@ void Application::terminate()
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
-void Application::run(int argc, char* argv[])
+void Application::run(WindowCreateInfo const& main_window_create_info)
 {
-  DoutEntering(dc::notice|flush_cf|continued_cf, "gui::Application::run(" << argc << ", ");
+  DoutEntering(dc::notice|flush_cf, "gui::Application::run(" << main_window_create_info << ")");
 
   // Do one-time initialization.
   std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
 
-  // Print the commandline arguments used.
-  char const* prefix = "{";
-  for (char** arg = argv; *arg; ++arg)
-  {
-    Dout(dc::continued|flush_cf, prefix << '"' << *arg << '"');
-    prefix = ", ";
-  }
-  Dout(dc::finish|flush_cf, '}');
-
   // The application has been started, create and show the main window.
-  m_main_window = create_window();
+  m_main_window = create_window(main_window_create_info);
 
   glfw::makeContextCurrent(*m_main_window);
 #if 0

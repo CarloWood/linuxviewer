@@ -214,16 +214,28 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  ApplicationCreateInfo create_info = {
+  ApplicationCreateInfo application_create_info = {
     .application_name = "LinuxViewerApplication"
   };
 
+  WindowCreateInfo main_window_create_info = {
+    {
+      { .focused = false,
+        .centerCursor = false,
+        .clientApi = glfw::ClientApi::None
+      },
+      { .width = 500,
+        .height = 800,
+        .title = "Main window title" }
+    }
+  };
+
   // Create main application.
-  LinuxViewerApplication application(create_info);
+  LinuxViewerApplication application(application_create_info);
   try
   {
     // Run main application.
-    application.run(argc, argv);
+    application.run(argc, argv, main_window_create_info);
 
     // Application terminated cleanly.
     application.join_event_loop();
