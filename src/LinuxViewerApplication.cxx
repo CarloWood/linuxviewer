@@ -219,11 +219,13 @@ int main(int argc, char* argv[])
   };
 
   WindowCreateInfo main_window_create_info = {
+    // gui::WindowCreateInfo
     {
+      // glfw::WindowHints
       { .focused = false,
         .centerCursor = false,
-        .clientApi = glfw::ClientApi::None
-      },
+        .clientApi = glfw::ClientApi::None },
+      // gui::WindowCreateInfoExt
       { .width = 500,
         .height = 800,
         .title = "Main window title" }

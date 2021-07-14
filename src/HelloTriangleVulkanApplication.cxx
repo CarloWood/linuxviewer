@@ -30,16 +30,21 @@ int main(int argc, char* argv[])
   Dout(dc::notice, "Entering main()");
 
   HelloTriangleVulkanApplicationCreateInfo application_create_info = {
+    // ApplicationCreateInfo
     { .application_name = "HelloTriangleVulkanApplication" },
+    // HelloTriangleVulkanApplicationCreateInfoExt
     { .version = 1 }
   };
 
   WindowCreateInfo main_window_create_info = {
+    // gui::WindowCreateInfo
     {
+      // glfw::WindowHints
       { .resizable = false,
         .focused = false,
         .centerCursor = false,
         .clientApi = glfw::ClientApi::None },
+      // gui::WindowCreateInfoExt
       { .width = 500,
         .height = 800,
         .title = "Main window title" }
