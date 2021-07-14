@@ -44,7 +44,7 @@ Application::~Application()
 Window* Application::create_window()
 {
   DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
-  Window* main_window = new Window(this);
+  Window* main_window = new Window(this, 500, 800, "GUI");
 
 #if 0
   // Make sure that the application runs as long this window is still open.
@@ -130,12 +130,22 @@ void Application::run(int argc, char* argv[])
   // The application has been started, create and show the main window.
   m_main_window = create_window();
 
+  glfw::makeContextCurrent(*m_main_window);
+#if 0
+  //FIXME: is GLEW a vulkan compatible thing?
+  if(glewInit() != GLEW_OK)
+  {
+      throw std::runtime_error("Could not initialize GLEW");
+  }
+#endif
+
   // Run the GUI main loop.
-  while (!glfwWindowShouldClose(m_main_window->get_glfw_window()))
+  while (!m_main_window->shouldClose())
   {
     // Keep running
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    glfwPollEvents();
+    glfw::pollEvents();
+    m_main_window->swapBuffers();
   }
 }
 
