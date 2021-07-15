@@ -43,7 +43,7 @@ void error_callback(int errorCode_, const char* what_)
   // This should never happen.
   ASSERT(errorCode_ != GLFW_NO_ERROR);
   if (errorCode_ < GLFW_NOT_INITIALIZED || errorCode_ > GLFW_FEATURE_UNIMPLEMENTED)
-    DoutFatal(dc::core, "Unrecognized error GLFW error: 0x" << std::hex << errorCode_ << " (" << what_ << ")");
+    DoutFatal(dc::core, "Unrecognized GLFW error: 0x" << std::hex << errorCode_ << " (" << what_ << ")");
 
   error_codes error_code = static_cast<error_codes>(errorCode_);
 
@@ -121,7 +121,7 @@ std::string ErrorCategory::message(int ev) const
     default:
     {
       std::ostringstream oss;
-      oss << "Unrecognized error (0x" << std::hex << ev << ")"; 
+      oss << "Unrecognized GLFW error (0x" << std::hex << ev << ")";
       return oss.str();
     }
   }
