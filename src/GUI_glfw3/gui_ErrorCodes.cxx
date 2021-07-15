@@ -40,15 +40,10 @@ namespace glfw3 {
 // This function is more or less a copy of glfwpp/include/glfwpp/glfwpp.h.
 void error_callback(int errorCode_, const char* what_)
 {
+  // This should never happen.
+  ASSERT(errorCode_ != GLFW_NO_ERROR);
   if (errorCode_ < GLFW_NOT_INITIALIZED || errorCode_ > GLFW_FEATURE_UNIMPLEMENTED)
-  {
     DoutFatal(dc::core, "Unrecognized error GLFW error: 0x" << std::hex << errorCode_ << " (" << what_ << ")");
-  }
-  if (errorCode_ == GLFW_NO_ERROR)
-  {
-    Dout(dc::warning, "glfw3::error_callback called with error code 0");
-    return;
-  }
 
   error_codes error_code = static_cast<error_codes>(errorCode_);
 
@@ -57,18 +52,17 @@ void error_callback(int errorCode_, const char* what_)
   // Application programmer errors. See the GLFW docs and fix the code.
   ASSERT(error_code != NOT_INITIALIZED);
   ASSERT(error_code != NO_CURRENT_CONTEXT);
-//  ASSERT(error_code != NO_WINDOW_CONTEXT);
+  ASSERT(error_code != NO_WINDOW_CONTEXT);
   ASSERT(error_code != INVALID_VALUE);
 
-  // These errors should never occur.
+  // This error should never occur.
   ASSERT(error_code != INVALID_ENUM);
 
   // Allocation failure must be treated separately.
   if (error_code == OUT_OF_MEMORY)
-  {
     throw std::bad_alloc();
-  }
 
+  // Runtime error.
   THROW_ALERTC(error_code, "glfw3::error_callback([ERRORCODE], \"[WHAT]\")", AIArgs("[ERRORCODE]", error_code)("[WHAT]", what_));
 }
 
