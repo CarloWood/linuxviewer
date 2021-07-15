@@ -6,19 +6,16 @@
 #include <thread>
 #include "debug.h"
 
-#ifdef CWDEBUG
-static void error_callback(int error, char const* description)
-{
-  Dout(dc::glfw, "Error: " << description);
-}
-#endif
-
 namespace glfw3 {
+
+// The GLFW error callback that we use.
+void error_callback(int errorCode_, const char* what_);
+
 namespace gui {
 
 std::once_flag Application::s_main_instance;
 
-Application::Application(std::string const& application_name) : m_main_window(nullptr), m_application_name(application_name)
+Application::Application(std::string const& application_name) : m_main_window(nullptr), m_application_name(application_name), m_library(glfw::init())
 {
   DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\")");
 
@@ -33,12 +30,6 @@ Application::Application(std::string const& application_name) : m_main_window(nu
   // Initialize application.
   Glib::signal_idle().connect(sigc::mem_fun(*this, &Application::on_gui_idle));
 #endif
-}
-
-Application::~Application()
-{
-  // Complement of glfwInit().
-  glfwTerminate();
 }
 
 Window* Application::create_window(WindowCreateInfo const& create_info)
@@ -123,7 +114,8 @@ void Application::run(WindowCreateInfo const& main_window_create_info)
   // The application has been started, create and show the main window.
   m_main_window = create_window(main_window_create_info);
 
-  glfw::makeContextCurrent(*m_main_window);
+  //FIXME: what does go here when using vulkan?
+  //glfw::makeContextCurrent(*m_main_window);           // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
 #if 0
   //FIXME: is GLEW a vulkan compatible thing?
   if(glewInit() != GLEW_OK)
@@ -138,7 +130,8 @@ void Application::run(WindowCreateInfo const& main_window_create_info)
     // Keep running
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     glfw::pollEvents();
-    m_main_window->swapBuffers();
+    //FIXME: what does go here when using vulkan?
+    //m_main_window->swapBuffers();                     // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
   }
 }
 

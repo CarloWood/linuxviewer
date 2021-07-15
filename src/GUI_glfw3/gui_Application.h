@@ -23,12 +23,12 @@ class Application
  private:
   static std::once_flag s_main_instance;        // Make sure that m_main_window is only initialized once.
   std::string m_application_name;               // Cache of what was passed to the constructor.
-  glfw::GlfwLibrary library = glfw::init();     // Initialize libglfw.
+  glfw::GlfwLibrary m_library;                  // Initialize libglfw.
   Window* m_main_window;                        // Pointer to the main window.
 
  protected:
   Application(std::string const& application_name);
-  virtual ~Application();
+  virtual ~Application() { }
 
  public:
   std::string const& application_name() const { return m_application_name; }

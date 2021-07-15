@@ -36,6 +36,7 @@ target_sources(glfw3gui_ObjLib
     "gui_MenuEntryKey.h"
     "gui_WindowCreateInfo.cxx"
     "gui_WindowCreateInfo.h"
+    "gui_ErrorCodes.cxx"
 )
 
 # Required include search-paths.
