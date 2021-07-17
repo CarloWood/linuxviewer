@@ -24,6 +24,7 @@ class Application
   static std::once_flag s_main_instance;        // Make sure that m_main_window is only initialized once.
   std::string m_application_name;               // Cache of what was passed to the constructor.
   glfw::GlfwLibrary m_library;                  // Initialize libglfw.
+  bool m_return_from_main;                      // False while the (inner) main loop should keep looping.
   Window* m_main_window;                        // Pointer to the main window.
 
  protected:
@@ -44,7 +45,8 @@ class Application
   //
 
  protected:
-  void terminate();                             // Close the window and cause 'run' to return.
+  bool running() const { return !m_return_from_main; }  // Returns true until main_quit() was called.
+  void terminate();                             // Close all windows and cause main() to return.
 
  protected:
   virtual void on_main_instance_startup() = 0;  // This must be called when this is the main instance of the application.
@@ -54,8 +56,10 @@ class Application
   virtual void append_menu_entries(LinuxViewerMenuBar* menubar) = 0;    // Derived class must implement this to add menu buttons and get call backs when they are clicked.
 
  public:
-  void run(WindowCreateInfo const& main_window_create_info);            // Called to run the GUI main loop.
-  void quit();                                  // Called to make the GUI main loop terminate (return from run()).
+  void main(WindowCreateInfo const& main_window_create_info);   // Called to run the GUI main loop.
+  void main_quit();                                             // Called to make the GUI main loop terminate (return from main()).
+
+  void closeEvent(Window* window);                              // Called when user clicked (released the mouse button) on the close button of window.
 };
 
 } // namespace gui

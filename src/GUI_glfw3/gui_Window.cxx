@@ -8,15 +8,17 @@ namespace glfw3 {
 namespace gui {
 
 Window::Window(Application* application, WindowCreateInfoExt const& create_info) :
-  glfw::Window(
+  m_application(application),
+  m_window(
       create_info.width,
       create_info.height,
       create_info.title ? create_info.title : application->application_name().c_str(),
       create_info.monitor,
-      create_info.share),
-  m_application(application)
+      create_info.share)
 {
   DoutEntering(dc::notice, "Window::Window(" << application << ", " << create_info << ") [" << (void*)this << "] [INCOMPLETE]");
+
+  m_window.closeEvent.setCallback([this](){ m_application->closeEvent(this); });
 
 #if 0
   // FIXME: is this still possible now that we do glfw::makeContextCurrent() after returning from this constructor?

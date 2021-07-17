@@ -42,6 +42,7 @@ target_link_libraries(linuxviewer
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
     LinuxViewer::glfw3gui
+    LinuxViewer::vulkan
     #LinuxViewer::gtkmmgui
     AICxx::socket-task
     AICxx::resolver-task
@@ -70,6 +71,7 @@ add_executable(hellotriangle
 target_link_libraries(hellotriangle
   PRIVATE
     LinuxViewer::glfw3gui
+    LinuxViewer::vulkan
     AICxx::resolver-task
     dns::dns
     ${AICXX_OBJECTS_LIST}

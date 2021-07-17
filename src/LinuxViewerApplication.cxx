@@ -66,7 +66,7 @@ class MyTestFile : public evio::File
   void closed(int& CWDEBUG_ONLY(allow_deletion_count)) override
   {
     DoutEntering(dc::notice, "MyTestFile::closed({" << allow_deletion_count << "})");
-    m_application->quit();
+    m_application->main_quit();
   }
 };
 

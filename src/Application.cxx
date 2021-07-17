@@ -14,7 +14,7 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   }
   Dout(dc::finish|flush_cf, '}');
 
-  gui::Application::run(main_window_create_info);
+  gui::Application::main(main_window_create_info);
 }
 
 bool Application::on_gui_idle()

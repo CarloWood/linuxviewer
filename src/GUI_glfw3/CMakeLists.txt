@@ -11,8 +11,6 @@ include(AICxxProject)
 # DEPENDENCIES
 #
 
-find_package(Vulkan REQUIRED)
-
 #==============================================================================
 # BUILD PROJECT
 #
@@ -61,8 +59,7 @@ target_compile_features(glfw3gui_ObjLib
 target_link_libraries(glfw3gui_ObjLib
   PUBLIC
     AICxx::utils
-    Vulkan::Vulkan
-    GLFWPP
+    LinuxViewer::vulkan
 )
 
 # Create an ALIAS target.
@@ -70,3 +67,6 @@ add_library(LinuxViewer::glfw3gui ALIAS glfw3gui_ObjLib)
 
 # C++ wrapper around glfw. Also includes external "dependencies" for imgui and glew (with cmake support).
 add_subdirectory(glfwpp)
+
+# Vulkan stuff.
+add_subdirectory(vulkan)

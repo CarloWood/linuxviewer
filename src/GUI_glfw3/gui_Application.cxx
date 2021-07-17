@@ -1,4 +1,6 @@
 #include "sys.h"
+#include "vulkan/HelloTriangleDevice.h"
+#include "vulkan/Pipeline.h"
 #include "gui_Application.h"
 #include "gui_Window.h"          // This includes GLFW/glfw3.h.
 #include <vector>
@@ -15,7 +17,7 @@ namespace gui {
 
 std::once_flag Application::s_main_instance;
 
-Application::Application(std::string const& application_name) : m_main_window(nullptr), m_application_name(application_name), m_library(glfw::init())
+Application::Application(std::string const& application_name) : m_application_name(application_name), m_library(glfw::init()), m_return_from_main(false), m_main_window(nullptr)
 {
   DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\")");
 
@@ -82,7 +84,7 @@ void Application::terminate()
 {
   DoutEntering(dc::notice, "gui::Application::terminate()");
 
-  quit(); // Not really necessary, when Gtk::Widget::hide() is called.
+  main_quit();
 
 #if 0
   // Gio::Application::quit() will make Gio::Application::run() return,
@@ -98,21 +100,26 @@ void Application::terminate()
     window->hide();
 #endif
 
+  // Delete all windows.
   delete m_main_window;
   m_main_window = nullptr;
 
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
-void Application::run(WindowCreateInfo const& main_window_create_info)
+void Application::main(WindowCreateInfo const& main_window_create_info)
 {
-  DoutEntering(dc::notice|flush_cf, "gui::Application::run(" << main_window_create_info << ")");
+  DoutEntering(dc::notice|flush_cf, "gui::Application::main(" << main_window_create_info << ")");
 
   // Do one-time initialization.
   std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
 
   // The application has been started, create and show the main window.
   m_main_window = create_window(main_window_create_info);
+
+  vulkan::HelloTriangleDevice device(m_main_window->get_glfw_window());         // The device draws to m_main_window.
+  vulkan::PipelineCreateInfo pipeline_create_info = { };
+  vulkan::Pipeline pipeline(device, SHADER_DIR "/simple_shader.vert.spv", SHADER_DIR "/simple_shader.frag.spv", pipeline_create_info);
 
   //FIXME: what does go here when using vulkan?
   //glfw::makeContextCurrent(*m_main_window);           // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
@@ -125,7 +132,7 @@ void Application::run(WindowCreateInfo const& main_window_create_info)
 #endif
 
   // Run the GUI main loop.
-  while (!m_main_window->shouldClose())
+  while (running())
   {
     // Keep running
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -135,9 +142,16 @@ void Application::run(WindowCreateInfo const& main_window_create_info)
   }
 }
 
-void Application::quit()
+void Application::main_quit()
 {
-  DoutEntering(dc::notice, "gui::Application::quit()");
+  DoutEntering(dc::notice, "gui::Application::main_quit()");
+  m_return_from_main = true;
+}
+
+void Application::closeEvent(Window* window)
+{
+  DoutEntering(dc::notice, "Application::closeEvent()");
+  main_quit();
 }
 
 } // namespace gui
