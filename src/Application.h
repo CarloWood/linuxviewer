@@ -59,8 +59,7 @@ class Application : public gui::Application
  private:
   void createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
-  std::vector<VkCommandBuffer> createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
-  void drawFrame(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain) override;
+  void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain) override;
 
  private:
   // Called from the main loop of the GUI.

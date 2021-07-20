@@ -62,6 +62,54 @@ std::shared_ptr<Window> Application::create_main_window(WindowCreateInfo const& 
   return m_main_window;
 }
 
+void Application::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
+{
+  // Currently we are assuming this function is only called once.
+  ASSERT(m_command_buffers.empty());
+
+  m_command_buffers.resize(swap_chain.imageCount());
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = device.getCommandPool();
+  allocInfo.commandBufferCount = static_cast<uint32_t>(m_command_buffers.size());
+
+  if (vkAllocateCommandBuffers(device.device(), &allocInfo, m_command_buffers.data()) != VK_SUCCESS)
+    throw std::runtime_error("Failed to allocate command buffers!");
+
+  for (int i = 0; i < m_command_buffers.size(); ++i)
+  {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+    if (vkBeginCommandBuffer(m_command_buffers[i], &beginInfo) != VK_SUCCESS)
+      throw std::runtime_error("Failed to begin recording command buffer!");
+
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = swap_chain.getRenderPass();
+    renderPassInfo.framebuffer = swap_chain.getFrameBuffer(i);
+
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swap_chain.getSwapChainExtent();
+
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
+    clearValues[1].depthStencil = { 1.0f, 0 };
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
+
+    vkCmdBeginRenderPass(m_command_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    pipeline->bind(m_command_buffers[i]);
+    vkCmdDraw(m_command_buffers[i], 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(m_command_buffers[i]);
+    if (vkEndCommandBuffer(m_command_buffers[i]) != VK_SUCCESS)
+      throw std::runtime_error("Failed to record command buffer!");
+  }
+}
+
 #if 0
 void Application::on_window_hide(Gtk::Window* window)
 {
@@ -111,7 +159,7 @@ void Application::terminate()
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
-void Application::mainloop(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain)
+void Application::mainloop(vulkan::HelloTriangleSwapChain& swap_chain)
 {
   DoutEntering(dc::notice|flush_cf, "gui::Application::main()");
 
@@ -128,7 +176,7 @@ void Application::mainloop(std::vector<VkCommandBuffer> const& command_buffers, 
   while (running())
   {
     glfw::pollEvents();
-    drawFrame(command_buffers, swap_chain);
+    drawFrame(swap_chain);
   }
 }
 

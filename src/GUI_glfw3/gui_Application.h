@@ -2,6 +2,8 @@
 
 #include "gui_Window.h"         // Needed for glfw::GlfwLibrary (this includes <glfwpp/glfwpp.h>).
 #include "vulkan/HelloTriangleSwapChain.h"
+#include "vulkan/HelloTriangleDevice.h"
+#include "vulkan/Pipeline.h"
 #include "debug.h"
 #include <string>
 #include <mutex>
@@ -24,11 +26,14 @@ namespace gui {
 class Application
 {
  private:
-  static std::once_flag s_main_instance;        // Make sure that m_main_window is only initialized once.
-  std::string m_application_name;               // Cache of what was passed to the constructor.
-  glfw::GlfwLibrary m_library;                  // Initialize libglfw.
-  bool m_return_from_main;                      // False while the (inner) main loop should keep looping.
-  std::shared_ptr<Window> m_main_window;        // Pointer to the main window (same value as what is returned by create_main_window.
+  static std::once_flag s_main_instance;                // Make sure that m_main_window is only initialized once.
+  std::string m_application_name;                       // Cache of what was passed to the constructor.
+  glfw::GlfwLibrary m_library;                          // Initialize libglfw.
+  bool m_return_from_main;                              // False while the (inner) main loop should keep looping.
+  std::shared_ptr<Window> m_main_window;                // Pointer to the main window (same value as what is returned by create_main_window.
+
+ protected:
+  std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  protected:
   Application(std::string const& application_name);
@@ -39,6 +44,7 @@ class Application
 
  public:
   std::shared_ptr<Window> create_main_window(WindowCreateInfo const& create_info);
+  void createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
 
   //void on_window_hide(Gtk::Window* window);
 
@@ -56,10 +62,10 @@ class Application
                                                 // Return false when there is nothing to be done anymore.
  public:
   virtual void append_menu_entries(LinuxViewerMenuBar* menubar) = 0;    // Derived class must implement this to add menu buttons and get call backs when they are clicked.
-  virtual void drawFrame(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain) = 0;
+  virtual void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain) = 0;
 
  public:
-  void mainloop(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain);      // Called to run the GUI main loop.
+  void mainloop(vulkan::HelloTriangleSwapChain& swap_chain);      // Called to run the GUI main loop.
   void mainloop_quit();                         // Called to make the GUI main loop terminate (return from mainloop()).
 
   void closeEvent(Window* window);              // Called when user clicked (released the mouse button) on the close button of window.
