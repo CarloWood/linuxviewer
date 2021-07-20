@@ -52,7 +52,7 @@ std::unique_ptr<vulkan::Pipeline> Application::createPipeline(VkDevice device_ha
   vulkan::Pipeline::defaultPipelineCreateInfo(pipelineConfig, swap_chain.width(), swap_chain.height());
   pipelineConfig.renderPass = swap_chain.getRenderPass();
   pipelineConfig.pipelineLayout = pipeline_layout_handle;
-  return std::make_unique<vulkan::Pipeline>(device_handle, SHADER_DIR "/simple_shader.vert.spv", SHADER_DIR "/simple_shader.frag.spv", pipelineConfig);
+  return std::make_unique<vulkan::Pipeline>(device_handle, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
 }
 
 void Application::drawFrame(vulkan::HelloTriangleSwapChain& swap_chain)
