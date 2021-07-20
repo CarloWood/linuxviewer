@@ -9,34 +9,42 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 # COMPILE SHADERS
 #
 
-set(SHADER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+set(SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders)
+set(SHADER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 file(GLOB SHADERS
-  ${SHADER_DIR}/*.vert
-  ${SHADER_DIR}/*.frag
-  ${SHADER_DIR}/*.comp
-  ${SHADER_DIR}/*.geom
-  ${SHADER_DIR}/*.tesc
-  ${SHADER_DIR}/*.tese
-  ${SHADER_DIR}/*.mesh
-  ${SHADER_DIR}/*.task
-  ${SHADER_DIR}/*.rgen
-  ${SHADER_DIR}/*.rchit
-  ${SHADER_DIR}/*.rmiss)
+  ${SHADER_SOURCE_DIR}/*.vert
+  ${SHADER_SOURCE_DIR}/*.frag
+  ${SHADER_SOURCE_DIR}/*.comp
+  ${SHADER_SOURCE_DIR}/*.geom
+  ${SHADER_SOURCE_DIR}/*.tesc
+  ${SHADER_SOURCE_DIR}/*.tese
+  ${SHADER_SOURCE_DIR}/*.mesh
+  ${SHADER_SOURCE_DIR}/*.task
+  ${SHADER_SOURCE_DIR}/*.rgen
+  ${SHADER_SOURCE_DIR}/*.rchit
+  ${SHADER_SOURCE_DIR}/*.rmiss)
+
+add_custom_command(
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${SHADER_BINARY_DIR}
+  OUTPUT ${SHADER_BINARY_DIR}
+  COMMENT "Creating ${SHADER_BINARY_DIR}"
+)
 
 foreach(source IN LISTS SHADERS)
   get_filename_component(FILENAME ${source} NAME)
   add_custom_command(
     COMMAND
       ${glslc_executable}
-      -MD -MF ${source}.d
-      -o ${source}.spv
+      #      -MD -MF ${SHADER_BINARY_DIR}/${FILENAME}.d
+      -o ${SHADER_BINARY_DIR}/${FILENAME}.spv
       ${source}
-    OUTPUT ${SHADER_DIR}/${FILENAME}.spv
-    DEPENDS ${source}
+    OUTPUT ${SHADER_BINARY_DIR}/${FILENAME}.spv
+    DEPENDS ${source} ${SHADER_BINARY_DIR}
     COMMENT "Compiling ${FILENAME}"
   )
-  list(APPEND SPV_SHADERS ${SHADER_DIR}/${FILENAME}.spv)
+  list(APPEND SPV_SHADERS ${SHADER_BINARY_DIR}/${FILENAME}.spv)
 endforeach()
 
 add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
@@ -78,7 +86,7 @@ target_include_directories(vulkan_ObjLib
 target_compile_definitions(vulkan_ObjLib
   PUBLIC
     GLFW_INCLUDE_VULKAN
-    SHADER_DIR="${SHADER_DIR}"
+    SHADER_DIR="${SHADER_BINARY_DIR}"
 )
 
 # Require support for C++17.
