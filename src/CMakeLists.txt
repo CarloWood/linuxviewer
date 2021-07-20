@@ -82,3 +82,6 @@ target_link_libraries(hellotriangle
 add_subdirectory(GUI_glfw3)
 add_subdirectory(protocols)
 add_subdirectory(data_types)
+
+# Vulkan stuff.
+add_subdirectory(vulkan)

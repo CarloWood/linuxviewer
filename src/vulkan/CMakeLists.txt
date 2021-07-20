@@ -63,6 +63,8 @@ target_sources(vulkan_ObjLib
     "PipelineCreateInfo.h"
     "Pipeline.cxx"
     "Pipeline.h"
+    "HelloTriangleSwapChain.cxx"
+    "HelloTriangleSwapChain.h"
 )
 
 # Required include search-paths.

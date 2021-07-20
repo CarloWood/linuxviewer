@@ -4,6 +4,8 @@
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
 #include "WindowCreateInfo.h"
+#include "vulkan/Pipeline.h"
+#include "vulkan/HelloTriangleSwapChain.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
@@ -53,6 +55,12 @@ class Application : public gui::Application
 
   // Start the GUI main loop.
   void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info);
+
+ private:
+  void createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout);
+  std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
+  std::vector<VkCommandBuffer> createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
+  void drawFrame(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain) override;
 
  private:
   // Called from the main loop of the GUI.

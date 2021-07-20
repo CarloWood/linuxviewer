@@ -67,6 +67,3 @@ add_library(LinuxViewer::glfw3gui ALIAS glfw3gui_ObjLib)
 
 # C++ wrapper around glfw. Also includes external "dependencies" for imgui and glew (with cmake support).
 add_subdirectory(glfwpp)
-
-# Vulkan stuff.
-add_subdirectory(vulkan)

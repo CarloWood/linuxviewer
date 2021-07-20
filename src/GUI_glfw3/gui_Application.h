@@ -1,9 +1,12 @@
 #pragma once
 
+#include "gui_Window.h"         // Needed for glfw::GlfwLibrary (this includes <glfwpp/glfwpp.h>).
+#include "vulkan/HelloTriangleSwapChain.h"
+#include "debug.h"
 #include <string>
 #include <mutex>
-#include "gui_Window.h"         // Needed for glfw::GlfwLibrary (this includes <glfwpp/glfwpp.h>).
-#include "debug.h"
+#include <memory>
+#include <vector>
 
 class AIEngine;
 class LinuxViewerMenuBar;
@@ -25,7 +28,7 @@ class Application
   std::string m_application_name;               // Cache of what was passed to the constructor.
   glfw::GlfwLibrary m_library;                  // Initialize libglfw.
   bool m_return_from_main;                      // False while the (inner) main loop should keep looping.
-  Window* m_main_window;                        // Pointer to the main window.
+  std::shared_ptr<Window> m_main_window;        // Pointer to the main window (same value as what is returned by create_main_window.
 
  protected:
   Application(std::string const& application_name);
@@ -34,8 +37,8 @@ class Application
  public:
   std::string const& application_name() const { return m_application_name; }
 
- private:
-  Window* create_window(WindowCreateInfo const& create_info);
+ public:
+  std::shared_ptr<Window> create_main_window(WindowCreateInfo const& create_info);
 
   //void on_window_hide(Gtk::Window* window);
 
@@ -43,7 +46,6 @@ class Application
   // Everything below is glfw independent interface implemented
   // or used by the derived class LinuxViewerApplication.
   //
-
  protected:
   bool running() const { return !m_return_from_main; }  // Returns true until main_quit() was called.
   void terminate();                             // Close all windows and cause main() to return.
@@ -54,12 +56,13 @@ class Application
                                                 // Return false when there is nothing to be done anymore.
  public:
   virtual void append_menu_entries(LinuxViewerMenuBar* menubar) = 0;    // Derived class must implement this to add menu buttons and get call backs when they are clicked.
+  virtual void drawFrame(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain) = 0;
 
  public:
-  void main(WindowCreateInfo const& main_window_create_info);   // Called to run the GUI main loop.
-  void main_quit();                                             // Called to make the GUI main loop terminate (return from main()).
+  void mainloop(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain);      // Called to run the GUI main loop.
+  void mainloop_quit();                         // Called to make the GUI main loop terminate (return from mainloop()).
 
-  void closeEvent(Window* window);                              // Called when user clicked (released the mouse button) on the close button of window.
+  void closeEvent(Window* window);              // Called when user clicked (released the mouse button) on the close button of window.
 };
 
 } // namespace gui

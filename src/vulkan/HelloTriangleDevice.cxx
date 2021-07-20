@@ -9,7 +9,7 @@
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
-extern channel_ct vulkan;
+channel_ct vulkan("VULKAN");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 

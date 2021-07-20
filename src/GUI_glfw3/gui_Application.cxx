@@ -1,8 +1,7 @@
 #include "sys.h"
-#include "vulkan/HelloTriangleDevice.h"
-#include "vulkan/Pipeline.h"
 #include "gui_Application.h"
 #include "gui_Window.h"          // This includes GLFW/glfw3.h.
+#include "vulkan/HelloTriangleSwapChain.h"
 #include <vector>
 #include <stdexcept>
 #include <thread>
@@ -34,12 +33,18 @@ Application::Application(std::string const& application_name) : m_application_na
 #endif
 }
 
-Window* Application::create_window(WindowCreateInfo const& create_info)
+std::shared_ptr<Window> Application::create_main_window(WindowCreateInfo const& create_info)
 {
   DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
 
+  // Only call create_main_window() once.
+  ASSERT(!m_main_window);
+
+  // Do one-time initialization.
+  std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
+
   create_info.apply();  // Call glfw::WindowHints::apply.
-  Window* main_window = new Window(this, create_info);
+  m_main_window = std::make_shared<Window>(this, create_info);
 
 #if 0
   // Make sure that the application runs as long this window is still open.
@@ -54,7 +59,7 @@ Window* Application::create_window(WindowCreateInfo const& create_info)
   main_window->show_all();
 #endif
 
-  return main_window;
+  return m_main_window;
 }
 
 #if 0
@@ -84,7 +89,7 @@ void Application::terminate()
 {
   DoutEntering(dc::notice, "gui::Application::terminate()");
 
-  main_quit();
+  mainloop_quit();
 
 #if 0
   // Gio::Application::quit() will make Gio::Application::run() return,
@@ -101,27 +106,15 @@ void Application::terminate()
 #endif
 
   // Delete all windows.
-  delete m_main_window;
-  m_main_window = nullptr;
+  m_main_window.reset();
 
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
-void Application::main(WindowCreateInfo const& main_window_create_info)
+void Application::mainloop(std::vector<VkCommandBuffer> const& command_buffers, vulkan::HelloTriangleSwapChain& swap_chain)
 {
-  DoutEntering(dc::notice|flush_cf, "gui::Application::main(" << main_window_create_info << ")");
+  DoutEntering(dc::notice|flush_cf, "gui::Application::main()");
 
-  // Do one-time initialization.
-  std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
-
-  // The application has been started, create and show the main window.
-  m_main_window = create_window(main_window_create_info);
-
-  vulkan::HelloTriangleDevice device(m_main_window->get_glfw_window());         // The device draws to m_main_window.
-  vulkan::PipelineCreateInfo pipeline_create_info = { };
-  vulkan::Pipeline pipeline(device, SHADER_DIR "/simple_shader.vert.spv", SHADER_DIR "/simple_shader.frag.spv", pipeline_create_info);
-
-  //FIXME: what does go here when using vulkan?
   //glfw::makeContextCurrent(*m_main_window);           // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
 #if 0
   //FIXME: is GLEW a vulkan compatible thing?
@@ -134,15 +127,12 @@ void Application::main(WindowCreateInfo const& main_window_create_info)
   // Run the GUI main loop.
   while (running())
   {
-    // Keep running
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     glfw::pollEvents();
-    //FIXME: what does go here when using vulkan?
-    //m_main_window->swapBuffers();                     // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
+    drawFrame(command_buffers, swap_chain);
   }
 }
 
-void Application::main_quit()
+void Application::mainloop_quit()
 {
   DoutEntering(dc::notice, "gui::Application::main_quit()");
   m_return_from_main = true;
@@ -151,7 +141,7 @@ void Application::main_quit()
 void Application::closeEvent(Window* window)
 {
   DoutEntering(dc::notice, "Application::closeEvent()");
-  main_quit();
+  mainloop_quit();
 }
 
 } // namespace gui
