@@ -57,10 +57,10 @@ HelloTriangleDevice::~HelloTriangleDevice()
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
 
-  if (enableValidationLayers) { DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr); }
+  if (enableValidationLayers) { DestroyDebugUtilsMessengerEXT(m_instance, debugMessenger, nullptr); }
 
-  vkDestroySurfaceKHR(instance, surface_, nullptr);
-  vkDestroyInstance(instance, nullptr);
+  vkDestroySurfaceKHR(m_instance, surface_, nullptr);
+  vkDestroyInstance(m_instance, nullptr);
 }
 
 void HelloTriangleDevice::createInstance()
@@ -98,7 +98,9 @@ void HelloTriangleDevice::createInstance()
     createInfo.pNext             = nullptr;
   }
 
-  if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) { throw std::runtime_error("failed to create instance!"); }
+  // Initialize vulkan and obtain a handle to it (m_instance) by creating a VkInstance.
+  if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
+    throw std::runtime_error("failed to create instance!");
 
   hasGflwRequiredInstanceExtensions();
 }
@@ -106,11 +108,11 @@ void HelloTriangleDevice::createInstance()
 void HelloTriangleDevice::pickPhysicalDevice()
 {
   uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+  vkEnumeratePhysicalDevices(m_instance, &deviceCount, nullptr);
   if (deviceCount == 0) { throw std::runtime_error("failed to find GPUs with Vulkan support!"); }
   Dout(dc::vulkan, "Device count: " << deviceCount);
   std::vector<VkPhysicalDevice> devices(deviceCount);
-  vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+  vkEnumeratePhysicalDevices(m_instance, &deviceCount, devices.data());
 
   for (auto const& device : devices)
   {
@@ -190,7 +192,7 @@ void HelloTriangleDevice::createCommandPool()
 
 void HelloTriangleDevice::createSurface()
 {
-  VkResult result = window.createSurface(instance, nullptr, &surface_);
+  VkResult result = window.createSurface(m_instance, nullptr, &surface_);
   if (result < 0)
   {
     throw std::runtime_error("Could not create window surface");
@@ -231,7 +233,8 @@ void HelloTriangleDevice::setupDebugMessenger()
   if (!enableValidationLayers) return;
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
-  if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS) { throw std::runtime_error("failed to set up debug messenger!"); }
+  if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+    throw std::runtime_error("failed to set up debug messenger!");
 }
 
 bool HelloTriangleDevice::checkValidationLayerSupport()

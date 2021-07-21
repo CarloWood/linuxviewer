@@ -89,7 +89,9 @@ class HelloTriangleDevice
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-  VkInstance instance;
+  VkInstance m_instance;                                // Per application state. Creating a VkInstance object initializes
+                                                        // the Vulkan library and allows the application to pass information
+                                                        // about itself to the implementation.
   VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   glfw::Window& window;
