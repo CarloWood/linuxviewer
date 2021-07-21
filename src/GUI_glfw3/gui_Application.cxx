@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "gui_Application.h"
 #include "gui_Window.h"          // This includes GLFW/glfw3.h.
-#include "vulkan/HelloTriangleSwapChain.h"
 #include <vector>
 #include <stdexcept>
 #include <thread>
@@ -16,7 +15,7 @@ namespace gui {
 
 std::once_flag Application::s_main_instance;
 
-Application::Application(std::string const& application_name) : m_application_name(application_name), m_library(glfw::init()), m_return_from_main(false), m_main_window(nullptr)
+Application::Application(std::string const& application_name) : m_application_name(application_name), m_library(glfw::init()), m_main_window(nullptr)
 {
   DoutEntering(dc::notice, "gui::Application::Application(\"" << application_name << "\")");
 
@@ -62,54 +61,6 @@ std::shared_ptr<Window> Application::create_main_window(WindowCreateInfo const& 
   return m_main_window;
 }
 
-void Application::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
-{
-  // Currently we are assuming this function is only called once.
-  ASSERT(m_command_buffers.empty());
-
-  m_command_buffers.resize(swap_chain.imageCount());
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = device.getCommandPool();
-  allocInfo.commandBufferCount = static_cast<uint32_t>(m_command_buffers.size());
-
-  if (vkAllocateCommandBuffers(device.device(), &allocInfo, m_command_buffers.data()) != VK_SUCCESS)
-    throw std::runtime_error("Failed to allocate command buffers!");
-
-  for (int i = 0; i < m_command_buffers.size(); ++i)
-  {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-    if (vkBeginCommandBuffer(m_command_buffers[i], &beginInfo) != VK_SUCCESS)
-      throw std::runtime_error("Failed to begin recording command buffer!");
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = swap_chain.getRenderPass();
-    renderPassInfo.framebuffer = swap_chain.getFrameBuffer(i);
-
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swap_chain.getSwapChainExtent();
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { 0.1f, 0.1f, 0.1f, 1.0f };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    vkCmdBeginRenderPass(m_command_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    pipeline->bind(m_command_buffers[i]);
-    vkCmdDraw(m_command_buffers[i], 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(m_command_buffers[i]);
-    if (vkEndCommandBuffer(m_command_buffers[i]) != VK_SUCCESS)
-      throw std::runtime_error("Failed to record command buffer!");
-  }
-}
-
 #if 0
 void Application::on_window_hide(Gtk::Window* window)
 {
@@ -136,8 +87,7 @@ void Application::on_window_hide(Gtk::Window* window)
 void Application::terminate()
 {
   DoutEntering(dc::notice, "gui::Application::terminate()");
-
-  mainloop_quit();
+  quit();       // Make the GUI main loop terminate.
 
 #if 0
   // Gio::Application::quit() will make Gio::Application::run() return,
@@ -159,37 +109,10 @@ void Application::terminate()
   Dout(dc::notice, "Leaving Application::terminate()");
 }
 
-void Application::mainloop(vulkan::HelloTriangleSwapChain& swap_chain)
-{
-  DoutEntering(dc::notice|flush_cf, "gui::Application::main()");
-
-  //glfw::makeContextCurrent(*m_main_window);           // Only possible when using GLFW_OPENGL_API or GLFW_OPENGL_ES_API.
-#if 0
-  //FIXME: is GLEW a vulkan compatible thing?
-  if(glewInit() != GLEW_OK)
-  {
-      throw std::runtime_error("Could not initialize GLEW");
-  }
-#endif
-
-  // Run the GUI main loop.
-  while (running())
-  {
-    glfw::pollEvents();
-    drawFrame(swap_chain);
-  }
-}
-
-void Application::mainloop_quit()
-{
-  DoutEntering(dc::notice, "gui::Application::main_quit()");
-  m_return_from_main = true;
-}
-
 void Application::closeEvent(Window* window)
 {
   DoutEntering(dc::notice, "Application::closeEvent()");
-  mainloop_quit();
+  quit();       // Make the GUI main loop terminate.
 }
 
 } // namespace gui
