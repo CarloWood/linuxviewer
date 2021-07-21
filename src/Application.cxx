@@ -1,9 +1,6 @@
 #include "sys.h"
 #include "Application.h"
 #include "WindowCreateInfo.h"
-#include "vulkan/HelloTriangleDevice.h"
-#include "vulkan/HelloTriangleSwapChain.h"
-#include "vulkan/Pipeline.h"
 #include <vector>
 
 void Application::run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
