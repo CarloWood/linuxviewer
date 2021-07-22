@@ -19,7 +19,7 @@ namespace vulkan {
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void* pUserData)
 {
-  std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+  Dout(dc::vulkan|dc::warning, pCallbackData->pMessage);
 
   return VK_FALSE;
 }
@@ -52,20 +52,24 @@ HelloTriangleDevice::HelloTriangleDevice(glfw::Window& window) : window{window}
   createCommandPool();
 }
 
+LvInstance::~LvInstance()
+{
+  vkDestroyInstance(m_instance, nullptr);
+}
+
 HelloTriangleDevice::~HelloTriangleDevice()
 {
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
 
-  if (enableValidationLayers) { DestroyDebugUtilsMessengerEXT(m_instance, debugMessenger, nullptr); }
+  if (s_enableValidationLayers) { DestroyDebugUtilsMessengerEXT(m_instance, debugMessenger, nullptr); }
 
   vkDestroySurfaceKHR(m_instance, surface_, nullptr);
-  vkDestroyInstance(m_instance, nullptr);
 }
 
-void HelloTriangleDevice::createInstance()
+void LvInstance::createInstance()
 {
-  if (enableValidationLayers && !checkValidationLayerSupport()) { throw std::runtime_error("validation layers requested, but not available!"); }
+  if (s_enableValidationLayers && !checkValidationLayerSupport()) { throw std::runtime_error("validation layers requested, but not available!"); }
 
   VkApplicationInfo appInfo  = {};
   appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -83,26 +87,17 @@ void HelloTriangleDevice::createInstance()
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
-  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-  if (enableValidationLayers)
+  if (s_enableValidationLayers)
   {
     createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
-
-    populateDebugMessengerCreateInfo(debugCreateInfo);
-    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
-  }
-  else
-  {
-    createInfo.enabledLayerCount = 0;
-    createInfo.pNext             = nullptr;
   }
 
   // Initialize vulkan and obtain a handle to it (m_instance) by creating a VkInstance.
   if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     throw std::runtime_error("failed to create instance!");
 
-  hasGflwRequiredInstanceExtensions();
+  hasGflwRequiredInstanceExtensions(extensions);
 }
 
 void HelloTriangleDevice::pickPhysicalDevice()
@@ -160,9 +155,10 @@ void HelloTriangleDevice::createLogicalDevice()
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
+#if 0
   // might not really be necessary anymore because device specific validation layers
   // have been deprecated
-  if (enableValidationLayers)
+  if (s_enableValidationLayers)
   {
     createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -171,6 +167,7 @@ void HelloTriangleDevice::createLogicalDevice()
   {
     createInfo.enabledLayerCount = 0;
   }
+#endif
 
   if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS) { throw std::runtime_error("failed to create logical device!"); }
 
@@ -230,14 +227,14 @@ void HelloTriangleDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessenger
 
 void HelloTriangleDevice::setupDebugMessenger()
 {
-  if (!enableValidationLayers) return;
+  if (!s_enableValidationLayers) return;
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
   if (CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     throw std::runtime_error("failed to set up debug messenger!");
 }
 
-bool HelloTriangleDevice::checkValidationLayerSupport()
+bool LvInstance::checkValidationLayerSupport()
 {
   uint32_t layerCount;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
@@ -264,7 +261,7 @@ bool HelloTriangleDevice::checkValidationLayerSupport()
   return true;
 }
 
-std::vector<char const*> HelloTriangleDevice::getRequiredExtensions()
+std::vector<char const*> LvInstance::getRequiredExtensions()
 {
   uint32_t glfwExtensionCount = 0;
   char const** glfwExtensions;
@@ -272,12 +269,12 @@ std::vector<char const*> HelloTriangleDevice::getRequiredExtensions()
 
   std::vector<char const*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-  if (enableValidationLayers) { extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
+  if (s_enableValidationLayers) { extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
 
   return extensions;
 }
 
-void HelloTriangleDevice::hasGflwRequiredInstanceExtensions()
+void LvInstance::hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions)
 {
   uint32_t extensionCount = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -296,7 +293,6 @@ void HelloTriangleDevice::hasGflwRequiredInstanceExtensions()
   }
 
   Dout(dc::vulkan, "Required extensions:");
-  auto requiredExtensions = getRequiredExtensions();
   {
     CWDEBUG_ONLY(debug::Mark m);
     for (auto const& required : requiredExtensions)

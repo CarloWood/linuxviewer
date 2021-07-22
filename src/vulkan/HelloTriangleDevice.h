@@ -31,15 +31,35 @@ struct QueueFamilyIndices
   bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
 };
 
-class HelloTriangleDevice
+class LvInstance
 {
  public:
 #ifdef CWDEBUG
-  bool const enableValidationLayers = true;
+  static constexpr bool s_enableValidationLayers = true;
 #else
-  bool const enableValidationLayers = false;
+  static constexpr bool s_enableValidationLayers = false;
 #endif
 
+ protected:
+  VkInstance m_instance;                                // Per application state. Creating a VkInstance object initializes
+                                                        // the Vulkan library and allows the application to pass information
+                                                        // about itself to the implementation.
+  ~LvInstance();
+
+  void createInstance();
+
+ private:
+  bool checkValidationLayerSupport();
+  std::vector<char const*> getRequiredExtensions();
+  void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
+
+ private:
+  std::vector<char const*> const validationLayers = {"VK_LAYER_KHRONOS_validation"};
+};
+
+class HelloTriangleDevice : public LvInstance
+{
+ public:
   HelloTriangleDevice(glfw::Window& window);
   ~HelloTriangleDevice();
 
@@ -72,7 +92,6 @@ class HelloTriangleDevice
   VkPhysicalDeviceProperties properties;
 
  private:
-  void createInstance();
   void setupDebugMessenger();
   void createSurface();
   void pickPhysicalDevice();
@@ -81,17 +100,11 @@ class HelloTriangleDevice
 
   // helper functions
   bool isDeviceSuitable(VkPhysicalDevice device);
-  std::vector<char const*> getRequiredExtensions();
-  bool checkValidationLayerSupport();
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
   void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-  void hasGflwRequiredInstanceExtensions();
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-  VkInstance m_instance;                                // Per application state. Creating a VkInstance object initializes
-                                                        // the Vulkan library and allows the application to pass information
-                                                        // about itself to the implementation.
   VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
   glfw::Window& window;
@@ -102,7 +115,6 @@ class HelloTriangleDevice
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
 
-  std::vector<char const*> const validationLayers = {"VK_LAYER_KHRONOS_validation"};
   std::vector<char const*> const deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
  public:
