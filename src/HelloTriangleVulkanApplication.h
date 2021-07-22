@@ -1,23 +1,11 @@
 #pragma once
 
 #include "Application.h"
-#include "HelloTriangleVulkanApplicationCreateInfo.h"
 
 class HelloTriangleVulkanApplication : public Application
 {
- private:
-  int const m_version;
-
  public:
-  HelloTriangleVulkanApplication(HelloTriangleVulkanApplicationCreateInfo const& create_info) : Application(create_info), m_version(create_info.version)
-  {
-    DoutEntering(dc::notice, "HelloTriangleVulkanApplication::HelloTriangleVulkanApplication(" << create_info << ")");
-  }
-
-  ~HelloTriangleVulkanApplication() override
-  {
-    Dout(dc::notice, "Calling HelloTriangleVulkanApplication::~HelloTriangleVulkanApplication()");
-  }
+  using Application::Application;
 
  private:
   // Menu button events.

@@ -214,9 +214,16 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  ApplicationCreateInfo application_create_info = {
-    .application_name = "LinuxViewerApplication"
-  };
+  ApplicationCreateInfo application_create_info;
+  application_create_info
+    // vk::ApplicationInfo
+    .setPApplicationName("LinuxViewerApplication")
+    ;
+
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
+
+  // Create main application.
+  LinuxViewerApplication application(application_create_info, instance_create_info);
 
   WindowCreateInfo main_window_create_info = {
     // gui::WindowCreateInfo
@@ -232,8 +239,6 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Create main application.
-  LinuxViewerApplication application(application_create_info);
   try
   {
     // Run main application.

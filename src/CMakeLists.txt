@@ -20,6 +20,9 @@ find_package(magic_enum REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
+# See https://github.com/KhronosGroup/Vulkan-Hpp#configuration-options
+#add_definitions(
+#)
 
 add_executable(linuxviewer 
   LinuxViewerApplication.cxx
@@ -56,8 +59,6 @@ target_link_libraries(linuxviewer
 )
 
 add_executable(hellotriangle
-  HelloTriangleVulkanApplicationCreateInfo.cxx
-  HelloTriangleVulkanApplicationCreateInfo.h
   HelloTriangleVulkanApplication.cxx
   HelloTriangleVulkanApplication.h
   ApplicationCreateInfo.cxx

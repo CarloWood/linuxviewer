@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "HelloTriangleVulkanApplication.h"
+#include "vulkan/InstanceCreateInfo.h"
+#ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
+#endif
 
 namespace utils { using namespace threading; }
 
@@ -29,12 +32,19 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  HelloTriangleVulkanApplicationCreateInfo application_create_info = {
+  ApplicationCreateInfo application_create_info;
+  application_create_info
     // ApplicationCreateInfo
-    { .application_name = "HelloTriangleVulkanApplication" },
-    // HelloTriangleVulkanApplicationCreateInfoExt
-    { .version = 1 }
-  };
+    .set_number_of_threads(16, 32, 2)
+    // vk::ApplicationInfo
+    .setPApplicationName("HelloTriangleVulkanApplication")
+    .setApplicationVersion(2)
+    ;
+
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
+
+  // Create main application.
+  HelloTriangleVulkanApplication application(application_create_info, instance_create_info);
 
   WindowCreateInfo main_window_create_info = {
     // gui::WindowCreateInfo
@@ -50,9 +60,6 @@ int main(int argc, char* argv[])
         .title = "Main window title" }
     }
   };
-
-  // Create main application.
-  HelloTriangleVulkanApplication application(application_create_info);
 
   try
   {

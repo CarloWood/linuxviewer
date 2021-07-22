@@ -3,6 +3,7 @@
 // We use the GUI implementation on top of glfw3.
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
+#include "vulkan/InstanceCreateInfo.h"
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
@@ -11,6 +12,10 @@
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
+#include "debug.h"
+#ifdef CWDEBUG
+#include "vulkan/debug_ostream_operators.h"
+#endif
 
 class Application : public gui::Application
 {
@@ -34,23 +39,29 @@ class Application : public gui::Application
   bool m_return_from_run;                               // False while the (inner) main loop should keep looping.
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
 
+  // Vulkan instance.
+  vk::Instance m_vulkan_instance;
+
   // Vulkan graphics.
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:
-  Application(ApplicationCreateInfo const& create_info) :
-    gui::Application(create_info.application_name),
-    m_mpp(create_info.block_size, create_info.minimum_chunk_size, create_info.maximum_chunk_size),
-    m_thread_pool(create_info.number_of_threads, create_info.max_number_of_threads),
-    m_high_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity, create_info.reserved_threads)),
-    m_medium_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity, create_info.reserved_threads)),
-    m_low_priority_queue(m_thread_pool.new_queue(create_info.queue_capacity)),
-    m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(create_info.event_loop_color, create_info.color_off_code)),
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo const& instance_create_info) :
+    gui::Application(application_create_info.pApplicationName),
+    m_mpp(application_create_info.block_size, application_create_info.minimum_chunk_size, application_create_info.maximum_chunk_size),
+    m_thread_pool(application_create_info.number_of_threads, application_create_info.max_number_of_threads),
+    m_high_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
+    m_medium_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
+    m_low_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity)),
+    m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(application_create_info.event_loop_color, application_create_info.color_off_code)),
     m_resolver_scope(m_low_priority_queue, false),
     m_return_from_run(false),
-    m_gui_idle_engine("gui_idle_engine", create_info.max_duration)
+    m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration),
+    m_vulkan_instance{vk::createInstance(instance_create_info)}
   {
-    Debug(m_thread_pool.set_color_functions(create_info.thread_pool_color_function));
+    DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info << ")");
+    m_vulkan_instance = vk::createInstance(instance_create_info);
+    Debug(m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function));
   }
 
   ~Application() override

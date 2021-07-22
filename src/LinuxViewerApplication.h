@@ -1,19 +1,12 @@
 #pragma once
 
 #include "Application.h"
+#include "debug.h"
 
 class LinuxViewerApplication : public Application
 {
  public:
-  LinuxViewerApplication(ApplicationCreateInfo const& create_info) : Application(create_info)
-  {
-    DoutEntering(dc::notice, "LinuxViewerApplication::LinuxViewerApplication(" << create_info << ")");
-  }
-
-  ~LinuxViewerApplication() override
-  {
-    Dout(dc::notice, "Calling LinuxViewerApplication::~LinuxViewerApplication()");
-  }
+  using Application::Application;
 
  private:
   // Menu button events.
