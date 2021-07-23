@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <array>
 #include <vector>
 #include "debug.h"
 
@@ -17,9 +18,13 @@ class LvInstance
  public:
 #ifdef CWDEBUG
   static constexpr bool s_enableValidationLayers = true;
+  static constexpr std::array<char const* const, 1> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 #else
   static constexpr bool s_enableValidationLayers = false;
+  static constexpr std::array<char const* const, 0> validationLayers;
 #endif
+
+  static std::vector<char const*> getRequiredExtensions();
 
  protected:
   VkInstance m_instance;        // Per application state. Creating a VkInstance object initializes
@@ -31,11 +36,7 @@ class LvInstance
 
  private:
   bool checkValidationLayerSupport();
-  std::vector<char const*> getRequiredExtensions();
   void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
-
- private:
-  std::vector<char const*> const validationLayers = {"VK_LAYER_KHRONOS_validation"};
 };
 
 } // namespace vulkan

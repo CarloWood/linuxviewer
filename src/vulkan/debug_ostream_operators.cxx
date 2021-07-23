@@ -21,6 +21,16 @@ std::string print_string(char const* const str)
   return result;
 }
 
+std::string print_version(uint32_t version)
+{
+  std::string version_str = std::to_string(VK_API_VERSION_MAJOR(version));
+  version_str += '.';
+  version_str += std::to_string(VK_API_VERSION_MINOR(version));
+  version_str += '.';
+  version_str += std::to_string(VK_API_VERSION_PATCH(version));
+  return version_str;
+}
+
 } // namespace
 
 std::ostream& operator<<(std::ostream& os, vk::ApplicationInfo const& application_info)
@@ -28,10 +38,10 @@ std::ostream& operator<<(std::ostream& os, vk::ApplicationInfo const& applicatio
   os << '{';
   os << "allowDuplicate:" << std::boolalpha << application_info.allowDuplicate << ", ";
   os << "pApplicationName:" << print_string(application_info.pApplicationName) << ", ";
-  os << "applicationVersion:" << application_info.applicationVersion << ", ";
+  os << "applicationVersion:" << print_version(application_info.applicationVersion) << ", ";
   os << "pEngineName:" << print_string(application_info.pEngineName) << ", ";
-  os << "engineVersion:" << application_info.engineVersion << ", ";
-  os << "apiVersion:" << application_info.apiVersion << '}';
+  os << "engineVersion:" << print_version(application_info.engineVersion) << ", ";
+  os << "apiVersion:" << print_version(application_info.apiVersion) << '}';
   return os;
 }
 

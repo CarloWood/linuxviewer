@@ -38,10 +38,10 @@ int main(int argc, char* argv[])
     .set_number_of_threads(16, 32, 2)
     // vk::ApplicationInfo
     .setPApplicationName("HelloTriangleVulkanApplication")
-    .setApplicationVersion(2)
+    .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
     ;
 
-  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
+  vulkan::InstanceCreateInfo const instance_create_info(application_create_info);
 
   // Create main application.
   HelloTriangleVulkanApplication application(application_create_info, instance_create_info);

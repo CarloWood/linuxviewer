@@ -57,10 +57,9 @@ class Application : public gui::Application
     m_resolver_scope(m_low_priority_queue, false),
     m_return_from_run(false),
     m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration),
-    m_vulkan_instance{vk::createInstance(instance_create_info)}
+    m_vulkan_instance{vk::createInstance(instance_create_info.base())}
   {
-    DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info << ")");
-    m_vulkan_instance = vk::createInstance(instance_create_info);
+    DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info.base() << ")");
     Debug(m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function));
   }
 
