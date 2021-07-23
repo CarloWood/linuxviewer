@@ -64,6 +64,8 @@ set_property(
 # The list of source files.
 target_sources(vulkan_ObjLib
   PRIVATE
+    "LvInstance.cxx"
+    "LvInstance.h"
     "HelloTriangleDevice.cxx"
     "HelloTriangleDevice.h"
     "PipelineCreateInfo.cxx"

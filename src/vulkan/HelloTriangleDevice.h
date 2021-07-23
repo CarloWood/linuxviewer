@@ -1,17 +1,12 @@
 #pragma once
 
 #include <glfwpp/glfwpp.h>  // For glfw::Window
+#include "LvInstance.h"
 #include "debug.h"
 
 // std lib headers
 #include <string>
 #include <vector>
-
-#if defined(CWDEBUG) && !defined(DOXYGEN)
-NAMESPACE_DEBUG_CHANNELS_START
-extern channel_ct vulkan;
-NAMESPACE_DEBUG_CHANNELS_END
-#endif
 
 namespace vulkan {
 
@@ -29,32 +24,6 @@ struct QueueFamilyIndices
   bool graphicsFamilyHasValue = false;
   bool presentFamilyHasValue  = false;
   bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
-};
-
-class LvInstance
-{
- public:
-#ifdef CWDEBUG
-  static constexpr bool s_enableValidationLayers = true;
-#else
-  static constexpr bool s_enableValidationLayers = false;
-#endif
-
- protected:
-  VkInstance m_instance;                                // Per application state. Creating a VkInstance object initializes
-                                                        // the Vulkan library and allows the application to pass information
-                                                        // about itself to the implementation.
-  ~LvInstance();
-
-  void createInstance();
-
- private:
-  bool checkValidationLayerSupport();
-  std::vector<char const*> getRequiredExtensions();
-  void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
-
- private:
-  std::vector<char const*> const validationLayers = {"VK_LAYER_KHRONOS_validation"};
 };
 
 class HelloTriangleDevice : public LvInstance
