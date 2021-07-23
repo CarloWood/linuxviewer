@@ -4,6 +4,7 @@
 
 namespace vulkan {
 
+// Helper class.
 struct InstanceCreateInfoArgs
 {
   static constexpr vk::ArrayProxy<char const* const> default_pEnabledLayerNames = {};
@@ -13,6 +14,7 @@ struct InstanceCreateInfoArgs
   vk::ArrayProxy<char const* const> const extensions = default_pEnabledExtensionNames;
 };
 
+// Helper class.
 struct InstanceCreateInfoArgLists
 {
   std::vector<char const*> m_enabled_layer_names;
@@ -23,21 +25,36 @@ struct InstanceCreateInfoArgLists
     m_enabled_extension_names(args.extensions.begin(), args.extensions.end()) { }
 };
 
-// This struct only provides default values, it should not add any members.
+// This struct provides default values for extra layers and extensions
+// (see InstanceCreateInfoArgs; currently none).
 //
-// However, in debug mode two vectors are added with the list of layers and extensions
-// that vk::InstanceCreateInfo will point to (after calling add_debug_layer_and_extension()).
-// The base class is therefore made protected, forcing the user to configure this
-// object exclusively through the provided constructor.
+// The InstanceCreateInfoArgLists base class adds two vectors that with
+// the complete lists of layer and extention names that vk::InstanceCreateInfo
+// will point to. This guarantees that the lifetime of these lists is
+// equal to the lifetime of the vk::InstanceCreateInfo.
+//
+// In debug mode the Khronos validation layer is added as well as required
+// extension(s) for debugging.
 //
 // Usage example,
 //
 #ifdef EXAMPLE_CODE
+  vulkan::InstanceCreateInfo const instance_create_info(application_create_info);
+
+OR
+
   vulkan::InstanceCreateInfo const instance_create_info(application_create_info, {
       .layers = { "VK_LAYER_KHRONOS_validation" },
       .extensions = { "VK_EXT_debug_utils", "VK_EXT_display_surface_counter" }
     });
+
+OR
+
+  vulkan::InstanceCreateInfo const instance_create_info(application_create_info, {
+      .extensions = { "VK_EXT_debug_utils", "VK_EXT_display_surface_counter" }
+    });
 #endif
+//
 // Note: it is not necessary (or recommended) to add "VK_LAYER_KHRONOS_validation",
 // and "VK_EXT_debug_utils", because those will automatically be added in debug mode.
 //
@@ -45,11 +62,11 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
 {
   // The life-time of applicationInfo_, pEnabledLayerNames_ and pEnabledExtensionNames_ must be larger
   // than the life-time of this InstanceCreateInfo, and may not be changed after passing them.
-  InstanceCreateInfo(vk::ApplicationInfo const& applicationInfo_, InstanceCreateInfoArgs&& args = {}) :
+  InstanceCreateInfo(vk::ApplicationInfo const& application_info, InstanceCreateInfoArgs&& args = {}) :
     InstanceCreateInfoArgLists(std::move(args)),        // Make a copy of the temporary initializer lists that vk::ArrayProxy is pointing to.
     vk::InstanceCreateInfo(
         {},                             // Reserved for future use; flags MUST be zero (VUID-VkInstanceCreateInfo-flags-zerobitmask).
-        &applicationInfo_,
+        &application_info,
         m_enabled_layer_names,
         m_enabled_extension_names)
   {
