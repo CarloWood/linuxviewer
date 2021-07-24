@@ -35,7 +35,7 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerE
 }
 
 // class member functions
-HelloTriangleDevice::HelloTriangleDevice(glfw::Window& window) : window{window}
+HelloTriangleDevice::HelloTriangleDevice(glfw::Window& window) : m_window{window}
 {
   createInstance_old();
   setupDebugMessenger();
@@ -145,7 +145,7 @@ void HelloTriangleDevice::createCommandPool()
 
 void HelloTriangleDevice::createSurface()
 {
-  VkResult result = window.createSurface(m_vulkan_instance, nullptr, &surface_);
+  VkResult result = m_window.createSurface(m_vulkan_instance, nullptr, &surface_);
   if (result < 0)
   {
     throw std::runtime_error("Could not create window surface");

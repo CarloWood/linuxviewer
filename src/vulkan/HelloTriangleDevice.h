@@ -76,7 +76,7 @@ class HelloTriangleDevice : public LvInstance
 
   VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  glfw::Window& window;
+  glfw::Window& m_window;
   VkCommandPool commandPool;
 
   VkDevice device_;
