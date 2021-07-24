@@ -1,6 +1,15 @@
 #pragma once
 
-#include "LvInstance.h"
+#include <vulkan/vulkan.hpp>
+#include <array>
+#include <vector>
+#include "debug.h"
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct vulkan;
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
 
 namespace vulkan {
 
@@ -60,6 +69,19 @@ OR
 //
 struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::InstanceCreateInfo
 {
+ public:
+#ifdef CWDEBUG
+  static constexpr bool s_enableValidationLayers = true;
+  static constexpr std::array<char const* const, 1> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+#else
+  static constexpr bool s_enableValidationLayers = false;
+  static constexpr std::array<char const* const, 0> validationLayers;
+#endif
+
+  static std::vector<char const*> getRequiredGlfwExtensions();
+  static void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
+  static bool checkValidationLayerSupport();
+
   // The life-time of applicationInfo_, pEnabledLayerNames_ and pEnabledExtensionNames_ must be larger
   // than the life-time of this InstanceCreateInfo, and may not be changed after passing them.
   InstanceCreateInfo(vk::ApplicationInfo const& application_info, InstanceCreateInfoArgs&& args = {}) :
@@ -83,8 +105,8 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
     return *this;
   }
 
-#ifdef CWDEBUG
  private:
+#ifdef CWDEBUG
   void add_debug_layer_and_extension();
 #endif
 };

@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "LvInstance.h"
 #include "GLFW/glfw3.h"
-#include <unordered_set>
 #include <string>
 #include <cstdint>
 
@@ -14,7 +13,8 @@ LvInstance::~LvInstance()
 
 void LvInstance::createInstance_old()
 {
-  if (s_enableValidationLayers && !checkValidationLayerSupport()) { throw std::runtime_error("validation layers requested, but not available!"); }
+  if (InstanceCreateInfo::s_enableValidationLayers && !InstanceCreateInfo::checkValidationLayerSupport())
+    throw std::runtime_error("validation layers requested, but not available!");
 
   VkApplicationInfo appInfo  = {};
   appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -28,98 +28,20 @@ void LvInstance::createInstance_old()
   createInfo.sType                = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   createInfo.pApplicationInfo     = &appInfo;
 
-  auto extensions                    = getRequiredExtensions();
+  auto extensions                    = InstanceCreateInfo::getRequiredGlfwExtensions();
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(extensions.size());
   createInfo.ppEnabledExtensionNames = extensions.data();
 
-  if (s_enableValidationLayers)
+  if (InstanceCreateInfo::s_enableValidationLayers)
   {
-    createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
+    createInfo.enabledLayerCount   = static_cast<uint32_t>(InstanceCreateInfo::validationLayers.size());
+    createInfo.ppEnabledLayerNames = InstanceCreateInfo::validationLayers.data();
   }
 
   // Initialize vulkan and obtain a handle to it (m_instance) by creating a VkInstance.
   m_vulkan_instance = vk::createInstance(createInfo);
 
-  hasGflwRequiredInstanceExtensions(extensions);
-}
-
-bool LvInstance::checkValidationLayerSupport()
-{
-  uint32_t layerCount;
-  vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
-
-  std::vector<VkLayerProperties> availableLayers(layerCount);
-  vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
-
-  for (char const* layerName : validationLayers)
-  {
-    bool layerFound = false;
-
-    for (auto const& layerProperties : availableLayers)
-    {
-      if (strcmp(layerName, layerProperties.layerName) == 0)
-      {
-        layerFound = true;
-        break;
-      }
-    }
-
-    if (!layerFound) { return false; }
-  }
-
-  return true;
-}
-
-std::vector<char const*> LvInstance::getRequiredExtensions()
-{
-  uint32_t glfwExtensionCount = 0;
-  char const** glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  std::vector<char const*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-  if (s_enableValidationLayers) { extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME); }
-
-  return extensions;
-}
-
-void LvInstance::hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions)
-{
-  uint32_t extensionCount = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-  std::vector<VkExtensionProperties> extensions(extensionCount);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-  std::unordered_set<std::string> available;
-  Dout(dc::vulkan, "Available extensions:");
-  {
-    CWDEBUG_ONLY(debug::Mark m);
-    for (auto const& extension : extensions)
-    {
-      Dout(dc::vulkan, extension.extensionName);
-      available.insert(extension.extensionName);
-    }
-  }
-
-  Dout(dc::vulkan, "Required extensions:");
-  {
-    CWDEBUG_ONLY(debug::Mark m);
-    for (auto const& required : requiredExtensions)
-    {
-      Dout(dc::vulkan, required);
-      if (available.find(required) == available.end())
-      {
-        throw std::runtime_error("Missing required glfw extension");
-      }
-    }
-  }
+  InstanceCreateInfo::hasGflwRequiredInstanceExtensions(extensions);
 }
 
 } // namespace vulkan
-
-#if defined(CWDEBUG) && !defined(DOXYGEN)
-NAMESPACE_DEBUG_CHANNELS_START
-channel_ct vulkan("VULKAN");
-NAMESPACE_DEBUG_CHANNELS_END
-#endif

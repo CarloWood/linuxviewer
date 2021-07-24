@@ -50,7 +50,8 @@ HelloTriangleDevice::~HelloTriangleDevice()
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
 
-  if (s_enableValidationLayers) { DestroyDebugUtilsMessengerEXT(m_vulkan_instance, debugMessenger, nullptr); }
+  if (InstanceCreateInfo::s_enableValidationLayers)
+    DestroyDebugUtilsMessengerEXT(m_vulkan_instance, debugMessenger, nullptr);
 
   vkDestroySurfaceKHR(m_vulkan_instance, surface_, nullptr);
 }
@@ -113,7 +114,7 @@ void HelloTriangleDevice::createLogicalDevice()
 #if 0
   // might not really be necessary anymore because device specific validation layers
   // have been deprecated
-  if (s_enableValidationLayers)
+  if (InstanceCreateInfo::s_enableValidationLayers)
   {
     createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -182,7 +183,9 @@ void HelloTriangleDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessenger
 
 void HelloTriangleDevice::setupDebugMessenger()
 {
-  if (!s_enableValidationLayers) return;
+  if (!InstanceCreateInfo::s_enableValidationLayers)
+    return;
+
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
   if (CreateDebugUtilsMessengerEXT(m_vulkan_instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
