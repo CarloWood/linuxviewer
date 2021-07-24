@@ -9,10 +9,10 @@ namespace vulkan {
 
 LvInstance::~LvInstance()
 {
-  vkDestroyInstance(m_instance, nullptr);
+  vkDestroyInstance(m_vulkan_instance, nullptr);
 }
 
-void LvInstance::createInstance()
+void LvInstance::createInstance_old()
 {
   if (s_enableValidationLayers && !checkValidationLayerSupport()) { throw std::runtime_error("validation layers requested, but not available!"); }
 
@@ -39,8 +39,7 @@ void LvInstance::createInstance()
   }
 
   // Initialize vulkan and obtain a handle to it (m_instance) by creating a VkInstance.
-  if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
-    throw std::runtime_error("failed to create instance!");
+  m_vulkan_instance = vk::createInstance(createInfo);
 
   hasGflwRequiredInstanceExtensions(extensions);
 }

@@ -27,12 +27,10 @@ class LvInstance
   static std::vector<char const*> getRequiredExtensions();
 
  protected:
-  VkInstance m_instance;        // Per application state. Creating a VkInstance object initializes
-                                // the Vulkan library and allows the application to pass information
-                                // about itself to the implementation.
+  vk::Instance m_vulkan_instance;
   ~LvInstance();
 
-  void createInstance();
+  void createInstance_old();
 
  private:
   bool checkValidationLayerSupport();

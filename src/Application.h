@@ -40,8 +40,9 @@ class Application : public gui::Application
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
 
   // Vulkan instance.
-  vk::Instance m_vulkan_instance;
-
+  vk::Instance m_vulkan_instance;                       // Per application state. Creating a vk::Instance object initializes
+                                                        // the Vulkan library and allows the application to pass information
+                                                        // about itself to the implementation.
   // Vulkan graphics.
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
