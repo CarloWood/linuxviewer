@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "HelloTriangleDevice.h"
+#include "Device.h"
 
 // std headers
 #include <cstring>
@@ -35,7 +35,7 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerE
 }
 
 // class member functions
-HelloTriangleDevice::HelloTriangleDevice(glfw::Window& window) : m_window{window}
+Device::Device(glfw::Window& window) : m_window{window}
 {
   createInstance_old();
   setupDebugMessenger();
@@ -45,7 +45,7 @@ HelloTriangleDevice::HelloTriangleDevice(glfw::Window& window) : m_window{window
   createCommandPool();
 }
 
-HelloTriangleDevice::~HelloTriangleDevice()
+Device::~Device()
 {
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
@@ -56,7 +56,7 @@ HelloTriangleDevice::~HelloTriangleDevice()
   vkDestroySurfaceKHR(m_vulkan_instance, surface_, nullptr);
 }
 
-void HelloTriangleDevice::pickPhysicalDevice()
+void Device::pickPhysicalDevice()
 {
   uint32_t deviceCount = 0;
   vkEnumeratePhysicalDevices(m_vulkan_instance, &deviceCount, nullptr);
@@ -80,7 +80,7 @@ void HelloTriangleDevice::pickPhysicalDevice()
   Dout(dc::vulkan, "Physical device: " << properties.deviceName);
 }
 
-void HelloTriangleDevice::createLogicalDevice()
+void Device::createLogicalDevice()
 {
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
@@ -131,7 +131,7 @@ void HelloTriangleDevice::createLogicalDevice()
   vkGetDeviceQueue(device_, indices.presentFamily, 0, &presentQueue_);
 }
 
-void HelloTriangleDevice::createCommandPool()
+void Device::createCommandPool()
 {
   QueueFamilyIndices queueFamilyIndices = findPhysicalQueueFamilies();
 
@@ -143,7 +143,7 @@ void HelloTriangleDevice::createCommandPool()
   if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) { throw std::runtime_error("failed to create command pool!"); }
 }
 
-void HelloTriangleDevice::createSurface()
+void Device::createSurface()
 {
   VkResult result = m_window.createSurface(m_vulkan_instance, nullptr, &surface_);
   if (result < 0)
@@ -152,7 +152,7 @@ void HelloTriangleDevice::createSurface()
   }
 }
 
-bool HelloTriangleDevice::isDeviceSuitable(VkPhysicalDevice device)
+bool Device::isDeviceSuitable(VkPhysicalDevice device)
 {
   QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -171,7 +171,7 @@ bool HelloTriangleDevice::isDeviceSuitable(VkPhysicalDevice device)
   return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-void HelloTriangleDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
+void Device::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 {
   createInfo                 = {};
   createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -181,7 +181,7 @@ void HelloTriangleDevice::populateDebugMessengerCreateInfo(VkDebugUtilsMessenger
   createInfo.pUserData       = nullptr;  // Optional
 }
 
-void HelloTriangleDevice::setupDebugMessenger()
+void Device::setupDebugMessenger()
 {
   if (!InstanceCreateInfo::s_enableValidationLayers)
     return;
@@ -192,7 +192,7 @@ void HelloTriangleDevice::setupDebugMessenger()
     throw std::runtime_error("failed to set up debug messenger!");
 }
 
-bool HelloTriangleDevice::checkDeviceExtensionSupport(VkPhysicalDevice device)
+bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
   uint32_t extensionCount;
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -207,7 +207,7 @@ bool HelloTriangleDevice::checkDeviceExtensionSupport(VkPhysicalDevice device)
   return requiredExtensions.empty();
 }
 
-QueueFamilyIndices HelloTriangleDevice::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
 {
   QueueFamilyIndices indices;
 
@@ -240,7 +240,7 @@ QueueFamilyIndices HelloTriangleDevice::findQueueFamilies(VkPhysicalDevice devic
   return indices;
 }
 
-SwapChainSupportDetails HelloTriangleDevice::querySwapChainSupport(VkPhysicalDevice device)
+SwapChainSupportDetails Device::querySwapChainSupport(VkPhysicalDevice device)
 {
   SwapChainSupportDetails details;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
@@ -265,7 +265,7 @@ SwapChainSupportDetails HelloTriangleDevice::querySwapChainSupport(VkPhysicalDev
   return details;
 }
 
-VkFormat HelloTriangleDevice::findSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat Device::findSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
   for (VkFormat format : candidates)
   {
@@ -281,7 +281,7 @@ VkFormat HelloTriangleDevice::findSupportedFormat(std::vector<VkFormat> const& c
   throw std::runtime_error("failed to find supported format!");
 }
 
-uint32_t HelloTriangleDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
+uint32_t Device::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
   VkPhysicalDeviceMemoryProperties memProperties;
   vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
@@ -293,7 +293,7 @@ uint32_t HelloTriangleDevice::findMemoryType(uint32_t typeFilter, VkMemoryProper
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void HelloTriangleDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+void Device::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
 {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -316,7 +316,7 @@ void HelloTriangleDevice::createBuffer(VkDeviceSize size, VkBufferUsageFlags usa
   vkBindBufferMemory(device_, buffer, bufferMemory, 0);
 }
 
-VkCommandBuffer HelloTriangleDevice::beginSingleTimeCommands()
+VkCommandBuffer Device::beginSingleTimeCommands()
 {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -335,7 +335,7 @@ VkCommandBuffer HelloTriangleDevice::beginSingleTimeCommands()
   return commandBuffer;
 }
 
-void HelloTriangleDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer)
 {
   vkEndCommandBuffer(commandBuffer);
 
@@ -350,7 +350,7 @@ void HelloTriangleDevice::endSingleTimeCommands(VkCommandBuffer commandBuffer)
   vkFreeCommandBuffers(device_, commandPool, 1, &commandBuffer);
 }
 
-void HelloTriangleDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+void Device::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -363,7 +363,7 @@ void HelloTriangleDevice::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkD
   endSingleTimeCommands(commandBuffer);
 }
 
-void HelloTriangleDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
+void Device::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount)
 {
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
@@ -384,7 +384,7 @@ void HelloTriangleDevice::copyBufferToImage(VkBuffer buffer, VkImage image, uint
   endSingleTimeCommands(commandBuffer);
 }
 
-void HelloTriangleDevice::createImageWithInfo(VkImageCreateInfo const& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory &imageMemory)
+void Device::createImageWithInfo(VkImageCreateInfo const& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory &imageMemory)
 {
   if (vkCreateImage(device_, &imageInfo, nullptr, &image) != VK_SUCCESS) { throw std::runtime_error("failed to create image!"); }
 
@@ -402,10 +402,10 @@ void HelloTriangleDevice::createImageWithInfo(VkImageCreateInfo const& imageInfo
 }
 
 #ifdef CWDEBUG
-void HelloTriangleDevice::print_on(std::ostream& os) const
+void Device::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "(HelloTriangleDevice*)" << (void*)this;
+  os << "(Device*)" << (void*)this;
   os << '}';
 }
 #endif

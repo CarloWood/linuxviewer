@@ -7,7 +7,7 @@
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
-#include "vulkan/HelloTriangleDevice.h"
+#include "vulkan/Device.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
@@ -80,7 +80,7 @@ class Application : public gui::Application
  private:
   void createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
-  void createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
+  void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
   void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain);
 
  private:

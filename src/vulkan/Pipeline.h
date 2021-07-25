@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HelloTriangleDevice.h"
+#include "Device.h"
 #include "PipelineCreateInfo.h"
 #include <string>
 #include <vector>

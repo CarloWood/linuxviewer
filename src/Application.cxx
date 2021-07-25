@@ -18,7 +18,7 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   // If we get here then this application is the main process and owns the (a) main window.
   auto main_window = create_main_window(main_window_create_info);
 
-  vulkan::HelloTriangleDevice device(main_window->get_glfw_window());   // The device draws to m_main_window.
+  vulkan::Device device(main_window->get_glfw_window());   // The device draws to m_main_window.
   vulkan::HelloTriangleSwapChain swap_chain{device, main_window->getExtent()};
   VkPipelineLayout pipeline_layout;
   createPipelineLayout(device.device(), &pipeline_layout);
@@ -66,7 +66,7 @@ std::unique_ptr<vulkan::Pipeline> Application::createPipeline(VkDevice device_ha
   return std::make_unique<vulkan::Pipeline>(device_handle, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
 }
 
-void Application::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
+void Application::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
 {
   // Currently we are assuming this function is only called once.
   ASSERT(m_command_buffers.empty());

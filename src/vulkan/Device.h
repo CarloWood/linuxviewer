@@ -26,17 +26,17 @@ struct QueueFamilyIndices
   bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
 };
 
-class HelloTriangleDevice : public LvInstance
+class Device : public LvInstance
 {
  public:
-  HelloTriangleDevice(glfw::Window& window);
-  ~HelloTriangleDevice();
+  Device(glfw::Window& window);
+  ~Device();
 
   // Not copyable or movable
-  HelloTriangleDevice(HelloTriangleDevice const&) = delete;
-  void operator=(HelloTriangleDevice const&) = delete;
-  HelloTriangleDevice(HelloTriangleDevice&&) = delete;
-  HelloTriangleDevice& operator=(HelloTriangleDevice&&) = delete;
+  Device(Device const&) = delete;
+  void operator=(Device const&) = delete;
+  Device(Device&&) = delete;
+  Device& operator=(Device&&) = delete;
 
   VkCommandPool getCommandPool() const { return commandPool; }
   VkDevice device() const { return device_; }
