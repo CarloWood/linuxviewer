@@ -29,8 +29,10 @@ struct QueueFamilyIndices
 class Device : public LvInstance
 {
  public:
-  Device(glfw::Window& window);
+  Device() = default;
   ~Device();
+
+  void setup(glfw::Window& window);
 
   // Not copyable or movable
   Device(Device const&) = delete;
@@ -76,7 +78,7 @@ class Device : public LvInstance
 
   VkDebugUtilsMessengerEXT debugMessenger;
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  glfw::Window& m_window;
+  glfw::Window* m_window;
   VkCommandPool commandPool;
 
   VkDevice device_;

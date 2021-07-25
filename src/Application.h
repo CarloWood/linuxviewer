@@ -44,6 +44,7 @@ class Application : public gui::Application
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation.
   // Vulkan graphics.
+  vulkan::Device m_vulkan_device;
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:

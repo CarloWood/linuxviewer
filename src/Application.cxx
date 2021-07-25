@@ -18,12 +18,12 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   // If we get here then this application is the main process and owns the (a) main window.
   auto main_window = create_main_window(main_window_create_info);
 
-  vulkan::Device device(main_window->get_glfw_window());   // The device draws to m_main_window.
-  vulkan::HelloTriangleSwapChain swap_chain{device, main_window->getExtent()};
+  m_vulkan_device.setup(main_window->get_glfw_window());   // The device draws to m_main_window.
+  vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window->getExtent()};
   VkPipelineLayout pipeline_layout;
-  createPipelineLayout(device.device(), &pipeline_layout);
-  auto pipeline = createPipeline(device.device(), swap_chain, pipeline_layout);
-  createCommandBuffers(device, pipeline.get(), swap_chain);
+  createPipelineLayout(m_vulkan_device.device(), &pipeline_layout);
+  auto pipeline = createPipeline(m_vulkan_device.device(), swap_chain, pipeline_layout);
+  createCommandBuffers(m_vulkan_device, pipeline.get(), swap_chain);
 
 #if 0
   //FIXME: is GLEW a vulkan compatible thing?
@@ -41,7 +41,7 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   }
 
   // Block until all GPU operations have completed.
-  vkDeviceWaitIdle(device.device());
+  vkDeviceWaitIdle(m_vulkan_device.device());
 }
 
 void Application::createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout)

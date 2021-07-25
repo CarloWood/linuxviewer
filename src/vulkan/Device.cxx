@@ -35,8 +35,9 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerE
 }
 
 // class member functions
-Device::Device(glfw::Window& window) : m_window{window}
+void Device::setup(glfw::Window& window)
 {
+  m_window = &window;
   createInstance_old();
   setupDebugMessenger();
   createSurface();
@@ -145,7 +146,7 @@ void Device::createCommandPool()
 
 void Device::createSurface()
 {
-  VkResult result = m_window.createSurface(m_vulkan_instance, nullptr, &surface_);
+  VkResult result = m_window->createSurface(m_vulkan_instance, nullptr, &surface_);
   if (result < 0)
   {
     throw std::runtime_error("Could not create window surface");
