@@ -410,4 +410,4 @@ void HelloTriangleDevice::print_on(std::ostream& os) const
 }
 #endif
 
-}  // namespace vulkan
+} // namespace vulkan

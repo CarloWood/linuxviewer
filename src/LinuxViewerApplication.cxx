@@ -225,19 +225,15 @@ int main(int argc, char* argv[])
   // Create main application.
   LinuxViewerApplication application(application_create_info, instance_create_info);
 
-  WindowCreateInfo main_window_create_info = {
-    // gui::WindowCreateInfo
-    {
+  WindowCreateInfo main_window_create_info(
       // glfw::WindowHints
       { .focused = false,
         .centerCursor = false,
-        .clientApi = glfw::ClientApi::None },
-      // gui::WindowCreateInfoExt
-      { .width = 500,
-        .height = 800,
-        .title = "Main window title" }
-    }
-  };
+        .clientApi = glfw::ClientApi::None });
+  main_window_create_info
+    .setExtent(500, 800)
+    .setTitle("Main window title")
+    ;
 
   try
   {

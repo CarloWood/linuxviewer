@@ -77,4 +77,4 @@ class HelloTriangleSwapChain {
   size_t currentFrame = 0;
 };
 
-}  // namespace vulkan
+} // namespace vulkan

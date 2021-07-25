@@ -4,22 +4,9 @@
 #include "debug_ostream_operators.h"
 #include <iostream>
 #include <iomanip>
+#include "debug.h"
 
 namespace {
-
-std::string print_string(char const* const str)
-{
-  std::string result;
-  if (str)
-  {
-    result = '"';
-    result += str;
-    result += '"';
-  }
-  else
-    result = "nullptr";
-  return result;
-}
 
 std::string print_version(uint32_t version)
 {
@@ -32,6 +19,8 @@ std::string print_version(uint32_t version)
 }
 
 } // namespace
+
+using NAMESPACE_DEBUG::print_string;
 
 std::ostream& operator<<(std::ostream& os, vk::ApplicationInfo const& application_info)
 {

@@ -4,6 +4,8 @@
 
 struct WindowCreateInfo : public gui::WindowCreateInfo
 {
+  using gui::WindowCreateInfo::WindowCreateInfo;
+
 #ifdef CWDEBUG
   // Printing of this structure.
   void print_on(std::ostream& os) const;

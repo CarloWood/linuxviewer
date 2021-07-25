@@ -7,16 +7,16 @@
 namespace glfw3 {
 namespace gui {
 
-Window::Window(Application* application, WindowCreateInfoExt const& create_info) :
+Window::Window(Application* application, WindowCreateInfo const& window_create_info) :
   m_application(application),
   m_window(
-      create_info.width,
-      create_info.height,
-      create_info.title ? create_info.title : application->application_name().c_str(),
-      create_info.monitor,
-      create_info.share)
+      window_create_info.m_width,
+      window_create_info.m_height,
+      window_create_info.m_title ? window_create_info.m_title : application->application_name().c_str(),
+      window_create_info.m_monitor,
+      window_create_info.m_share)
 {
-  DoutEntering(dc::notice, "Window::Window(" << application << ", " << create_info << ") [" << (void*)this << "] [INCOMPLETE]");
+  DoutEntering(dc::notice, "Window::Window(" << application << ", " << window_create_info << ") [" << (void*)this << "] [INCOMPLETE]");
 
   m_window.closeEvent.setCallback([this](){ m_application->closeEvent(this); });
 

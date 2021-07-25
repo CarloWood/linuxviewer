@@ -35,6 +35,8 @@ target_sources(glfw3gui_ObjLib
     "gui_WindowCreateInfo.cxx"
     "gui_WindowCreateInfo.h"
     "gui_ErrorCodes.cxx"
+    "debug_ostream_operators.cxx"
+    "debug_ostream_operators.h"
 )
 
 # Required include search-paths.

@@ -19,7 +19,7 @@ class Window
  public:
   // The Application must have a life-time that is longer than that of the window:
   // the applications main loop (the run() function) may only return when ALL windows have been destroyed.
-  Window(Application* application, WindowCreateInfoExt const&);
+  Window(Application* application, WindowCreateInfo const&);
 
   // Note that glfw::Window does not have a virtual table (or virtual destructor), so don't use a glfw::Window* to delete this object.
   virtual ~Window();

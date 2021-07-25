@@ -15,6 +15,7 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   }
   Dout(dc::finish|flush_cf, '}');
 
+  // If we get here then this application is the main process and owns the (a) main window.
   auto main_window = create_main_window(main_window_create_info);
 
   vulkan::HelloTriangleDevice device(main_window->get_glfw_window());   // The device draws to m_main_window.
