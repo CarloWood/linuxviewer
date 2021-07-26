@@ -32,19 +32,21 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
+  constexpr int number_of_threads = 4;
+  constexpr int max_number_of_threads = 30;
+  constexpr int reserved_threads = 1;
+
   ApplicationCreateInfo application_create_info;
   application_create_info
     // ApplicationCreateInfo
-    .set_number_of_threads(16, 32, 2)
+    .set_number_of_threads(number_of_threads, max_number_of_threads, reserved_threads)
     // vk::ApplicationInfo
     .setPApplicationName("HelloTriangleVulkanApplication")
     .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
     ;
 
-  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
-
   // Create main application.
-  HelloTriangleVulkanApplication application(application_create_info, instance_create_info);
+  HelloTriangleVulkanApplication application(application_create_info);
 
   WindowCreateInfo main_window_create_info(
       // glfw::WindowHints

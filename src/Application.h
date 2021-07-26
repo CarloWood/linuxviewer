@@ -76,9 +76,15 @@ class Application : public gui::Application
     createInstance(instance_create_info);
   }
 
-  ~Application() override
-  {
-  }
+  // It is perfectly OK to pass an rvalue to the above constructor.
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo&& instance_create_info) :
+    Application(application_create_info, instance_create_info) { }
+
+  // When not passing a instance_create_info, use the default values provided by a plain vulkan::InstanceCreateInfo.
+  Application(ApplicationCreateInfo const& application_create_info) :
+    Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info)) { }
+
+  ~Application() override { }
 
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
