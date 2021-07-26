@@ -1,12 +1,16 @@
 #pragma once
 
-#include <glfwpp/glfwpp.h>  // For glfw::Window
-#include "LvInstance.h"
+#include <vulkan/vulkan.hpp>    // Must be included BEFORE glfwpp/glfwpp.h in order to get vulkan C++ API support.
+#include <glfwpp/glfwpp.h>      // For glfw::Window
 #include "debug.h"
-
-// std lib headers
 #include <string>
 #include <vector>
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct vulkan;
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
 
 namespace vulkan {
 
@@ -26,13 +30,13 @@ struct QueueFamilyIndices
   bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
 };
 
-class Device : public LvInstance
+class Device
 {
  public:
   Device() = default;
   ~Device();
 
-  void setup(glfw::Window& window);
+  void setup(glfw::Window& window, VkInstance instance);
 
   // Not copyable or movable
   Device(Device const&) = delete;
@@ -42,7 +46,7 @@ class Device : public LvInstance
 
   VkCommandPool getCommandPool() const { return commandPool; }
   VkDevice device() const { return device_; }
-  VkSurfaceKHR surface() const { return surface_; }
+  vk::SurfaceKHR surface() const { return surface_; }
   VkQueue graphicsQueue() const { return graphicsQueue_; }
   VkQueue presentQueue() const { return presentQueue_; }
 
@@ -81,8 +85,9 @@ class Device : public LvInstance
   glfw::Window* m_window;
   VkCommandPool commandPool;
 
+  VkInstance instance_;         // FIXME: this should not be here.
   VkDevice device_;
-  VkSurfaceKHR surface_;
+  vk::SurfaceKHR surface_;
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
 

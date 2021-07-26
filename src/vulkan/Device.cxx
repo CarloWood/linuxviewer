@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "Device.h"
+#include "InstanceCreateInfo.h"
 
 // std headers
 #include <cstring>
@@ -35,10 +36,10 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerE
 }
 
 // class member functions
-void Device::setup(glfw::Window& window)
+void Device::setup(glfw::Window& window, VkInstance instance)
 {
+  instance_ = instance;
   m_window = &window;
-  createInstance_old();
   setupDebugMessenger();
   createSurface();
   pickPhysicalDevice();
@@ -52,19 +53,19 @@ Device::~Device()
   vkDestroyDevice(device_, nullptr);
 
   if (InstanceCreateInfo::s_enableValidationLayers)
-    DestroyDebugUtilsMessengerEXT(m_vulkan_instance, debugMessenger, nullptr);
+    DestroyDebugUtilsMessengerEXT(instance_, debugMessenger, nullptr);
 
-  vkDestroySurfaceKHR(m_vulkan_instance, surface_, nullptr);
+  vkDestroySurfaceKHR(instance_, surface_, nullptr);
 }
 
 void Device::pickPhysicalDevice()
 {
   uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(m_vulkan_instance, &deviceCount, nullptr);
+  vkEnumeratePhysicalDevices(instance_, &deviceCount, nullptr);
   if (deviceCount == 0) { throw std::runtime_error("failed to find GPUs with Vulkan support!"); }
   Dout(dc::vulkan, "Device count: " << deviceCount);
   std::vector<VkPhysicalDevice> devices(deviceCount);
-  vkEnumeratePhysicalDevices(m_vulkan_instance, &deviceCount, devices.data());
+  vkEnumeratePhysicalDevices(instance_, &deviceCount, devices.data());
 
   for (auto const& device : devices)
   {
@@ -146,11 +147,7 @@ void Device::createCommandPool()
 
 void Device::createSurface()
 {
-  VkResult result = m_window->createSurface(m_vulkan_instance, nullptr, &surface_);
-  if (result < 0)
-  {
-    throw std::runtime_error("Could not create window surface");
-  }
+  surface_ = m_window->createSurface(instance_);
 }
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)
@@ -189,7 +186,7 @@ void Device::setupDebugMessenger()
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessengerCreateInfo(createInfo);
-  if (CreateDebugUtilsMessengerEXT(m_vulkan_instance, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
+  if (CreateDebugUtilsMessengerEXT(instance_, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
     throw std::runtime_error("failed to set up debug messenger!");
 }
 

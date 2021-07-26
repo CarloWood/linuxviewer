@@ -1,25 +1,10 @@
 #include "sys.h"
 #include "InstanceCreateInfo.h"
-#include <GLFW/glfw3.h>
+//#include <vulkan/vulkan.hpp>            // Must be included before glfwpp/glfwpp.h in order to get vulkan C++ API support.
+//#include <glfwpp/glfwpp.h>
 #include <unordered_set>
 
 namespace vulkan {
-
-std::vector<char const*> InstanceCreateInfo::getRequiredGlfwExtensions()
-{
-  uint32_t glfwExtensionCount = 0;
-  char const** glfwExtensions;
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-  std::vector<char const*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-  if (s_enableValidationLayers)
-  {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  }
-
-  return extensions;
-}
 
 void InstanceCreateInfo::hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions)
 {
@@ -81,25 +66,33 @@ bool InstanceCreateInfo::checkValidationLayerSupport()
   return true;
 }
 
-#ifdef CWDEBUG
-void InstanceCreateInfo::add_debug_layer_and_extension()
+void InstanceCreateInfo::add_layers(std::vector<char const*> const&& extra_layers)
 {
-  static constexpr std::array<char const* const, 1> debug_pEnabledLayerNames = { "VK_LAYER_KHRONOS_validation" };
-  std::vector<char const*> const debug_pEnabledExtensionNames = getRequiredGlfwExtensions();
-
-  // Add all elements of debug_pEnabledLayerNames to m_enabled_layer_names (that do not already exist).
-  for (auto name : debug_pEnabledLayerNames)
+  // Add all elements of extra_layers to m_enabled_layer_names (that do not already exist).
+  for (auto name : extra_layers)
     if (std::find(m_enabled_layer_names.begin(), m_enabled_layer_names.end(), name) == m_enabled_layer_names.end())
       m_enabled_layer_names.push_back(name);
 
-  // Add all elements of debug_pEnabledExtensionNames to m_enabled_extension_names (that do not already exist).
-  for (auto name : debug_pEnabledExtensionNames)
+  // Refresh the pointer and count.
+  setPEnabledLayerNames(m_enabled_layer_names);
+}
+
+void InstanceCreateInfo::add_extensions(std::vector<char const*> const&& extra_extensions)
+{
+  // Add all elements of extra_extensions to m_enabled_extension_names (that do not already exist).
+  for (auto name : extra_extensions)
     if (std::find(m_enabled_extension_names.begin(), m_enabled_extension_names.end(), name) == m_enabled_extension_names.end())
       m_enabled_extension_names.push_back(name);
 
-  // Refresh the pointers and counts.
-  setPEnabledLayerNames(m_enabled_layer_names);
+  // Refresh the pointer and count.
   setPEnabledExtensionNames(m_enabled_extension_names);
+}
+
+#ifdef CWDEBUG
+void InstanceCreateInfo::add_debug_layer_and_extension()
+{
+  add_layers({ "VK_LAYER_KHRONOS_validation" });
+  add_extensions({ VK_EXT_DEBUG_UTILS_EXTENSION_NAME });
 }
 #endif
 

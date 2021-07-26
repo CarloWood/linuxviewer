@@ -48,18 +48,18 @@ struct InstanceCreateInfoArgLists
 // Usage example,
 //
 #ifdef EXAMPLE_CODE
-  vulkan::InstanceCreateInfo const instance_create_info(application_create_info);
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
 
 OR
 
-  vulkan::InstanceCreateInfo const instance_create_info(application_create_info, {
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info, {
       .layers = { "VK_LAYER_KHRONOS_validation" },
       .extensions = { "VK_EXT_debug_utils", "VK_EXT_display_surface_counter" }
     });
 
 OR
 
-  vulkan::InstanceCreateInfo const instance_create_info(application_create_info, {
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info, {
       .extensions = { "VK_EXT_debug_utils", "VK_EXT_display_surface_counter" }
     });
 #endif
@@ -78,7 +78,6 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
   static constexpr std::array<char const* const, 0> validationLayers;
 #endif
 
-  static std::vector<char const*> getRequiredGlfwExtensions();
   static void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
   static bool checkValidationLayerSupport();
 
@@ -104,6 +103,19 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
   {
     return *this;
   }
+
+  std::vector<char const*> const& enabled_layer_names() const
+  {
+    return m_enabled_layer_names;
+  }
+
+  std::vector<char const*> const& enabled_extension_names() const
+  {
+    return m_enabled_extension_names;
+  }
+
+  void add_layers(std::vector<char const*> const&& extra_layers);
+  void add_extensions(std::vector<char const*> const&& extra_extensions);
 
  private:
 #ifdef CWDEBUG

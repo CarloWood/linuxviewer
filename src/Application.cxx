@@ -3,6 +3,17 @@
 #include "WindowCreateInfo.h"
 #include <vector>
 
+void Application::createInstance(vulkan::InstanceCreateInfo const& instance_create_info)
+{
+  if (vulkan::InstanceCreateInfo::s_enableValidationLayers && !vulkan::InstanceCreateInfo::checkValidationLayerSupport())
+    throw std::runtime_error("validation layers requested, but not available!");
+
+  m_vulkan_instance = vk::createInstanceUnique(instance_create_info.base());
+
+  // Check that the extensions required by glfw are included.
+  vulkan::InstanceCreateInfo::hasGflwRequiredInstanceExtensions(instance_create_info.enabled_extension_names());
+}
+
 void Application::run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
 {
   DoutEntering(dc::notice|flush_cf|continued_cf, "Application::run(" << argc << ", ");
@@ -18,7 +29,7 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   // If we get here then this application is the main process and owns the (a) main window.
   auto main_window = create_main_window(main_window_create_info);
 
-  m_vulkan_device.setup(main_window->get_glfw_window());   // The device draws to m_main_window.
+  m_vulkan_device.setup(main_window->get_glfw_window(), *m_vulkan_instance);   // The device draws to m_main_window.
   vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window->getExtent()};
   VkPipelineLayout pipeline_layout;
   createPipelineLayout(m_vulkan_device.device(), &pipeline_layout);

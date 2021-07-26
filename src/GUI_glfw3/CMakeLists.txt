@@ -67,5 +67,8 @@ target_link_libraries(glfw3gui_ObjLib
 # Create an ALIAS target.
 add_library(LinuxViewer::glfw3gui ALIAS glfw3gui_ObjLib)
 
+# Do not build the glfwpp examples subproject.
+set(GLFWPP_BUILD_EXAMPLES OFF CACHE BOOL "")
+
 # C++ wrapper around glfw. Also includes external "dependencies" for imgui and glew (with cmake support).
 add_subdirectory(glfwpp)

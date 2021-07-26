@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
     .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
     ;
 
-  vulkan::InstanceCreateInfo const instance_create_info(application_create_info);
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
 
   // Create main application.
   HelloTriangleVulkanApplication application(application_create_info, instance_create_info);

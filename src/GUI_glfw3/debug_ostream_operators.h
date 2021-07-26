@@ -1,6 +1,7 @@
 #pragma once
 
-#include "glfwpp/window.h"
+#include <vulkan/vulkan.hpp>    // Must be included BEFORE glfwpp/window.h in order to get vulkan C++ API support.
+#include <glfwpp/window.h>
 #include <iosfwd>
 
 namespace glfw3 {

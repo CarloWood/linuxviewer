@@ -66,8 +66,6 @@ target_sources(vulkan_ObjLib
   PRIVATE
     "InstanceCreateInfo.cxx"
     "InstanceCreateInfo.h"
-    "LvInstance.cxx"
-    "LvInstance.h"
     "Device.cxx"
     "Device.h"
     "PipelineCreateInfo.cxx"

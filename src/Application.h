@@ -40,15 +40,16 @@ class Application : public gui::Application
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
 
   // Vulkan instance.
-  vk::Instance m_vulkan_instance;                       // Per application state. Creating a vk::Instance object initializes
+  vk::UniqueInstance m_vulkan_instance;                 // Per application state. Creating a vk::Instance object initializes
                                                         // the Vulkan library and allows the application to pass information
-                                                        // about itself to the implementation.
+                                                        // about itself to the implementation. Using vk::UniqueInstance also
+                                                        // automatically destroys it.
   // Vulkan graphics.
   vulkan::Device m_vulkan_device;
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:
-  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo const& instance_create_info) :
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info) :
     gui::Application(application_create_info.pApplicationName),
     m_mpp(application_create_info.block_size, application_create_info.minimum_chunk_size, application_create_info.maximum_chunk_size),
     m_thread_pool(application_create_info.number_of_threads, application_create_info.max_number_of_threads),
@@ -58,11 +59,21 @@ class Application : public gui::Application
     m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(application_create_info.event_loop_color, application_create_info.color_off_code)),
     m_resolver_scope(m_low_priority_queue, false),
     m_return_from_run(false),
-    m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration),
-    m_vulkan_instance{vk::createInstance(instance_create_info.base())}
+    m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration)
   {
+    // Call this before print the DoutEntering debug output, so we get to see all extensions that are used.
+    instance_create_info.add_extensions(glfw::getRequiredInstanceExtensions());
+
     DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info.base() << ")");
+
+    // Set the debug color function (this couldn't be part of the above constructor).
     Debug(m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function));
+
+    // Upon return from this constructor, the application_create_info might be destucted before we get another chance
+    // to create the vulkan instance (this is unlikely, but certainly not impossible). And since instance_create_info contains
+    // a pointer to it, as well as might itself be destructed, we need to be done with both of them before returning.
+    // Hence, the instance has to be created here.
+    createInstance(instance_create_info);
   }
 
   ~Application() override
@@ -79,6 +90,7 @@ class Application : public gui::Application
   void quit() override;                                 // Called to make the GUI main loop terminate (return from run()).
 
  private:
+  void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   void createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);

@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
     .setPApplicationName("LinuxViewerApplication")
     ;
 
-  vulkan::InstanceCreateInfo const instance_create_info(application_create_info);
+  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
 
   // Create main application.
   LinuxViewerApplication application(application_create_info, instance_create_info);

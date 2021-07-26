@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vulkan/vulkan.hpp>            // Must be included BEFORE glfwpp/glfwpp.h in order to get vulkan C++ API support.
 #include <glfwpp/glfwpp.h>
 #include "gui_WindowCreateInfo.h"
 
