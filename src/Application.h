@@ -84,7 +84,11 @@ class Application : public gui::Application
   Application(ApplicationCreateInfo const& application_create_info) :
     Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info)) { }
 
-  ~Application() override { }
+  ~Application() override
+  {
+    // Destroy all windows (and hence VkSurface's) before destroying m_vulkan_device.
+    terminate();
+  }
 
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
@@ -95,9 +99,13 @@ class Application : public gui::Application
   bool running() const { return !m_return_from_run; }   // Returns true until quit() was called.
   void quit() override;                                 // Called to make the GUI main loop terminate (return from run()).
 
+ public:
+  // Accessors.
+  vk::Instance vulkan_instance() const { return *m_vulkan_instance; }
+
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
-  void createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout);
+  vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
   void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain);

@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "Application.h"
+#include "Window.h"
 #include "WindowCreateInfo.h"
 #include <vector>
 
@@ -27,13 +28,13 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   Dout(dc::finish|flush_cf, '}');
 
   // If we get here then this application is the main process and owns the (a) main window.
-  auto main_window = create_main_window(main_window_create_info);
+  auto main_window = create_main_window<Window>(main_window_create_info);
 
-  m_vulkan_device.setup(main_window->get_glfw_window(), *m_vulkan_instance);   // The device draws to m_main_window.
+  m_vulkan_device.setup(*m_vulkan_instance, main_window->surface());   // The device draws to m_main_window.
   vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window->getExtent()};
-  VkPipelineLayout pipeline_layout;
-  createPipelineLayout(m_vulkan_device.device(), &pipeline_layout);
+  vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
   auto pipeline = createPipeline(m_vulkan_device.device(), swap_chain, pipeline_layout);
+  m_vulkan_device.device().destroyPipelineLayout(pipeline_layout);
   createCommandBuffers(m_vulkan_device, pipeline.get(), swap_chain);
 
 #if 0
@@ -55,17 +56,13 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   vkDeviceWaitIdle(m_vulkan_device.device());
 }
 
-void Application::createPipelineLayout(VkDevice device_handle, VkPipelineLayout* pipelineLayout)
+vk::PipelineLayout Application::createPipelineLayout(vulkan::Device const& device)
 {
-  VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-  pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = 0;
-  pipelineLayoutInfo.pSetLayouts = nullptr;
-  pipelineLayoutInfo.pushConstantRangeCount = 0;
-  pipelineLayoutInfo.pPushConstantRanges = nullptr;
+  vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
+  vk::PipelineLayout pipelineLayout =
+   device.device().createPipelineLayout(pipelineLayoutInfo);
 
-  if (vkCreatePipelineLayout(device_handle, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create pipeline layout!");
+  return pipelineLayout;
 }
 
 std::unique_ptr<vulkan::Pipeline> Application::createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle)

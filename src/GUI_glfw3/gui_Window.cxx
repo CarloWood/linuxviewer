@@ -35,7 +35,7 @@ Window::Window(Application* application, WindowCreateInfo const& window_create_i
 
 Window::~Window()
 {
-  Dout(dc::notice, "Calling Window::~Window() [" << (void*)this << "]");
+  DoutEntering(dc::notice, "gui::Window::~Window() [" << (void*)this << "]");
 }
 
 void Window::append_menu_entries(MenuBar* menubar)

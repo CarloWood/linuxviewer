@@ -22,7 +22,7 @@ Window::Window(Application* application) : m_application(application)
 
 Window::~Window()
 {
-  Dout(dc::notice, "Calling Window::~Window()");
+  DoutEntering(dc::notice, "gui::Window::~Window()");
 }
 
 void Window::append_menu_entries(MenuBar* menubar)

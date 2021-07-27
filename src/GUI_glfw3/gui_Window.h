@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>            // Must be included BEFORE glfwpp/glfwpp.h in order to get vulkan C++ API support.
 #include <glfwpp/glfwpp.h>
 #include "gui_WindowCreateInfo.h"
+#include <concepts>
 
 // This is the GUI implementation that is implemented on top of glfw3.
 namespace glfw3 {
@@ -31,12 +32,6 @@ class Window
   glfw::Window& get_glfw_window() { return m_window; }
   glfw::Window const& get_glfw_window() const { return m_window; }
 
-  VkExtent2D getExtent() const
-  {
-    auto extent = m_window.getSize();
-    return { static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) };
-  }
-
  protected:
   friend class MenuBar;              // Calls append_menu_entries on the two objects returned by the following accessors.
   Application& application() const { return *m_application; }
@@ -50,3 +45,8 @@ class Window
 
 } // namespace gui
 } // namespace glfw3
+
+namespace gui = glfw3::gui;
+
+template<typename T>
+concept WindowType = std::derived_from<T, gui::Window>;

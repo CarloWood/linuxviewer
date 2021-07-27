@@ -36,7 +36,7 @@ class Device
   Device() = default;
   ~Device();
 
-  void setup(glfw::Window& window, VkInstance instance);
+  void setup(VkInstance instance, VkSurfaceKHR surface);
 
   // Not copyable or movable
   Device(Device const&) = delete;
@@ -45,8 +45,8 @@ class Device
   Device& operator=(Device&&) = delete;
 
   VkCommandPool getCommandPool() const { return commandPool; }
-  VkDevice device() const { return device_; }
-  vk::SurfaceKHR surface() const { return surface_; }
+  vk::Device device() const { return device_; }
+  VkSurfaceKHR surface() const { return surface_; }
   VkQueue graphicsQueue() const { return graphicsQueue_; }
   VkQueue presentQueue() const { return presentQueue_; }
 
@@ -68,7 +68,6 @@ class Device
 
  private:
   void setupDebugMessenger();
-  void createSurface();
   void pickPhysicalDevice();
   void createLogicalDevice();
   void createCommandPool();
@@ -81,13 +80,12 @@ class Device
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
   VkDebugUtilsMessengerEXT debugMessenger;
-  VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  glfw::Window* m_window;
+  vk::PhysicalDevice physicalDevice = {};
   VkCommandPool commandPool;
 
   VkInstance instance_;         // FIXME: this should not be here.
-  VkDevice device_;
-  vk::SurfaceKHR surface_;
+  vk::Device device_;
+  VkSurfaceKHR surface_;        // FIXME: this should not be here.
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
 

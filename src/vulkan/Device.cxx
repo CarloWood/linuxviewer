@@ -36,12 +36,13 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerE
 }
 
 // class member functions
-void Device::setup(glfw::Window& window, VkInstance instance)
+void Device::setup(VkInstance instance, VkSurfaceKHR surface)
 {
+  DoutEntering(dc::vulkan, "Device::setup(" << instance << ", " << surface << ") [" << (void*)this << "]");
+
   instance_ = instance;
-  m_window = &window;
+  surface_ = surface;
   setupDebugMessenger();
-  createSurface();
   pickPhysicalDevice();
   createLogicalDevice();
   createCommandPool();
@@ -49,13 +50,13 @@ void Device::setup(glfw::Window& window, VkInstance instance)
 
 Device::~Device()
 {
+  DoutEntering(dc::vulkan, "Device::~Device() [" << (void*)this << "]");
+
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
 
   if (InstanceCreateInfo::s_enableValidationLayers)
     DestroyDebugUtilsMessengerEXT(instance_, debugMessenger, nullptr);
-
-  vkDestroySurfaceKHR(instance_, surface_, nullptr);
 }
 
 void Device::pickPhysicalDevice()
@@ -76,7 +77,7 @@ void Device::pickPhysicalDevice()
     }
   }
 
-  if (physicalDevice == VK_NULL_HANDLE) { throw std::runtime_error("failed to find a suitable GPU!"); }
+  if (!physicalDevice) { throw std::runtime_error("failed to find a suitable GPU!"); }
 
   vkGetPhysicalDeviceProperties(physicalDevice, &properties);
   Dout(dc::vulkan, "Physical device: " << properties.deviceName);
@@ -86,32 +87,28 @@ void Device::createLogicalDevice()
 {
   QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
-  std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+  std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
   std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
 
   float queuePriority = 1.0f;
   for (uint32_t queueFamily : uniqueQueueFamilies)
   {
-    VkDeviceQueueCreateInfo queueCreateInfo = {};
-    queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex        = queueFamily;
-    queueCreateInfo.queueCount              = 1;
-    queueCreateInfo.pQueuePriorities        = &queuePriority;
+    vk::DeviceQueueCreateInfo queueCreateInfo = {};
+    queueCreateInfo
+      .setQueueFamilyIndex(queueFamily)
+      .setQueuePriorities(queuePriority);
     queueCreateInfos.push_back(queueCreateInfo);
   }
 
-  VkPhysicalDeviceFeatures deviceFeatures = {};
-  deviceFeatures.samplerAnisotropy        = VK_TRUE;
+  vk::PhysicalDeviceFeatures deviceFeatures = {};
+  deviceFeatures
+    .setSamplerAnisotropy(VK_TRUE);
 
-  VkDeviceCreateInfo createInfo = {};
-  createInfo.sType              = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-  createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-  createInfo.pQueueCreateInfos    = queueCreateInfos.data();
-
-  createInfo.pEnabledFeatures        = &deviceFeatures;
-  createInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
-  createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+  vk::DeviceCreateInfo createInfo = {};
+  createInfo
+    .setQueueCreateInfos(queueCreateInfos)
+    .setPEnabledFeatures(&deviceFeatures)
+    .setPEnabledExtensionNames(deviceExtensions);
 
 #if 0
   // might not really be necessary anymore because device specific validation layers
@@ -127,7 +124,7 @@ void Device::createLogicalDevice()
   }
 #endif
 
-  if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &device_) != VK_SUCCESS) { throw std::runtime_error("failed to create logical device!"); }
+  device_ = physicalDevice.createDevice(createInfo);
 
   vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);
   vkGetDeviceQueue(device_, indices.presentFamily, 0, &presentQueue_);
@@ -143,11 +140,6 @@ void Device::createCommandPool()
   poolInfo.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
   if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) { throw std::runtime_error("failed to create command pool!"); }
-}
-
-void Device::createSurface()
-{
-  surface_ = m_window->createSurface(instance_);
 }
 
 bool Device::isDeviceSuitable(VkPhysicalDevice device)

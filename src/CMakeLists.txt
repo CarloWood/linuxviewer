@@ -31,10 +31,12 @@ add_executable(linuxviewer
   LinuxViewerMenuEntries.h
   ApplicationCreateInfo.cxx
   ApplicationCreateInfo.h
-  WindowCreateInfo.cxx
-  WindowCreateInfo.h
   Application.cxx
   Application.h
+  WindowCreateInfo.cxx
+  WindowCreateInfo.h
+  Window.cxx
+  Window.h
 
   LinuxViewerMenuBar.h
 )
@@ -63,10 +65,12 @@ add_executable(hellotriangle
   HelloTriangleVulkanApplication.h
   ApplicationCreateInfo.cxx
   ApplicationCreateInfo.h
-  WindowCreateInfo.cxx
-  WindowCreateInfo.h
   Application.cxx
   Application.h
+  WindowCreateInfo.cxx
+  WindowCreateInfo.h
+  Window.cxx
+  Window.h
 )
 
 target_link_libraries(hellotriangle

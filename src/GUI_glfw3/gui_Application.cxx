@@ -32,35 +32,6 @@ Application::Application(std::string const& application_name) : m_application_na
 #endif
 }
 
-std::shared_ptr<Window> Application::create_main_window(WindowCreateInfo const& create_info)
-{
-  DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
-
-  // Only call create_main_window() once.
-  ASSERT(!m_main_window);
-
-  // Do one-time initialization.
-  std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
-
-  create_info.apply();  // Call glfw::WindowHints::apply.
-  m_main_window = std::make_shared<Window>(this, create_info);
-
-#if 0
-  // Make sure that the application runs as long this window is still open.
-  add_window(*main_window);
-  std::vector<Gtk::Window*> windows = get_windows();
-  Dout(dc::notice, "The application has " << windows.size() << " windows.");
-  ASSERT(G_IS_OBJECT(main_window->gobj()));
-
-  // Delete the window when it is hidden.
-  main_window->signal_hide().connect(sigc::bind<Gtk::Window*>(sigc::mem_fun(*this, &Application::on_window_hide), main_window));
-
-  main_window->show_all();
-#endif
-
-  return m_main_window;
-}
-
 #if 0
 void Application::on_window_hide(Gtk::Window* window)
 {
