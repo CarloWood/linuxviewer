@@ -12,7 +12,7 @@ class Window : public gui::Window
   using gui::Window::Window;
   ~Window();
 
-  VkExtent2D getExtent() const
+  VkExtent2D extent() const
   {
     auto extent = get_glfw_window().getSize();
     return { static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) };

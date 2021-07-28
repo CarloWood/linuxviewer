@@ -33,10 +33,11 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   Dout(dc::finish|flush_cf, '}');
 
   // If we get here then this application is the main process and owns the (a) main window.
+  // Call the base class methos create_main_window to create the main window.
   create_main_window<Window>(main_window_create_info);
 
   m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());   // The device draws to m_main_window.
-  vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window()->getExtent()};
+  vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window()->extent()};
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
   auto pipeline = createPipeline(m_vulkan_device.device(), swap_chain, pipeline_layout);
   m_vulkan_device.device().destroyPipelineLayout(pipeline_layout);
