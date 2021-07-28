@@ -24,8 +24,10 @@ class Application
 {
  private:
   static std::once_flag s_main_instance;                // Make sure that m_main_window is only initialized once.
-  std::string m_application_name;                       // Cache of what was passed to the constructor.
   glfw::GlfwLibrary m_library;                          // Initialize libglfw.
+
+ protected:
+  std::string m_application_name;                       // Cache of what was passed to the constructor.
   std::shared_ptr<Window> m_main_window;                // Pointer to the main window (same value as what is returned by create_main_window).
 
  protected:
@@ -43,7 +45,7 @@ class Application
   //
  protected:
   template<WindowType WindowT>
-  std::shared_ptr<WindowT> create_main_window(WindowCreateInfo const& create_info);
+  void create_main_window(WindowCreateInfo const& create_info);
 
   void terminate();                             // Close all windows and cause main() to return.
 
@@ -61,7 +63,7 @@ class Application
 };
 
 template<WindowType WindowT>
-std::shared_ptr<WindowT> Application::create_main_window(WindowCreateInfo const& create_info)
+void Application::create_main_window(WindowCreateInfo const& create_info)
 {
   DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
 
@@ -72,8 +74,7 @@ std::shared_ptr<WindowT> Application::create_main_window(WindowCreateInfo const&
   std::call_once(s_main_instance, [this]{ on_main_instance_startup(); });
 
   create_info.apply();  // Call glfw::WindowHints::apply.
-  auto main_window = std::make_shared<WindowT>(this, create_info);
-  m_main_window = main_window;
+  m_main_window = std::make_shared<WindowT>(this, create_info);
 
 #if 0
   // Make sure that the application runs as long this window is still open.
@@ -87,8 +88,6 @@ std::shared_ptr<WindowT> Application::create_main_window(WindowCreateInfo const&
 
   main_window->show_all();
 #endif
-
-  return main_window;
 }
 
 } // namespace gui

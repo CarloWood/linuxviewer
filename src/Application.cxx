@@ -15,6 +15,11 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
   vulkan::InstanceCreateInfo::hasGflwRequiredInstanceExtensions(instance_create_info.enabled_extension_names());
 }
 
+std::shared_ptr<Window> Application::main_window() const
+{
+  return std::static_pointer_cast<Window>(m_main_window);
+}
+
 void Application::run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
 {
   DoutEntering(dc::notice|flush_cf|continued_cf, "Application::run(" << argc << ", ");
@@ -28,10 +33,10 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   Dout(dc::finish|flush_cf, '}');
 
   // If we get here then this application is the main process and owns the (a) main window.
-  auto main_window = create_main_window<Window>(main_window_create_info);
+  create_main_window<Window>(main_window_create_info);
 
-  m_vulkan_device.setup(*m_vulkan_instance, main_window->surface());   // The device draws to m_main_window.
-  vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window->getExtent()};
+  m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());   // The device draws to m_main_window.
+  vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window()->getExtent()};
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
   auto pipeline = createPipeline(m_vulkan_device.device(), swap_chain, pipeline_layout);
   m_vulkan_device.device().destroyPipelineLayout(pipeline_layout);
