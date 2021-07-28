@@ -46,6 +46,10 @@ class Application : public gui::Application
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.
+#ifdef CWDEBUG
+  VkDebugUtilsMessengerEXT debugMessenger;
+#endif
+
   // Vulkan graphics.
   vulkan::Device m_vulkan_device;
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
@@ -108,6 +112,7 @@ class Application : public gui::Application
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   std::shared_ptr<Window> main_window() const;
+  void setupDebugMessenger();
   vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);

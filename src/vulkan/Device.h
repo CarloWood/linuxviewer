@@ -67,7 +67,6 @@ class Device
   VkPhysicalDeviceProperties properties;
 
  private:
-  void setupDebugMessenger();
   void pickPhysicalDevice();
   void createLogicalDevice();
   void createCommandPool();
@@ -75,17 +74,15 @@ class Device
   // helper functions
   bool isDeviceSuitable(VkPhysicalDevice device);
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-  void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
   bool checkDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 
-  VkDebugUtilsMessengerEXT debugMessenger;
   vk::PhysicalDevice physicalDevice = {};
   VkCommandPool commandPool;
 
   VkInstance instance_;         // FIXME: this should not be here.
-  vk::Device device_;
   VkSurfaceKHR surface_;        // FIXME: this should not be here.
+  vk::Device device_;
   VkQueue graphicsQueue_;
   VkQueue presentQueue_;
 

@@ -9,32 +9,6 @@
 
 namespace vulkan {
 
-// local callback functions
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void* pUserData)
-{
-  Dout(dc::vulkan|dc::warning, pCallbackData->pMessage);
-
-  return VK_FALSE;
-}
-
-VkResult CreateDebugUtilsMessengerEXT(
-    vk::Instance instance, VkDebugUtilsMessengerCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
-{
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr) { return func(instance, pCreateInfo, pAllocator, pDebugMessenger); }
-  else
-  {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
-}
-
-void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerEXT debugMessenger, VkAllocationCallbacks const* pAllocator)
-{
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-  if (func != nullptr) { func(instance, debugMessenger, pAllocator); }
-}
-
 // class member functions
 void Device::setup(VkInstance instance, VkSurfaceKHR surface)
 {
@@ -42,7 +16,6 @@ void Device::setup(VkInstance instance, VkSurfaceKHR surface)
 
   instance_ = instance;
   surface_ = surface;
-  setupDebugMessenger();
   pickPhysicalDevice();
   createLogicalDevice();
   createCommandPool();
@@ -54,9 +27,6 @@ Device::~Device()
 
   vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
-
-  if (InstanceCreateInfo::s_enableValidationLayers)
-    DestroyDebugUtilsMessengerEXT(instance_, debugMessenger, nullptr);
 }
 
 void Device::pickPhysicalDevice()
@@ -159,27 +129,6 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device)
   vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
   return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
-void Device::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
-{
-  createInfo                 = {};
-  createInfo.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  createInfo.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  createInfo.pfnUserCallback = debugCallback;
-  createInfo.pUserData       = nullptr;  // Optional
-}
-
-void Device::setupDebugMessenger()
-{
-  if (!InstanceCreateInfo::s_enableValidationLayers)
-    return;
-
-  VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  populateDebugMessengerCreateInfo(createInfo);
-  if (CreateDebugUtilsMessengerEXT(instance_, &createInfo, nullptr, &debugMessenger) != VK_SUCCESS)
-    throw std::runtime_error("failed to set up debug messenger!");
 }
 
 bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
