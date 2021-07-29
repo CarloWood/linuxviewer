@@ -17,6 +17,7 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
     throw std::runtime_error("validation layers requested, but not available!");
 
   m_vulkan_instance = vk::createInstanceUnique(instance_create_info.base());
+  m_dynamic_loader.setup(*m_vulkan_instance);
 
   // Check that the extensions required by glfw are included.
   vulkan::InstanceCreateInfo::hasGflwRequiredInstanceExtensions(instance_create_info.enabled_extension_names());
@@ -48,6 +49,8 @@ void Application::run(int argc, char* argv[], WindowCreateInfo const& main_windo
   Debug(m_debug_messenger.setup(*m_vulkan_instance));
 
   m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());   // The device draws to m_main_window.
+  m_dynamic_loader.setup(m_vulkan_device.device());
+
   vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window()->extent()};
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
   auto pipeline = createPipeline(m_vulkan_device.device(), swap_chain, pipeline_layout);

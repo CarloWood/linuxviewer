@@ -4,6 +4,7 @@
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
 #include "vulkan/InstanceCreateInfo.h"
+#include "vulkan/DynamicLoader.h"
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
@@ -41,6 +42,9 @@ class Application : public gui::Application
   // The GUI main loop.
   bool m_return_from_run;                               // False while the (inner) main loop should keep looping.
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
+
+  // Dynamic loader for vulkan.
+  vulkan::DynamicLoader m_dynamic_loader;
 
   // Vulkan instance.
   vk::UniqueInstance m_vulkan_instance;                 // Per application state. Creating a vk::Instance object initializes

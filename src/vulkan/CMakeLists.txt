@@ -69,6 +69,8 @@ target_sources(vulkan_ObjLib
   PRIVATE
     "InstanceCreateInfo.cxx"
     "InstanceCreateInfo.h"
+    "DynamicLoader.cxx"
+    "DynamicLoader.h"
     "Device.cxx"
     "Device.h"
     "DebugMessenger.cxx"
@@ -94,6 +96,7 @@ target_compile_definitions(vulkan_ObjLib
   PUBLIC
     GLFW_INCLUDE_VULKAN
     SHADERS_DIR="${SHADERS_BINARY_DIR}"
+    VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
 )
 
 # Require support for C++17.
