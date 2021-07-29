@@ -14,7 +14,7 @@
 #include "resolver-task/DnsResolver.h"
 #include "debug.h"
 #ifdef CWDEBUG
-#include "DebugMessenger.h"
+#include "vulkan/DebugMessenger.h"
 #include "vulkan/debug_ostream_operators.h"
 #endif
 
@@ -50,7 +50,7 @@ class Application : public gui::Application
   // Vulkan graphics.
   vulkan::Device m_vulkan_device;
 #ifdef CWDEBUG
-  DebugMessenger m_debug_messenger;                     // Proxy for printing debug output from vulkan layers.
+  vulkan::DebugMessenger m_debug_messenger;             // Proxy for printing debug output from vulkan layers.
 #endif
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 

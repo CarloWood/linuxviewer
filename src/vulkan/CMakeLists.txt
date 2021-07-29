@@ -5,6 +5,9 @@ include(AICxxProject)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
+
 #==============================================================================
 # COMPILE SHADERS
 #
@@ -68,6 +71,8 @@ target_sources(vulkan_ObjLib
     "InstanceCreateInfo.h"
     "Device.cxx"
     "Device.h"
+    "DebugMessenger.cxx"
+    "DebugMessenger.h"
     "PipelineCreateInfo.cxx"
     "PipelineCreateInfo.h"
     "Pipeline.cxx"
@@ -102,6 +107,22 @@ target_link_libraries(vulkan_ObjLib
     GLFWPP
     Vulkan::Vulkan
     AICxx::cwds
+)
+
+add_executable(minimalexample
+  minimal_example.cxx
+)
+
+target_compile_definitions(minimalexample
+  PUBLIC
+    VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+)
+
+target_link_libraries(minimalexample
+  PRIVATE
+    GLFWPP
+    Vulkan::Vulkan
+    PkgConfig::Shaderc
 )
 
 # Create an ALIAS target.

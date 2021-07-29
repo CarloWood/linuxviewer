@@ -37,8 +37,6 @@ add_executable(linuxviewer
   WindowCreateInfo.h
   Window.cxx
   Window.h
-  DebugMessenger.cxx
-  DebugMessenger.h
 
   LinuxViewerMenuBar.h
 )
@@ -73,8 +71,6 @@ add_executable(hellotriangle
   WindowCreateInfo.h
   Window.cxx
   Window.h
-  DebugMessenger.cxx
-  DebugMessenger.h
 )
 
 target_link_libraries(hellotriangle
