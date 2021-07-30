@@ -1,18 +1,11 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-#include <iosfwd>
-
-namespace vulkan {
-
 #ifdef CWDEBUG
-VkBool32 debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData);
+#include <iosfwd>
 #endif
 
+#if 0
 // Helper class.
 struct DebugUtilsMessengerCreateInfoEXTArgs
 {
@@ -27,7 +20,7 @@ struct DebugUtilsMessengerCreateInfoEXTArgs
 
   static constexpr PFN_vkDebugUtilsMessengerCallbackEXT  default_pfnUserCallback =
 #ifdef CWDEBUG
-    debugCallback;
+    &DebugMessenger::debugCallback;
 #else
     {};
 #endif
@@ -37,14 +30,15 @@ struct DebugUtilsMessengerCreateInfoEXTArgs
   PFN_vkDebugUtilsMessengerCallbackEXT  pfnUserCallback = default_pfnUserCallback;
   void *                                pUserData       = {};
 };
+#endif
+
+class Application;
 
 struct DebugUtilsMessengerCreateInfoEXT : public vk::DebugUtilsMessengerCreateInfoEXT
 {
-  DebugUtilsMessengerCreateInfoEXT(DebugUtilsMessengerCreateInfoEXTArgs&& = {});
+  DebugUtilsMessengerCreateInfoEXT(Application& application);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
 };
-
-} // namespace vulkan

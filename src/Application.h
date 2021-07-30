@@ -4,7 +4,7 @@
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
 #include "vulkan/InstanceCreateInfo.h"
-#include "vulkan/DebugUtilsMessengerCreateInfoEXT.h"
+#include "DebugUtilsMessengerCreateInfoEXT.h"
 #include "vulkan/ExtensionLoader.h"
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
@@ -109,19 +109,22 @@ class Application : public gui::Application
   void join_event_loop() { m_event_loop.join(); }
 
   // Start the GUI main loop.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(vulkan::DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
 
 #ifdef CWDEBUG
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(vulkan::DebugUtilsMessengerCreateInfoEXT&& debug_create_info))
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT&& debug_create_info))
   {
     run(argc, argv, main_window_create_info, debug_create_info);
   }
 
-  // Passing nothing will just use the default vulkan::DebugUtilsMessengerCreateInfoEXT.
+  // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
   void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
   {
-    run(argc, argv, main_window_create_info, vulkan::DebugUtilsMessengerCreateInfoEXT{});
+    run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT(*this));
   }
+
+  // Allow DebugUtilsMessengerCreateInfoEXT to get a pointer to m_debug_messenger.
+  vulkan::DebugMessenger* get_debug_messenger_ptr() { return &m_debug_messenger; }
 #endif
 
   bool running() const { return !m_return_from_run; }   // Returns true until quit() was called.

@@ -39,7 +39,7 @@ std::shared_ptr<Window> Application::main_window() const
 
 void Application::run(int argc, char* argv[],
     WindowCreateInfo const& main_window_create_info
-    COMMA_CWDEBUG_ONLY(vulkan::DebugUtilsMessengerCreateInfoEXT const& debug_create_info))
+    COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info))
 {
   DoutEntering(dc::notice|flush_cf|continued_cf, "Application::run(" << argc << ", ");
   // Print the commandline arguments used.

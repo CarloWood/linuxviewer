@@ -73,8 +73,6 @@ target_sources(vulkan_ObjLib
     "ExtensionLoader.h"
     "Device.cxx"
     "Device.h"
-    "DebugUtilsMessengerCreateInfoEXT.cxx"
-    "DebugUtilsMessengerCreateInfoEXT.h"
     "DebugMessenger.cxx"
     "DebugMessenger.h"
     "PipelineCreateInfo.cxx"

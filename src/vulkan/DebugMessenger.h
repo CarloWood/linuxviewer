@@ -16,6 +16,13 @@ class DebugMessenger
  public:
   DebugMessenger() = default;
 
+  // The default debug callback for debug messages from vulkan.
+  static VkBool32 debugCallback(
+      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+      VkDebugUtilsMessageTypeFlagsEXT messageType,
+      VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+      void* pUserData);
+
   // The life time of the vulkan instance that is passed to setup must be longer
   // than the life time of this object. The reason for that is that the destructor
   // of this object uses it.

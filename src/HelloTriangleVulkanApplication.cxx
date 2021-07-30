@@ -60,10 +60,10 @@ int main(int argc, char* argv[])
     ;
 
 #ifdef CWDEBUG
-  vulkan::DebugUtilsMessengerCreateInfoEXT debug_create_info;
+  DebugUtilsMessengerCreateInfoEXT debug_create_info(application);
   debug_create_info
     .setMessageSeverity(
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+//      vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
