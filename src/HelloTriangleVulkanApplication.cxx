@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
   vulkan::DebugUtilsMessengerCreateInfoEXT debug_create_info;
   debug_create_info
     .setMessageSeverity(
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eDebug |
-        vk::DebugUtilsMessageSeverityFlagBitsEXT::eInformation |
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
     .setMessageType(
