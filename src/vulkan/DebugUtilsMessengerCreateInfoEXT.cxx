@@ -1,10 +1,9 @@
 #include "sys.h"
+#include "DebugUtilsMessengerCreateInfoEXT.h"
+#include "debug.h"
 
 #ifdef CWDEBUG
-#include "DebugUtilsMessengerCreateInfoEXT.h"
-#include <vulkan/vulkan.hpp>
 #include <iostream>
-#include "debug.h"
 
 // The operator<<'s must be declared in namespace vk (where DebugUtilsMessageSeverityFlagBitsEXT
 // and DebugUtilsMessageTypeFlagBitsEXT are defined) so that they will be found with ADL.
@@ -21,19 +20,9 @@ std::ostream& operator<<(std::ostream& os, DebugUtilsMessageTypeFlagBitsEXT cons
 }
 
 } // namespace vk
+#endif // CWDEBUG
 
 namespace vulkan {
-
-// Callback function for debug output from vulkan layers.
-VkBool32 debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData)
-{
-  Dout(dc::vulkan|dc::warning, pCallbackData->pMessage);
-  return VK_FALSE;
-}
 
 DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(DebugUtilsMessengerCreateInfoEXTArgs&& args) :
   vk::DebugUtilsMessengerCreateInfoEXT(
@@ -43,6 +32,18 @@ DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(DebugUtilsMes
       args.pfnUserCallback,     // Is the application callback function to call.
       args.pUserData)           // Is user data to be passed to the callback.
 {
+}
+
+#ifdef CWDEBUG
+// Callback function for debug output from vulkan layers.
+VkBool32 debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    void* pUserData)
+{
+  Dout(dc::vulkan|dc::warning, pCallbackData->pMessage);
+  return VK_FALSE;
 }
 
 void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
@@ -67,6 +68,6 @@ void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
   os << "pUserData:" << pUserData;
   os << '}';
 }
+#endif // CWDEBUG
 
 } // namespace vulkan
-#endif

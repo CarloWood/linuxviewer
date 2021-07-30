@@ -5,11 +5,13 @@
 
 namespace vulkan {
 
+#ifdef CWDEBUG
 VkBool32 debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
     void* pUserData);
+#endif
 
 // Helper class.
 struct DebugUtilsMessengerCreateInfoEXTArgs
@@ -24,7 +26,11 @@ struct DebugUtilsMessengerCreateInfoEXTArgs
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 
   static constexpr PFN_vkDebugUtilsMessengerCallbackEXT  default_pfnUserCallback =
+#ifdef CWDEBUG
     debugCallback;
+#else
+    {};
+#endif
 
   vk::DebugUtilsMessageSeverityFlagsEXT messageSeverity = default_messageSeverity;
   vk::DebugUtilsMessageTypeFlagsEXT     messageType     = default_messageType;

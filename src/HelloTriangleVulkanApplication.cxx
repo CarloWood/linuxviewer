@@ -59,9 +59,12 @@ int main(int argc, char* argv[])
     .setTitle("Main window title")
     ;
 
+#ifdef CWDEBUG
   vulkan::DebugUtilsMessengerCreateInfoEXT debug_create_info;
   debug_create_info
     .setMessageSeverity(
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eDebug |
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eInformation |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
     .setMessageType(
@@ -69,6 +72,7 @@ int main(int argc, char* argv[])
         vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
         vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
     ;
+#endif
 
   try
   {
