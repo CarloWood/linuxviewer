@@ -5,6 +5,7 @@
 #include <vector>
 #include "debug.h"
 
+// At least repeat this here, in case it isn't defined in debug.h.
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct vulkan;
@@ -94,6 +95,9 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
     Debug(add_debug_layer_and_extension());
   }
 
+  void add_layers(std::vector<char const*> const&& extra_layers);
+  void add_extensions(std::vector<char const*> const&& extra_extensions);
+
   // Only provide non-mutable access to the base class.
   //
   // This is necessary because we own the memory that the base class points to.
@@ -103,6 +107,9 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
   {
     return *this;
   }
+
+  //---------------------------------------------------------------------------
+  // InstanceCreateInfoArgLists accessors.
 
   std::vector<char const*> const& enabled_layer_names() const
   {
@@ -114,8 +121,7 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
     return m_enabled_extension_names;
   }
 
-  void add_layers(std::vector<char const*> const&& extra_layers);
-  void add_extensions(std::vector<char const*> const&& extra_extensions);
+  //---------------------------------------------------------------------------
 
  private:
 #ifdef CWDEBUG

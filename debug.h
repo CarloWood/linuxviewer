@@ -34,4 +34,11 @@ std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
   }
   return os << '}';
 }
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct vulkan;
+NAMESPACE_DEBUG_CHANNELS_END
 #endif
+
+#endif // CWDEBUG

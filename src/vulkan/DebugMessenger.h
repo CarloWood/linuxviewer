@@ -19,7 +19,7 @@ class DebugMessenger
   // The life time of the vulkan instance that is passed to setup must be longer
   // than the life time of this object. The reason for that is that the destructor
   // of this object uses it.
-  void setup(vk::Instance vulkan_instance);
+  void setup(vk::Instance vulkan_instance, vk::DebugUtilsMessengerCreateInfoEXT const& create_info);
 };
 
 } // namespace vulkan

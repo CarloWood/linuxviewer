@@ -4,6 +4,7 @@
 #include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
 #include "vulkan/InstanceCreateInfo.h"
+#include "vulkan/DebugUtilsMessengerCreateInfoEXT.h"
 #include "vulkan/ExtensionLoader.h"
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
@@ -43,7 +44,7 @@ class Application : public gui::Application
   bool m_return_from_run;                               // False while the (inner) main loop should keep looping.
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
 
-  // Dynamic loader for vulkan.
+  // Loader for vulkan extension functions.
   vulkan::ExtensionLoader m_extension_loader;
 
   // Vulkan instance.
@@ -51,11 +52,15 @@ class Application : public gui::Application
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.
+#ifdef CWDEBUG
+  // In order to get the order of destruction correct,
+  // this must be defined below m_vulkan_instance,
+  // and preferably before m_vulkan_device.
+  vulkan::DebugMessenger m_debug_messenger;             // Debug message utility extension. Print vulkan layer debug output to dc::vulkan.
+#endif
+
   // Vulkan graphics.
   vulkan::Device m_vulkan_device;
-#ifdef CWDEBUG
-  vulkan::DebugMessenger m_debug_messenger;             // Proxy for printing debug output from vulkan layers.
-#endif
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:
@@ -104,7 +109,20 @@ class Application : public gui::Application
   void join_event_loop() { m_event_loop.join(); }
 
   // Start the GUI main loop.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info);
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(vulkan::DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
+
+#ifdef CWDEBUG
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(vulkan::DebugUtilsMessengerCreateInfoEXT&& debug_create_info))
+  {
+    run(argc, argv, main_window_create_info, debug_create_info);
+  }
+
+  // Passing nothing will just use the default vulkan::DebugUtilsMessengerCreateInfoEXT.
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
+  {
+    run(argc, argv, main_window_create_info, vulkan::DebugUtilsMessengerCreateInfoEXT{});
+  }
+#endif
 
   bool running() const { return !m_return_from_run; }   // Returns true until quit() was called.
   void quit() override;                                 // Called to make the GUI main loop terminate (return from run()).

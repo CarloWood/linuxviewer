@@ -59,10 +59,21 @@ int main(int argc, char* argv[])
     .setTitle("Main window title")
     ;
 
+  vulkan::DebugUtilsMessengerCreateInfoEXT debug_create_info;
+  debug_create_info
+    .setMessageSeverity(
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+        vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+    .setMessageType(
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+        vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+    ;
+
   try
   {
     // Run main application.
-    application.run(argc, argv, main_window_create_info);
+    application.run(argc, argv, main_window_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
 
     // Application terminated cleanly.
     application.join_event_loop();
