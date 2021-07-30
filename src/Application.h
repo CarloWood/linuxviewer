@@ -123,8 +123,20 @@ class Application : public gui::Application
     run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT(*this));
   }
 
-  // Allow DebugUtilsMessengerCreateInfoEXT to get a pointer to m_debug_messenger.
-  vulkan::DebugMessenger* get_debug_messenger_ptr() { return &m_debug_messenger; }
+  VkBool32 debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData);
+
+  static VkBool32 debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    void* pUserData)
+  {
+    Application* self = reinterpret_cast<Application*>(pUserData);
+    return self->debugCallback(messageSeverity, messageType, pCallbackData);
+  }
 #endif
 
   bool running() const { return !m_return_from_run; }   // Returns true until quit() was called.

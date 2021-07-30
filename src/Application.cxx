@@ -179,3 +179,16 @@ bool Application::on_gui_idle()
   // Returning true means we want to be called again (more work is to be done).
   return false;
 }
+
+#ifdef CWDEBUG
+// Default callback function for debug output from vulkan layers.
+VkBool32 Application::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
+{
+  Dout(dc::vulkan|dc::warning, "* " << pCallbackData->pMessage);
+
+  return VK_FALSE;
+}
+#endif

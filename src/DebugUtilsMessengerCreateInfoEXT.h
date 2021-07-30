@@ -5,9 +5,9 @@
 #include <iosfwd>
 #endif
 
-#if 0
-// Helper class.
-struct DebugUtilsMessengerCreateInfoEXTArgs
+class Application;
+
+struct DebugUtilsMessengerCreateInfoEXT : public vk::DebugUtilsMessengerCreateInfoEXT
 {
   static constexpr vk::DebugUtilsMessageSeverityFlagsEXT default_messageSeverity =
     vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
@@ -18,24 +18,6 @@ struct DebugUtilsMessengerCreateInfoEXTArgs
     vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 
-  static constexpr PFN_vkDebugUtilsMessengerCallbackEXT  default_pfnUserCallback =
-#ifdef CWDEBUG
-    &DebugMessenger::debugCallback;
-#else
-    {};
-#endif
-
-  vk::DebugUtilsMessageSeverityFlagsEXT messageSeverity = default_messageSeverity;
-  vk::DebugUtilsMessageTypeFlagsEXT     messageType     = default_messageType;
-  PFN_vkDebugUtilsMessengerCallbackEXT  pfnUserCallback = default_pfnUserCallback;
-  void *                                pUserData       = {};
-};
-#endif
-
-class Application;
-
-struct DebugUtilsMessengerCreateInfoEXT : public vk::DebugUtilsMessengerCreateInfoEXT
-{
   DebugUtilsMessengerCreateInfoEXT(Application& application);
 
 #ifdef CWDEBUG

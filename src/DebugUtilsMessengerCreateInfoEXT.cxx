@@ -22,29 +22,7 @@ std::ostream& operator<<(std::ostream& os, DebugUtilsMessageTypeFlagBitsEXT cons
 }
 
 } // namespace vk
-#endif // CWDEBUG
 
-#if 0
-DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(DebugUtilsMessengerCreateInfoEXTArgs&& args) :
-  vk::DebugUtilsMessengerCreateInfoEXT(
-      {},                       // Reserved for future use (should be zero).
-      args.messageSeverity,     // Is a bitmask of vk::DebugUtilsMessageSeverityFlagsEXT specifying which severity of event(s) will cause this callback to be called.
-      args.messageType,         // Is a bitmask of vk::DebugUtilsMessageTypeFlagsEXT specifying which type of event(s) will cause this callback to be called.
-      args.pfnUserCallback,     // Is the application callback function to call.
-      args.pUserData)           // Is user data to be passed to the callback.
-{
-}
-#endif
-
-DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(Application& application)
-{
-#ifdef CWDEBUG
-  pfnUserCallback = &vulkan::DebugMessenger::debugCallback;
-  pUserData = application.get_debug_messenger_ptr();
-#endif
-}
-
-#ifdef CWDEBUG
 void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
 {
   os << '{';
@@ -68,3 +46,14 @@ void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
   os << '}';
 }
 #endif // CWDEBUG
+
+DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(Application& application)
+{
+#ifdef CWDEBUG
+  // Assign the default values.
+  messageSeverity = default_messageSeverity;
+  messageType = default_messageType;
+  pfnUserCallback = &Application::debugCallback;
+  pUserData = &application;
+#endif
+}

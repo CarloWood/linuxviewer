@@ -2,21 +2,8 @@
 
 #ifdef CWDEBUG
 #include "DebugMessenger.h"
-#include <vulkan/vulkan_core.h>
-#include "debug.h"
 
 namespace vulkan {
-
-// Default callback function for debug output from vulkan layers.
-VkBool32 DebugMessenger::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData)
-{
-  Dout(dc::vulkan|dc::warning, pCallbackData->pMessage);
-  return VK_FALSE;
-}
 
 void DebugMessenger::setup(vk::Instance vulkan_instance, vk::DebugUtilsMessengerCreateInfoEXT const& debug_create_info)
 {
