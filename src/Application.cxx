@@ -239,12 +239,12 @@ void Application::debugCallback(
   if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
   {
     Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
-    color_end = "\e0m";
+    color_end = "\e[0m";
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {
     Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
-    color_end = "\e0m";
+    color_end = "\e[0m";
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
     Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
