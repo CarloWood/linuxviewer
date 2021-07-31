@@ -1,17 +1,45 @@
 #include "sys.h"
 #include "Application.h"
-#include "Window.h"
 #include "WindowCreateInfo.h"
+#include "Window.h"
 #include <vector>
 
-#ifdef CWDEBUG
-#include "vulkan/debug_ostream_operators.h"
+Application::Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info
+      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT& debug_create_info)) :
+  gui::Application(application_create_info.pApplicationName),
+  m_mpp(application_create_info.block_size, application_create_info.minimum_chunk_size, application_create_info.maximum_chunk_size),
+  m_thread_pool(application_create_info.number_of_threads, application_create_info.max_number_of_threads),
+  m_high_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
+  m_medium_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
+  m_low_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity)),
+  m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(application_create_info.event_loop_color, application_create_info.color_off_code)),
+  m_resolver_scope(m_low_priority_queue, false),
+  m_return_from_run(false),
+  m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration)
+{
+  // Call this before print the DoutEntering debug output, so we get to see all extensions that are used.
+  instance_create_info.add_extensions(glfw::getRequiredInstanceExtensions());
 
-namespace {
-void setupDebugMessenger();
-void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerEXT debugMessenger, VkAllocationCallbacks const* pAllocator);
-} // namespace
+  DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info.base() << ")");
+
+#ifdef CWDEBUG
+  // Set the debug color function (this couldn't be part of the above constructor).
+  m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function);
+  // Turn on required debug channels.
+  Application::debug_init();
+  // Set debug call back function to Application::debugCallback.
+  debug_create_info.setup(this);
+  // Added debug_create_info as extension to use during Instance creation and destruction.
+  VkDebugUtilsMessengerCreateInfoEXT& ref = debug_create_info;
+  instance_create_info.setPNext(&ref);
 #endif
+
+  // Upon return from this constructor, the application_create_info might be destucted before we get another chance
+  // to create the vulkan instance (this is unlikely, but certainly not impossible). And since instance_create_info contains
+  // a pointer to it, as well as might itself be destructed, we need to be done with both of them before returning.
+  // Hence, the instance has to be created here.
+  createInstance(instance_create_info);
+}
 
 void Application::createInstance(vulkan::InstanceCreateInfo const& instance_create_info)
 {
@@ -202,7 +230,7 @@ void Application::debug_init()
 }
 
 // Default callback function for debug output from vulkan layers.
-VkBool32 Application::debugCallback(
+void Application::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
@@ -233,7 +261,5 @@ VkBool32 Application::debugCallback(
   }
 
   Dout(dc::finish, color_end);
-
-  return VK_FALSE;
 }
 #endif

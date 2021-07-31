@@ -56,14 +56,12 @@ void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
 }
 #endif // CWDEBUG
 
-DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(Application& application)
+DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT()
 {
 #ifdef CWDEBUG
   // Assign the default values.
   messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
   messageType = default_messageType;
-  pfnUserCallback = &Application::debugCallback;
-  pUserData = &application;
 
   // Also turn on severity bits corresponding to debug channels that are on.
   if (DEBUGCHANNELS::dc::vkwarning.is_on())
@@ -74,3 +72,11 @@ DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(Application& 
     messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
 #endif
 }
+
+#ifdef CWDEBUG
+void DebugUtilsMessengerCreateInfoEXT::setup(Application* application)
+{
+  pfnUserCallback = &Application::debugCallback;
+  pUserData = application;
+}
+#endif

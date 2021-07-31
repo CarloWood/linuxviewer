@@ -64,41 +64,42 @@ class Application : public gui::Application
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:
-  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info) :
-    gui::Application(application_create_info.pApplicationName),
-    m_mpp(application_create_info.block_size, application_create_info.minimum_chunk_size, application_create_info.maximum_chunk_size),
-    m_thread_pool(application_create_info.number_of_threads, application_create_info.max_number_of_threads),
-    m_high_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
-    m_medium_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity, application_create_info.reserved_threads)),
-    m_low_priority_queue(m_thread_pool.new_queue(application_create_info.queue_capacity)),
-    m_event_loop(m_low_priority_queue COMMA_CWDEBUG_ONLY(application_create_info.event_loop_color, application_create_info.color_off_code)),
-    m_resolver_scope(m_low_priority_queue, false),
-    m_return_from_run(false),
-    m_gui_idle_engine("gui_idle_engine", application_create_info.max_duration)
-  {
-    // Call this before print the DoutEntering debug output, so we get to see all extensions that are used.
-    instance_create_info.add_extensions(glfw::getRequiredInstanceExtensions());
+  // Construct Application from instance_create_info and debug_create_info. Both create_info's are passed as
+  // non-const reference because the constructor adds the required glfw extensions to instance_create_info
+  // and sets its pNext pointer to point to debug_create_info, using it to print debug output during Instance
+  // creation and destruction. While debug_create_info has its pfnUserCallback set to &Application::debugCallback
+  // and pUserData to point to this application.
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info
+      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT& debug_create_info));
 
-    DoutEntering(dc::notice, "Application::Application(" << application_create_info << ", " << instance_create_info.base() << ")");
-
-    // Set the debug color function (this couldn't be part of the above constructor).
-    Debug(m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function));
-    Debug(Application::debug_init());
-
-    // Upon return from this constructor, the application_create_info might be destucted before we get another chance
-    // to create the vulkan instance (this is unlikely, but certainly not impossible). And since instance_create_info contains
-    // a pointer to it, as well as might itself be destructed, we need to be done with both of them before returning.
-    // Hence, the instance has to be created here.
-    createInstance(instance_create_info);
-  }
-
-  // It is perfectly OK to pass an rvalue to the above constructor.
-  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo&& instance_create_info) :
-    Application(application_create_info, instance_create_info) { }
+  // It is perfectly OK to pass an rvalue reference for instance_create_info to the above constructor.
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo&& instance_create_info
+      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT& debug_create_info)) :
+    Application(application_create_info, instance_create_info COMMA_CWDEBUG_ONLY(debug_create_info)) { }
 
   // When not passing a instance_create_info, use the default values provided by a plain vulkan::InstanceCreateInfo.
-  Application(ApplicationCreateInfo const& application_create_info) :
-    Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info)) { }
+  Application(ApplicationCreateInfo const& application_create_info
+      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT& debug_create_info)) :
+    Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info) COMMA_CWDEBUG_ONLY(debug_create_info)) { }
+
+#ifdef CWDEBUG
+  // Using an rvalue reference to debug_create_info is OK, this may be a temporary like the default value here.
+  // The object that is passed should not be passed to run() then of course: either no debug_create_info should
+  // be passed to run(), or another DebugUtilsMessengerCreateInfoEXT object.
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info,
+      DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
+    Application(application_create_info, instance_create_info, debug_create_info) { }
+
+  // It is perfectly OK to pass an rvalue reference for instance_create_info to the above constructor.
+  Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo&& instance_create_info,
+      DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
+    Application(application_create_info, instance_create_info, debug_create_info) { }
+
+  // When not passing a instance_create_info, use the default values provided by a plain vulkan::InstanceCreateInfo.
+  Application(ApplicationCreateInfo const& application_create_info,
+      DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
+    Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info), debug_create_info) { }
+#endif
 
   ~Application() override
   {
@@ -115,18 +116,19 @@ class Application : public gui::Application
 #ifdef CWDEBUG
   void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT&& debug_create_info))
   {
+    debug_create_info.setup(this);
     run(argc, argv, main_window_create_info, debug_create_info);
   }
 
   // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
   void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
   {
-    run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT(*this));
+    run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT{});
   }
 
   static void debug_init();
 
-  VkBool32 debugCallback(
+  void debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData);
@@ -138,7 +140,8 @@ class Application : public gui::Application
     void* pUserData)
   {
     Application* self = reinterpret_cast<Application*>(pUserData);
-    return self->debugCallback(messageSeverity, messageType, pCallbackData);
+    self->debugCallback(messageSeverity, messageType, pCallbackData);
+    return VK_FALSE;
   }
 #endif
 
@@ -152,7 +155,6 @@ class Application : public gui::Application
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   std::shared_ptr<Window> main_window() const;
-  void setupDebugMessenger();
   vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);

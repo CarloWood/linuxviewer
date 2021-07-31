@@ -108,6 +108,9 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
     return *this;
   }
 
+  // Except for this function because Application::Application needs to use it to add the DebugUtilsMessengerCreateInfoEXT to be used during Instance creation.
+  using vk::InstanceCreateInfo::setPNext;
+
   //---------------------------------------------------------------------------
   // InstanceCreateInfoArgLists accessors.
 

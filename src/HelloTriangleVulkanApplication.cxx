@@ -45,8 +45,16 @@ int main(int argc, char* argv[])
     .setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
     ;
 
+  DebugUtilsMessengerCreateInfoEXT debug_create_info;
+  debug_create_info
+    .setMessageType(
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+        vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
+    ;
+
   // Create main application.
-  HelloTriangleVulkanApplication application(application_create_info);
+  HelloTriangleVulkanApplication application(application_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
 
   WindowCreateInfo main_window_create_info(
       // glfw::WindowHints
@@ -58,16 +66,6 @@ int main(int argc, char* argv[])
     // gui::WindowCreateInfoExt
     .setTitle("Main window title")
     ;
-
-#ifdef CWDEBUG
-  DebugUtilsMessengerCreateInfoEXT debug_create_info(application);
-  debug_create_info
-    .setMessageType(
-        vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
-        vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
-        vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance)
-    ;
-#endif
 
   try
   {
