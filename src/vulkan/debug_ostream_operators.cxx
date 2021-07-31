@@ -20,9 +20,11 @@ std::string print_version(uint32_t version)
 
 } // namespace
 
+namespace vk {
+
 using NAMESPACE_DEBUG::print_string;
 
-std::ostream& operator<<(std::ostream& os, vk::ApplicationInfo const& application_info)
+std::ostream& operator<<(std::ostream& os, ApplicationInfo const& application_info)
 {
   os << '{';
   os << "allowDuplicate:" << std::boolalpha << application_info.allowDuplicate << ", ";
@@ -34,7 +36,7 @@ std::ostream& operator<<(std::ostream& os, vk::ApplicationInfo const& applicatio
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, vk::InstanceCreateInfo const& instance_create_info)
+std::ostream& operator<<(std::ostream& os, InstanceCreateInfo const& instance_create_info)
 {
   os << '{';
   os << "flags:" << static_cast<decltype(instance_create_info.flags)::MaskType>(instance_create_info.flags) << ", ";
@@ -59,5 +61,17 @@ std::ostream& operator<<(std::ostream& os, vk::InstanceCreateInfo const& instanc
   os << '}';
   return os;
 }
+
+std::ostream& operator<<(std::ostream& os, DebugUtilsObjectNameInfoEXT const& debug_utils_object_name_info)
+{
+  os << '{';
+  os << "objectType:" << to_string(debug_utils_object_name_info.objectType) << ", ";
+  os << "objectHandle:" << std::hex << debug_utils_object_name_info.objectHandle << ", ";
+  os << "pObjectName:" << print_string(debug_utils_object_name_info.pObjectName);
+  os << '}';
+  return os;
+}
+
+} // namespace vk
 
 #endif // CWDEBUG

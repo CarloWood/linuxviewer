@@ -82,6 +82,7 @@ target_sources(vulkan_ObjLib
     "HelloTriangleSwapChain.cxx"
     "HelloTriangleSwapChain.h"
     "debug_ostream_operators.cxx"
+    "debug_ostream_operators.h"
 )
 
 # Required include search-paths.

@@ -5,6 +5,8 @@
 #include <vector>
 
 #ifdef CWDEBUG
+#include "vulkan/debug_ostream_operators.h"
+
 namespace {
 void setupDebugMessenger();
 void DestroyDebugUtilsMessengerEXT(vk::Instance instance, VkDebugUtilsMessengerEXT debugMessenger, VkAllocationCallbacks const* pAllocator);
@@ -205,14 +207,32 @@ VkBool32 Application::debugCallback(
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
 {
+  char const* color_end = "";
   if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-    Dout(dc::vkerror|dc::warning, "\e[31m" << pCallbackData->pMessage << "\e[0m");
+  {
+    Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
+    color_end = "\e0m";
+  }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-    Dout(dc::vkwarning|dc::warning, "\e[31m" << pCallbackData->pMessage << "\e[0m");
+  {
+    Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
+    color_end = "\e0m";
+  }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-    Dout(dc::vkinfo, pCallbackData->pMessage);
+    Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
   else
-    Dout(dc::vkverbose, pCallbackData->pMessage);
+    Dout(dc::vkverbose|continued_cf, pCallbackData->pMessage);
+
+  if (pCallbackData->objectCount > 0)
+  {
+    Dout(dc::continued, " [with an objectCount of " << pCallbackData->objectCount << "]");
+    for (int i = 0; i < pCallbackData->objectCount; ++i)
+    {
+      Dout(dc::vulkan, static_cast<vk::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
+    }
+  }
+
+  Dout(dc::finish, color_end);
 
   return VK_FALSE;
 }
