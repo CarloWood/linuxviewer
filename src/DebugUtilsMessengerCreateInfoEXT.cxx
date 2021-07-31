@@ -7,6 +7,15 @@
 #ifdef CWDEBUG
 #include <iostream>
 
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct vkverbose;
+extern channel_ct vkinfo;
+extern channel_ct vkwarning;
+extern channel_ct vkerror;
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
+
 // The operator<<'s must be declared in namespace vk (where DebugUtilsMessageSeverityFlagBitsEXT
 // and DebugUtilsMessageTypeFlagBitsEXT are defined) so that they will be found with ADL.
 namespace vk {
@@ -51,9 +60,17 @@ DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(Application& 
 {
 #ifdef CWDEBUG
   // Assign the default values.
-  messageSeverity = default_messageSeverity;
+  messageSeverity = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
   messageType = default_messageType;
   pfnUserCallback = &Application::debugCallback;
   pUserData = &application;
+
+  // Also turn on severity bits corresponding to debug channels that are on.
+  if (DEBUGCHANNELS::dc::vkwarning.is_on())
+    messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
+  if (DEBUGCHANNELS::dc::vkinfo.is_on())
+    messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo;
+  if (DEBUGCHANNELS::dc::vkverbose.is_on())
+    messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
 #endif
 }

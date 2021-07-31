@@ -22,7 +22,7 @@ Application::Application(std::string const& application_name) : m_application_na
 #ifdef CWDEBUG
   glfwSetErrorCallback(error_callback);
   // These are warning level, so always turn them on.
-  if (DEBUGCHANNELS::dc::glfw.is_on())
+  if (!DEBUGCHANNELS::dc::glfw.is_on())
     DEBUGCHANNELS::dc::glfw.on();
 #endif
 

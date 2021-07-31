@@ -9,10 +9,6 @@ class Application;
 
 struct DebugUtilsMessengerCreateInfoEXT : public vk::DebugUtilsMessengerCreateInfoEXT
 {
-  static constexpr vk::DebugUtilsMessageSeverityFlagsEXT default_messageSeverity =
-    vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
-    vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
-
   static constexpr vk::DebugUtilsMessageTypeFlagsEXT     default_messageType     =
     vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
     vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |

@@ -83,6 +83,7 @@ class Application : public gui::Application
 
     // Set the debug color function (this couldn't be part of the above constructor).
     Debug(m_thread_pool.set_color_functions(application_create_info.thread_pool_color_function));
+    Debug(Application::debug_init());
 
     // Upon return from this constructor, the application_create_info might be destucted before we get another chance
     // to create the vulkan instance (this is unlikely, but certainly not impossible). And since instance_create_info contains
@@ -122,6 +123,8 @@ class Application : public gui::Application
   {
     run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT(*this));
   }
+
+  static void debug_init();
 
   VkBool32 debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,

@@ -181,13 +181,38 @@ bool Application::on_gui_idle()
 }
 
 #ifdef CWDEBUG
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+channel_ct vkverbose("VKVERBOSE");
+channel_ct vkinfo("VKINFO");
+channel_ct vkwarning("VKWARNING");
+channel_ct vkerror("VKERROR");
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
+
+void Application::debug_init()
+{
+  if (!DEBUGCHANNELS::dc::vkerror.is_on())
+    DEBUGCHANNELS::dc::vkerror.on();
+  if (!DEBUGCHANNELS::dc::vkwarning.is_on() && DEBUGCHANNELS::dc::warning.is_on())
+    DEBUGCHANNELS::dc::vkwarning.on();
+}
+
 // Default callback function for debug output from vulkan layers.
 VkBool32 Application::debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType,
     VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
 {
-  Dout(dc::vulkan|dc::warning, "* " << pCallbackData->pMessage);
+  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    Dout(dc::vkerror|dc::warning, "\e[31m" << pCallbackData->pMessage << "\e[0m");
+  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    Dout(dc::vkwarning|dc::warning, "\e[31m" << pCallbackData->pMessage << "\e[0m");
+  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+    Dout(dc::vkinfo, pCallbackData->pMessage);
+  else
+    Dout(dc::vkverbose, pCallbackData->pMessage);
 
   return VK_FALSE;
 }
