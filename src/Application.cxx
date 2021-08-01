@@ -62,11 +62,6 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
   vulkan::InstanceCreateInfo::hasGflwRequiredInstanceExtensions(instance_create_info.enabled_extension_names());
 }
 
-std::shared_ptr<Window> Application::main_window() const
-{
-  return std::static_pointer_cast<Window>(m_main_window);
-}
-
 void Application::run(int argc, char* argv[],
     WindowCreateInfo const& main_window_create_info
     COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info))
@@ -116,6 +111,11 @@ void Application::run(int argc, char* argv[],
 
   // Block until all GPU operations have completed.
   vkDeviceWaitIdle(m_vulkan_device.device());
+}
+
+std::shared_ptr<Window> Application::main_window() const
+{
+  return std::static_pointer_cast<Window>(m_main_window);
 }
 
 vk::PipelineLayout Application::createPipelineLayout(vulkan::Device const& device)
