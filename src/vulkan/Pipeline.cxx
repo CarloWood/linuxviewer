@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "Pipeline.h"
-#include "Device.h"
+#include "HelloTriangleDevice.h"
 #include "debug.h"
 #include <stdexcept>
 #include <string>

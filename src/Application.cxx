@@ -118,7 +118,7 @@ std::shared_ptr<Window> Application::main_window() const
   return std::static_pointer_cast<Window>(m_main_window);
 }
 
-vk::PipelineLayout Application::createPipelineLayout(vulkan::Device const& device)
+vk::PipelineLayout Application::createPipelineLayout(vulkan::HelloTriangleDevice const& device)
 {
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   vk::PipelineLayout pipelineLayout =
@@ -136,7 +136,7 @@ std::unique_ptr<vulkan::Pipeline> Application::createPipeline(VkDevice device_ha
   return std::make_unique<vulkan::Pipeline>(device_handle, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
 }
 
-void Application::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
+void Application::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain)
 {
   // Currently we are assuming this function is only called once.
   ASSERT(m_command_buffers.empty());

@@ -71,6 +71,7 @@ target_sources(vulkan_ObjLib
     "InstanceCreateInfo.h"
     "ExtensionLoader.cxx"
     "ExtensionLoader.h"
+    "HelloTriangleDevice.cxx"
     "Device.cxx"
     "Device.h"
     "DebugMessenger.cxx"

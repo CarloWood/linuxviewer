@@ -13,7 +13,7 @@
 
 namespace vulkan {
 
-HelloTriangleSwapChain::HelloTriangleSwapChain(Device& deviceRef, VkExtent2D extent) : device{deviceRef}, windowExtent{extent}
+HelloTriangleSwapChain::HelloTriangleSwapChain(HelloTriangleDevice& deviceRef, VkExtent2D extent) : device{deviceRef}, windowExtent{extent}
 {
   createSwapChain();
   createImageViews();

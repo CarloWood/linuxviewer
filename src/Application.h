@@ -9,7 +9,7 @@
 #include "WindowCreateInfo.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
-#include "vulkan/Device.h"
+#include "vulkan/HelloTriangleDevice.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
@@ -60,7 +60,7 @@ class Application : public gui::Application
 #endif
 
   // Vulkan graphics.
-  vulkan::Device m_vulkan_device;
+  vulkan::HelloTriangleDevice m_vulkan_device;
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
  public:
@@ -155,9 +155,9 @@ class Application : public gui::Application
 
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
-  vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
+  vk::PipelineLayout createPipelineLayout(vulkan::HelloTriangleDevice const& device);
   std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
-  void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
+  void createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
   void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain);
 
  private:

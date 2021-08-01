@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Device.h"
+#include "HelloTriangleDevice.h"
 
 // vulkan headers
 #include <vulkan/vulkan.h>
@@ -15,7 +15,7 @@ class HelloTriangleSwapChain {
  public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  HelloTriangleSwapChain(Device &deviceRef, VkExtent2D windowExtent);
+  HelloTriangleSwapChain(HelloTriangleDevice &deviceRef, VkExtent2D windowExtent);
   ~HelloTriangleSwapChain();
 
   HelloTriangleSwapChain(const HelloTriangleSwapChain &) = delete;
@@ -65,7 +65,7 @@ class HelloTriangleSwapChain {
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
 
-  Device &device;
+  HelloTriangleDevice &device;
   VkExtent2D windowExtent;
 
   VkSwapchainKHR swapChain;
