@@ -18,7 +18,7 @@ Window::Window(Application* application, WindowCreateInfo const& window_create_i
 {
   DoutEntering(dc::notice, "Window::Window(" << application << ", " << window_create_info << ") [" << (void*)this << "] [INCOMPLETE]");
 
-  m_window.closeEvent.setCallback([this](){ m_application->closeEvent(this); });
+  m_window.closeEvent.setCallback([this](glfw::Window&){ m_application->closeEvent(this); });
 
 #if 0
   // FIXME: is this still possible now that we do glfw::makeContextCurrent() after returning from this constructor?
