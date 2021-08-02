@@ -35,8 +35,8 @@ std::ostream& operator<<(std::ostream& os, DebugUtilsMessageTypeFlagBitsEXT cons
 void DebugUtilsMessengerCreateInfoEXT::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "messageSeverity:" << debug::print_flags<vk::DebugUtilsMessageSeverityFlagBitsEXT>(messageSeverity) << ", ";
-  os << "messageType:" << debug::print_flags<vk::DebugUtilsMessageTypeFlagBitsEXT>(messageType) << ", ";
+  os << "messageSeverity:" << messageSeverity << ", ";
+  os << "messageType:" << messageType << ", ";
   os << "pfnUserCallback:";
   if (!pfnUserCallback)
     os << "nullptr";    // This is an error, the validation layer should complain.
