@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "HelloTriangleVulkanApplication.h"
 #include "vulkan/InstanceCreateInfo.h"
+#include "vulkan/DeviceCreateInfo.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
@@ -67,10 +68,16 @@ int main(int argc, char* argv[])
     .setTitle("Main window title")
     ;
 
+  vulkan::DeviceCreateInfo device_create_info;
+  device_create_info
+    // vulkan::DeviceCreateInfo
+    .setQueueFlags(vk::QueueFlagBits::eGraphics)
+    ;
+
   try
   {
     // Run main application.
-    application.run(argc, argv, main_window_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
+    application.run(argc, argv, main_window_create_info, device_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
 
     // Application terminated cleanly.
     application.join_event_loop();

@@ -20,6 +20,10 @@
 #include "vulkan/debug_ostream_operators.h"
 #endif
 
+namespace vulkan {
+struct DeviceCreateInfo;
+} // namespace vulkan
+
 class Window;
 
 class Application : public gui::Application
@@ -60,6 +64,7 @@ class Application : public gui::Application
 #endif
 
   // Vulkan graphics.
+  vulkan::Device m_vulkan_device2;
   vulkan::HelloTriangleDevice m_vulkan_device;
   std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
 
@@ -111,19 +116,25 @@ class Application : public gui::Application
   void join_event_loop() { m_event_loop.join(); }
 
   // Start the GUI main loop.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
+  void run(int argc, char* argv[],
+      WindowCreateInfo const& main_window_create_info,
+      vulkan::DeviceCreateInfo const& device_create_info
+      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
 
 #ifdef CWDEBUG
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT&& debug_create_info))
+  void run(int argc, char* argv[],
+      WindowCreateInfo const& main_window_create_info,
+      vulkan::DeviceCreateInfo const& device_create_info,
+      DebugUtilsMessengerCreateInfoEXT&& debug_create_info)
   {
     debug_create_info.setup(this);
-    run(argc, argv, main_window_create_info, debug_create_info);
+    run(argc, argv, main_window_create_info, device_create_info, debug_create_info);
   }
 
   // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info)
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo const& device_create_info)
   {
-    run(argc, argv, main_window_create_info, DebugUtilsMessengerCreateInfoEXT{});
+    run(argc, argv, main_window_create_info, device_create_info, DebugUtilsMessengerCreateInfoEXT{});
   }
 
   static void debug_init();

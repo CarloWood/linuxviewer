@@ -15,6 +15,7 @@
 #include "evio/protocol/EOFDecoder.h"
 #include "utils/debug_ostream_operators.h"
 #include "utils/threading/Gate.h"
+#include "vulkan/DeviceCreateInfo.h"
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <functional>
@@ -235,10 +236,12 @@ int main(int argc, char* argv[])
     .setTitle("Main window title")
     ;
 
+  vulkan::DeviceCreateInfo device_create_info;
+
   try
   {
     // Run main application.
-    application.run(argc, argv, main_window_create_info);
+    application.run(argc, argv, main_window_create_info, device_create_info);
 
     // Application terminated cleanly.
     application.join_event_loop();
