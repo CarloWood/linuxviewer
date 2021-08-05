@@ -184,4 +184,13 @@ void Device::setup(vk::Instance vulkan_instance, vk::SurfaceKHR surface, vulkan:
   m_device_handle = m_physical_device.createDevice(device_create_info);
 }
 
+#ifdef CWDEBUG
+void Device::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "(Device*)" << (void*)this;
+  os << '}';
+}
+#endif
+
 } // namespace vulkan

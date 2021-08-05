@@ -13,7 +13,16 @@ class Device
   vk::Device m_device_handle;                   // A handle to the logical device.
 
  public:
+  Device() = default;                           // Must be initialized by calling setup.
+  // Not copyable or movable.
+  Device(Device const&) = delete;
+  void operator=(Device const&) = delete;
+
   void setup(vk::Instance vulkan_instance, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info);
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 } // namespace vulkan
