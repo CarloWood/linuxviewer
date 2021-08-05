@@ -64,7 +64,7 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
 
 void Application::run(int argc, char* argv[],
     WindowCreateInfo const& main_window_create_info,
-    vulkan::DeviceCreateInfo const& device_create_info
+    vulkan::DeviceCreateInfo&& device_create_info
     COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info))
 {
   DoutEntering(dc::notice|flush_cf|continued_cf, "Application::run(" << argc << ", ");
@@ -85,7 +85,7 @@ void Application::run(int argc, char* argv[],
   // is redirected to debugCallback().
   Debug(m_debug_messenger.setup(*m_vulkan_instance, debug_create_info));
 
-  m_vulkan_device2.setup(*m_vulkan_instance, main_window()->surface(), device_create_info);   // The device draws to m_main_window.
+  m_vulkan_device2.setup(*m_vulkan_instance, main_window()->surface(), std::move(device_create_info));   // The device draws to m_main_window.
   m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());   // The device draws to m_main_window.
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
   m_extension_loader.setup(m_vulkan_device.device());

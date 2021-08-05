@@ -68,7 +68,13 @@ int main(int argc, char* argv[])
     .setTitle("Main window title")
     ;
 
-  vulkan::DeviceCreateInfo device_create_info;
+  vulkan::PhysicalDeviceFeatures physical_device_features;
+  physical_device_features
+    .setSamplerAnisotropy(VK_TRUE)
+    .setDepthClamp(VK_TRUE)
+    ;
+
+  vulkan::DeviceCreateInfo device_create_info(physical_device_features);
   device_create_info
     // vulkan::DeviceCreateInfo
     .setQueueFlags(vk::QueueFlagBits::eGraphics)
@@ -77,7 +83,7 @@ int main(int argc, char* argv[])
   try
   {
     // Run main application.
-    application.run(argc, argv, main_window_create_info, device_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
+    application.run(argc, argv, main_window_create_info, std::move(device_create_info) COMMA_CWDEBUG_ONLY(debug_create_info));
 
     // Application terminated cleanly.
     application.join_event_loop();

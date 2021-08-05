@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "HelloTriangleDevice.h"
 #include "InstanceCreateInfo.h"
+#include "debug_ostream_operators.h"
 
 // std headers
 #include <cstring>
@@ -94,6 +95,7 @@ void HelloTriangleDevice::createLogicalDevice()
   }
 #endif
 
+  Dout(dc::vulkan, "Calling physicalDevice.createDevice(" << createInfo << ")");
   device_ = physicalDevice.createDevice(createInfo);
 
   vkGetDeviceQueue(device_, indices.graphicsFamily, 0, &graphicsQueue_);

@@ -118,23 +118,23 @@ class Application : public gui::Application
   // Start the GUI main loop.
   void run(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
-      vulkan::DeviceCreateInfo const& device_create_info
+      vulkan::DeviceCreateInfo&& device_create_info
       COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
 
 #ifdef CWDEBUG
   void run(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
-      vulkan::DeviceCreateInfo const& device_create_info,
+      vulkan::DeviceCreateInfo&& device_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info)
   {
     debug_create_info.setup(this);
-    run(argc, argv, main_window_create_info, device_create_info, debug_create_info);
+    run(argc, argv, main_window_create_info, std::move(device_create_info), debug_create_info);
   }
 
   // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo const& device_create_info)
+  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo&& device_create_info)
   {
-    run(argc, argv, main_window_create_info, device_create_info, DebugUtilsMessengerCreateInfoEXT{});
+    run(argc, argv, main_window_create_info, std::move(device_create_info), DebugUtilsMessengerCreateInfoEXT{});
   }
 
   static void debug_init();

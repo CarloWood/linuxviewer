@@ -16,4 +16,11 @@ std::ostream& operator<<(std::ostream& os, Flags<EnumBits> en)
   return os << to_string(en);
 }
 
+std::ostream& operator<<(std::ostream& os, DeviceCreateInfo const& device_create_info);
+std::ostream& operator<<(std::ostream& os, DeviceQueueCreateInfo const& device_queue_create_info);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures const& physical_device_features);
+std::ostream& operator<<(std::ostream& os, QueueFamilyProperties const& queue_family_properties);
+std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D);
+std::ostream& operator<<(std::ostream& os, QueueFlagBits const& queue_flag_bit);
+
 } // namespace vk

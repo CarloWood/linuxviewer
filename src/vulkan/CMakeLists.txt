@@ -8,6 +8,8 @@ find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 
+find_package(magic_enum REQUIRED)
+
 #==============================================================================
 # COMPILE SHADERS
 #
@@ -72,6 +74,8 @@ target_sources(vulkan_ObjLib
     "ExtensionLoader.cxx"
     "ExtensionLoader.h"
     "HelloTriangleDevice.cxx"
+    "PhysicalDeviceFeatures.cxx"
+    "PhysicalDeviceFeatures.h"
     "DeviceCreateInfo.cxx"
     "DeviceCreateInfo.h"
     "Device.cxx"
@@ -114,6 +118,8 @@ target_link_libraries(vulkan_ObjLib
     GLFWPP
     Vulkan::Vulkan
     AICxx::cwds
+  PRIVATE
+    magic_enum::magic_enum
 )
 
 add_executable(minimalexample

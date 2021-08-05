@@ -9,10 +9,11 @@ struct DeviceCreateInfo;
 class Device
 {
  private:
-  vk::Device m_device_handle;
+  vk::PhysicalDevice m_physical_device;         // The underlaying physical device.
+  vk::Device m_device_handle;                   // A handle to the logical device.
 
  public:
-  void setup(vk::Instance vulkan_instance, vk::SurfaceKHR surface, DeviceCreateInfo const& device_create_info);
+  void setup(vk::Instance vulkan_instance, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info);
 };
 
 } // namespace vulkan
