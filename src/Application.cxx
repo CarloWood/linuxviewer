@@ -85,10 +85,9 @@ void Application::run(int argc, char* argv[],
   // is redirected to debugCallback().
   Debug(m_debug_messenger.setup(*m_vulkan_instance, debug_create_info));
 
-  m_vulkan_device2.setup(*m_vulkan_instance, main_window()->surface(), std::move(device_create_info));   // The device draws to m_main_window.
-  m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());   // The device draws to m_main_window.
-  // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  m_extension_loader.setup(m_vulkan_device.device());
+  // The m_vulkan_device draws to m_main_window.
+  m_vulkan_device2.setup(*m_vulkan_instance, m_extension_loader, main_window()->surface(), std::move(device_create_info));
+  m_vulkan_device.setup(*m_vulkan_instance, main_window()->surface());
 
   vulkan::HelloTriangleSwapChain swap_chain{m_vulkan_device, main_window()->extent()};
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);

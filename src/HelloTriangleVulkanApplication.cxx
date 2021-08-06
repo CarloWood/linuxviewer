@@ -78,6 +78,9 @@ int main(int argc, char* argv[])
   device_create_info
     // vulkan::DeviceCreateInfo
     .setQueueFlags(vk::QueueFlagBits::eGraphics)
+#ifdef CWDEBUG
+    .setDebugName("Vulkan Device")
+#endif
     ;
 
   try

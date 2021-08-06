@@ -30,7 +30,7 @@ class ExtensionLoader
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vulkan_instance);
   }
 
-  void setup(vk::Device vulkan_device)
+  void setup(vk::Instance, vk::Device vulkan_device)
   {
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vulkan_device);
   }
@@ -43,7 +43,7 @@ class ExtensionLoader
 {
  public:
   void setup(vk::Instance);
-  void setup(vk::Device) {}
+  void setup(vk::Instance, vk::Device);
 };
 
 #endif // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1

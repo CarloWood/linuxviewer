@@ -1,10 +1,16 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include "debug.h"
+#ifdef CWDEBUG
+#include <iosfwd>
+#include <string>
+#endif
 
 namespace vulkan {
 
 struct DeviceCreateInfo;
+class ExtensionLoader;
 
 class Device
 {
@@ -18,7 +24,7 @@ class Device
   Device(Device const&) = delete;
   void operator=(Device const&) = delete;
 
-  void setup(vk::Instance vulkan_instance, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info);
+  void setup(vk::Instance vulkan_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

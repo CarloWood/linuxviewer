@@ -21,6 +21,7 @@ namespace {
 std::unordered_map<VkInstance, PFN_vkCreateDebugUtilsMessengerEXT> CreateDebugUtilsMessengerEXTDispatchTable;
 std::unordered_map<VkInstance, PFN_vkDestroyDebugUtilsMessengerEXT> DestroyDebugUtilsMessengerEXTDispatchTable;
 std::unordered_map<VkInstance, PFN_vkSubmitDebugUtilsMessageEXT> SubmitDebugUtilsMessageEXTDispatchTable;
+std::unordered_map<VkDevice, PFN_vkSetDebugUtilsObjectNameEXT> SetDebugUtilsObjectNameEXTDispatchTable;
 
 void loadDebugUtilsCommands(VkInstance instance)
 {
@@ -39,6 +40,15 @@ void loadDebugUtilsCommands(VkInstance instance)
   SubmitDebugUtilsMessageEXTDispatchTable[instance] = reinterpret_cast<PFN_vkSubmitDebugUtilsMessageEXT>(temp_fp);
 }
 
+void loadDebugUtilsCommands(VkInstance instance, VkDevice device)
+{
+  PFN_vkVoidFunction temp_fp;
+
+  temp_fp = vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+  if (!temp_fp) throw "Failed to load vkSetDebugUtilsObjectNameEXT";  // check shouldn't be necessary (based on spec)
+  SetDebugUtilsObjectNameEXTDispatchTable[device] = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(temp_fp);
+}
+
 void unloadDebugUtilsCommands(VkInstance instance)
 {
   CreateDebugUtilsMessengerEXTDispatchTable.erase(instance);
@@ -46,26 +56,37 @@ void unloadDebugUtilsCommands(VkInstance instance)
   SubmitDebugUtilsMessageEXTDispatchTable.erase(instance);
 }
 
+void unloadDebugUtilsCommands(VkDevice device)
+{
+  SetDebugUtilsObjectNameEXTDispatchTable.erase(device);
+}
+
 } // namespace
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(
-    VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pMessenger)
+    VkInstance instance, VkDebugUtilsMessengerCreateInfoEXT const* pCreateInfo, VkAllocationCallbacks const* pAllocator, VkDebugUtilsMessengerEXT* pMessenger)
 {
   auto dispatched_cmd = CreateDebugUtilsMessengerEXTDispatchTable.at(instance);
   return dispatched_cmd(instance, pCreateInfo, pAllocator, pMessenger);
 }
 
-VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator)
+VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
 {
   auto dispatched_cmd = DestroyDebugUtilsMessengerEXTDispatchTable.at(instance);
   return dispatched_cmd(instance, messenger, pAllocator);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkSubmitDebugUtilsMessageEXT(VkInstance instance, VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData)
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
 {
   auto dispatched_cmd = SubmitDebugUtilsMessageEXTDispatchTable.at(instance);
   return dispatched_cmd(instance, messageSeverity, messageTypes, pCallbackData);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkSetDebugUtilsObjectNameEXT(VkDevice device, VkDebugUtilsObjectNameInfoEXT const* pNameInfo)
+{
+  auto dispatched_cmd = SetDebugUtilsObjectNameEXTDispatchTable.at(device);
+  return dispatched_cmd(device, pNameInfo);
 }
 
 namespace vulkan {
@@ -73,6 +94,11 @@ namespace vulkan {
 void ExtensionLoader::setup(vk::Instance vulkan_instance)
 {
   loadDebugUtilsCommands(vulkan_instance);
+}
+
+void ExtensionLoader::setup(vk::Instance vulkan_instance, vk::Device vulkan_device)
+{
+  loadDebugUtilsCommands(vulkan_instance, vulkan_device);
 }
 
 } // namespace vulkan
