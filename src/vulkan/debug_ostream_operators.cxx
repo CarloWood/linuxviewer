@@ -2,6 +2,7 @@
 
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
+//#include "../data_types/UUID.h"
 #include <magic_enum.hpp>
 #include <iostream>
 #include <iomanip>
@@ -216,6 +217,31 @@ std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D)
 std::ostream& operator<<(std::ostream& os, QueueFlagBits const& queue_flag_bit)
 {
   return os << magic_enum::enum_name(queue_flag_bit);
+}
+
+std::ostream& operator<<(std::ostream& os, ExtensionProperties const& extension_properties)
+{
+  os << '{';
+  os << "extensionName:" << print_string(extension_properties.extensionName) << ", ";
+  os << "specVersion:" << extension_properties.specVersion;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceProperties const& physical_device_properties)
+{
+  os << '{';
+  os << "apiVersion:" << print_version(physical_device_properties.apiVersion) << ", ";
+  os << "driverVersion:" << print_version(physical_device_properties.driverVersion) << ", ";
+  os << "vendorID:0x" << std::hex << physical_device_properties.vendorID << ", ";
+  os << "deviceID:0x" << std::hex << physical_device_properties.deviceID << ", ";
+  os << "deviceType:" << to_string(physical_device_properties.deviceType) << ", ";
+  os << "deviceName:" << print_string(physical_device_properties.deviceName) << ", ";
+//  os << "pipelineCacheUUID:" << UUID(reinterpret_cast<char const*>(static_cast<uint8_t const*>(physical_device_properties.pipelineCacheUUID))) << ", ";
+//    VULKAN_HPP_NAMESPACE::PhysicalDeviceLimits                                   limits            = {};
+//    VULKAN_HPP_NAMESPACE::PhysicalDeviceSparseProperties                         sparseProperties  = {};
+  os << '}';
+  return os;
 }
 
 } // namespace vk

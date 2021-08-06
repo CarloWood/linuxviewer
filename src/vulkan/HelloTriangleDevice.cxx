@@ -26,7 +26,8 @@ HelloTriangleDevice::~HelloTriangleDevice()
 {
   DoutEntering(dc::vulkan, "HelloTriangleDevice::~HelloTriangleDevice() [" << (void*)this << "]");
 
-  vkDestroyCommandPool(device_, commandPool, nullptr);
+  if (device_)
+    vkDestroyCommandPool(device_, commandPool, nullptr);
   vkDestroyDevice(device_, nullptr);
 }
 

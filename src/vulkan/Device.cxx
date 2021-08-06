@@ -7,6 +7,7 @@
 #include "utils/Array.h"
 #include "utils/log2.h"
 #include "utils/BitSet.h"
+#include "utils/AIAlert.h"
 #include "debug.h"
 #include <magic_enum.hpp>
 #ifdef CWDEBUG
@@ -167,6 +168,31 @@ void Device::setup(vk::Instance vulkan_instance, vulkan::ExtensionLoader& extens
       break;
     }
   }
+
+  if (!m_physical_device)
+    THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
+
+#ifdef CWDEBUG
+  Dout(dc::vulkan, "Physical Device Properties:");
+  {
+    debug::Mark mark;
+    auto properties = m_physical_device.getProperties();
+    Dout(dc::vulkan, properties);
+  }
+  Dout(dc::vulkan, "Physical Device Features:");
+  {
+    debug::Mark mark;
+    auto features = m_physical_device.getFeatures();
+    Dout(dc::vulkan, features);
+  }
+  Dout(dc::vulkan, "Physical Device Extension Properties:");
+  {
+    debug::Mark mark;
+    auto extension_properties_list = m_physical_device.enumerateDeviceExtensionProperties();
+    for (auto&& extension_properties : extension_properties_list)
+      Dout(dc::vulkan, extension_properties);
+  }
+#endif
 
   // Include each queue family with any of the requested features - in the pQueueCreateInfos of device_create_info.
   float queue_priority = 1.0f;

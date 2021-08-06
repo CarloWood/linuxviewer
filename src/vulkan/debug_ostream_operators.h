@@ -22,5 +22,7 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures const& physica
 std::ostream& operator<<(std::ostream& os, QueueFamilyProperties const& queue_family_properties);
 std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D);
 std::ostream& operator<<(std::ostream& os, QueueFlagBits const& queue_flag_bit);
+std::ostream& operator<<(std::ostream& os, ExtensionProperties const& extension_properties);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceProperties const& physical_device_properties);
 
 } // namespace vk
