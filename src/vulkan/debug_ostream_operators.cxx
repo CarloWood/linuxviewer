@@ -117,6 +117,7 @@ std::ostream& operator<<(std::ostream& os, DeviceQueueCreateInfo const& device_q
   os << "pNext:" << device_queue_create_info.pNext << ", ";
   os << "flags:" << static_cast<decltype(device_queue_create_info.flags)::MaskType>(device_queue_create_info.flags) << ", ";
   os << "queueFamilyIndex:" << device_queue_create_info.queueFamilyIndex << ", ";
+  os << "queueCount: " << device_queue_create_info.queueCount << ", ";
   os << "pQueuePriorities:<";
   for (int i = 0; i < device_queue_create_info.queueCount; ++i)
   {

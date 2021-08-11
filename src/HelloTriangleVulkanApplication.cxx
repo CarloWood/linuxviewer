@@ -75,18 +75,34 @@ int main(int argc, char* argv[])
     ;
 
   vulkan::DeviceCreateInfo device_create_info(physical_device_features);
+  using vulkan::QueueFlagBits;
   device_create_info
     // vulkan::DeviceCreateInfo
-    .setQueueFlags(vk::QueueFlagBits::eGraphics)
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::eGraphics,
+        .max_number_of_queues = 14,
+        .priority = 1.0})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 3,
+        .priority = 0.3})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 2,
+        .priority = 0.2})
 #ifdef CWDEBUG
     .setDebugName("Vulkan Device")
 #endif
+    //.addDeviceExtentions({"Kazaam"})
     ;
 
   try
   {
-    // Run main application.
-    application.run(argc, argv, main_window_create_info, std::move(device_create_info) COMMA_CWDEBUG_ONLY(debug_create_info));
+    // Create all objects.
+    application.init(argc, argv, main_window_create_info, std::move(device_create_info) COMMA_CWDEBUG_ONLY(debug_create_info));
+
+    // Run GUI main loop.
+    application.run();
 
     // Application terminated cleanly.
     application.join_event_loop();

@@ -9,7 +9,7 @@
 
 namespace vulkan {
 
-void DeviceCreateInfo::addDeviceExtentions(vk::ArrayProxy<char const* const> extra_device_extensions)
+DeviceCreateInfo& DeviceCreateInfo::addDeviceExtentions(vk::ArrayProxy<char const* const> extra_device_extensions)
 {
   for (auto extra_name : extra_device_extensions)
   {
@@ -27,6 +27,7 @@ void DeviceCreateInfo::addDeviceExtentions(vk::ArrayProxy<char const* const> ext
   }
   // Update pointer and count in base class.
   setPEnabledExtensionNames(m_device_extensions);
+  return *this;
 }
 
 #ifdef CWDEBUG

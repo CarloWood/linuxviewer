@@ -7,6 +7,7 @@
 #include "DebugUtilsMessengerCreateInfoEXT.h"
 #include "vulkan/ExtensionLoader.h"
 #include "WindowCreateInfo.h"
+#include "Window.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
 #include "vulkan/HelloTriangleDevice.h"
@@ -23,8 +24,6 @@
 namespace vulkan {
 struct DeviceCreateInfo;
 } // namespace vulkan
-
-class Window;
 
 class Application : public gui::Application
 {
@@ -66,7 +65,8 @@ class Application : public gui::Application
   // Vulkan graphics.
   vulkan::Device m_vulkan_device2;
   vulkan::HelloTriangleDevice m_vulkan_device;
-  std::vector<VkCommandBuffer> m_command_buffers;       // The vulkan command buffers that this application uses.
+
+  std::unique_ptr<vulkan::Pipeline> m_pipeline;
 
  public:
   // Construct Application from instance_create_info and debug_create_info. Both create_info's are passed as
@@ -115,26 +115,29 @@ class Application : public gui::Application
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
 
-  // Start the GUI main loop.
-  void run(int argc, char* argv[],
+  // Create application (window, vulkan objects).
+  void init(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
       vulkan::DeviceCreateInfo&& device_create_info
       COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
 
+  // Start the GUI main loop.
+  void run();
+
 #ifdef CWDEBUG
-  void run(int argc, char* argv[],
+  void init(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
       vulkan::DeviceCreateInfo&& device_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info)
   {
     debug_create_info.setup(this);
-    run(argc, argv, main_window_create_info, std::move(device_create_info), debug_create_info);
+    init(argc, argv, main_window_create_info, std::move(device_create_info), debug_create_info);
   }
 
   // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
-  void run(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo&& device_create_info)
+  void init(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo&& device_create_info)
   {
-    run(argc, argv, main_window_create_info, std::move(device_create_info), DebugUtilsMessengerCreateInfoEXT{});
+    init(argc, argv, main_window_create_info, std::move(device_create_info), DebugUtilsMessengerCreateInfoEXT{});
   }
 
   static void debug_init();
@@ -163,13 +166,12 @@ class Application : public gui::Application
   // Accessors.
   vk::Instance vulkan_instance() const { return *m_vulkan_instance; }
   std::shared_ptr<Window> main_window() const;
+  Window const* main_window_ptr() const { return static_cast<Window const*>(m_main_window.get()); }
 
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   vk::PipelineLayout createPipelineLayout(vulkan::HelloTriangleDevice const& device);
-  std::unique_ptr<vulkan::Pipeline> createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const& swap_chain, VkPipelineLayout pipeline_layout_handle);
-  void createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline, vulkan::HelloTriangleSwapChain const& swap_chain);
-  void drawFrame(vulkan::HelloTriangleSwapChain& swap_chain);
+  void createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle);
 
  private:
   // Called from the main loop of the GUI.

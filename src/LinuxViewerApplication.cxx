@@ -240,8 +240,11 @@ int main(int argc, char* argv[])
 
   try
   {
-    // Run main application.
-    application.run(argc, argv, main_window_create_info, std::move(device_create_info));
+    // Create all objects.
+    application.init(argc, argv, main_window_create_info, std::move(device_create_info));
+
+    // Run GUI main loop.
+    application.run();
 
     // Application terminated cleanly.
     application.join_event_loop();

@@ -58,7 +58,6 @@ target_link_libraries(linuxviewer
     ${AICXX_OBJECTS_LIST}
     farmhash::farmhash
     blaze::blaze
-    magic_enum::magic_enum
     Boost::serialization
 )
 

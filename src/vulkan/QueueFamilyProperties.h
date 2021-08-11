@@ -12,18 +12,19 @@ namespace vulkan {
 class QueueFamilyProperties : public vk::QueueFamilyProperties
 {
  private:
-  bool m_has_presentation_support;
+  QueueFlags m_queue_flags;
 
  public:
   QueueFamilyProperties(vk::QueueFamilyProperties const& queue_family_properties, bool has_presentation_support) :
-    vk::QueueFamilyProperties(queue_family_properties), m_has_presentation_support(has_presentation_support)
+    vk::QueueFamilyProperties(queue_family_properties),
+    m_queue_flags(queue_family_properties.queueFlags | (has_presentation_support ? QueueFlagBits::ePresentation : QueueFlagBits::none))
   {
     DoutEntering(dc::vulkan, "QueueFamilyProperties(" << queue_family_properties << ", has_presentation_support:" << std::boolalpha << has_presentation_support << ")");
   }
 
-  bool has_presentation_support() const
+  QueueFlags get_queue_flags() const
   {
-    return m_has_presentation_support;
+    return m_queue_flags;
   }
 };
 

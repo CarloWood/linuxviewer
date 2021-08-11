@@ -15,11 +15,13 @@ class HelloTriangleSwapChain {
  public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  HelloTriangleSwapChain(HelloTriangleDevice &deviceRef, VkExtent2D windowExtent);
+  HelloTriangleSwapChain(HelloTriangleDevice &deviceRef);
   ~HelloTriangleSwapChain();
 
   HelloTriangleSwapChain(const HelloTriangleSwapChain &) = delete;
   void operator=(const HelloTriangleSwapChain &) = delete;
+
+  void setup(VkExtent2D windowExtent);
 
   VkFramebuffer getFrameBuffer(int index) const { return swapChainFramebuffers[index]; }
   VkRenderPass getRenderPass() const { return renderPass; }

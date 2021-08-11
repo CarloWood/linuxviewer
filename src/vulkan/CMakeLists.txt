@@ -90,6 +90,12 @@ target_sources(vulkan_ObjLib
     "HelloTriangleSwapChain.h"
     "debug_ostream_operators.cxx"
     "debug_ostream_operators.h"
+    "QueueFlags.cxx"
+    "QueueFlags.h"
+    "QueueRequest.cxx"
+    "QueueRequest.h"
+    "QueueReply.cxx"
+    "QueueReply.h"
 )
 
 # Required include search-paths.
@@ -118,7 +124,6 @@ target_link_libraries(vulkan_ObjLib
     GLFWPP
     Vulkan::Vulkan
     AICxx::cwds
-  PRIVATE
     magic_enum::magic_enum
 )
 

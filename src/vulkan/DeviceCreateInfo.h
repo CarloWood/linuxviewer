@@ -1,21 +1,27 @@
 #pragma once
 
 #include "PhysicalDeviceFeatures.h"
-#include <vulkan/vulkan.hpp>
+#include "QueueRequest.h"
+#include "utils/Array.h"
 #include <iosfwd>
+#include "debug.h"
 
 namespace vulkan {
 
 struct DeviceCreateInfo : vk::DeviceCreateInfo
 {
+  static constexpr utils::Array<QueueRequest, 2> default_queue_requests = {{{
+    { .queue_flags = QueueFlagBits::eGraphics, .max_number_of_queues = 1 },
+    { .queue_flags = QueueFlagBits::ePresentation, .max_number_of_queues = 1 }
+  }}};
 #ifdef CWDEBUG
   // This name reflects the usual place where the handle to the device will be stored.
   static constexpr char const* default_debug_name = "Application::m_vulkan_device";
 #endif
 
  private:
-  vk::QueueFlags m_queue_flags = vk::QueueFlagBits::eGraphics;         // Required queue flags, with default.
-  bool m_presentation = true;                                          // Whether or not presentation capability (for the surface passed to Device::setup) is required.
+  utils::Vector<QueueRequest> m_queue_requests = {};    // Required queue flags. The default is used when this is empty.
+  QueueFlags m_queue_flags = QueueFlagBits::none;       // Bitwise-OR of all queue_flags in m_queue_requests.
   std::vector<char const*> m_device_extensions;
 #ifdef CWDEBUG
   std::string m_debug_name = default_debug_name;
@@ -28,18 +34,14 @@ struct DeviceCreateInfo : vk::DeviceCreateInfo
   }
 
   // Setter for required queue flags.
-  DeviceCreateInfo& setQueueFlags(vk::QueueFlags queue_flags)
+  DeviceCreateInfo& addQueueRequests(QueueRequest queue_request)
   {
-    m_queue_flags = queue_flags;
+    m_queue_requests.push_back(queue_request);
+    m_queue_flags |= queue_request.queue_flags;
     return *this;
   }
 
-  // Setter for presentation flag.
-  DeviceCreateInfo& setPresentationFlag(bool need_presentation)
-  {
-    m_presentation = need_presentation;
-    return *this;
-  }
+  DeviceCreateInfo& addDeviceExtentions(vk::ArrayProxy<char const* const> extra_device_extensions);
 
 #ifdef CWDEBUG
   // Setter for debug name.
@@ -50,21 +52,27 @@ struct DeviceCreateInfo : vk::DeviceCreateInfo
   }
 #endif
 
-  void addDeviceExtentions(vk::ArrayProxy<char const* const> extra_device_extensions);
-
-  bool has_queue_flag(vk::QueueFlagBits queue_flag) const
+  // Used to set the default.
+  utils::Vector<QueueRequest>& get_queue_requests()
   {
-    return !!(m_queue_flags & queue_flag);
+    // Don't call this function.
+    ASSERT(m_queue_requests.empty());
+    return m_queue_requests;
   }
 
-  vk::QueueFlags get_queue_flags() const
+  utils::Vector<QueueRequest> const& get_queue_requests() const
+  {
+    return m_queue_requests;
+  }
+
+  QueueFlags get_queue_flags() const
   {
     return m_queue_flags;
   }
 
-  bool get_presentation_flag() const
+  bool has_queue_flag(QueueFlagBits queue_flag) const
   {
-    return m_presentation;
+    return !!(m_queue_flags & queue_flag);
   }
 
 #ifdef CWDEBUG
