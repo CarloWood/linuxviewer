@@ -27,7 +27,7 @@ struct DeviceCreateInfo;
 
 class Application : public gui::Application
 {
- private:
+ protected:
   // Create a AIMemoryPagePool object (must be created before thread_pool).
   AIMemoryPagePool m_mpp;
 
@@ -118,8 +118,11 @@ class Application : public gui::Application
   // Create application (window, vulkan objects).
   void init(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
-      vulkan::DeviceCreateInfo&& device_create_info
+      vulkan::DeviceCreateInfo&& device_create_info,
+      vulkan::CommandPoolCreateInfo const& command_pool_create_info
       COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
+
+  virtual void init_queue_handles() = 0;
 
   // Start the GUI main loop.
   void run();
@@ -128,16 +131,20 @@ class Application : public gui::Application
   void init(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
       vulkan::DeviceCreateInfo&& device_create_info,
+      vulkan::CommandPoolCreateInfo const& command_pool_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info)
   {
     debug_create_info.setup(this);
-    init(argc, argv, main_window_create_info, std::move(device_create_info), debug_create_info);
+    init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info, debug_create_info);
   }
 
-  // Passing nothing will just use the default DebugUtilsMessengerCreateInfoEXT.
-  void init(int argc, char* argv[], WindowCreateInfo const& main_window_create_info, vulkan::DeviceCreateInfo&& device_create_info)
+  // Passing no DebugUtilsMessengerCreateInfoEXT will just use the default.
+  void init(int argc, char* argv[],
+      WindowCreateInfo const& main_window_create_info,
+      vulkan::DeviceCreateInfo&& device_create_info,
+      vulkan::CommandPoolCreateInfo const& command_pool_create_info)
   {
-    init(argc, argv, main_window_create_info, std::move(device_create_info), DebugUtilsMessengerCreateInfoEXT{});
+    init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info, DebugUtilsMessengerCreateInfoEXT{});
   }
 
   static void debug_init();

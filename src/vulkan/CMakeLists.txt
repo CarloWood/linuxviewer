@@ -96,6 +96,8 @@ target_sources(vulkan_ObjLib
     "QueueRequest.h"
     "QueueReply.cxx"
     "QueueReply.h"
+    "CommandPoolCreateInfo.cxx"
+    "CommandPoolCreateInfo.h"
 )
 
 # Required include search-paths.

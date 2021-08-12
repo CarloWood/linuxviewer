@@ -64,7 +64,8 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
 
 void Application::init(int argc, char* argv[],
     WindowCreateInfo const& main_window_create_info,
-    vulkan::DeviceCreateInfo&& device_create_info
+    vulkan::DeviceCreateInfo&& device_create_info,
+    vulkan::CommandPoolCreateInfo const& command_pool_create_info
     COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info))
 {
 #ifdef CWDEBUG
@@ -90,6 +91,8 @@ void Application::init(int argc, char* argv[],
   // The m_vulkan_device draws to m_main_window.
   m_vulkan_device2.setup(*m_vulkan_instance, m_extension_loader, main_window_ptr()->surface(), std::move(device_create_info));
   m_vulkan_device.setup(*m_vulkan_instance, main_window_ptr()->surface());
+  init_queue_handles();
+  m_vulkan_device2.create_command_pool(command_pool_create_info);
 
   main_window()->createSwapChain(m_vulkan_device);
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
@@ -121,7 +124,7 @@ void Application::run()
   }
 
   // Block until all GPU operations have completed.
-  vkDeviceWaitIdle(m_vulkan_device.device());
+  m_vulkan_device.device().waitIdle();
 }
 
 std::shared_ptr<Window> Application::main_window() const

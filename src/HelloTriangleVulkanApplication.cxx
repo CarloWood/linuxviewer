@@ -2,6 +2,7 @@
 #include "HelloTriangleVulkanApplication.h"
 #include "vulkan/InstanceCreateInfo.h"
 #include "vulkan/DeviceCreateInfo.h"
+#include "vulkan/CommandPoolCreateInfo.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
@@ -96,10 +97,24 @@ int main(int argc, char* argv[])
     //.addDeviceExtentions({"Kazaam"})
     ;
 
+  vulkan::QueueRequestIndex const graphics_queue_index(0);
+
+  vulkan::CommandPoolCreateInfo command_pool_create_info;
+  using vk::CommandPoolCreateFlagBits;
+  command_pool_create_info
+    // vulkan::CommandPoolCreateInfo
+    .setQueueRequestIndex(graphics_queue_index)
+#ifdef CWDEBUG
+    .setDebugName("Command Pool")
+#endif
+    // vk::CommandPoolCreateInfo
+    .setFlags(CommandPoolCreateFlagBits::eTransient | CommandPoolCreateFlagBits::eResetCommandBuffer)
+    ;
+
   try
   {
     // Create all objects.
-    application.init(argc, argv, main_window_create_info, std::move(device_create_info) COMMA_CWDEBUG_ONLY(debug_create_info));
+    application.init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
 
     // Run GUI main loop.
     application.run();

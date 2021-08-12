@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "Device.h"
 #include "DeviceCreateInfo.h"
+#include "CommandPoolCreateInfo.h"
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
 #include "ExtensionLoader.h"
@@ -327,11 +328,10 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
   auto physical_devices = vulkan_instance.enumeratePhysicalDevices();
-  utils::Vector<QueueReply, QueueRequestIndex> queue_replies;
   for (auto const& physical_device : physical_devices)
   {
     QueueFamilies queue_families(physical_device, surface);
-    if (queue_families.is_compatible_with(device_create_info, queue_replies))
+    if (queue_families.is_compatible_with(device_create_info, m_queue_replies))
     {
       // Use the first compatible device.
       m_physical_device = physical_device;
@@ -370,31 +370,11 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   utils::Vector<QueueRequest> const& queue_requests = std::as_const(device_create_info).get_queue_requests();
   for (QueueRequestIndex qri(0); qri < QueueRequestIndex(queue_requests.size()); ++qri)
   {
-    // A handy reference to the replies.
+    // A handy reference to the request and reply.
     QueueRequest const& request = queue_requests[qri];
-    QueueReply const& reply = queue_replies[qri];
-
-    Dout(dc::warning, "ADDING " << reply.number_of_queues() << " queues with priority " << request.priority << " to " << reply.get_queue_family_handle() << ".");
-
+    QueueReply const& reply = m_queue_replies[qri];
     for (int q = 0; q < reply.number_of_queues(); ++q)
       priorities_per_family[reply.get_queue_family_handle()].push_back(request.priority);
-
-    Dout(dc::warning, "  after adding there are " << priorities_per_family[reply.get_queue_family_handle()].size() << " queues used of that family.");
-  }
-  Dout(dc::warning, "Size of priorities_per_family is now: " << priorities_per_family.size());
-  {
-    debug::Mark mark;
-    for (auto iter = priorities_per_family.begin(); iter != priorities_per_family.end(); ++iter)
-    {
-      Dout(dc::warning|continued_cf, "key:" << iter->first << ", value: {");
-      char const* prefix = "";
-      for (int j = 0; j < iter->second.size(); ++j)
-      {
-        Dout(dc::continued, prefix << iter->second[j]);
-        prefix = ", ";
-      }
-      Dout(dc::finish, "}");
-    }
   }
 
   // Include each queue family with any of the requested features - in the pQueueCreateInfos of device_create_info.
@@ -402,14 +382,11 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   for (auto iter = priorities_per_family.begin(); iter != priorities_per_family.end(); ++iter)
   {
     vk::DeviceQueueCreateInfo queue_create_info;
-    Dout(dc::notice, "Calling setQueuePriorities(...)");
     queue_create_info
       .setQueueFamilyIndex(iter->first.get_value())
       .setQueuePriorities(iter->second);
-    Dout(dc::notice, "queue_create_info is now: " << queue_create_info);
     queue_create_infos.push_back(queue_create_info);
   }
-  Dout(dc::vulkan, "Calling vk::DeviceCreateInfo::setQueueCreateInfos(" << queue_create_infos << ")");
   device_create_info.setQueueCreateInfos(queue_create_infos);
 
   Dout(dc::vulkan, "Calling m_physical_device.createDevice(" << device_create_info << ")");
@@ -425,7 +402,22 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
     (uint64_t)static_cast<VkDevice>(m_device_handle),
     device_create_info.debug_name()
   );
-  m_device_handle.setDebugUtilsObjectNameEXT(&name_info);
+  m_device_handle.setDebugUtilsObjectNameEXT(name_info);
+#endif
+}
+
+void Device::create_command_pool(CommandPoolCreateInfo const& command_pool_create_info)
+{
+  m_command_pool = m_device_handle.createCommandPoolUnique(command_pool_create_info);
+
+#ifdef CWDEBUG
+  // Set the debug name of the command pool.
+  vk::DebugUtilsObjectNameInfoEXT name_info(
+    vk::ObjectType::eCommandPool,
+    (uint64_t)static_cast<VkCommandPool>(*m_command_pool),
+    command_pool_create_info.debug_name()
+  );
+  m_device_handle.setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 

@@ -82,20 +82,6 @@ void HelloTriangleDevice::createLogicalDevice()
     .setPEnabledFeatures(&deviceFeatures)
     .setPEnabledExtensionNames(deviceExtensions);
 
-#if 0
-  // might not really be necessary anymore because device specific validation layers
-  // have been deprecated
-  if (InstanceCreateInfo::s_enableValidationLayers)
-  {
-    createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-  }
-  else
-  {
-    createInfo.enabledLayerCount = 0;
-  }
-#endif
-
   Dout(dc::vulkan, "Calling physicalDevice.createDevice(" << createInfo << ")");
   device_ = physicalDevice.createDevice(createInfo);
 
