@@ -1,6 +1,6 @@
 #pragma once
 
-#include "HelloTriangleDevice.h"
+#include "Device.h"
 
 // vulkan headers
 #include <vulkan/vulkan.h>
@@ -15,13 +15,13 @@ class HelloTriangleSwapChain {
  public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  HelloTriangleSwapChain(HelloTriangleDevice &deviceRef);
+  HelloTriangleSwapChain(Device const& deviceRef);
   ~HelloTriangleSwapChain();
 
   HelloTriangleSwapChain(const HelloTriangleSwapChain &) = delete;
   void operator=(const HelloTriangleSwapChain &) = delete;
 
-  void setup(VkExtent2D windowExtent);
+  void setup(VkExtent2D windowExtent, vk::Queue graphics_queue, vk::Queue present_queue, VkSurfaceKHR surface);
 
   VkFramebuffer getFrameBuffer(int index) const { return swapChainFramebuffers[index]; }
   VkRenderPass getRenderPass() const { return renderPass; }
@@ -41,7 +41,7 @@ class HelloTriangleSwapChain {
   VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
 
  private:
-  void createSwapChain();
+  void createSwapChain(VkSurfaceKHR surface);
   void createImageViews();
   void createDepthResources();
   void createRenderPass();
@@ -67,7 +67,9 @@ class HelloTriangleSwapChain {
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
 
-  HelloTriangleDevice &device;
+  Device const& device;
+  vk::Queue m_graphics_queue;
+  vk::Queue m_present_queue;
   VkExtent2D windowExtent;
 
   VkSwapchainKHR swapChain;

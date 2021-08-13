@@ -8,22 +8,6 @@
 
 namespace vulkan {
 
-struct SwapChainSupportDetails
-{
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
-};
-
-struct QueueFamilyIndices
-{
-  uint32_t graphicsFamily;
-  uint32_t presentFamily;
-  bool graphicsFamilyHasValue = false;
-  bool presentFamilyHasValue  = false;
-  bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
-};
-
 class HelloTriangleDevice
 {
  public:
@@ -44,9 +28,7 @@ class HelloTriangleDevice
   VkQueue graphicsQueue() const { return graphicsQueue_; }
   VkQueue presentQueue() const { return presentQueue_; }
 
-  SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice); }
   uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-  QueueFamilyIndices findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice); }
   VkFormat findSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
   // Buffer Helper Functions

@@ -1,16 +1,17 @@
 #pragma once
 
 // We use the GUI implementation on top of glfw3.
-#include "GUI_glfw3/gui_Application.h"
 #include "ApplicationCreateInfo.h"
-#include "vulkan/InstanceCreateInfo.h"
 #include "DebugUtilsMessengerCreateInfoEXT.h"
-#include "vulkan/ExtensionLoader.h"
-#include "WindowCreateInfo.h"
 #include "Window.h"
+#include "GUI_glfw3/gui_Application.h"
+#include "GUI_glfw3/gui_WindowCreateInfo.h"
+#include "vulkan/InstanceCreateInfo.h"
+#include "vulkan/ExtensionLoader.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapChain.h"
-#include "vulkan/HelloTriangleDevice.h"
+#include "vulkan/DeviceCreateInfo.h"
+#include "vulkan/CommandPoolCreateInfo.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
@@ -63,8 +64,7 @@ class Application : public gui::Application
 #endif
 
   // Vulkan graphics.
-  vulkan::Device m_vulkan_device2;
-  vulkan::HelloTriangleDevice m_vulkan_device;
+  vulkan::Device m_vulkan_device;
 
   std::unique_ptr<vulkan::Pipeline> m_pipeline;
 
@@ -115,19 +115,26 @@ class Application : public gui::Application
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
 
-  // Create application (window, vulkan objects).
-  void init(int argc, char* argv[],
-      WindowCreateInfo const& main_window_create_info,
-      vulkan::DeviceCreateInfo&& device_create_info,
-      vulkan::CommandPoolCreateInfo const& command_pool_create_info
-      COMMA_CWDEBUG_ONLY(DebugUtilsMessengerCreateInfoEXT const& debug_create_info));
+  // Parse command line options.
+  void parse_command_line(int argc, char* argv[]);
 
+  // Create application (window, vulkan objects).
+  void create_main_window(gui::WindowCreateInfo&& main_window_create_info = gui::WindowCreateInfo{});
+#ifdef CWDEBUG
+  void create_debug_messenger(DebugUtilsMessengerCreateInfoEXT&& debug_create_info = DebugUtilsMessengerCreateInfoEXT{});
+#endif
+  void create_vulkan_device(vulkan::DeviceCreateInfo&& device_create_info = vulkan::DeviceCreateInfo{});
+  void create_pipeline();
+  void create_command_buffers(vulkan::CommandPoolCreateInfo&& command_pool_create_info = vulkan::CommandPoolCreateInfo{});
+
+  // Called from create_vulkan_device, after creating the vulkan device.
   virtual void init_queue_handles() = 0;
 
   // Start the GUI main loop.
   void run();
 
 #ifdef CWDEBUG
+#if 0
   void init(int argc, char* argv[],
       WindowCreateInfo const& main_window_create_info,
       vulkan::DeviceCreateInfo&& device_create_info,
@@ -146,6 +153,7 @@ class Application : public gui::Application
   {
     init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info, DebugUtilsMessengerCreateInfoEXT{});
   }
+#endif
 
   static void debug_init();
 
@@ -177,7 +185,7 @@ class Application : public gui::Application
 
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
-  vk::PipelineLayout createPipelineLayout(vulkan::HelloTriangleDevice const& device);
+  vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
   void createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle);
 
  private:

@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.hpp>    // Must be included BEFORE glfwpp/window.h in order to get vulkan C++ API support.
 #include <glfwpp/window.h>
+#include "gui_WindowHints.h"
 #ifdef CWDEBUG
 #include <iosfwd>
 #endif
@@ -16,7 +17,7 @@ namespace gui {
 
 class Window;
 
-struct WindowCreateInfo : public glfw::WindowHints
+struct WindowCreateInfo : public WindowHints
 {
  private:
   friend class Window;                       // Needs read access.
@@ -27,8 +28,6 @@ struct WindowCreateInfo : public glfw::WindowHints
   glfw::Window const* m_share    = nullptr;
 
  public:
-  WindowCreateInfo(glfw::WindowHints&& window_hints) : glfw::WindowHints(window_hints) {}
-
   // Setters.
   WindowCreateInfo& setExtent(int width, int height)
   {

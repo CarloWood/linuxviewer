@@ -318,11 +318,11 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
 
 void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
 {
-  DoutEntering(dc::vulkan, "Device::setup(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
+  DoutEntering(dc::vulkan, "vulkan::Device::setup(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
 
   // Use default if empty.
   if (std::as_const(device_create_info).get_queue_requests().empty())
-    device_create_info.get_queue_requests().assign(DeviceCreateInfo::default_queue_requests.begin(), DeviceCreateInfo::default_queue_requests.end());
+    device_create_info.set_default_queue_requests();
 
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
@@ -390,25 +390,30 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   device_create_info.setQueueCreateInfos(queue_create_infos);
 
   Dout(dc::vulkan, "Calling m_physical_device.createDevice(" << device_create_info << ")");
-  m_device_handle = m_physical_device.createDevice(device_create_info);
+  m_device_handle = m_physical_device.createDeviceUnique(device_create_info);
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  extension_loader.setup(vulkan_instance, m_device_handle);
+  extension_loader.setup(vulkan_instance, *m_device_handle);
 
 #ifdef CWDEBUG
   // Set the debug name of the device.
   // Note: when not using -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 this requires the extension_loader to be initialized (see the line above).
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eDevice,
-    (uint64_t)static_cast<VkDevice>(m_device_handle),
+    (uint64_t)static_cast<VkDevice>(*m_device_handle),
     device_create_info.debug_name()
   );
-  m_device_handle.setDebugUtilsObjectNameEXT(name_info);
+  m_device_handle->setDebugUtilsObjectNameEXT(name_info);
 #endif
+}
+
+Device::~Device()
+{
+  DoutEntering(dc::vulkan, "vulkan::Device::~Device()");
 }
 
 void Device::create_command_pool(CommandPoolCreateInfo const& command_pool_create_info)
 {
-  m_command_pool = m_device_handle.createCommandPoolUnique(command_pool_create_info);
+  m_command_pool = m_device_handle->createCommandPoolUnique(command_pool_create_info);
 
 #ifdef CWDEBUG
   // Set the debug name of the command pool.
@@ -417,7 +422,7 @@ void Device::create_command_pool(CommandPoolCreateInfo const& command_pool_creat
     (uint64_t)static_cast<VkCommandPool>(*m_command_pool),
     command_pool_create_info.debug_name()
   );
-  m_device_handle.setDebugUtilsObjectNameEXT(name_info);
+  m_device_handle->setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 

@@ -13,12 +13,14 @@
 
 namespace vulkan {
 
-HelloTriangleSwapChain::HelloTriangleSwapChain(HelloTriangleDevice& deviceRef) : device{deviceRef} { }
+HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& deviceRef) : device{deviceRef} { }
 
-void HelloTriangleSwapChain::setup(VkExtent2D extent)
+void HelloTriangleSwapChain::setup(VkExtent2D extent, vk::Queue graphics_queue, vk::Queue present_queue, VkSurfaceKHR surface)
 {
   windowExtent = extent;
-  createSwapChain();
+  m_graphics_queue = graphics_queue;
+  m_present_queue = present_queue;
+  createSwapChain(surface);
   createImageViews();
   createRenderPass();
   createDepthResources();
@@ -90,7 +92,7 @@ VkResult HelloTriangleSwapChain::submitCommandBuffers(VkCommandBuffer const* buf
   submitInfo.pSignalSemaphores    = signalSemaphores;
 
   vkResetFences(device.device(), 1, &inFlightFences[currentFrame]);
-  if (vkQueueSubmit(device.graphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit draw command buffer!"); }
+  if (vkQueueSubmit(m_graphics_queue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) { throw std::runtime_error("failed to submit draw command buffer!"); }
 
   VkPresentInfoKHR presentInfo = {};
   presentInfo.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -104,16 +106,101 @@ VkResult HelloTriangleSwapChain::submitCommandBuffers(VkCommandBuffer const* buf
 
   presentInfo.pImageIndices = imageIndex;
 
-  auto result = vkQueuePresentKHR(device.presentQueue(), &presentInfo);
+  auto result = vkQueuePresentKHR(m_present_queue, &presentInfo);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
   return result;
 }
 
-void HelloTriangleSwapChain::createSwapChain()
+struct SwapChainSupportDetails
 {
-  SwapChainSupportDetails swapChainSupport = device.getSwapChainSupport();
+  VkSurfaceCapabilitiesKHR capabilities;
+  std::vector<VkSurfaceFormatKHR> formats;
+  std::vector<VkPresentModeKHR> presentModes;
+};
+
+SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+  SwapChainSupportDetails details;
+  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+  uint32_t formatCount;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+  if (formatCount != 0)
+  {
+    details.formats.resize(formatCount);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+  }
+
+  uint32_t presentModeCount;
+  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+  if (presentModeCount != 0)
+  {
+    details.presentModes.resize(presentModeCount);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+  }
+  return details;
+}
+
+SwapChainSupportDetails getSwapChainSupport(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+{
+  return querySwapChainSupport(physicalDevice, surface);
+}
+
+struct QueueFamilyIndices
+{
+  uint32_t graphicsFamily;
+  uint32_t presentFamily;
+  bool graphicsFamilyHasValue = false;
+  bool presentFamilyHasValue  = false;
+  bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
+};
+
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+  QueueFamilyIndices indices;
+
+  uint32_t queueFamilyCount = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+  int i = 0;
+  for (auto const& queueFamily : queueFamilies)
+  {
+    if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+    {
+      indices.graphicsFamily         = i;
+      indices.graphicsFamilyHasValue = true;
+    }
+    VkBool32 presentSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+    if (queueFamily.queueCount > 0 && presentSupport)
+    {
+      indices.presentFamily         = i;
+      indices.presentFamilyHasValue = true;
+    }
+    if (indices.isComplete()) { break; }
+
+    i++;
+  }
+
+  return indices;
+}
+
+QueueFamilyIndices findPhysicalQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
+{
+  return findQueueFamilies(physicalDevice, surface);
+}
+
+void HelloTriangleSwapChain::createSwapChain(VkSurfaceKHR surface)
+{
+  VkPhysicalDevice physicalDevice = device.get_physical_device();
+  SwapChainSupportDetails swapChainSupport = getSwapChainSupport(physicalDevice, surface);
 
   VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
   VkPresentModeKHR presentMode     = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -124,7 +211,7 @@ void HelloTriangleSwapChain::createSwapChain()
 
   VkSwapchainCreateInfoKHR createInfo = {};
   createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-  createInfo.surface                  = device.surface();
+  createInfo.surface                  = surface;
 
   createInfo.minImageCount    = imageCount;
   createInfo.imageFormat      = surfaceFormat.format;
@@ -133,7 +220,7 @@ void HelloTriangleSwapChain::createSwapChain()
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  QueueFamilyIndices indices    = device.findPhysicalQueueFamilies();
+  QueueFamilyIndices indices    = findPhysicalQueueFamilies(physicalDevice, surface);
   uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
 
   if (indices.graphicsFamily != indices.presentFamily)
@@ -269,6 +356,35 @@ void HelloTriangleSwapChain::createFramebuffers()
   }
 }
 
+uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties, VkPhysicalDevice physicalDevice)
+{
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+  {
+    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
+  }
+
+  throw std::runtime_error("failed to find suitable memory type!");
+}
+
+void createImageWithInfo(VkImageCreateInfo const& imageInfo, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory &imageMemory, Device const& device)
+{
+  if (vkCreateImage(device.device(), &imageInfo, nullptr, &image) != VK_SUCCESS) { throw std::runtime_error("failed to create image!"); }
+
+  VkMemoryRequirements memRequirements;
+  vkGetImageMemoryRequirements(device.device(), image, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo{};
+  allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  allocInfo.allocationSize  = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.get_physical_device());
+
+  if (vkAllocateMemory(device.device(), &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) { throw std::runtime_error("failed to allocate image memory!"); }
+
+  if (vkBindImageMemory(device.device(), image, imageMemory, 0) != VK_SUCCESS) { throw std::runtime_error("failed to bind image memory!"); }
+}
+
 void HelloTriangleSwapChain::createDepthResources()
 {
   VkFormat depthFormat       = findDepthFormat();
@@ -296,7 +412,7 @@ void HelloTriangleSwapChain::createDepthResources()
     imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.flags         = 0;
 
-    device.createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImages[i], depthImageMemorys[i]);
+    createImageWithInfo(imageInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImages[i], depthImageMemorys[i], device);
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -383,10 +499,27 @@ VkExtent2D HelloTriangleSwapChain::chooseSwapExtent(VkSurfaceCapabilitiesKHR con
   }
 }
 
+VkFormat findSupportedFormat(std::vector<VkFormat> const& candidates, VkImageTiling tiling, VkFormatFeatureFlags features, VkPhysicalDevice physicalDevice)
+{
+  for (VkFormat format : candidates)
+  {
+    VkFormatProperties props;
+    vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
+
+    if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) { return format; }
+    else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+    {
+      return format;
+    }
+  }
+  throw std::runtime_error("failed to find supported format!");
+}
+
 VkFormat HelloTriangleSwapChain::findDepthFormat()
 {
-  return device.findSupportedFormat(
-      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+  return findSupportedFormat(
+      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      device.get_physical_device());
 }
 
 } // namespace vulkan

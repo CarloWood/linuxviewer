@@ -227,14 +227,14 @@ int main(int argc, char* argv[])
   // Create main application.
   LinuxViewerApplication application(application_create_info, instance_create_info);
 
-  WindowCreateInfo main_window_create_info(
-      // glfw::WindowHints
-      { .focused = false,
-        .centerCursor = false,
-        .clientApi = glfw::ClientApi::None });
+  gui::WindowCreateInfo main_window_create_info;
   main_window_create_info
+    // WindowCreateInfo
     .setExtent(500, 800)
     .setTitle("Main window title")
+    // WindowHints
+    .setFocused(false)
+    .setResizable(true)
     ;
 
   vulkan::DeviceCreateInfo device_create_info;
@@ -256,7 +256,11 @@ int main(int argc, char* argv[])
   try
   {
     // Create all objects.
-    application.init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info);
+    application.create_main_window(std::move(main_window_create_info));
+    application.create_vulkan_device(std::move(device_create_info));
+    application.create_swap_chain();
+    application.create_pipeline();
+    application.create_command_buffers(std::move(command_pool_create_info));
 
     // Run GUI main loop.
     application.run();

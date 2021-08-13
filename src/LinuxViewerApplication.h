@@ -23,11 +23,17 @@ class LinuxViewerApplication : public Application
   // Implementation of append_menu_entries: add File->QUIT with callback on_menu_File_QUIT.
   void append_menu_entries(LinuxViewerMenuBar* menubar) override;
 
+ public:
+  void create_swap_chain()
+  {
+    main_window()->createSwapChain(m_vulkan_device, m_graphics_queue, m_present_queue);
+  }
+
  protected:
   void init_queue_handles() override
   {
     vulkan::QueueRequestIndex request_index(0);
-    m_graphics_queue = m_vulkan_device2.get_queue_handle(request_index++, 0);
-    m_present_queue = m_vulkan_device2.get_queue_handle(request_index++, 0);
+    m_graphics_queue = m_vulkan_device.get_queue_handle(request_index++, 0);
+    m_present_queue = m_vulkan_device.get_queue_handle(request_index++, 0);
   }
 };

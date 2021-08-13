@@ -33,8 +33,6 @@ add_executable(linuxviewer
   ApplicationCreateInfo.h
   Application.cxx
   Application.h
-  WindowCreateInfo.cxx
-  WindowCreateInfo.h
   Window.cxx
   Window.h
   DebugUtilsMessengerCreateInfoEXT.cxx
@@ -50,7 +48,6 @@ target_link_libraries(linuxviewer
     LinuxViewer::data_types
     LinuxViewer::glfw3gui
     LinuxViewer::vulkan
-    #LinuxViewer::gtkmmgui
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task
@@ -68,8 +65,6 @@ add_executable(hellotriangle
   ApplicationCreateInfo.h
   Application.cxx
   Application.h
-  WindowCreateInfo.cxx
-  WindowCreateInfo.h
   Window.cxx
   Window.h
   DebugUtilsMessengerCreateInfoEXT.cxx

@@ -45,7 +45,7 @@ class Application
   //
  protected:
   template<WindowType WindowT>
-  void create_main_window(WindowCreateInfo const& create_info);
+  void createMainWindow(WindowCreateInfo const& create_info);
 
   void terminate();                             // Close all windows and cause main() to return.
 
@@ -63,9 +63,9 @@ class Application
 };
 
 template<WindowType WindowT>
-void Application::create_main_window(WindowCreateInfo const& create_info)
+void Application::createMainWindow(WindowCreateInfo const& create_info)
 {
-  DoutEntering(dc::notice, "gui::Application::create_window() [NOT IMPLEMENTED]");
+  DoutEntering(dc::notice, "gui::Application::createMainWindow() [NOT IMPLEMENTED]");
 
   // Only call create_main_window() once.
   ASSERT(!m_main_window);

@@ -5,7 +5,7 @@
 
 namespace vulkan {
 class Pipeline;
-class HelloTriangleDevice;
+class Device;
 class HelloTriangleSwapChain;
 } // namespace vulkan
 
@@ -21,8 +21,8 @@ class Window : public gui::Window
   using gui::Window::Window;
   ~Window();
 
-  void createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline);
-  void createSwapChain(vulkan::HelloTriangleDevice& device);
+  void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
+  void createSwapChain(vulkan::Device const& device, vk::Queue graphics_queue, vk::Queue present_queue);
   void drawFrame();
 
 #if 0

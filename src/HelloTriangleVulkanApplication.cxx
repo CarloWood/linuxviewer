@@ -58,12 +58,10 @@ int main(int argc, char* argv[])
   // Create main application.
   HelloTriangleVulkanApplication application(application_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
 
-  WindowCreateInfo main_window_create_info(
-      // glfw::WindowHints
-      { .resizable = false,
-        .focused = false,
-        .centerCursor = false,
-        .clientApi = glfw::ClientApi::None });
+  // Parse the command line options.
+  application.parse_command_line(argc, argv);
+
+  gui::WindowCreateInfo main_window_create_info;
   main_window_create_info
     // gui::WindowCreateInfoExt
     .setTitle("Main window title")
@@ -114,7 +112,14 @@ int main(int argc, char* argv[])
   try
   {
     // Create all objects.
-    application.init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info COMMA_CWDEBUG_ONLY(debug_create_info));
+    application.create_main_window(std::move(main_window_create_info));
+#ifdef CWDEBUG
+    application.create_debug_messenger(std::move(debug_create_info));
+#endif
+    application.create_vulkan_device(std::move(device_create_info));
+    application.create_swap_chain();
+    application.create_pipeline();
+    application.create_command_buffers(std::move(command_pool_create_info));
 
     // Run GUI main loop.
     application.run();

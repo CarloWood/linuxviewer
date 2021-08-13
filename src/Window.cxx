@@ -22,7 +22,7 @@ Window::~Window()
   }
 }
 
-void Window::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vulkan::Pipeline* pipeline)
+void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline)
 {
   // Currently we are assuming this function is only called once.
   ASSERT(m_command_buffers.empty());
@@ -31,7 +31,7 @@ void Window::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vul
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = device.getCommandPool();
+  allocInfo.commandPool = device.get_command_pool();
   allocInfo.commandBufferCount = static_cast<uint32_t>(m_command_buffers.size());
 
   if (vkAllocateCommandBuffers(device.device(), &allocInfo, m_command_buffers.data()) != VK_SUCCESS)
@@ -70,11 +70,11 @@ void Window::createCommandBuffers(vulkan::HelloTriangleDevice const& device, vul
   }
 }
 
-void Window::createSwapChain(vulkan::HelloTriangleDevice& device)
+void Window::createSwapChain(vulkan::Device const& device, vk::Queue graphics_queue, vk::Queue present_queue)
 {
   m_swap_chain_ptr = new vulkan::HelloTriangleSwapChain(device);
   auto extent = get_glfw_window().getSize();
-  m_swap_chain_ptr->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) });
+  m_swap_chain_ptr->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, m_surface);
 }
 
 void Window::drawFrame()

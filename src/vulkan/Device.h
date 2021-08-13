@@ -20,12 +20,13 @@ class Device
 {
  private:
   vk::PhysicalDevice m_physical_device;         // The underlaying physical device.
-  vk::Device m_device_handle;                   // A handle to the logical device.
+  vk::UniqueDevice m_device_handle;             // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   vk::UniqueCommandPool m_command_pool;
 
  public:
   Device() = default;                           // Must be initialized by calling setup.
+  ~Device();
   // Not copyable or movable.
   Device(Device const&) = delete;
   void operator=(Device const&) = delete;
@@ -43,7 +44,7 @@ class Device
     QueueReply const& reply = m_queue_replies[request_index];
     // Use number_of_queues() to find out what the largest possible index is.
     ASSERT(queue_index < reply.number_of_queues());
-    return m_device_handle.getQueue(reply.get_queue_family_handle().get_value(), queue_index);
+    return m_device_handle->getQueue(reply.get_queue_family_handle().get_value(), queue_index);
   }
 
   GPU_queue_family_handle get_queue_family(QueueRequestIndex request_index) const
@@ -53,6 +54,22 @@ class Device
   }
 
   void create_command_pool(CommandPoolCreateInfo const& command_pool_create_info);
+
+  // Member functions needed to make HelloTriangleSwapChain happy.
+  vk::Device device() const
+  {
+    return *m_device_handle;
+  }
+
+  vk::PhysicalDevice get_physical_device() const
+  {
+    return m_physical_device;
+  }
+
+  vk::CommandPool get_command_pool() const
+  {
+    return *m_command_pool;
+  }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

@@ -53,13 +53,14 @@ struct DeviceCreateInfo : vk::DeviceCreateInfo
 #endif
 
   // Used to set the default.
-  utils::Vector<QueueRequest>& get_queue_requests()
+  void set_default_queue_requests()
   {
-    // Don't call this function.
+    // Don't call this function twice, or when addQueueRequests was already called by the user.
     ASSERT(m_queue_requests.empty());
-    return m_queue_requests;
+    std::for_each(default_queue_requests.begin(), default_queue_requests.end(), [this](QueueRequest const& queue_request){ addQueueRequests(queue_request); });
   }
 
+  // Accessor.
   utils::Vector<QueueRequest> const& get_queue_requests() const
   {
     return m_queue_requests;
