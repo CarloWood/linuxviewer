@@ -24,7 +24,7 @@ class LinuxViewerApplication : public Application
   void append_menu_entries(LinuxViewerMenuBar* menubar) override;
 
  public:
-  void create_swap_chain()
+  void create_swap_chain_impl() override
   {
     main_window()->createSwapChain(m_vulkan_device, m_graphics_queue, m_present_queue);
   }

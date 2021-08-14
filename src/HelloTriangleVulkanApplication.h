@@ -22,8 +22,8 @@ class HelloTriangleVulkanApplication : public Application
   // Implementation of append_menu_entries: add File->QUIT with callback on_menu_File_QUIT.
   void append_menu_entries(LinuxViewerMenuBar* menubar) override;
 
- public:
-  void create_swap_chain()
+  // Called from create_swap_chain().
+  void create_swap_chain_impl() override
   {
     main_window()->createSwapChain(m_vulkan_device, m_graphics_queue, m_present_queue);
   }

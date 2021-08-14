@@ -115,20 +115,42 @@ class Application : public gui::Application
   // Call this when the application is cleanly terminated and about to go out of scope.
   void join_event_loop() { m_event_loop.join(); }
 
+ private:
+  // Keeping track of which of the below functions have been called.
+  enum InitializationState {
+    istNone,
+    istParseCommandLine,
+    istMainWindow,
+    istDebugMessenger,
+    istVulkanDevice,
+    istSwapChain,
+    istPipeline,
+    istCommandBuffers,
+    istRun
+  };
+
+  InitializationState m_ist_state = istNone;
+
+  void initialization_state(InitializationState const state);
+
+ public:
   // Parse command line options.
-  void parse_command_line(int argc, char* argv[]);
+  Application& parse_command_line(int argc, char* argv[]);
 
   // Create application (window, vulkan objects).
-  void create_main_window(gui::WindowCreateInfo&& main_window_create_info = gui::WindowCreateInfo{});
+  Application& create_main_window(gui::WindowCreateInfo&& main_window_create_info = gui::WindowCreateInfo{});
 #ifdef CWDEBUG
-  void create_debug_messenger(DebugUtilsMessengerCreateInfoEXT&& debug_create_info = DebugUtilsMessengerCreateInfoEXT{});
+  Application& create_debug_messenger(DebugUtilsMessengerCreateInfoEXT&& debug_create_info = DebugUtilsMessengerCreateInfoEXT{});
 #endif
-  void create_vulkan_device(vulkan::DeviceCreateInfo&& device_create_info = vulkan::DeviceCreateInfo{});
-  void create_pipeline();
-  void create_command_buffers(vulkan::CommandPoolCreateInfo&& command_pool_create_info = vulkan::CommandPoolCreateInfo{});
+  Application& create_vulkan_device(vulkan::DeviceCreateInfo&& device_create_info = vulkan::DeviceCreateInfo{});
+  Application& create_swap_chain();
+  Application& create_pipeline();
+  Application& create_command_buffers(vulkan::CommandPoolCreateInfo&& command_pool_create_info = vulkan::CommandPoolCreateInfo{});
 
   // Called from create_vulkan_device, after creating the vulkan device.
   virtual void init_queue_handles() = 0;
+
+  virtual void create_swap_chain_impl() = 0;
 
   // Start the GUI main loop.
   void run();
