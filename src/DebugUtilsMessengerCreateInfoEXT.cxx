@@ -76,7 +76,10 @@ DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT()
 #ifdef CWDEBUG
 void DebugUtilsMessengerCreateInfoEXT::setup(Application* application)
 {
-  pfnUserCallback = &Application::debugCallback;
-  pUserData = application;
+  if (pfnUserCallback == nullptr && pUserData == nullptr)
+  {
+    pfnUserCallback = &Application::debugCallback;
+    pUserData = application;
+  }
 }
 #endif

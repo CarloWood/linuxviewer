@@ -88,8 +88,8 @@ class Application : public gui::Application
     Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info) COMMA_CWDEBUG_ONLY(debug_create_info)) { }
 
 #ifdef CWDEBUG
-  // Using an rvalue reference to debug_create_info is OK, this may be a temporary like the default value here.
-  // The object that is passed should not be passed to run() then of course: either no debug_create_info should
+  // Using an rvalue reference to debug_create_info is OK: this may be a temporary like the default value here.
+  // The object that is passed should then not be passed to run() of course: either no debug_create_info should
   // be passed to run(), or another DebugUtilsMessengerCreateInfoEXT object.
   Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
@@ -100,7 +100,7 @@ class Application : public gui::Application
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
     Application(application_create_info, instance_create_info, debug_create_info) { }
 
-  // When not passing a instance_create_info, use the default values provided by a plain vulkan::InstanceCreateInfo.
+  // When not passing an instance_create_info, use the default values provided by a plain vulkan::InstanceCreateInfo.
   Application(ApplicationCreateInfo const& application_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info = {}) :
     Application(application_create_info, vulkan::InstanceCreateInfo(application_create_info), debug_create_info) { }

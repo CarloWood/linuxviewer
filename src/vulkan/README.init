@@ -14,11 +14,11 @@ and RAII destruction, however, it is unfeasible to pass all information
 needed for the application, window and vulkan to the constructor
 of the Application. Instead, the objects are instantiated in an
 order that favour the order in which they need to be destructed
-(and the Application is destructed), but the objects themselves
+(when the Application is destructed), but the objects themselves
 are not initialized during construction.
 
 The exception being the vulkan Instance, which is created during
-the construcion of the Application.
+the construction of the Application.
 
 Initialization data for all objects is collected, in main, in 'CreateInfo'
 structures, that are passed to those functions that need it in order
