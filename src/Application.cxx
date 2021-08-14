@@ -183,14 +183,6 @@ Application& Application::create_command_buffers(vulkan::CommandPoolCreateInfo&&
   m_vulkan_device.create_command_pool(command_pool_create_info);
   main_window()->createCommandBuffers(m_vulkan_device, m_pipeline.get());
 
-#if 0
-  //FIXME: is GLEW a vulkan compatible thing?
-  if(glewInit() != GLEW_OK)
-  {
-    throw std::runtime_error("Could not initialize GLEW");
-  }
-#endif
-
   return *this;
 }
 
