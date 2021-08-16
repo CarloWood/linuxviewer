@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 #include "QueueRequest.h"       // For QueueRequestIndex.
 #include "QueueReply.h"
+#include "Queue.h"
 #include "utils/Vector.h"
 #include "debug.h"
 #ifdef CWDEBUG
@@ -39,12 +40,13 @@ class Device
     return reply.number_of_queues();
   }
 
-  vk::Queue get_queue_handle(QueueRequestIndex request_index, uint32_t queue_index) const
+  Queue get_queue(QueueRequestIndex request_index, uint32_t queue_index) const
   {
     QueueReply const& reply = m_queue_replies[request_index];
     // Use number_of_queues() to find out what the largest possible index is.
     ASSERT(queue_index < reply.number_of_queues());
-    return m_device_handle->getQueue(reply.get_queue_family_handle().get_value(), queue_index);
+    GPU_queue_family_handle const qfh = reply.get_queue_family_handle();
+    return { qfh, m_device_handle->getQueue(qfh.get_value(), queue_index) };
   }
 
   GPU_queue_family_handle get_queue_family(QueueRequestIndex request_index) const

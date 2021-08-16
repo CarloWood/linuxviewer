@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GUI_glfw3/gui_Window.h"
+#include "vulkan/Queue.h"
 #include "utils/InsertExtraInitialization.h"
 
 namespace vulkan {
@@ -14,7 +15,7 @@ class Window : public gui::Window
  private:
   vk::SurfaceKHR m_surface;
   // This had to be moved here for now...
-  std::vector<VkCommandBuffer> m_command_buffers;               // The vulkan command buffers that this application uses.
+  std::vector<vk::CommandBuffer> m_command_buffers;             // The vulkan command buffers that this application uses.
   vulkan::HelloTriangleSwapChain* m_swap_chain_ptr = {};        // The vulkan swap chain for this surface.
 
  public:
@@ -22,7 +23,7 @@ class Window : public gui::Window
   ~Window();
 
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
-  void createSwapChain(vulkan::Device const& device, vk::Queue graphics_queue, vk::Queue present_queue);
+  void createSwapChain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void drawFrame();
 
 #if 0

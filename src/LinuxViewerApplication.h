@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Application.h"
+#include "vulkan/Queue.h"
 #include "debug.h"
 
 class LinuxViewerApplication : public Application
@@ -9,8 +10,8 @@ class LinuxViewerApplication : public Application
   using Application::Application;
 
  private:
-  vk::Queue m_graphics_queue;
-  vk::Queue m_present_queue;
+  vulkan::Queue m_graphics_queue;
+  vulkan::Queue m_present_queue;
 
  private:
   // Menu button events.
@@ -33,7 +34,7 @@ class LinuxViewerApplication : public Application
   void init_queue_handles() override
   {
     vulkan::QueueRequestIndex request_index(0);
-    m_graphics_queue = m_vulkan_device.get_queue_handle(request_index++, 0);
-    m_present_queue = m_vulkan_device.get_queue_handle(request_index++, 0);
+    m_graphics_queue = m_vulkan_device.get_queue(request_index++, 0);
+    m_present_queue = m_vulkan_device.get_queue(request_index++, 0);
   }
 };
