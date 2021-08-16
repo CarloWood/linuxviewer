@@ -19,8 +19,8 @@ HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& deviceRef) : device
 void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface)
 {
   windowExtent = extent;
-  m_graphics_queue = graphics_queue.index();
-  m_present_queue = present_queue.index();
+  m_graphics_queue = graphics_queue.vk_handle();
+  m_present_queue = present_queue.vk_handle();
   createSwapChain(surface, graphics_queue, present_queue);
   createImageViews();
   createRenderPass();
@@ -86,20 +86,15 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
   }
   imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
+  vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
   vk::SubmitInfo submitInfo;
-
-  vk::Semaphore waitSemaphores[]      = { imageAvailableSemaphores[currentFrame] };
-  vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
-  submitInfo.waitSemaphoreCount     = 1;
-  submitInfo.pWaitSemaphores        = waitSemaphores;
-  submitInfo.pWaitDstStageMask      = waitStages;
-
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers    = &buffers;
-
-  vk::Semaphore signalSemaphores[]  = {renderFinishedSemaphores[currentFrame]};
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores    = signalSemaphores;
+  submitInfo
+    .setWaitSemaphores(imageAvailableSemaphores[currentFrame])
+    .setWaitDstStageMask(pipeline_stage_flags)
+    .setCommandBuffers(buffers)
+    .setSignalSemaphores(renderFinishedSemaphores[currentFrame])
+    ;
 
   vk::Result reset_fences_result = device.device().resetFences(1, &inFlightFences[currentFrame]);
   if (reset_fences_result != vk::Result::eSuccess)
@@ -108,14 +103,11 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
   m_graphics_queue.submit(submitInfo, inFlightFences[currentFrame]);
 
   vk::PresentInfoKHR presentInfo;
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores    = signalSemaphores;
-
-  vk::SwapchainKHR swapChains[] = {swapChain};
-  presentInfo.swapchainCount  = 1;
-  presentInfo.pSwapchains     = swapChains;
-
-  presentInfo.pImageIndices = &imageIndex;
+  presentInfo
+    .setWaitSemaphores(renderFinishedSemaphores[currentFrame])
+    .setSwapchains(swapChain)
+    .setImageIndices(imageIndex)
+    ;
 
   auto result = m_present_queue.presentKHR(presentInfo);
   if (result != vk::Result::eSuccess)

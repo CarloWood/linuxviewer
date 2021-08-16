@@ -14,7 +14,7 @@ class Queue
   Queue() = default;
   Queue(GPU_queue_family_handle qfh, vk::Queue queue) : m_queue_family(qfh), m_queue(queue) { }
 
-  vk::Queue index() const { return m_queue; }
+  vk::Queue vk_handle() const { return m_queue; }
   GPU_queue_family_handle queue_family() const { return m_queue_family; }
 };
 
