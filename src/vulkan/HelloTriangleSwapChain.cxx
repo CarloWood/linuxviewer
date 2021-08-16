@@ -60,7 +60,7 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
   }
 }
 
-vk::Result HelloTriangleSwapChain::acquireNextImage(uint32_t* imageIndex)
+uint32_t HelloTriangleSwapChain::acquireNextImage()
 {
   vk::Result wait_for_fences_result = device.device().waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
   if (wait_for_fences_result != vk::Result::eSuccess)
@@ -70,19 +70,21 @@ vk::Result HelloTriangleSwapChain::acquireNextImage(uint32_t* imageIndex)
       imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
       {});
 
-  *imageIndex = rv.value;
-  return rv.result;
+  if (rv.result != vk::Result::eSuccess && rv.result != vk::Result::eSuboptimalKHR)
+    throw std::runtime_error("Failed to acquire swap chain image!");
+
+  return rv.value;
 }
 
-vk::Result HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const* buffers, uint32_t* imageIndex)
+void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex)
 {
-  if (imagesInFlight[*imageIndex])
+  if (imagesInFlight[imageIndex])
   {
-    vk::Result wait_for_fences_result = device.device().waitForFences(1, &imagesInFlight[*imageIndex], true, std::numeric_limits<uint64_t>::max());
+    vk::Result wait_for_fences_result = device.device().waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
     if (wait_for_fences_result != vk::Result::eSuccess)
       throw std::runtime_error("Failed to wait for inFlightFences!");
   }
-  imagesInFlight[*imageIndex] = inFlightFences[currentFrame];
+  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
   vk::SubmitInfo submitInfo;
 
@@ -93,7 +95,7 @@ vk::Result HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const*
   submitInfo.pWaitDstStageMask      = waitStages;
 
   submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers    = buffers;
+  submitInfo.pCommandBuffers    = &buffers;
 
   vk::Semaphore signalSemaphores[]  = {renderFinishedSemaphores[currentFrame]};
   submitInfo.signalSemaphoreCount = 1;
@@ -113,13 +115,13 @@ vk::Result HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const*
   presentInfo.swapchainCount  = 1;
   presentInfo.pSwapchains     = swapChains;
 
-  presentInfo.pImageIndices = imageIndex;
+  presentInfo.pImageIndices = &imageIndex;
 
   auto result = m_present_queue.presentKHR(presentInfo);
+  if (result != vk::Result::eSuccess)
+    throw std::runtime_error("Failed to present swap chain image!");
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-
-  return result;
 }
 
 SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface)

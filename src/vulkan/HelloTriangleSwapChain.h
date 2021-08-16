@@ -38,8 +38,8 @@ class HelloTriangleSwapChain {
   }
   vk::Format findDepthFormat();
 
-  vk::Result acquireNextImage(uint32_t *imageIndex);
-  vk::Result submitCommandBuffers(vk::CommandBuffer const* buffers, uint32_t* imageIndex);
+  uint32_t acquireNextImage();
+  void submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex);
 
  private:
   void createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue);

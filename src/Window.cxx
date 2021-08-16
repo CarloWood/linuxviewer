@@ -71,12 +71,7 @@ void Window::createSwapChain(vulkan::Device const& device, vulkan::Queue graphic
 
 void Window::drawFrame()
 {
-  uint32_t imageIndex;
-  auto result = m_swap_chain_ptr->acquireNextImage(&imageIndex);
-  if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-    throw std::runtime_error("Failed to acquire swap chain image!");
+  uint32_t imageIndex = m_swap_chain_ptr->acquireNextImage();
 
-  result = m_swap_chain_ptr->submitCommandBuffers(&m_command_buffers[imageIndex], &imageIndex);
-  if (result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to present swap chain image!");
+  m_swap_chain_ptr->submitCommandBuffers(m_command_buffers[imageIndex], imageIndex);
 }
