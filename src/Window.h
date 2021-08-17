@@ -27,7 +27,7 @@ class Window : public gui::Window
   void drawFrame();
 
 #if 0
-  VkExtent2D extent() const
+  vk::Extent2D extent() const
   {
     auto extent = get_glfw_window().getSize();
     return { static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) };

@@ -1,7 +1,7 @@
 #include "sys.h"
+#include <vulkan/vulkan.hpp>    // This header must be included before including Window.h, because this TU uses createSurface.
 #include "Window.h"
 #include "Application.h"
-#include <vulkan/vulkan.hpp>
 
 void Window::create_surface()
 {
