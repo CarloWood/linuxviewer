@@ -58,9 +58,9 @@ class Device
   void create_command_pool(CommandPoolCreateInfo const& command_pool_create_info);
 
   // Member functions needed to make HelloTriangleSwapChain happy.
-  vk::Device device() const
+  vk::Device const* operator->() const
   {
-    return *m_device_handle;
+    return &*m_device_handle;
   }
 
   vk::PhysicalDevice get_physical_device() const

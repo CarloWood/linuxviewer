@@ -175,8 +175,8 @@ Application& Application::create_pipeline()
   initialization_state(istPipeline);
 
   vk::PipelineLayout pipeline_layout = createPipelineLayout(m_vulkan_device);
-  createPipeline(m_vulkan_device.device(), main_window_ptr()->swap_chain_ptr(), pipeline_layout);
-  m_vulkan_device.device().destroyPipelineLayout(pipeline_layout);
+  createPipeline(m_vulkan_device, main_window_ptr()->swap_chain_ptr(), pipeline_layout);
+  m_vulkan_device->destroyPipelineLayout(pipeline_layout);
   return *this;
 }
 
@@ -208,7 +208,7 @@ void Application::run()
   }
 
   // Block until all GPU operations have completed.
-  m_vulkan_device.device().waitIdle();
+  m_vulkan_device->waitIdle();
 }
 
 std::shared_ptr<Window> Application::main_window() const
@@ -220,18 +220,18 @@ vk::PipelineLayout Application::createPipelineLayout(vulkan::Device const& devic
 {
   vk::PipelineLayoutCreateInfo pipelineLayoutInfo{};
   vk::PipelineLayout pipelineLayout =
-   device.device().createPipelineLayout(pipelineLayoutInfo);
+   device->createPipelineLayout(pipelineLayoutInfo);
 
   return pipelineLayout;
 }
 
-void Application::createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle)
+void Application::createPipeline(vulkan::Device const& device, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle)
 {
   vulkan::PipelineCreateInfo pipelineConfig{};
   vulkan::Pipeline::defaultPipelineCreateInfo(pipelineConfig, swap_chain_ptr->width(), swap_chain_ptr->height());
   pipelineConfig.renderPass = swap_chain_ptr->getRenderPass();
   pipelineConfig.pipelineLayout = pipeline_layout_handle;
-  m_pipeline = std::make_unique<vulkan::Pipeline>(device_handle, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
+  m_pipeline = std::make_unique<vulkan::Pipeline>(device, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
 }
 
 void Application::quit()

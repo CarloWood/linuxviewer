@@ -31,42 +31,42 @@ void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Qu
 
 HelloTriangleSwapChain::~HelloTriangleSwapChain()
 {
-  for (auto imageView : swapChainImageViews) { device.device().destroyImageView(imageView); }
+  for (auto imageView : swapChainImageViews) { device->destroyImageView(imageView); }
   swapChainImageViews.clear();
 
   if (swapChain)
   {
-    device.device().destroySwapchainKHR(swapChain);
+    device->destroySwapchainKHR(swapChain);
     swapChain = nullptr;
   }
 
   for (int i = 0; i < depthImages.size(); ++i)
   {
-    device.device().destroyImageView(depthImageViews[i]);
-    device.device().destroyImage(depthImages[i]);
-    device.device().freeMemory(depthImageMemorys[i]);
+    device->destroyImageView(depthImageViews[i]);
+    device->destroyImage(depthImages[i]);
+    device->freeMemory(depthImageMemorys[i]);
   }
 
-  for (auto framebuffer : swapChainFramebuffers) { device.device().destroyFramebuffer(framebuffer); }
+  for (auto framebuffer : swapChainFramebuffers) { device->destroyFramebuffer(framebuffer); }
 
-  device.device().destroyRenderPass(renderPass);
+  device->destroyRenderPass(renderPass);
 
   // cleanup synchronization objects
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    device.device().destroySemaphore(renderFinishedSemaphores[i]);
-    device.device().destroySemaphore(imageAvailableSemaphores[i]);
-    device.device().destroyFence(inFlightFences[i]);
+    device->destroySemaphore(renderFinishedSemaphores[i]);
+    device->destroySemaphore(imageAvailableSemaphores[i]);
+    device->destroyFence(inFlightFences[i]);
   }
 }
 
 uint32_t HelloTriangleSwapChain::acquireNextImage()
 {
-  vk::Result wait_for_fences_result = device.device().waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
+  vk::Result wait_for_fences_result = device->waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
   if (wait_for_fences_result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to wait for inFlightFences!");
 
-  auto rv = device.device().acquireNextImageKHR(swapChain, std::numeric_limits<uint64_t>::max(),
+  auto rv = device->acquireNextImageKHR(swapChain, std::numeric_limits<uint64_t>::max(),
       imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
       {});
 
@@ -80,7 +80,7 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
 {
   if (imagesInFlight[imageIndex])
   {
-    vk::Result wait_for_fences_result = device.device().waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
+    vk::Result wait_for_fences_result = device->waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
     if (wait_for_fences_result != vk::Result::eSuccess)
       throw std::runtime_error("Failed to wait for inFlightFences!");
   }
@@ -96,7 +96,7 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
     .setSignalSemaphores(renderFinishedSemaphores[currentFrame])
     ;
 
-  vk::Result reset_fences_result = device.device().resetFences(1, &inFlightFences[currentFrame]);
+  vk::Result reset_fences_result = device->resetFences(1, &inFlightFences[currentFrame]);
   if (reset_fences_result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to reset fence for inFlightFences!");
 
@@ -125,49 +125,6 @@ SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, 
   details.presentModes = physical_device.getSurfacePresentModesKHR(surface);
 
   return details;
-}
-
-struct QueueFamilyIndices
-{
-  uint32_t graphicsFamily;
-  uint32_t presentFamily;
-  bool graphicsFamilyHasValue = false;
-  bool presentFamilyHasValue  = false;
-  bool isComplete() { return graphicsFamilyHasValue && presentFamilyHasValue; }
-};
-
-QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface)
-{
-  QueueFamilyIndices indices;
-
-  std::vector<vk::QueueFamilyProperties> queueFamilies;
-  queueFamilies = device.getQueueFamilyProperties();
-
-  int i = 0;
-  for (auto const& queueFamily : queueFamilies)
-  {
-    if (queueFamily.queueCount > 0 && (queueFamily.queueFlags & vk::QueueFlagBits::eGraphics))
-    {
-      indices.graphicsFamily         = i;
-      indices.graphicsFamilyHasValue = true;
-    }
-    vk::Bool32 presentSupport = device.getSurfaceSupportKHR(i, surface);
-    if (queueFamily.queueCount > 0 && presentSupport)
-    {
-      indices.presentFamily         = i;
-      indices.presentFamilyHasValue = true;
-    }
-    if (indices.isComplete()) { break; }
-
-    ++i;
-  }
-
-  return indices;
-}
-
-QueueFamilyIndices findPhysicalQueueFamilies(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface)
-{
-  return findQueueFamilies(physicalDevice, surface);
 }
 
 void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue)
@@ -212,8 +169,8 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graph
       ;
   }
 
-  swapChain = device.device().createSwapchainKHR(createInfo);
-  swapChainImages = device.device().getSwapchainImagesKHR(swapChain);
+  swapChain = device->createSwapchainKHR(createInfo);
+  swapChainImages = device->getSwapchainImagesKHR(swapChain);
   swapChainImageFormat = surfaceFormat.format;
   swapChainExtent      = extent;
 }
@@ -233,7 +190,7 @@ void HelloTriangleSwapChain::createImageViews()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    swapChainImageViews[i] = device.device().createImageView(viewInfo);
+    swapChainImageViews[i] = device->createImageView(viewInfo);
   }
 }
 
@@ -290,7 +247,7 @@ void HelloTriangleSwapChain::createRenderPass()
   renderPassInfo.dependencyCount                     = 1;
   renderPassInfo.pDependencies                       = &dependency;
 
-  renderPass = device.device().createRenderPass(renderPassInfo);
+  renderPass = device->createRenderPass(renderPassInfo);
 }
 
 void HelloTriangleSwapChain::createFramebuffers()
@@ -309,7 +266,7 @@ void HelloTriangleSwapChain::createFramebuffers()
     framebufferInfo.height                  = swapChainExtent.height;
     framebufferInfo.layers                  = 1;
 
-    swapChainFramebuffers[i] = device.device().createFramebuffer(framebufferInfo);
+    swapChainFramebuffers[i] = device->createFramebuffer(framebufferInfo);
   }
 }
 
@@ -327,18 +284,18 @@ uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties,
 
 void createImageWithInfo(vk::ImageCreateInfo const& imageInfo, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory, Device const& device)
 {
-  image = device.device().createImage(imageInfo);
+  image = device->createImage(imageInfo);
 
   vk::MemoryRequirements memRequirements;
-  device.device().getImageMemoryRequirements(image, &memRequirements);
+  device->getImageMemoryRequirements(image, &memRequirements);
 
   vk::MemoryAllocateInfo allocInfo{};
   allocInfo.allocationSize  = memRequirements.size;
   allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.get_physical_device());
 
-  imageMemory = device.device().allocateMemory(allocInfo);
+  imageMemory = device->allocateMemory(allocInfo);
 
-  device.device().bindImageMemory(image, imageMemory, 0);
+  device->bindImageMemory(image, imageMemory, 0);
 }
 
 void HelloTriangleSwapChain::createDepthResources()
@@ -379,7 +336,7 @@ void HelloTriangleSwapChain::createDepthResources()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    depthImageViews[i] = device.device().createImageView(viewInfo);
+    depthImageViews[i] = device->createImageView(viewInfo);
   }
 }
 
@@ -397,9 +354,9 @@ void HelloTriangleSwapChain::createSyncObjects()
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    imageAvailableSemaphores[i] = device.device().createSemaphore(semaphoreInfo);
-    renderFinishedSemaphores[i] = device.device().createSemaphore(semaphoreInfo);
-    inFlightFences[i] = device.device().createFence(fenceInfo);
+    imageAvailableSemaphores[i] = device->createSemaphore(semaphoreInfo);
+    renderFinishedSemaphores[i] = device->createSemaphore(semaphoreInfo);
+    inFlightFences[i] = device->createFence(fenceInfo);
   }
 }
 

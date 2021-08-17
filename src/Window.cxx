@@ -32,7 +32,7 @@ void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline
   allocInfo.commandPool = device.get_command_pool();
   allocInfo.commandBufferCount = static_cast<uint32_t>(m_swap_chain_ptr->imageCount());
 
-  m_command_buffers = device.device().allocateCommandBuffers(allocInfo);
+  m_command_buffers = device->allocateCommandBuffers(allocInfo);
 
   for (int i = 0; i < m_command_buffers.size(); ++i)
   {

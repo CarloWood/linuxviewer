@@ -208,7 +208,7 @@ class Application : public gui::Application
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
-  void createPipeline(VkDevice device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle);
+  void createPipeline(vulkan::Device const& device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle);
 
  private:
   // Called from the main loop of the GUI.
