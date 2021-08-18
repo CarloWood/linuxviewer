@@ -9,10 +9,13 @@
 #include <vulkan/vulkan.h>
 #include <functional>
 
+namespace vulkan {
+
 /**
 * This RAII class is used to hold Vulkan handles; just like a std::unique_ptr, but for Vulkan handles instead of pointers
 * It will call deletef upon destruction
-* It also support move operations, which is implemented by swapping, which will correctly destruct the old resource, since the right value argument get destructed right after the operation
+* It also support move operations, which is implemented by swapping, which will correctly destruct the old resource,
+* since the right value argument get destructed right after the operation
 * It does not support copy operation
 */
 template <typename T>
@@ -89,16 +92,18 @@ private:
 
 // Typical usage:
 //
-//	VRaii<vk::DescriptorSetLayout> camera_descriptor_set_layout
+//	vulkan::VRaii<vk::DescriptorSetLayout> camera_descriptor_set_layout
 //
 //	You can allocate VRaii as class member in advance and then when you are allocating the resource
 //
-//	camera_descriptor_set_layout = VRaii<vk::DescriptorSetLayout>(
+//	camera_descriptor_set_layout = vulkan::VRaii<vk::DescriptorSetLayout>(
 //		device.createDescriptorSetLayout(create_info, nullptr),
-//		[device = this->device](auto & layout){	device.destroyDescriptorSetLayout(layout);};
+//		[device = this->device](auto& layout){ device.destroyDescriptorSetLayout(layout); }
 //	)
-//	
+//
 //	this is for vulkan.hpp bindings. You can also use this for vulkan.h bindings but you need a temp 
 //	  handle to pass in address for resource allocation functions to accept the handle value first.
-//  Of course, you should guarantee the vk::device is released after
-//	  this handle.
+//
+// Of course, you should guarantee the vk::device is released after this handle.
+
+} // namespace vulkan
