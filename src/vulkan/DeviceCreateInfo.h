@@ -76,6 +76,11 @@ struct DeviceCreateInfo : vk::DeviceCreateInfo
     return !!(m_queue_flags & queue_flag);
   }
 
+  std::vector<char const*> const& device_extensions() const
+  {
+    return m_device_extensions;
+  }
+
 #ifdef CWDEBUG
   char const* debug_name() const
   {
