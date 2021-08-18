@@ -3,19 +3,45 @@
 #include "Device.h"
 #include "Queue.h"
 
-// vulkan headers
 #include <vulkan/vulkan.h>
 
-// std lib headers
 #include <string>
 #include <vector>
 
 namespace vulkan {
 
-class HelloTriangleSwapChain {
- public:
+class HelloTriangleSwapChain
+{
+ //public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
+ private:
+  vk::Format swapChainImageFormat;
+  vk::Extent2D swapChainExtent;
+
+  std::vector<vk::Framebuffer> swapChainFramebuffers;
+  vk::RenderPass renderPass;
+
+  std::vector<vk::Image> depthImages;
+  std::vector<vk::DeviceMemory> depthImageMemorys;
+  std::vector<vk::ImageView> depthImageViews;
+  std::vector<vk::Image> swapChainImages;
+  std::vector<vk::ImageView> swapChainImageViews;
+
+  Device const& device;
+  vk::Queue m_graphics_queue;
+  vk::Queue m_present_queue;
+  vk::Extent2D windowExtent;
+
+  vk::SwapchainKHR swapChain;
+
+  std::vector<vk::Semaphore> imageAvailableSemaphores;
+  std::vector<vk::Semaphore> renderFinishedSemaphores;
+  std::vector<vk::Fence> inFlightFences;
+  std::vector<vk::Fence> imagesInFlight;
+  size_t currentFrame = 0;
+
+ public:
   HelloTriangleSwapChain(Device const& deviceRef);
   ~HelloTriangleSwapChain();
 
@@ -53,31 +79,6 @@ class HelloTriangleSwapChain {
   vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
   vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
   vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
-
-  vk::Format swapChainImageFormat;
-  vk::Extent2D swapChainExtent;
-
-  std::vector<vk::Framebuffer> swapChainFramebuffers;
-  vk::RenderPass renderPass;
-
-  std::vector<vk::Image> depthImages;
-  std::vector<vk::DeviceMemory> depthImageMemorys;
-  std::vector<vk::ImageView> depthImageViews;
-  std::vector<vk::Image> swapChainImages;
-  std::vector<vk::ImageView> swapChainImageViews;
-
-  Device const& device;
-  vk::Queue m_graphics_queue;
-  vk::Queue m_present_queue;
-  vk::Extent2D windowExtent;
-
-  vk::SwapchainKHR swapChain;
-
-  std::vector<vk::Semaphore> imageAvailableSemaphores;
-  std::vector<vk::Semaphore> renderFinishedSemaphores;
-  std::vector<vk::Fence> inFlightFences;
-  std::vector<vk::Fence> imagesInFlight;
-  size_t currentFrame = 0;
 };
 
 } // namespace vulkan

@@ -2,7 +2,9 @@
 
 #include "GUI_glfw3/gui_Window.h"
 #include "vulkan/Queue.h"
+#include "vulkan/unique_handle.h"
 #include "utils/InsertExtraInitialization.h"
+#include <memory>
 
 namespace vulkan {
 class Pipeline;
@@ -13,17 +15,18 @@ class HelloTriangleSwapChain;
 class Window : public gui::Window
 {
  private:
-  vk::SurfaceKHR m_surface;
+  vulkan::unique_handle<vk::SurfaceKHR> m_surface;
+
   // This had to be moved here for now...
+  std::unique_ptr<vulkan::HelloTriangleSwapChain> m_swap_chain;
   std::vector<vk::CommandBuffer> m_command_buffers;             // The vulkan command buffers that this application uses.
-  vulkan::HelloTriangleSwapChain* m_swap_chain_ptr = {};        // The vulkan swap chain for this surface.
 
  public:
   using gui::Window::Window;
   ~Window();
 
+  void create_swap_chain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
-  void createSwapChain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void drawFrame();
 
 #if 0
@@ -36,7 +39,7 @@ class Window : public gui::Window
 
   // Accessors.
   vk::SurfaceKHR surface() const { return m_surface; }
-  vulkan::HelloTriangleSwapChain const* swap_chain_ptr() const { return m_swap_chain_ptr; }
+  vulkan::HelloTriangleSwapChain const* swap_chain_ptr() const { return m_swap_chain.get(); }
 
  private:
   void create_surface();
