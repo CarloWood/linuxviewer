@@ -49,6 +49,11 @@ public:
 		return object;
 	}
 
+        operator T const&() const
+        {
+          return object;
+        }
+
 	T* data()
 	{
 		return &object;
