@@ -21,17 +21,17 @@ namespace vulkan {
 //
 // Typical usage:
 //
-//   vulkan::VRaii<vk::DescriptorSetLayout> camera_descriptor_set_layout
+//   vulkan::unique_handle<vk::DescriptorSetLayout> camera_descriptor_set_layout
 //
-//   You can allocate VRaii as class member in advance and then when you are allocating the resource
+//   You can allocate unique_handle as class member in advance and then when you are allocating the resource
 //
-//   camera_descriptor_set_layout = vulkan::VRaii<vk::DescriptorSetLayout>(
+//   camera_descriptor_set_layout = vulkan::unique_handle<vk::DescriptorSetLayout>(
 //	device.createDescriptorSetLayout(create_info, nullptr),
 //	[device = this->device](auto& layout){ device.destroyDescriptorSetLayout(layout); }
 //   )
 //
 template <typename T>
-class VRaii
+class unique_handle
 {
  private:
   T object;
@@ -40,15 +40,15 @@ class VRaii
  public:
   using obj_t = T;
 
-  VRaii() : object(nullptr), deleter([](T&) {}) {}
-  VRaii(T obj, std::function<void(T&)> deleter) : object(obj), deleter(deleter) {}
-  ~VRaii() { cleanup(); }
+  unique_handle() : object(nullptr), deleter([](T&) {}) {}
+  unique_handle(T obj, std::function<void(T&)> deleter) : object(obj), deleter(deleter) {}
+  ~unique_handle() { cleanup(); }
 
-  VRaii<T>& operator=(VRaii<T> const&) = delete;
-  VRaii(VRaii<T> const&)               = delete;
+  unique_handle<T>& operator=(unique_handle<T> const&) = delete;
+  unique_handle(unique_handle<T> const&)               = delete;
 
   // Move constructor.
-  VRaii(VRaii<T>&& other) :
+  unique_handle(unique_handle<T>&& other) :
     object(nullptr),    // To be swapped to "other".
     deleter([](T&) {})  // deleter will be copied in case there is still use for the old container.
   {
@@ -62,13 +62,13 @@ class VRaii
 
   T* data() { return &object; }
 
-  VRaii<T>& operator=(VRaii<T>&& other)
+  unique_handle<T>& operator=(unique_handle<T>&& other)
   {
     swap(*this, other);
     return *this;
   }
 
-  friend void swap(VRaii<T>& first, VRaii<T>& second)
+  friend void swap(unique_handle<T>& first, unique_handle<T>& second)
   {
     std::swap(first.object, second.object);
     std::swap(first.deleter, second.deleter);
