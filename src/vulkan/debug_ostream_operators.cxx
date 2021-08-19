@@ -215,6 +215,15 @@ std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D)
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, Extent2D const& extend_2D)
+{
+  os << '{';
+  os << "width:" << extend_2D.width << ", ";
+  os << "height:" << extend_2D.height;
+  os << '}';
+  return os;
+}
+
 std::ostream& operator<<(std::ostream& os, QueueFlagBits const& queue_flag_bit)
 {
   return os << magic_enum::enum_name(queue_flag_bit);

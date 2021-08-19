@@ -79,7 +79,6 @@ struct InstanceCreateInfo : protected InstanceCreateInfoArgLists, protected vk::
   static constexpr std::array<char const* const, 0> validationLayers;
 #endif
 
-  static void hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions);
   static bool checkValidationLayerSupport();
 
   // The life-time of applicationInfo_, pEnabledLayerNames_ and pEnabledExtensionNames_ must be larger

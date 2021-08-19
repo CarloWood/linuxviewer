@@ -12,12 +12,17 @@
 #include <set>
 #include <stdexcept>
 
+#ifdef CWDEBUG
+#include "debug_ostream_operators.h"
+#endif
+
 namespace vulkan {
 
 HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& deviceRef) : device{deviceRef} { }
 
 void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface)
 {
+  DoutEntering(dc::vulkan, "HelloTriangleSwapChain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << surface << ")");
   windowExtent = extent;
   m_graphics_queue = graphics_queue.vk_handle();
   m_present_queue = present_queue.vk_handle();

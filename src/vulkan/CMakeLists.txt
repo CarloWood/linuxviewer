@@ -87,16 +87,21 @@ target_sources(vulkan_ObjLib
     "Pipeline.h"
     "HelloTriangleSwapChain.cxx"
     "HelloTriangleSwapChain.h"
-    "debug_ostream_operators.cxx"
-    "debug_ostream_operators.h"
     "QueueFlags.cxx"
     "QueueFlags.h"
     "QueueRequest.cxx"
     "QueueRequest.h"
     "QueueReply.cxx"
     "QueueReply.h"
+    "Queue.cxx"
+    "Queue.h"
     "CommandPoolCreateInfo.cxx"
     "CommandPoolCreateInfo.h"
+
+    "check_instance_extensions_availability.cxx"
+    "check_instance_extensions_availability.h"
+    "debug_ostream_operators.cxx"
+    "debug_ostream_operators.h"
 )
 
 # Required include search-paths.

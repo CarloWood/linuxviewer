@@ -316,6 +316,7 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   }
 }
 
+// Internal helper function, used by Device::setup.
 template<typename ExtensionPropertiesAllocator>
 bool have_all_extensions_in(std::vector<char const*> const& required, std::vector<vk::ExtensionProperties, ExtensionPropertiesAllocator> const& available)
 {

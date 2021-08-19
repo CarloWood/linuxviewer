@@ -2,41 +2,8 @@
 #include "InstanceCreateInfo.h"
 //#include <vulkan/vulkan.hpp>            // Must be included before glfwpp/glfwpp.h in order to get vulkan C++ API support.
 //#include <glfwpp/glfwpp.h>
-#include <unordered_set>
 
 namespace vulkan {
-
-void InstanceCreateInfo::hasGflwRequiredInstanceExtensions(std::vector<char const*> const& requiredExtensions)
-{
-  uint32_t extensionCount = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-  std::vector<VkExtensionProperties> extensions(extensionCount);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-  std::unordered_set<std::string> available;
-  Dout(dc::vulkan, "Available extensions:");
-  {
-    CWDEBUG_ONLY(debug::Mark m);
-    for (auto const& extension : extensions)
-    {
-      Dout(dc::vulkan, extension.extensionName);
-      available.insert(extension.extensionName);
-    }
-  }
-
-  Dout(dc::vulkan, "Required extensions:");
-  {
-    CWDEBUG_ONLY(debug::Mark m);
-    for (auto const& required : requiredExtensions)
-    {
-      Dout(dc::vulkan, required);
-      if (available.find(required) == available.end())
-      {
-        throw std::runtime_error("Missing required glfw extension");
-      }
-    }
-  }
-}
 
 bool InstanceCreateInfo::checkValidationLayerSupport()
 {

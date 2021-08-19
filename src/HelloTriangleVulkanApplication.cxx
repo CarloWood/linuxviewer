@@ -92,7 +92,6 @@ int main(int argc, char* argv[])
 #ifdef CWDEBUG
     .setDebugName("Vulkan Device")
 #endif
-    //.addDeviceExtentions({"Kazaam"})
     ;
 
   vulkan::QueueRequestIndex const graphics_queue_index(0);

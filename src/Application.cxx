@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "Application.h"
 #include "Window.h"
+#include "vulkan/check_instance_extensions_availability.h"
 #include <vector>
 
 Application::Application(ApplicationCreateInfo const& application_create_info, vulkan::InstanceCreateInfo& instance_create_info
@@ -57,8 +58,8 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
   // Mandatory call after creating the vulkan instance.
   m_extension_loader.setup(*m_vulkan_instance);
 
-  // Check that the extensions required by glfw are included.
-  vulkan::InstanceCreateInfo::hasGflwRequiredInstanceExtensions(instance_create_info.enabled_extension_names());
+  // Check that the extensions required by glfw are available.
+  vulkan::check_instance_extensions_availability(instance_create_info.enabled_extension_names());
 }
 
 void Application::initialization_state(InitializationState const state)
