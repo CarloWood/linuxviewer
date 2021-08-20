@@ -216,45 +216,47 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  ApplicationCreateInfo application_create_info;
-  application_create_info
-    // vk::ApplicationInfo
-    .setPApplicationName("LinuxViewerApplication")
-    ;
-
-  vulkan::InstanceCreateInfo instance_create_info(application_create_info);
-
-  // Create main application.
-  LinuxViewerApplication application(application_create_info, instance_create_info);
-
-  gui::WindowCreateInfo main_window_create_info;
-  main_window_create_info
-    // WindowCreateInfo
-    .setExtent(500, 800)
-    .setTitle("Main window title")
-    // WindowHints
-    .setFocused(false)
-    .setResizable(true)
-    ;
-
-  vulkan::DeviceCreateInfo device_create_info;
-
-  vulkan::QueueRequestIndex const graphics_queue_index(0);
-
-  vulkan::CommandPoolCreateInfo command_pool_create_info;
-  using vk::CommandPoolCreateFlagBits;
-  command_pool_create_info
-    // vulkan::CommandPoolCreateInfo
-    .setQueueRequestIndex(graphics_queue_index)
-#ifdef CWDEBUG
-    .setDebugName("Command Pool")
-#endif
-    // vk::CommandPoolCreateInfo
-    .setFlags(CommandPoolCreateFlagBits::eTransient | CommandPoolCreateFlagBits::eResetCommandBuffer)
-    ;
-
   try
   {
+    ApplicationCreateInfo application_create_info;
+    application_create_info
+      // vk::ApplicationInfo
+      .setPApplicationName("LinuxViewerApplication")
+      ;
+
+    vulkan::InstanceCreateInfo instance_create_info(application_create_info, {
+//        .extensions = { "Kazaam", "foobar" }
+        });
+
+    // Create main application.
+    LinuxViewerApplication application(application_create_info, instance_create_info);
+
+    gui::WindowCreateInfo main_window_create_info;
+    main_window_create_info
+      // WindowCreateInfo
+      .setExtent(500, 800)
+      .setTitle("Main window title")
+      // WindowHints
+      .setFocused(false)
+      .setResizable(true)
+      ;
+
+    vulkan::DeviceCreateInfo device_create_info;
+
+    vulkan::QueueRequestIndex const graphics_queue_index(0);
+
+    vulkan::CommandPoolCreateInfo command_pool_create_info;
+    using vk::CommandPoolCreateFlagBits;
+    command_pool_create_info
+      // vulkan::CommandPoolCreateInfo
+      .setQueueRequestIndex(graphics_queue_index)
+#ifdef CWDEBUG
+      .setDebugName("Command Pool")
+#endif
+      // vk::CommandPoolCreateInfo
+      .setFlags(CommandPoolCreateFlagBits::eTransient | CommandPoolCreateFlagBits::eResetCommandBuffer)
+      ;
+
     // Create all objects.
     application
       .create_main_window(std::move(main_window_create_info))
@@ -272,7 +274,7 @@ int main(int argc, char* argv[])
   }
   catch (AIAlert::Error const& error)
   {
-    Dout(dc::warning, error << " caught in LinuxViewerApplication.cxx");
+    Dout(dc::warning, "\e[31m" << error << " caught in LinuxViewerApplication.cxx\e[0m");
   }
 
   Dout(dc::notice, "Leaving main()");

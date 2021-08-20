@@ -46,6 +46,9 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
   if (vulkan::InstanceCreateInfo::s_enableValidationLayers && !vulkan::InstanceCreateInfo::checkValidationLayerSupport())
     throw std::runtime_error("validation layers requested, but not available!");
 
+  // Check that all required extensions are available.
+  vulkan::check_instance_extensions_availability(instance_create_info.enabled_extension_names());
+
   Dout(dc::vulkan|continued_cf|flush_cf, "Calling vk::createInstanceUnique()... ");
 #ifdef CWDEBUG
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
@@ -57,9 +60,6 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
   Dout(dc::finish, "done (" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms)");
   // Mandatory call after creating the vulkan instance.
   m_extension_loader.setup(*m_vulkan_instance);
-
-  // Check that the extensions required by glfw are available.
-  vulkan::check_instance_extensions_availability(instance_create_info.enabled_extension_names());
 }
 
 void Application::initialization_state(InitializationState const state)

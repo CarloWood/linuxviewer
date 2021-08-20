@@ -1,5 +1,8 @@
 #include "sys.h"
 #include "check_instance_extensions_availability.h"
+#include "find_missing_extensions.h"
+#include "utils/print_using.h"
+#include "utils/QuotedList.h"
 #include "utils/AIAlert.h"
 #include "debug.h"
 #include <vulkan/vulkan.hpp>
@@ -10,33 +13,19 @@ namespace vulkan {
 
 void check_instance_extensions_availability(std::vector<char const*> const& required_extensions)
 {
-  DoutEntering(dc::vulkan|continued_cf, "check_instance_extensions_availability(required_extensions:{");
-  CWDEBUG_ONLY(char const* prefix = " ");
-  // Copy the names of the required extensions to a new, mutable vector.
-  std::vector<char const*> missing_extensions(required_extensions.size());
-  int i = 0;
-  for (char const* required : required_extensions)
-  {
-    Dout(dc::continued, prefix << '"' << required << '"');
-    CWDEBUG_ONLY(prefix = ", ");
-    missing_extensions[i++] = required;
-  }
-  Dout(dc::finish, " })");
+  DoutEntering(dc::vulkan, "check_instance_extensions_availability(required_extensions:" << print_using(required_extensions, QuotedList{}) << ")");
 
-  auto available_instance_extensions = vk::enumerateInstanceExtensionProperties(nullptr);
+  auto available_extensions = vk::enumerateInstanceExtensionProperties(nullptr);
+
+#ifdef CWDEBUG
+  std::vector<char const*> r;
+  for (auto&& property : available_extensions)
+    r.push_back(property.extensionName);
+  Dout(dc::vulkan, "Available instance extensions:" << print_using(r, QuotedList{}));
+#endif
 
   // Check that every extension name in required_extensions is available.
-  Dout(dc::vulkan, "Available instance extensions:");
-  {
-    CWDEBUG_ONLY(debug::Mark m);
-    for (auto&& extension : available_instance_extensions)
-    {
-      Dout(dc::vulkan, extension.extensionName);
-      missing_extensions.erase(
-          std::remove(missing_extensions.begin(), missing_extensions.end(), static_cast<std::string_view>(extension.extensionName)),
-          missing_extensions.end());
-    }
-  }
+  auto missing_extensions = find_missing_extensions(required_extensions, available_extensions);
 
   if (!missing_extensions.empty())
   {
@@ -47,7 +36,7 @@ void check_instance_extensions_availability(std::vector<char const*> const& requ
       missing_extensions_str += prefix + missing;
       prefix = ", ";
     }
-    THROW_ALERT("Missing required extension(s) {[MISSING_EXTENSIONS]}", AIArgs("[MISSING_EXTENSIONS]", missing_extensions_str));
+    THROW_ALERT("Missing required extension(s) {[MISSING_EXTENSIONS]}", AIArgs("[MISSING_EXTENSIONS]", utils::print_using(missing_extensions, utils::QuotedList{})));
   }
 }
 

@@ -5,6 +5,7 @@
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
 #include "ExtensionLoader.h"
+#include "find_missing_extensions.h"
 #include "utils/Vector.h"
 #include "utils/Array.h"
 #include "utils/log2.h"
@@ -316,28 +317,6 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   }
 }
 
-// Internal helper function, used by Device::setup.
-template<typename ExtensionPropertiesAllocator>
-bool have_all_extensions_in(std::vector<char const*> const& required, std::vector<vk::ExtensionProperties, ExtensionPropertiesAllocator> const& available)
-{
-  // Check that every element in required occurs in available.
-  size_t number_required = required.size();
-  size_t extensions_found = 0;
-  for (auto&& property : available)
-  {
-    bool found = false;
-    for (auto&& name : required)
-      if (strcmp(property.extensionName, name) == 0)
-      {
-        found = true;
-        break;
-      }
-    if (found && ++extensions_found == number_required)
-      break;
-  }
-  return extensions_found == number_required;
-}
-
 void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
 {
   DoutEntering(dc::vulkan, "vulkan::Device::setup(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
@@ -356,8 +335,7 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
     QueueFamilies queue_families(physical_device, surface);
     if (queue_families.is_compatible_with(device_create_info, m_queue_replies))
     {
-      auto extension_properties_list = physical_device.enumerateDeviceExtensionProperties();
-      if (!have_all_extensions_in(required_extensions, extension_properties_list))
+      if (!find_missing_extensions(required_extensions, physical_device.enumerateDeviceExtensionProperties()).empty())
         continue;
 
       // Use the first compatible device.

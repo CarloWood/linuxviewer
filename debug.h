@@ -7,9 +7,11 @@
 
 #ifdef CWDEBUG
 #include "utils/print_using.h"
+#include "utils/QuotedList.h"
 namespace libcwd {
-// Allow using PrintUsing inside Dout without the utils:: prefix.
+// Allow using print_using and QuotedList inside Dout without the utils:: prefix.
 using utils::print_using;
+using utils::QuotedList;
 } // namespace libcwd
 
 #include "utils/has_print_on.h"
