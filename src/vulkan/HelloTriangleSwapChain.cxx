@@ -18,8 +18,119 @@
 
 namespace vulkan {
 
+// Local helper functions.
+namespace {
+
+SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface)
+{
+  DoutEntering(dc::vulkan, "getSwapChainSupport(" << physical_device << ", " << surface << ")");
+
+  SwapChainSupportDetails details;
+
+  details.capabilities = physical_device.getSurfaceCapabilitiesKHR(surface);
+  details.formats = physical_device.getSurfaceFormatsKHR(surface);
+  details.presentModes = physical_device.getSurfacePresentModesKHR(surface);
+
+  return details;
+}
+
+uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice physicalDevice)
+{
+  vk::PhysicalDeviceMemoryProperties memProperties;
+  memProperties = physicalDevice.getMemoryProperties();
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+  {
+    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
+  }
+
+  throw std::runtime_error("failed to find suitable memory type!");
+}
+
+void createImageWithInfo(vk::ImageCreateInfo const& imageInfo, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory, Device const& device)
+{
+  image = device->createImage(imageInfo);
+
+  vk::MemoryRequirements memRequirements;
+  device->getImageMemoryRequirements(image, &memRequirements);
+
+  vk::MemoryAllocateInfo allocInfo{};
+  allocInfo.allocationSize  = memRequirements.size;
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.get_physical_device());
+
+  imageMemory = device->allocateMemory(allocInfo);
+
+  device->bindImageMemory(image, imageMemory, 0);
+}
+
+vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities, vk::Extent2D actualExtent)
+{
+  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+  {
+    return capabilities.currentExtent;
+  }
+  else
+  {
+    actualExtent.width      = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+    actualExtent.height     = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+
+    return actualExtent;
+  }
+}
+
+vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats)
+{
+  for (auto const& availableFormat : availableFormats)
+  {
+    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+      return availableFormat;
+  }
+
+  // This should have thrown an exception before we got here.
+  ASSERT(!availableFormats.empty());
+  return availableFormats[0];
+}
+
+vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes)
+{
+  // for (auto const& availablePresentMode : availablePresentModes)
+  // {
+  //  if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+  //  {
+  //    Dout(dc::vulkan, "Present mode: Mailbox");
+  //    return availablePresentMode;
+  //  }
+  // }
+
+  // for (auto const& availablePresentMode : availablePresentModes)
+  // {
+  //   if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
+  //     Dout(dc::vulkan, "Present mode: Immediate");
+  //     return availablePresentMode;
+  //   }
+  // }
+
+  Dout(dc::vulkan, "Present mode: V-Sync");
+  return vk::PresentModeKHR::eFifo;
+}
+
+vk::Format findSupportedFormat(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice physicalDevice)
+{
+  for (vk::Format format : candidates)
+  {
+    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
+    if ((tiling == vk::ImageTiling::eLinear  && (props.linearTilingFeatures & features) == features) ||
+        (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features))
+      return format;
+  }
+  throw std::runtime_error("failed to find supported format!");
+}
+
+} // namespace
+
+// Constructor.
 HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& deviceRef) : device{deviceRef} { }
 
+// And initialization.
 void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface)
 {
   DoutEntering(dc::vulkan, "HelloTriangleSwapChain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << surface << ")");
@@ -34,6 +145,7 @@ void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Qu
   createSyncObjects();
 }
 
+// Destructor.
 HelloTriangleSwapChain::~HelloTriangleSwapChain()
 {
   for (auto imageView : swapChainImageViews) { device->destroyImageView(imageView); }
@@ -65,72 +177,9 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
   }
 }
 
-uint32_t HelloTriangleSwapChain::acquireNextImage()
-{
-  vk::Result wait_for_fences_result = device->waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
-  if (wait_for_fences_result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to wait for inFlightFences!");
-
-  auto rv = device->acquireNextImageKHR(swapChain, std::numeric_limits<uint64_t>::max(),
-      imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
-      {});
-
-  if (rv.result != vk::Result::eSuccess && rv.result != vk::Result::eSuboptimalKHR)
-    throw std::runtime_error("Failed to acquire swap chain image!");
-
-  return rv.value;
-}
-
-void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex)
-{
-  if (imagesInFlight[imageIndex])
-  {
-    vk::Result wait_for_fences_result = device->waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
-    if (wait_for_fences_result != vk::Result::eSuccess)
-      throw std::runtime_error("Failed to wait for inFlightFences!");
-  }
-  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-
-  vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-
-  vk::SubmitInfo submitInfo;
-  submitInfo
-    .setWaitSemaphores(imageAvailableSemaphores[currentFrame])
-    .setWaitDstStageMask(pipeline_stage_flags)
-    .setCommandBuffers(buffers)
-    .setSignalSemaphores(renderFinishedSemaphores[currentFrame])
-    ;
-
-  vk::Result reset_fences_result = device->resetFences(1, &inFlightFences[currentFrame]);
-  if (reset_fences_result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to reset fence for inFlightFences!");
-
-  m_graphics_queue.submit(submitInfo, inFlightFences[currentFrame]);
-
-  vk::PresentInfoKHR presentInfo;
-  presentInfo
-    .setWaitSemaphores(renderFinishedSemaphores[currentFrame])
-    .setSwapchains(swapChain)
-    .setImageIndices(imageIndex)
-    ;
-
-  auto result = m_present_queue.presentKHR(presentInfo);
-  if (result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to present swap chain image!");
-
-  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-}
-
-SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface)
-{
-  SwapChainSupportDetails details;
-
-  details.capabilities = physical_device.getSurfaceCapabilitiesKHR(surface);
-  details.formats = physical_device.getSurfaceFormatsKHR(surface);
-  details.presentModes = physical_device.getSurfacePresentModesKHR(surface);
-
-  return details;
-}
+//=============================================================================
+// Functions called by setup
+//
 
 void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue)
 {
@@ -139,7 +188,7 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graph
 
   vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
   vk::PresentModeKHR presentMode     = chooseSwapPresentMode(swapChainSupport.presentModes);
-  vk::Extent2D extent                = chooseSwapExtent(swapChainSupport.capabilities);
+  vk::Extent2D extent                = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
 
   uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
   if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
@@ -255,54 +304,6 @@ void HelloTriangleSwapChain::createRenderPass()
   renderPass = device->createRenderPass(renderPassInfo);
 }
 
-void HelloTriangleSwapChain::createFramebuffers()
-{
-  swapChainFramebuffers.resize(imageCount());
-  for (size_t i = 0; i < imageCount(); ++i)
-  {
-    std::array<vk::ImageView, 2> attachments = {swapChainImageViews[i], depthImageViews[i]};
-
-    vk::Extent2D swapChainExtent              = getSwapChainExtent();
-    vk::FramebufferCreateInfo framebufferInfo;
-    framebufferInfo.renderPass              = renderPass;
-    framebufferInfo.attachmentCount         = static_cast<uint32_t>(attachments.size());
-    framebufferInfo.pAttachments            = attachments.data();
-    framebufferInfo.width                   = swapChainExtent.width;
-    framebufferInfo.height                  = swapChainExtent.height;
-    framebufferInfo.layers                  = 1;
-
-    swapChainFramebuffers[i] = device->createFramebuffer(framebufferInfo);
-  }
-}
-
-uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice physicalDevice)
-{
-  vk::PhysicalDeviceMemoryProperties memProperties;
-  memProperties = physicalDevice.getMemoryProperties();
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-  {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
-  }
-
-  throw std::runtime_error("failed to find suitable memory type!");
-}
-
-void createImageWithInfo(vk::ImageCreateInfo const& imageInfo, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory, Device const& device)
-{
-  image = device->createImage(imageInfo);
-
-  vk::MemoryRequirements memRequirements;
-  device->getImageMemoryRequirements(image, &memRequirements);
-
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.allocationSize  = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.get_physical_device());
-
-  imageMemory = device->allocateMemory(allocInfo);
-
-  device->bindImageMemory(image, imageMemory, 0);
-}
-
 void HelloTriangleSwapChain::createDepthResources()
 {
   vk::Format depthFormat       = findDepthFormat();
@@ -345,6 +346,26 @@ void HelloTriangleSwapChain::createDepthResources()
   }
 }
 
+void HelloTriangleSwapChain::createFramebuffers()
+{
+  swapChainFramebuffers.resize(imageCount());
+  for (size_t i = 0; i < imageCount(); ++i)
+  {
+    std::array<vk::ImageView, 2> attachments = {swapChainImageViews[i], depthImageViews[i]};
+
+    vk::Extent2D swapChainExtent              = getSwapChainExtent();
+    vk::FramebufferCreateInfo framebufferInfo;
+    framebufferInfo.renderPass              = renderPass;
+    framebufferInfo.attachmentCount         = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments            = attachments.data();
+    framebufferInfo.width                   = swapChainExtent.width;
+    framebufferInfo.height                  = swapChainExtent.height;
+    framebufferInfo.layers                  = 1;
+
+    swapChainFramebuffers[i] = device->createFramebuffer(framebufferInfo);
+  }
+}
+
 void HelloTriangleSwapChain::createSyncObjects()
 {
   imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
@@ -365,70 +386,75 @@ void HelloTriangleSwapChain::createSyncObjects()
   }
 }
 
-vk::SurfaceFormatKHR HelloTriangleSwapChain::chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats)
+//
+// End of functions called by setup.
+//=============================================================================
+
+//=============================================================================
+// Functions called by Window::drawFrame.
+//
+
+uint32_t HelloTriangleSwapChain::acquireNextImage()
 {
-  for (auto const& availableFormat : availableFormats)
+  vk::Result wait_for_fences_result = device->waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
+  if (wait_for_fences_result != vk::Result::eSuccess)
+    throw std::runtime_error("Failed to wait for inFlightFences!");
+
+  auto rv = device->acquireNextImageKHR(swapChain, std::numeric_limits<uint64_t>::max(),
+      imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
+      {});
+
+  if (rv.result != vk::Result::eSuccess && rv.result != vk::Result::eSuboptimalKHR)
+    throw std::runtime_error("Failed to acquire swap chain image!");
+
+  return rv.value;
+}
+
+void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex)
+{
+  if (imagesInFlight[imageIndex])
   {
-    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-      return availableFormat;
+    vk::Result wait_for_fences_result = device->waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
+    if (wait_for_fences_result != vk::Result::eSuccess)
+      throw std::runtime_error("Failed to wait for inFlightFences!");
   }
+  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
-  // This should have thrown an exception before we got here.
-  ASSERT(!availableFormats.empty());
-  return availableFormats[0];
+  vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+  vk::SubmitInfo submitInfo;
+  submitInfo
+    .setWaitSemaphores(imageAvailableSemaphores[currentFrame])
+    .setWaitDstStageMask(pipeline_stage_flags)
+    .setCommandBuffers(buffers)
+    .setSignalSemaphores(renderFinishedSemaphores[currentFrame])
+    ;
+
+  vk::Result reset_fences_result = device->resetFences(1, &inFlightFences[currentFrame]);
+  if (reset_fences_result != vk::Result::eSuccess)
+    throw std::runtime_error("Failed to reset fence for inFlightFences!");
+
+  m_graphics_queue.submit(submitInfo, inFlightFences[currentFrame]);
+
+  vk::PresentInfoKHR presentInfo;
+  presentInfo
+    .setWaitSemaphores(renderFinishedSemaphores[currentFrame])
+    .setSwapchains(swapChain)
+    .setImageIndices(imageIndex)
+    ;
+
+  auto result = m_present_queue.presentKHR(presentInfo);
+  if (result != vk::Result::eSuccess)
+    throw std::runtime_error("Failed to present swap chain image!");
+
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-vk::PresentModeKHR HelloTriangleSwapChain::chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes)
-{
-  // for (auto const& availablePresentMode : availablePresentModes)
-  // {
-  //  if (availablePresentMode == vk::PresentModeKHR::eMailbox)
-  //  {
-  //    Dout(dc::vulkan, "Present mode: Mailbox");
-  //    return availablePresentMode;
-  //  }
-  // }
+// End of functions called by Window::drawFrame.
+//=============================================================================
 
-  // for (auto const& availablePresentMode : availablePresentModes)
-  // {
-  //   if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
-  //     Dout(dc::vulkan, "Present mode: Immediate");
-  //     return availablePresentMode;
-  //   }
-  // }
-
-  Dout(dc::vulkan, "Present mode: V-Sync");
-  return vk::PresentModeKHR::eFifo;
-}
-
-vk::Extent2D HelloTriangleSwapChain::chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities)
-{
-  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) { return capabilities.currentExtent; }
-  else
-  {
-    vk::Extent2D actualExtent = windowExtent;
-    actualExtent.width      = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-    actualExtent.height     = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-
-    return actualExtent;
-  }
-}
-
-vk::Format findSupportedFormat(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice physicalDevice)
-{
-  for (vk::Format format : candidates)
-  {
-    vk::FormatProperties props;
-    props = physicalDevice.getFormatProperties(format);
-
-    if (tiling == vk::ImageTiling::eLinear && (props.linearTilingFeatures & features) == features) { return format; }
-    else if (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features)
-    {
-      return format;
-    }
-  }
-  throw std::runtime_error("failed to find supported format!");
-}
+//=============================================================================
+// Private helper functions.
 
 vk::Format HelloTriangleSwapChain::findDepthFormat()
 {

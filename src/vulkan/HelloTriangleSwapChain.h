@@ -16,6 +16,20 @@ class HelloTriangleSwapChain
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
  private:
+  // Constructor
+  Device const& device;
+
+  // setup
+  vk::Extent2D windowExtent;
+  vk::Queue m_graphics_queue;
+  vk::Queue m_present_queue;
+
+  // createSyncObjects
+  std::vector<vk::Semaphore> imageAvailableSemaphores;
+  std::vector<vk::Semaphore> renderFinishedSemaphores;
+  std::vector<vk::Fence> inFlightFences;
+  std::vector<vk::Fence> imagesInFlight;
+
   vk::Format swapChainImageFormat;
   vk::Extent2D swapChainExtent;
 
@@ -28,17 +42,8 @@ class HelloTriangleSwapChain
   std::vector<vk::Image> swapChainImages;
   std::vector<vk::ImageView> swapChainImageViews;
 
-  Device const& device;
-  vk::Queue m_graphics_queue;
-  vk::Queue m_present_queue;
-  vk::Extent2D windowExtent;
-
   vk::SwapchainKHR swapChain;
 
-  std::vector<vk::Semaphore> imageAvailableSemaphores;
-  std::vector<vk::Semaphore> renderFinishedSemaphores;
-  std::vector<vk::Fence> inFlightFences;
-  std::vector<vk::Fence> imagesInFlight;
   size_t currentFrame = 0;
 
  public:
@@ -62,7 +67,6 @@ class HelloTriangleSwapChain
   float extentAspectRatio() {
     return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
   }
-  vk::Format findDepthFormat();
 
   uint32_t acquireNextImage();
   void submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex);
@@ -75,10 +79,8 @@ class HelloTriangleSwapChain
   void createFramebuffers();
   void createSyncObjects();
 
-  // Helper functions
-  vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats);
-  vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes);
-  vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities);
+  // Helper function.
+  vk::Format findDepthFormat();
 };
 
 } // namespace vulkan
