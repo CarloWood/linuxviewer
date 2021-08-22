@@ -25,14 +25,14 @@ class ExtensionLoader
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
   }
 
-  void setup(vk::Instance vulkan_instance)
+  void setup(vk::Instance vh_instance)
   {
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vulkan_instance);
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(vh_instance);
   }
 
-  void setup(vk::Instance, vk::Device vulkan_device)
+  void setup(vk::Instance, vk::Device vh_device)
   {
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vulkan_device);
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(vh_device);
   }
 };
 

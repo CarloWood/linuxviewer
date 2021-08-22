@@ -9,7 +9,7 @@ struct SwapChainSupportDetails
 {
   vk::SurfaceCapabilitiesKHR capabilities;
   std::vector<vk::SurfaceFormatKHR> formats;
-  std::vector<vk::PresentModeKHR> presentModes;
+  std::vector<vk::PresentModeKHR> present_modes;
 };
 
 } // namespace vulkan

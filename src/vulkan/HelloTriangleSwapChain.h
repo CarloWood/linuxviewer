@@ -17,62 +17,63 @@ class HelloTriangleSwapChain
 
  private:
   // Constructor
-  Device const& device;
+  Device const& m_device;
 
   // setup
-  vk::Extent2D windowExtent;
-  vk::Queue m_graphics_queue;
-  vk::Queue m_present_queue;
+  vk::Extent2D m_window_extent;
+  vk::Queue m_vh_graphics_queue;
+  vk::Queue m_vh_present_queue;
 
   // createSyncObjects
-  std::vector<vk::Semaphore> imageAvailableSemaphores;
-  std::vector<vk::Semaphore> renderFinishedSemaphores;
-  std::vector<vk::Fence> inFlightFences;
-  std::vector<vk::Fence> imagesInFlight;
+  std::vector<vk::Semaphore> m_vhv_image_available_semaphores;
+  std::vector<vk::Semaphore> m_vhv_render_finished_semaphores;
+  std::vector<vk::Fence> m_vhv_in_flight_fences;
+  std::vector<vk::Fence> m_vhv_images_in_flight;
 
-  vk::Format swapChainImageFormat;
-  vk::Extent2D swapChainExtent;
+  vk::Format m_swap_chain_image_format;
+  vk::Extent2D m_swap_chain_extent;
 
-  std::vector<vk::Framebuffer> swapChainFramebuffers;
-  vk::RenderPass renderPass;
+  std::vector<vk::Framebuffer> m_vhv_swap_chain_framebuffers;
+  vk::RenderPass m_vh_render_pass;
 
-  std::vector<vk::Image> depthImages;
-  std::vector<vk::DeviceMemory> depthImageMemorys;
-  std::vector<vk::ImageView> depthImageViews;
-  std::vector<vk::Image> swapChainImages;
-  std::vector<vk::ImageView> swapChainImageViews;
+  std::vector<vk::Image> m_vhv_depth_images;
+  std::vector<vk::DeviceMemory> m_vhv_depth_image_memorys;
+  std::vector<vk::ImageView> m_vhv_depth_image_views;
+  std::vector<vk::Image> m_vhv_swap_chain_images;
+  std::vector<vk::ImageView> m_vhv_swap_chain_image_views;
 
-  vk::SwapchainKHR swapChain;
+  vk::SwapchainKHR m_vh_swap_chain;
 
-  size_t currentFrame = 0;
+  size_t m_current_frame = 0;
 
  public:
-  HelloTriangleSwapChain(Device const& deviceRef);
+  HelloTriangleSwapChain(Device const& device_ref);
   ~HelloTriangleSwapChain();
 
   HelloTriangleSwapChain(HelloTriangleSwapChain const&) = delete;
   void operator=(HelloTriangleSwapChain const&) = delete;
 
-  void setup(vk::Extent2D windowExtent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface);
+  void setup(vk::Extent2D window_extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface);
 
-  vk::Framebuffer getFrameBuffer(int index) const { return swapChainFramebuffers[index]; }
-  vk::RenderPass getRenderPass() const { return renderPass; }
-  vk::ImageView getImageView(int index) { return swapChainImageViews[index]; }
-  size_t imageCount() const { return swapChainImages.size(); }
-  vk::Format getSwapChainImageFormat() const { return swapChainImageFormat; }
-  vk::Extent2D getSwapChainExtent() const { return swapChainExtent; }
-  uint32_t width() const { return swapChainExtent.width; }
-  uint32_t height() const { return swapChainExtent.height; }
+  vk::Framebuffer vh_frame_buffer(int index) const { return m_vhv_swap_chain_framebuffers[index]; }
+  vk::RenderPass vh_render_pass() const { return m_vh_render_pass; }
+  vk::ImageView vh_image_view(int index) { return m_vhv_swap_chain_image_views[index]; }
+  size_t image_count() const { return m_vhv_swap_chain_images.size(); }
+  vk::Format get_swap_chain_image_format() const { return m_swap_chain_image_format; }
+  vk::Extent2D get_swap_chain_extent() const { return m_swap_chain_extent; }
+  uint32_t width() const { return m_swap_chain_extent.width; }
+  uint32_t height() const { return m_swap_chain_extent.height; }
 
-  float extentAspectRatio() {
-    return static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height);
+  float extent_aspect_ratio()
+  {
+    return static_cast<float>(m_swap_chain_extent.width) / static_cast<float>(m_swap_chain_extent.height);
   }
 
   uint32_t acquireNextImage();
-  void submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex);
+  void submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const image_index);
 
  private:
-  void createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue);
+  void createSwapChain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue);
   void createImageViews();
   void createDepthResources();
   void createRenderPass();
@@ -80,7 +81,7 @@ class HelloTriangleSwapChain
   void createSyncObjects();
 
   // Helper function.
-  vk::Format findDepthFormat();
+  vk::Format find_depth_format();
 };
 
 } // namespace vulkan

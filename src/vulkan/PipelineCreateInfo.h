@@ -20,8 +20,8 @@ struct PipelineCreateInfo
   vk::PipelineColorBlendAttachmentState colorBlendAttachment;
   vk::PipelineColorBlendStateCreateInfo colorBlendInfo;
   vk::PipelineDepthStencilStateCreateInfo depthStencilInfo;
-  vk::PipelineLayout pipelineLayout;
-  vk::RenderPass renderPass;
+  vk::PipelineLayout m_vh_pipeline_layout;
+  vk::RenderPass m_vh_render_pass;
   uint32_t subpass = 0;
 
   void print_on(std::ostream& os) const;

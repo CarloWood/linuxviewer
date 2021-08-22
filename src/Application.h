@@ -52,13 +52,13 @@ class Application : public gui::Application
   vulkan::ExtensionLoader m_extension_loader;
 
   // Vulkan instance.
-  vk::UniqueInstance m_vulkan_instance;                 // Per application state. Creating a vk::Instance object initializes
+  vk::UniqueInstance m_uvh_instance;                    // Per application state. Creating a vk::Instance object initializes
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.
 #ifdef CWDEBUG
   // In order to get the order of destruction correct,
-  // this must be defined below m_vulkan_instance,
+  // this must be defined below m_vh_instance,
   // and preferably before m_vulkan_device.
   vulkan::DebugMessenger m_debug_messenger;             // Debug message utility extension. Print vulkan layer debug output to dc::vulkan.
 #endif
@@ -201,14 +201,14 @@ class Application : public gui::Application
 
  public:
   // Accessors.
-  vk::Instance vulkan_instance() const { return *m_vulkan_instance; }
+  vk::Instance vh_instance() const { return *m_uvh_instance; }
   std::shared_ptr<Window> main_window() const;
   Window const* main_window_ptr() const { return static_cast<Window const*>(m_main_window.get()); }
 
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
-  void createPipeline(vulkan::Device const& device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, VkPipelineLayout pipeline_layout_handle);
+  void createPipeline(vulkan::Device const& device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, vk::PipelineLayout vh_pipeline_layout);
 
  private:
   // Called from the main loop of the GUI.

@@ -21,9 +21,9 @@ Pipeline::Pipeline(
 
 Pipeline::~Pipeline()
 {
-  m_device->destroyShaderModule(vertShaderModule);
-  m_device->destroyShaderModule(fragShaderModule);
-  m_device->destroyPipeline(graphicsPipeline);
+  m_device->destroyShaderModule(m_vh_vertex_shader_module);
+  m_device->destroyShaderModule(m_vh_fragment_shader_module);
+  m_device->destroyPipeline(m_vh_graphics_pipeline);
 }
 
 std::vector<uint32_t> Pipeline::read_SPIRV_file(std::string const& filepath)
@@ -50,20 +50,20 @@ std::vector<uint32_t> Pipeline::read_SPIRV_file(std::string const& filepath)
 void Pipeline::createGraphicsPipeline(
     std::string const& vertFilepath, std::string const& fragFilepath, PipelineCreateInfo const& create_info)
 {
-  ASSERT(create_info.pipelineLayout &&
-      "Cannot create graphics pipeline: no pipelineLayout provided in create_info");
-  ASSERT(create_info.renderPass &&
-      "Cannot create graphics pipeline: no renderPass provided in create_info");
+  ASSERT(create_info.m_vh_pipeline_layout &&
+      "Cannot create graphics pipeline: no m_vh_pipeline_layout provided in create_info");
+  ASSERT(create_info.m_vh_render_pass &&
+      "Cannot create graphics pipeline: no m_vh_render_pass provided in create_info");
 
   auto vertCode = read_SPIRV_file(vertFilepath);
   auto fragCode = read_SPIRV_file(fragFilepath);
 
-  vertShaderModule = createShaderModule(vertCode);
-  fragShaderModule = createShaderModule(fragCode);
+  m_vh_vertex_shader_module = createShaderModule(vertCode);
+  m_vh_fragment_shader_module = createShaderModule(fragCode);
 
   std::array<vk::PipelineShaderStageCreateInfo, 2> shaderStages = {{
-    { {}, vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main", nullptr },
-    { {}, vk::ShaderStageFlagBits::eFragment, fragShaderModule, "main", nullptr },
+    { {}, vk::ShaderStageFlagBits::eVertex, m_vh_vertex_shader_module, "main", nullptr },
+    { {}, vk::ShaderStageFlagBits::eFragment, m_vh_fragment_shader_module, "main", nullptr },
   }};
 
   vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
@@ -78,8 +78,8 @@ void Pipeline::createGraphicsPipeline(
     .setPMultisampleState(&create_info.multisampleInfo)
     .setPColorBlendState(&create_info.colorBlendInfo)
     .setPDepthStencilState(&create_info.depthStencilInfo)
-    .setLayout(create_info.pipelineLayout)
-    .setRenderPass(create_info.renderPass)
+    .setLayout(create_info.m_vh_pipeline_layout)
+    .setRenderPass(create_info.m_vh_render_pass)
     .setSubpass(create_info.subpass)
     .setBasePipelineIndex(-1)
     ;
@@ -88,7 +88,7 @@ void Pipeline::createGraphicsPipeline(
   if (rv.result != vk::Result::eSuccess)
     throw std::runtime_error("failed to create graphics pipeline");
 
-  graphicsPipeline = rv.value[0];
+  m_vh_graphics_pipeline = rv.value[0];
 }
 
 vk::ShaderModule Pipeline::createShaderModule(std::vector<uint32_t> const& code)
@@ -102,7 +102,7 @@ vk::ShaderModule Pipeline::createShaderModule(std::vector<uint32_t> const& code)
 
 void Pipeline::bind(vk::CommandBuffer commandBuffer)
 {
-  commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
+  commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
 }
 
 void Pipeline::defaultPipelineCreateInfo(PipelineCreateInfo& create_info, uint32_t width, uint32_t height)

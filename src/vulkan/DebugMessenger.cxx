@@ -5,11 +5,11 @@
 
 namespace vulkan {
 
-void DebugMessenger::setup(vk::Instance vulkan_instance, vk::DebugUtilsMessengerCreateInfoEXT const& debug_create_info)
+void DebugMessenger::setup(vk::Instance vh_instance, vk::DebugUtilsMessengerCreateInfoEXT const& debug_create_info)
 {
   // Keep a copy, because we need that in the destructor.
-  m_vulkan_instance = vulkan_instance;
-  m_debug_messenger = m_vulkan_instance.createDebugUtilsMessengerEXTUnique(debug_create_info);
+  m_vh_instance = vh_instance;
+  m_uvh_debug_messenger = m_vh_instance.createDebugUtilsMessengerEXTUnique(debug_create_info);
 }
 
 } // namespace vulkan

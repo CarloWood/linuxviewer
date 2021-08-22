@@ -328,42 +328,42 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
-  auto physical_devices = vulkan_instance.enumeratePhysicalDevices();
+  auto vh_physical_devices = vulkan_instance.enumeratePhysicalDevices();
   auto const& required_extensions = device_create_info.device_extensions();
-  for (auto const& physical_device : physical_devices)
+  for (auto const& vh_physical_device : vh_physical_devices)
   {
-    QueueFamilies queue_families(physical_device, surface);
+    QueueFamilies queue_families(vh_physical_device, surface);
     if (queue_families.is_compatible_with(device_create_info, m_queue_replies))
     {
-      if (!find_missing_extensions(required_extensions, physical_device.enumerateDeviceExtensionProperties()).empty())
+      if (!find_missing_extensions(required_extensions, vh_physical_device.enumerateDeviceExtensionProperties()).empty())
         continue;
 
       // Use the first compatible device.
-      m_physical_device = physical_device;
+      m_vh_physical_device = vh_physical_device;
       break;
     }
   }
 
-  if (!m_physical_device)
+  if (!m_vh_physical_device)
     THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
 
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Properties:");
   {
     debug::Mark mark;
-    auto properties = m_physical_device.getProperties();
+    auto properties = m_vh_physical_device.getProperties();
     Dout(dc::vulkan, properties);
   }
   Dout(dc::vulkan, "Physical Device Features:");
   {
     debug::Mark mark;
-    auto features = m_physical_device.getFeatures();
+    auto features = m_vh_physical_device.getFeatures();
     Dout(dc::vulkan, features);
   }
   Dout(dc::vulkan, "Physical Device Extension Properties:");
   {
     debug::Mark mark;
-    auto extension_properties_list = m_physical_device.enumerateDeviceExtensionProperties();
+    auto extension_properties_list = m_vh_physical_device.enumerateDeviceExtensionProperties();
     for (auto&& extension_properties : extension_properties_list)
       Dout(dc::vulkan, extension_properties);
   }
@@ -394,20 +394,20 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   }
   device_create_info.setQueueCreateInfos(queue_create_infos);
 
-  Dout(dc::vulkan, "Calling m_physical_device.createDevice(" << device_create_info << ")");
-  m_device_handle = m_physical_device.createDeviceUnique(device_create_info);
+  Dout(dc::vulkan, "Calling m_vh_physical_device.createDevice(" << device_create_info << ")");
+  m_uvh_device = m_vh_physical_device.createDeviceUnique(device_create_info);
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  extension_loader.setup(vulkan_instance, *m_device_handle);
+  extension_loader.setup(vulkan_instance, *m_uvh_device);
 
 #ifdef CWDEBUG
   // Set the debug name of the device.
   // Note: when not using -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 this requires the extension_loader to be initialized (see the line above).
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eDevice,
-    (uint64_t)static_cast<VkDevice>(*m_device_handle),
+    (uint64_t)static_cast<VkDevice>(*m_uvh_device),
     device_create_info.debug_name()
   );
-  m_device_handle->setDebugUtilsObjectNameEXT(name_info);
+  m_uvh_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 
@@ -418,16 +418,16 @@ Device::~Device()
 
 void Device::create_command_pool(CommandPoolCreateInfo const& command_pool_create_info)
 {
-  m_command_pool = m_device_handle->createCommandPoolUnique(command_pool_create_info);
+  m_uvh_command_pool = m_uvh_device->createCommandPoolUnique(command_pool_create_info);
 
 #ifdef CWDEBUG
   // Set the debug name of the command pool.
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eCommandPool,
-    (uint64_t)static_cast<VkCommandPool>(*m_command_pool),
+    (uint64_t)static_cast<VkCommandPool>(*m_uvh_command_pool),
     command_pool_create_info.debug_name()
   );
-  m_device_handle->setDebugUtilsObjectNameEXT(name_info);
+  m_uvh_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 

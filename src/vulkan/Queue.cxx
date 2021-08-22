@@ -12,7 +12,7 @@ void Queue::print_on(std::ostream& os) const
 {
   os << '{';
   os << "m_queue_family:" << m_queue_family << ", ";
-  os << "m_queue:" << m_queue;
+  os << "m_vh_queue:" << m_vh_queue;
   os << '}';
 }
 #endif

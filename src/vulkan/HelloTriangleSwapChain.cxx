@@ -29,7 +29,7 @@ SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, 
 
   details.capabilities = physical_device.getSurfaceCapabilitiesKHR(surface);
   details.formats = physical_device.getSurfaceFormatsKHR(surface);
-  details.presentModes = physical_device.getSurfacePresentModesKHR(surface);
+  details.present_modes = physical_device.getSurfacePresentModesKHR(surface);
 
   return details;
 }
@@ -55,7 +55,7 @@ void createImageWithInfo(vk::ImageCreateInfo const& imageInfo, vk::MemoryPropert
 
   vk::MemoryAllocateInfo allocInfo{};
   allocInfo.allocationSize  = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.get_physical_device());
+  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.vh_physical_device());
 
   imageMemory = device->allocateMemory(allocInfo);
 
@@ -113,7 +113,7 @@ vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& 
   return vk::PresentModeKHR::eFifo;
 }
 
-vk::Format findSupportedFormat(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice physicalDevice)
+vk::Format find_supported_format(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice physicalDevice)
 {
   for (vk::Format format : candidates)
   {
@@ -128,15 +128,15 @@ vk::Format findSupportedFormat(std::vector<vk::Format> const& candidates, vk::Im
 } // namespace
 
 // Constructor.
-HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& deviceRef) : device{deviceRef} { }
+HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& device) : m_device{device} { }
 
 // And initialization.
 void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface)
 {
   DoutEntering(dc::vulkan, "HelloTriangleSwapChain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << surface << ")");
-  windowExtent = extent;
-  m_graphics_queue = graphics_queue.vk_handle();
-  m_present_queue = present_queue.vk_handle();
+  m_window_extent = extent;
+  m_vh_graphics_queue = graphics_queue.vh_queue();
+  m_vh_present_queue = present_queue.vh_queue();
   createSwapChain(surface, graphics_queue, present_queue);
   createImageViews();
   createRenderPass();
@@ -148,32 +148,32 @@ void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Qu
 // Destructor.
 HelloTriangleSwapChain::~HelloTriangleSwapChain()
 {
-  for (auto imageView : swapChainImageViews) { device->destroyImageView(imageView); }
-  swapChainImageViews.clear();
+  for (auto image_view : m_vhv_swap_chain_image_views) { m_device->destroyImageView(image_view); }
+  m_vhv_swap_chain_image_views.clear();
 
-  if (swapChain)
+  if (m_vh_swap_chain)
   {
-    device->destroySwapchainKHR(swapChain);
-    swapChain = nullptr;
+    m_device->destroySwapchainKHR(m_vh_swap_chain);
+    m_vh_swap_chain = nullptr;
   }
 
-  for (int i = 0; i < depthImages.size(); ++i)
+  for (int i = 0; i < m_vhv_depth_images.size(); ++i)
   {
-    device->destroyImageView(depthImageViews[i]);
-    device->destroyImage(depthImages[i]);
-    device->freeMemory(depthImageMemorys[i]);
+    m_device->destroyImageView(m_vhv_depth_image_views[i]);
+    m_device->destroyImage(m_vhv_depth_images[i]);
+    m_device->freeMemory(m_vhv_depth_image_memorys[i]);
   }
 
-  for (auto framebuffer : swapChainFramebuffers) { device->destroyFramebuffer(framebuffer); }
+  for (auto framebuffer : m_vhv_swap_chain_framebuffers) { m_device->destroyFramebuffer(framebuffer); }
 
-  device->destroyRenderPass(renderPass);
+  m_device->destroyRenderPass(m_vh_render_pass);
 
   // cleanup synchronization objects
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    device->destroySemaphore(renderFinishedSemaphores[i]);
-    device->destroySemaphore(imageAvailableSemaphores[i]);
-    device->destroyFence(inFlightFences[i]);
+    m_device->destroySemaphore(m_vhv_render_finished_semaphores[i]);
+    m_device->destroySemaphore(m_vhv_image_available_semaphores[i]);
+    m_device->destroyFence(m_vhv_in_flight_fences[i]);
   }
 }
 
@@ -183,27 +183,27 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
 
 void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue)
 {
-  vk::PhysicalDevice physicalDevice = device.get_physical_device();
-  SwapChainSupportDetails swapChainSupport = getSwapChainSupport(physicalDevice, surface);
+  vk::PhysicalDevice physicalDevice = m_device.vh_physical_device();
+  SwapChainSupportDetails swap_chain_support = getSwapChainSupport(physicalDevice, surface);
 
-  vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-  vk::PresentModeKHR presentMode     = chooseSwapPresentMode(swapChainSupport.presentModes);
-  vk::Extent2D extent                = chooseSwapExtent(swapChainSupport.capabilities, windowExtent);
+  vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swap_chain_support.formats);
+  vk::PresentModeKHR presentMode     = chooseSwapPresentMode(swap_chain_support.present_modes);
+  vk::Extent2D extent                = chooseSwapExtent(swap_chain_support.capabilities, m_window_extent);
 
-  uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-  if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    imageCount = swapChainSupport.capabilities.maxImageCount;
+  uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
+  if (swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount)
+    image_count = swap_chain_support.capabilities.maxImageCount;
 
   vk::SwapchainCreateInfoKHR createInfo;
   createInfo
     .setSurface(surface)
-    .setMinImageCount(imageCount)
+    .setMinImageCount(image_count)
     .setImageFormat(surfaceFormat.format)
     .setImageColorSpace(surfaceFormat.colorSpace)
     .setImageExtent(extent)
     .setImageArrayLayers(1)
     .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
-    .setPreTransform(swapChainSupport.capabilities.currentTransform)
+    .setPreTransform(swap_chain_support.capabilities.currentTransform)
     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
     .setPresentMode(presentMode)
     .setClipped(true)
@@ -223,35 +223,35 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graph
       ;
   }
 
-  swapChain = device->createSwapchainKHR(createInfo);
-  swapChainImages = device->getSwapchainImagesKHR(swapChain);
-  swapChainImageFormat = surfaceFormat.format;
-  swapChainExtent      = extent;
+  m_vh_swap_chain = m_device->createSwapchainKHR(createInfo);
+  m_vhv_swap_chain_images = m_device->getSwapchainImagesKHR(m_vh_swap_chain);
+  m_swap_chain_image_format = surfaceFormat.format;
+  m_swap_chain_extent      = extent;
 }
 
 void HelloTriangleSwapChain::createImageViews()
 {
-  swapChainImageViews.resize(swapChainImages.size());
-  for (size_t i = 0; i < swapChainImages.size(); ++i)
+  m_vhv_swap_chain_image_views.resize(m_vhv_swap_chain_images.size());
+  for (size_t i = 0; i < m_vhv_swap_chain_images.size(); ++i)
   {
     vk::ImageViewCreateInfo viewInfo;
-    viewInfo.image                           = swapChainImages[i];
+    viewInfo.image                           = m_vhv_swap_chain_images[i];
     viewInfo.viewType                        = vk::ImageViewType::e2D;
-    viewInfo.format                          = swapChainImageFormat;
+    viewInfo.format                          = m_swap_chain_image_format;
     viewInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
     viewInfo.subresourceRange.baseMipLevel   = 0;
     viewInfo.subresourceRange.levelCount     = 1;
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    swapChainImageViews[i] = device->createImageView(viewInfo);
+    m_vhv_swap_chain_image_views[i] = m_device->createImageView(viewInfo);
   }
 }
 
 void HelloTriangleSwapChain::createRenderPass()
 {
   vk::AttachmentDescription depthAttachment{};
-  depthAttachment.format         = findDepthFormat();
+  depthAttachment.format         = find_depth_format();
   depthAttachment.samples        = vk::SampleCountFlagBits::e1;
   depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
   depthAttachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
@@ -265,7 +265,7 @@ void HelloTriangleSwapChain::createRenderPass()
   depthAttachmentRef.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
   vk::AttachmentDescription colorAttachment;
-  colorAttachment.format                  = getSwapChainImageFormat();
+  colorAttachment.format                  = get_swap_chain_image_format();
   colorAttachment.samples                 = vk::SampleCountFlagBits::e1;
   colorAttachment.loadOp                  = vk::AttachmentLoadOp::eClear;
   colorAttachment.storeOp                 = vk::AttachmentStoreOp::eStore;
@@ -301,19 +301,19 @@ void HelloTriangleSwapChain::createRenderPass()
   renderPassInfo.dependencyCount                     = 1;
   renderPassInfo.pDependencies                       = &dependency;
 
-  renderPass = device->createRenderPass(renderPassInfo);
+  m_vh_render_pass = m_device->createRenderPass(renderPassInfo);
 }
 
 void HelloTriangleSwapChain::createDepthResources()
 {
-  vk::Format depthFormat       = findDepthFormat();
-  vk::Extent2D swapChainExtent = getSwapChainExtent();
+  vk::Format depthFormat       = find_depth_format();
+  vk::Extent2D swapChainExtent = get_swap_chain_extent();
 
-  depthImages.resize(imageCount());
-  depthImageMemorys.resize(imageCount());
-  depthImageViews.resize(imageCount());
+  m_vhv_depth_images.resize(image_count());
+  m_vhv_depth_image_memorys.resize(image_count());
+  m_vhv_depth_image_views.resize(image_count());
 
-  for (int i = 0; i < depthImages.size(); ++i)
+  for (int i = 0; i < m_vhv_depth_images.size(); ++i)
   {
     vk::ImageCreateInfo imageInfo;
     imageInfo.imageType     = vk::ImageType::e2D;
@@ -330,10 +330,10 @@ void HelloTriangleSwapChain::createDepthResources()
     imageInfo.sharingMode   = vk::SharingMode::eExclusive;
 //    imageInfo.flags         = 0;
 
-    createImageWithInfo(imageInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, depthImages[i], depthImageMemorys[i], device);
+    createImageWithInfo(imageInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, m_vhv_depth_images[i], m_vhv_depth_image_memorys[i], m_device);
 
     vk::ImageViewCreateInfo viewInfo;
-    viewInfo.image                           = depthImages[i];
+    viewInfo.image                           = m_vhv_depth_images[i];
     viewInfo.viewType                        = vk::ImageViewType::e2D;
     viewInfo.format                          = depthFormat;
     viewInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eDepth;
@@ -342,36 +342,36 @@ void HelloTriangleSwapChain::createDepthResources()
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount     = 1;
 
-    depthImageViews[i] = device->createImageView(viewInfo);
+    m_vhv_depth_image_views[i] = m_device->createImageView(viewInfo);
   }
 }
 
 void HelloTriangleSwapChain::createFramebuffers()
 {
-  swapChainFramebuffers.resize(imageCount());
-  for (size_t i = 0; i < imageCount(); ++i)
+  m_vhv_swap_chain_framebuffers.resize(image_count());
+  for (size_t i = 0; i < image_count(); ++i)
   {
-    std::array<vk::ImageView, 2> attachments = {swapChainImageViews[i], depthImageViews[i]};
+    std::array<vk::ImageView, 2> attachments = {m_vhv_swap_chain_image_views[i], m_vhv_depth_image_views[i]};
 
-    vk::Extent2D swapChainExtent              = getSwapChainExtent();
+    vk::Extent2D swap_chain_extent          = get_swap_chain_extent();
     vk::FramebufferCreateInfo framebufferInfo;
-    framebufferInfo.renderPass              = renderPass;
+    framebufferInfo.renderPass              = m_vh_render_pass;
     framebufferInfo.attachmentCount         = static_cast<uint32_t>(attachments.size());
     framebufferInfo.pAttachments            = attachments.data();
-    framebufferInfo.width                   = swapChainExtent.width;
-    framebufferInfo.height                  = swapChainExtent.height;
+    framebufferInfo.width                   = swap_chain_extent.width;
+    framebufferInfo.height                  = swap_chain_extent.height;
     framebufferInfo.layers                  = 1;
 
-    swapChainFramebuffers[i] = device->createFramebuffer(framebufferInfo);
+    m_vhv_swap_chain_framebuffers[i] = m_device->createFramebuffer(framebufferInfo);
   }
 }
 
 void HelloTriangleSwapChain::createSyncObjects()
 {
-  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-  imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
+  m_vhv_image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_images_in_flight.resize(image_count(), VK_NULL_HANDLE);
 
   vk::SemaphoreCreateInfo semaphoreInfo;
 
@@ -380,9 +380,9 @@ void HelloTriangleSwapChain::createSyncObjects()
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    imageAvailableSemaphores[i] = device->createSemaphore(semaphoreInfo);
-    renderFinishedSemaphores[i] = device->createSemaphore(semaphoreInfo);
-    inFlightFences[i] = device->createFence(fenceInfo);
+    m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphoreInfo);
+    m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphoreInfo);
+    m_vhv_in_flight_fences[i] = m_device->createFence(fenceInfo);
   }
 }
 
@@ -396,12 +396,12 @@ void HelloTriangleSwapChain::createSyncObjects()
 
 uint32_t HelloTriangleSwapChain::acquireNextImage()
 {
-  vk::Result wait_for_fences_result = device->waitForFences(1, &inFlightFences[currentFrame], true, std::numeric_limits<uint64_t>::max());
+  vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_in_flight_fences[m_current_frame], true, std::numeric_limits<uint64_t>::max());
   if (wait_for_fences_result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to wait for inFlightFences!");
+    throw std::runtime_error("Failed to wait for m_vhv_in_flight_fences!");
 
-  auto rv = device->acquireNextImageKHR(swapChain, std::numeric_limits<uint64_t>::max(),
-      imageAvailableSemaphores[currentFrame],  // must be a not signaled semaphore
+  auto rv = m_device->acquireNextImageKHR(m_vh_swap_chain, std::numeric_limits<uint64_t>::max(),
+      m_vhv_image_available_semaphores[m_current_frame],  // must be a not signaled semaphore
       {});
 
   if (rv.result != vk::Result::eSuccess && rv.result != vk::Result::eSuboptimalKHR)
@@ -412,42 +412,42 @@ uint32_t HelloTriangleSwapChain::acquireNextImage()
 
 void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex)
 {
-  if (imagesInFlight[imageIndex])
+  if (m_vhv_images_in_flight[imageIndex])
   {
-    vk::Result wait_for_fences_result = device->waitForFences(1, &imagesInFlight[imageIndex], true, std::numeric_limits<uint64_t>::max());
+    vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_images_in_flight[imageIndex], true, std::numeric_limits<uint64_t>::max());
     if (wait_for_fences_result != vk::Result::eSuccess)
-      throw std::runtime_error("Failed to wait for inFlightFences!");
+      throw std::runtime_error("Failed to wait for m_vhv_in_flight_fences!");
   }
-  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+  m_vhv_images_in_flight[imageIndex] = m_vhv_in_flight_fences[m_current_frame];
 
   vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
   vk::SubmitInfo submitInfo;
   submitInfo
-    .setWaitSemaphores(imageAvailableSemaphores[currentFrame])
+    .setWaitSemaphores(m_vhv_image_available_semaphores[m_current_frame])
     .setWaitDstStageMask(pipeline_stage_flags)
     .setCommandBuffers(buffers)
-    .setSignalSemaphores(renderFinishedSemaphores[currentFrame])
+    .setSignalSemaphores(m_vhv_render_finished_semaphores[m_current_frame])
     ;
 
-  vk::Result reset_fences_result = device->resetFences(1, &inFlightFences[currentFrame]);
+  vk::Result reset_fences_result = m_device->resetFences(1, &m_vhv_in_flight_fences[m_current_frame]);
   if (reset_fences_result != vk::Result::eSuccess)
-    throw std::runtime_error("Failed to reset fence for inFlightFences!");
+    throw std::runtime_error("Failed to reset fence for m_vhv_in_flight_fences!");
 
-  m_graphics_queue.submit(submitInfo, inFlightFences[currentFrame]);
+  m_vh_graphics_queue.submit(submitInfo, m_vhv_in_flight_fences[m_current_frame]);
 
   vk::PresentInfoKHR presentInfo;
   presentInfo
-    .setWaitSemaphores(renderFinishedSemaphores[currentFrame])
-    .setSwapchains(swapChain)
+    .setWaitSemaphores(m_vhv_render_finished_semaphores[m_current_frame])
+    .setSwapchains(m_vh_swap_chain)
     .setImageIndices(imageIndex)
     ;
 
-  auto result = m_present_queue.presentKHR(presentInfo);
+  auto result = m_vh_present_queue.presentKHR(presentInfo);
   if (result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to present swap chain image!");
 
-  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 // End of functions called by Window::drawFrame.
@@ -456,11 +456,11 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
 //=============================================================================
 // Private helper functions.
 
-vk::Format HelloTriangleSwapChain::findDepthFormat()
+vk::Format HelloTriangleSwapChain::find_depth_format()
 {
-  return findSupportedFormat(
+  return find_supported_format(
       { vk::Format::eD32Sfloat, vk::Format::eD32SfloatS8Uint, vk::Format::eD24UnormS8Uint }, vk::ImageTiling::eOptimal, vk::FormatFeatureFlagBits::eDepthStencilAttachment,
-      device.get_physical_device());
+      m_device.vh_physical_device());
 }
 
 } // namespace vulkan

@@ -15,7 +15,7 @@ class HelloTriangleSwapChain;
 class Window : public gui::Window
 {
  private:
-  vulkan::unique_handle<vk::SurfaceKHR> m_surface;
+  vulkan::unique_handle<vk::SurfaceKHR> m_uh_surface;
 
   // This had to be moved here for now...
   std::unique_ptr<vulkan::HelloTriangleSwapChain> m_swap_chain;
@@ -38,7 +38,7 @@ class Window : public gui::Window
 #endif
 
   // Accessors.
-  vk::SurfaceKHR surface() const { return m_surface; }
+  vk::SurfaceKHR vh_surface() const { return m_uh_surface; }
   vulkan::HelloTriangleSwapChain const* swap_chain_ptr() const { return m_swap_chain.get(); }
 
  private:

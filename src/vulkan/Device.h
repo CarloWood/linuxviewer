@@ -20,10 +20,10 @@ class ExtensionLoader;
 class Device
 {
  private:
-  vk::PhysicalDevice m_physical_device;         // The underlaying physical device.
-  vk::UniqueDevice m_device_handle;             // A handle to the logical device.
+  vk::PhysicalDevice m_vh_physical_device;      // The underlaying physical device.
+  vk::UniqueDevice m_uvh_device;                // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
-  vk::UniqueCommandPool m_command_pool;
+  vk::UniqueCommandPool m_uvh_command_pool;
 
  public:
   Device() = default;                           // Must be initialized by calling setup.
@@ -32,7 +32,7 @@ class Device
   Device(Device const&) = delete;
   void operator=(Device const&) = delete;
 
-  void setup(vk::Instance vulkan_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info);
+  void setup(vk::Instance vh_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR vh_surface, DeviceCreateInfo&& device_create_info);
 
   uint32_t number_of_queues(QueueRequestIndex request_index) const
   {
@@ -46,7 +46,7 @@ class Device
     // Use number_of_queues() to find out what the largest possible index is.
     ASSERT(queue_index < reply.number_of_queues());
     GPU_queue_family_handle const qfh = reply.get_queue_family_handle();
-    return { qfh, m_device_handle->getQueue(qfh.get_value(), queue_index) };
+    return { qfh, m_uvh_device->getQueue(qfh.get_value(), queue_index) };
   }
 
   GPU_queue_family_handle get_queue_family(QueueRequestIndex request_index) const
@@ -60,17 +60,17 @@ class Device
   // Member functions needed to make HelloTriangleSwapChain happy.
   vk::Device const* operator->() const
   {
-    return &*m_device_handle;
+    return &*m_uvh_device;
   }
 
-  vk::PhysicalDevice get_physical_device() const
+  vk::PhysicalDevice vh_physical_device() const
   {
-    return m_physical_device;
+    return m_vh_physical_device;
   }
 
-  vk::CommandPool get_command_pool() const
+  vk::CommandPool vh_command_pool() const
   {
-    return *m_command_pool;
+    return *m_uvh_command_pool;
   }
 
 #ifdef CWDEBUG
