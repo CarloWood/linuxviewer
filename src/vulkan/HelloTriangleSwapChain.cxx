@@ -2,8 +2,6 @@
 #include "HelloTriangleSwapChain.h"
 #include "SwapChainSupportDetails.h"
 #include "debug.h"
-
-// std
 #include <array>
 #include <cstdlib>
 #include <cstring>
@@ -11,7 +9,6 @@
 #include <limits>
 #include <set>
 #include <stdexcept>
-
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
 #endif
@@ -21,23 +18,23 @@ namespace vulkan {
 // Local helper functions.
 namespace {
 
-SwapChainSupportDetails getSwapChainSupport(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface)
+SwapChainSupportDetails get_swap_chain_support(vk::PhysicalDevice vh_physical_device, vk::SurfaceKHR vh_surface)
 {
-  DoutEntering(dc::vulkan, "getSwapChainSupport(" << physical_device << ", " << surface << ")");
+  DoutEntering(dc::vulkan, "get_swap_chain_support(" << vh_physical_device << ", " << vh_surface << ")");
 
   SwapChainSupportDetails details;
 
-  details.capabilities = physical_device.getSurfaceCapabilitiesKHR(surface);
-  details.formats = physical_device.getSurfaceFormatsKHR(surface);
-  details.present_modes = physical_device.getSurfacePresentModesKHR(surface);
+  details.capabilities = vh_physical_device.getSurfaceCapabilitiesKHR(vh_surface);
+  details.formats = vh_physical_device.getSurfaceFormatsKHR(vh_surface);
+  details.present_modes = vh_physical_device.getSurfacePresentModesKHR(vh_surface);
 
   return details;
 }
 
-uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice physicalDevice)
+uint32_t find_memory_type(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice vh_physical_device)
 {
   vk::PhysicalDeviceMemoryProperties memProperties;
-  memProperties = physicalDevice.getMemoryProperties();
+  memProperties = vh_physical_device.getMemoryProperties();
   for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
   {
     if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
@@ -46,23 +43,25 @@ uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties,
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void createImageWithInfo(vk::ImageCreateInfo const& imageInfo, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory, Device const& device)
+void create_image_with_info(vk::ImageCreateInfo const& image_create_info, vk::MemoryPropertyFlags properties, Device const& device,
+    // Output variables:
+    vk::Image& vh_image, vk::DeviceMemory& vh_image_memory)
 {
-  image = device->createImage(imageInfo);
+  vh_image = device->createImage(image_create_info);
 
-  vk::MemoryRequirements memRequirements;
-  device->getImageMemoryRequirements(image, &memRequirements);
+  vk::MemoryRequirements memory_requirements;
+  device->getImageMemoryRequirements(vh_image, &memory_requirements);
 
-  vk::MemoryAllocateInfo allocInfo{};
-  allocInfo.allocationSize  = memRequirements.size;
-  allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties, device.vh_physical_device());
+  vk::MemoryAllocateInfo alloc_create_info{};
+  alloc_create_info.allocationSize  = memory_requirements.size;
+  alloc_create_info.memoryTypeIndex = find_memory_type(memory_requirements.memoryTypeBits, properties, device.vh_physical_device());
 
-  imageMemory = device->allocateMemory(allocInfo);
+  vh_image_memory = device->allocateMemory(alloc_create_info);
 
-  device->bindImageMemory(image, imageMemory, 0);
+  device->bindImageMemory(vh_image, vh_image_memory, 0);
 }
 
-vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities, vk::Extent2D actualExtent)
+vk::Extent2D choose_swap_extent(vk::SurfaceCapabilitiesKHR const& capabilities, vk::Extent2D actual_extent)
 {
   if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
   {
@@ -70,42 +69,43 @@ vk::Extent2D chooseSwapExtent(vk::SurfaceCapabilitiesKHR const& capabilities, vk
   }
   else
   {
-    actualExtent.width      = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-    actualExtent.height     = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+    actual_extent.width  = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actual_extent.width));
+    actual_extent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actual_extent.height));
 
-    return actualExtent;
+    return actual_extent;
   }
 }
 
-vk::SurfaceFormatKHR chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const& availableFormats)
+vk::SurfaceFormatKHR choose_swap_surface_format(std::vector<vk::SurfaceFormatKHR> const& available_formats)
 {
-  for (auto const& availableFormat : availableFormats)
+  for (auto const& available_format : available_formats)
   {
-    if (availableFormat.format == vk::Format::eB8G8R8A8Unorm && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-      return availableFormat;
+    if (available_format.format == vk::Format::eB8G8R8A8Unorm && available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+      return available_format;
   }
 
   // This should have thrown an exception before we got here.
-  ASSERT(!availableFormats.empty());
-  return availableFormats[0];
+  ASSERT(!available_formats.empty());
+
+  return available_formats[0];
 }
 
-vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& availablePresentModes)
+vk::PresentModeKHR choose_swap_present_mode(std::vector<vk::PresentModeKHR> const& available_present_modes)
 {
-  // for (auto const& availablePresentMode : availablePresentModes)
+  // for (auto const& available_present_mode : available_present_modes)
   // {
-  //  if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+  //  if (available_present_mode == vk::PresentModeKHR::eMailbox)
   //  {
   //    Dout(dc::vulkan, "Present mode: Mailbox");
-  //    return availablePresentMode;
+  //    return available_present_mode;
   //  }
   // }
 
-  // for (auto const& availablePresentMode : availablePresentModes)
+  // for (auto const& available_present_mode : available_present_modes)
   // {
-  //   if (availablePresentMode == vk::PresentModeKHR::eImmediate) {
+  //   if (available_present_mode == vk::PresentModeKHR::eImmediate) {
   //     Dout(dc::vulkan, "Present mode: Immediate");
-  //     return availablePresentMode;
+  //     return available_present_mode;
   //   }
   // }
 
@@ -113,13 +113,13 @@ vk::PresentModeKHR chooseSwapPresentMode(std::vector<vk::PresentModeKHR> const& 
   return vk::PresentModeKHR::eFifo;
 }
 
-vk::Format find_supported_format(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice physicalDevice)
+vk::Format find_supported_format(std::vector<vk::Format> const& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features, vk::PhysicalDevice vh_physical_device)
 {
   for (vk::Format format : candidates)
   {
-    vk::FormatProperties props = physicalDevice.getFormatProperties(format);
-    if ((tiling == vk::ImageTiling::eLinear  && (props.linearTilingFeatures & features) == features) ||
-        (tiling == vk::ImageTiling::eOptimal && (props.optimalTilingFeatures & features) == features))
+    vk::FormatProperties properties = vh_physical_device.getFormatProperties(format);
+    if ((tiling == vk::ImageTiling::eLinear  && (properties.linearTilingFeatures & features) == features) ||
+        (tiling == vk::ImageTiling::eOptimal && (properties.optimalTilingFeatures & features) == features))
       return format;
   }
   throw std::runtime_error("failed to find supported format!");
@@ -131,13 +131,13 @@ vk::Format find_supported_format(std::vector<vk::Format> const& candidates, vk::
 HelloTriangleSwapChain::HelloTriangleSwapChain(Device const& device) : m_device{device} { }
 
 // And initialization.
-void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR surface)
+void HelloTriangleSwapChain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface)
 {
-  DoutEntering(dc::vulkan, "HelloTriangleSwapChain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << surface << ")");
+  DoutEntering(dc::vulkan, "HelloTriangleSwapChain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << vh_surface << ")");
   m_window_extent = extent;
   m_vh_graphics_queue = graphics_queue.vh_queue();
   m_vh_present_queue = present_queue.vh_queue();
-  createSwapChain(surface, graphics_queue, present_queue);
+  createSwapChain(vh_surface, graphics_queue, present_queue);
   createImageViews();
   createRenderPass();
   createDepthResources();
@@ -181,22 +181,22 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
 // Functions called by setup
 //
 
-void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graphics_queue, Queue present_queue)
+void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue)
 {
-  vk::PhysicalDevice physicalDevice = m_device.vh_physical_device();
-  SwapChainSupportDetails swap_chain_support = getSwapChainSupport(physicalDevice, surface);
+  vk::PhysicalDevice vh_physical_device = m_device.vh_physical_device();
+  SwapChainSupportDetails swap_chain_support = get_swap_chain_support(vh_physical_device, vh_surface);
 
-  vk::SurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swap_chain_support.formats);
-  vk::PresentModeKHR presentMode     = chooseSwapPresentMode(swap_chain_support.present_modes);
-  vk::Extent2D extent                = chooseSwapExtent(swap_chain_support.capabilities, m_window_extent);
+  vk::SurfaceFormatKHR surfaceFormat = choose_swap_surface_format(swap_chain_support.formats);
+  vk::PresentModeKHR presentMode     = choose_swap_present_mode(swap_chain_support.present_modes);
+  vk::Extent2D extent                = choose_swap_extent(swap_chain_support.capabilities, m_window_extent);
 
   uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
   if (swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount)
     image_count = swap_chain_support.capabilities.maxImageCount;
 
-  vk::SwapchainCreateInfoKHR createInfo;
-  createInfo
-    .setSurface(surface)
+  vk::SwapchainCreateInfoKHR create_info;
+  create_info
+    .setSurface(vh_surface)
     .setMinImageCount(image_count)
     .setImageFormat(surfaceFormat.format)
     .setImageColorSpace(surfaceFormat.colorSpace)
@@ -210,20 +210,20 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR surface, Queue graph
     ;
 
   if (graphics_queue.queue_family() == present_queue.queue_family())
-    createInfo
+    create_info
       .setImageSharingMode(vk::SharingMode::eExclusive)
       ;
   else
   {
     uint32_t queueFamilyIndices[] = { static_cast<uint32_t>(graphics_queue.queue_family().get_value()), static_cast<uint32_t>(present_queue.queue_family().get_value()) };
-    createInfo
+    create_info
       .setImageSharingMode(vk::SharingMode::eConcurrent)
       .setQueueFamilyIndexCount(2)
       .setPQueueFamilyIndices(queueFamilyIndices)
       ;
   }
 
-  m_vh_swap_chain = m_device->createSwapchainKHR(createInfo);
+  m_vh_swap_chain = m_device->createSwapchainKHR(create_info);
   m_vhv_swap_chain_images = m_device->getSwapchainImagesKHR(m_vh_swap_chain);
   m_swap_chain_image_format = surfaceFormat.format;
   m_swap_chain_extent      = extent;
@@ -250,39 +250,39 @@ void HelloTriangleSwapChain::createImageViews()
 
 void HelloTriangleSwapChain::createRenderPass()
 {
-  vk::AttachmentDescription depthAttachment{};
-  depthAttachment.format         = find_depth_format();
-  depthAttachment.samples        = vk::SampleCountFlagBits::e1;
-  depthAttachment.loadOp         = vk::AttachmentLoadOp::eClear;
-  depthAttachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-  depthAttachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  depthAttachment.initialLayout  = vk::ImageLayout::eUndefined;
-  depthAttachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  vk::AttachmentDescription depth_attachment{};
+  depth_attachment.format         = find_depth_format();
+  depth_attachment.samples        = vk::SampleCountFlagBits::e1;
+  depth_attachment.loadOp         = vk::AttachmentLoadOp::eClear;
+  depth_attachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
+  depth_attachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+  depth_attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+  depth_attachment.initialLayout  = vk::ImageLayout::eUndefined;
+  depth_attachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-  vk::AttachmentReference depthAttachmentRef{};
-  depthAttachmentRef.attachment = 1;
-  depthAttachmentRef.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  vk::AttachmentReference depth_attachment_ref{};
+  depth_attachment_ref.attachment = 1;
+  depth_attachment_ref.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-  vk::AttachmentDescription colorAttachment;
-  colorAttachment.format                  = get_swap_chain_image_format();
-  colorAttachment.samples                 = vk::SampleCountFlagBits::e1;
-  colorAttachment.loadOp                  = vk::AttachmentLoadOp::eClear;
-  colorAttachment.storeOp                 = vk::AttachmentStoreOp::eStore;
-  colorAttachment.stencilStoreOp          = vk::AttachmentStoreOp::eDontCare;
-  colorAttachment.stencilLoadOp           = vk::AttachmentLoadOp::eDontCare;
-  colorAttachment.initialLayout           = vk::ImageLayout::eUndefined;
-  colorAttachment.finalLayout             = vk::ImageLayout::ePresentSrcKHR;
+  vk::AttachmentDescription color_attachment;
+  color_attachment.format                  = get_swap_chain_image_format();
+  color_attachment.samples                 = vk::SampleCountFlagBits::e1;
+  color_attachment.loadOp                  = vk::AttachmentLoadOp::eClear;
+  color_attachment.storeOp                 = vk::AttachmentStoreOp::eStore;
+  color_attachment.stencilStoreOp          = vk::AttachmentStoreOp::eDontCare;
+  color_attachment.stencilLoadOp           = vk::AttachmentLoadOp::eDontCare;
+  color_attachment.initialLayout           = vk::ImageLayout::eUndefined;
+  color_attachment.finalLayout             = vk::ImageLayout::ePresentSrcKHR;
 
-  vk::AttachmentReference colorAttachmentRef;
-  colorAttachmentRef.attachment            = 0;
-  colorAttachmentRef.layout                = vk::ImageLayout::eColorAttachmentOptimal;
+  vk::AttachmentReference color_attachment_ref;
+  color_attachment_ref.attachment            = 0;
+  color_attachment_ref.layout                = vk::ImageLayout::eColorAttachmentOptimal;
 
   vk::SubpassDescription subpass;
   subpass.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
   subpass.colorAttachmentCount    = 1;
-  subpass.pColorAttachments       = &colorAttachmentRef;
-  subpass.pDepthStencilAttachment = &depthAttachmentRef;
+  subpass.pColorAttachments       = &color_attachment_ref;
+  subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
   vk::SubpassDependency dependency;
   dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
@@ -292,22 +292,22 @@ void HelloTriangleSwapChain::createRenderPass()
   dependency.dstStageMask        = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
   dependency.dstAccessMask       = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 
-  std::array<vk::AttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-  vk::RenderPassCreateInfo renderPassInfo;
-  renderPassInfo.attachmentCount                     = static_cast<uint32_t>(attachments.size());
-  renderPassInfo.pAttachments                        = attachments.data();
-  renderPassInfo.subpassCount                        = 1;
-  renderPassInfo.pSubpasses                          = &subpass;
-  renderPassInfo.dependencyCount                     = 1;
-  renderPassInfo.pDependencies                       = &dependency;
+  std::array<vk::AttachmentDescription, 2> attachments = { color_attachment, depth_attachment };
+  vk::RenderPassCreateInfo render_pass_info;
+  render_pass_info.attachmentCount                     = static_cast<uint32_t>(attachments.size());
+  render_pass_info.pAttachments                        = attachments.data();
+  render_pass_info.subpassCount                        = 1;
+  render_pass_info.pSubpasses                          = &subpass;
+  render_pass_info.dependencyCount                     = 1;
+  render_pass_info.pDependencies                       = &dependency;
 
-  m_vh_render_pass = m_device->createRenderPass(renderPassInfo);
+  m_vh_render_pass = m_device->createRenderPass(render_pass_info);
 }
 
 void HelloTriangleSwapChain::createDepthResources()
 {
-  vk::Format depthFormat       = find_depth_format();
-  vk::Extent2D swapChainExtent = get_swap_chain_extent();
+  vk::Format depth_format       = find_depth_format();
+  vk::Extent2D swap_chain_extent = get_swap_chain_extent();
 
   m_vhv_depth_images.resize(image_count());
   m_vhv_depth_image_memorys.resize(image_count());
@@ -315,34 +315,35 @@ void HelloTriangleSwapChain::createDepthResources()
 
   for (int i = 0; i < m_vhv_depth_images.size(); ++i)
   {
-    vk::ImageCreateInfo imageInfo;
-    imageInfo.imageType     = vk::ImageType::e2D;
-    imageInfo.extent.width  = swapChainExtent.width;
-    imageInfo.extent.height = swapChainExtent.height;
-    imageInfo.extent.depth  = 1;
-    imageInfo.mipLevels     = 1;
-    imageInfo.arrayLayers   = 1;
-    imageInfo.format        = depthFormat;
-    imageInfo.tiling        = vk::ImageTiling::eOptimal;
-    imageInfo.initialLayout = vk::ImageLayout::eUndefined;
-    imageInfo.usage         = vk::ImageUsageFlagBits::eDepthStencilAttachment;
-    imageInfo.samples       = vk::SampleCountFlagBits::e1;
-    imageInfo.sharingMode   = vk::SharingMode::eExclusive;
-//    imageInfo.flags         = 0;
+    vk::ImageCreateInfo image_create_info;
+    image_create_info.imageType     = vk::ImageType::e2D;
+    image_create_info.extent.width  = swap_chain_extent.width;
+    image_create_info.extent.height = swap_chain_extent.height;
+    image_create_info.extent.depth  = 1;
+    image_create_info.mipLevels     = 1;
+    image_create_info.arrayLayers   = 1;
+    image_create_info.format        = depth_format;
+    image_create_info.tiling        = vk::ImageTiling::eOptimal;
+    image_create_info.initialLayout = vk::ImageLayout::eUndefined;
+    image_create_info.usage         = vk::ImageUsageFlagBits::eDepthStencilAttachment;
+    image_create_info.samples       = vk::SampleCountFlagBits::e1;
+    image_create_info.sharingMode   = vk::SharingMode::eExclusive;
 
-    createImageWithInfo(imageInfo, vk::MemoryPropertyFlagBits::eDeviceLocal, m_vhv_depth_images[i], m_vhv_depth_image_memorys[i], m_device);
+    // Fill m_vhv_depth_images[i] and m_vhv_depth_image_memorys[i].
+    create_image_with_info(image_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal, m_device,
+        m_vhv_depth_images[i], m_vhv_depth_image_memorys[i]);
 
-    vk::ImageViewCreateInfo viewInfo;
-    viewInfo.image                           = m_vhv_depth_images[i];
-    viewInfo.viewType                        = vk::ImageViewType::e2D;
-    viewInfo.format                          = depthFormat;
-    viewInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eDepth;
-    viewInfo.subresourceRange.baseMipLevel   = 0;
-    viewInfo.subresourceRange.levelCount     = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount     = 1;
+    vk::ImageViewCreateInfo image_view_create_info;
+    image_view_create_info.image                           = m_vhv_depth_images[i];
+    image_view_create_info.viewType                        = vk::ImageViewType::e2D;
+    image_view_create_info.format                          = depth_format;
+    image_view_create_info.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eDepth;
+    image_view_create_info.subresourceRange.baseMipLevel   = 0;
+    image_view_create_info.subresourceRange.levelCount     = 1;
+    image_view_create_info.subresourceRange.baseArrayLayer = 0;
+    image_view_create_info.subresourceRange.layerCount     = 1;
 
-    m_vhv_depth_image_views[i] = m_device->createImageView(viewInfo);
+    m_vhv_depth_image_views[i] = m_device->createImageView(image_view_create_info);
   }
 }
 
@@ -351,18 +352,18 @@ void HelloTriangleSwapChain::createFramebuffers()
   m_vhv_swap_chain_framebuffers.resize(image_count());
   for (size_t i = 0; i < image_count(); ++i)
   {
-    std::array<vk::ImageView, 2> attachments = {m_vhv_swap_chain_image_views[i], m_vhv_depth_image_views[i]};
+    std::array<vk::ImageView, 2> attachments = { m_vhv_swap_chain_image_views[i], m_vhv_depth_image_views[i] };
 
-    vk::Extent2D swap_chain_extent          = get_swap_chain_extent();
-    vk::FramebufferCreateInfo framebufferInfo;
-    framebufferInfo.renderPass              = m_vh_render_pass;
-    framebufferInfo.attachmentCount         = static_cast<uint32_t>(attachments.size());
-    framebufferInfo.pAttachments            = attachments.data();
-    framebufferInfo.width                   = swap_chain_extent.width;
-    framebufferInfo.height                  = swap_chain_extent.height;
-    framebufferInfo.layers                  = 1;
+    vk::Extent2D swap_chain_extent = get_swap_chain_extent();
+    vk::FramebufferCreateInfo framebuffer_create_info;
+    framebuffer_create_info.renderPass      = m_vh_render_pass;
+    framebuffer_create_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebuffer_create_info.pAttachments    = attachments.data();
+    framebuffer_create_info.width           = swap_chain_extent.width;
+    framebuffer_create_info.height          = swap_chain_extent.height;
+    framebuffer_create_info.layers          = 1;
 
-    m_vhv_swap_chain_framebuffers[i] = m_device->createFramebuffer(framebufferInfo);
+    m_vhv_swap_chain_framebuffers[i] = m_device->createFramebuffer(framebuffer_create_info);
   }
 }
 
@@ -373,16 +374,16 @@ void HelloTriangleSwapChain::createSyncObjects()
   m_vhv_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
   m_vhv_images_in_flight.resize(image_count(), VK_NULL_HANDLE);
 
-  vk::SemaphoreCreateInfo semaphoreInfo;
+  vk::SemaphoreCreateInfo semaphore_create_info;
 
-  vk::FenceCreateInfo fenceInfo;
-  fenceInfo.flags             = vk::FenceCreateFlagBits::eSignaled;
+  vk::FenceCreateInfo fence_create_info;
+  fence_create_info.flags = vk::FenceCreateFlagBits::eSignaled;
 
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
   {
-    m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphoreInfo);
-    m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphoreInfo);
-    m_vhv_in_flight_fences[i] = m_device->createFence(fenceInfo);
+    m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
+    m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
+    m_vhv_in_flight_fences[i] = m_device->createFence(fence_create_info);
   }
 }
 
@@ -422,8 +423,8 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
 
   vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-  vk::SubmitInfo submitInfo;
-  submitInfo
+  vk::SubmitInfo submit_info;
+  submit_info
     .setWaitSemaphores(m_vhv_image_available_semaphores[m_current_frame])
     .setWaitDstStageMask(pipeline_stage_flags)
     .setCommandBuffers(buffers)
@@ -434,16 +435,16 @@ void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffe
   if (reset_fences_result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to reset fence for m_vhv_in_flight_fences!");
 
-  m_vh_graphics_queue.submit(submitInfo, m_vhv_in_flight_fences[m_current_frame]);
+  m_vh_graphics_queue.submit(submit_info, m_vhv_in_flight_fences[m_current_frame]);
 
-  vk::PresentInfoKHR presentInfo;
-  presentInfo
+  vk::PresentInfoKHR present_info;
+  present_info
     .setWaitSemaphores(m_vhv_render_finished_semaphores[m_current_frame])
     .setSwapchains(m_vh_swap_chain)
     .setImageIndices(imageIndex)
     ;
 
-  auto result = m_vh_present_queue.presentKHR(presentInfo);
+  auto result = m_vh_present_queue.presentKHR(present_info);
   if (result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to present swap chain image!");
 
