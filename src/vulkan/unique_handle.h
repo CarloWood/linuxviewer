@@ -15,19 +15,18 @@ namespace vulkan {
 // This RAII class is used to hold Vulkan handles; just like a std::unique_ptr, but for Vulkan handles instead of pointers.
 //
 // It will call deleter upon destruction.
-// It also support move operations, implemented by swapping, which will correctly destruct the old resource,
-// since the right value argument get destructed right after the operation
-// It does not support copy operation
+// It also supports move operations, implemented by swapping, which will correctly destruct the old resource,
+// since the right value argument get destructed right after the operation. It does not support copy operation.
 //
 // Typical usage:
 //
-//   vulkan::unique_handle<vk::DescriptorSetLayout> camera_descriptor_set_layout
+//   vulkan::unique_handle<vk::DescriptorSetLayout> uh_camera_descriptor_set_layout
 //
 //   You can allocate unique_handle as class member in advance and then when you are allocating the resource
 //
-//   camera_descriptor_set_layout = vulkan::unique_handle<vk::DescriptorSetLayout>(
-//	device.createDescriptorSetLayout(create_info, nullptr),
-//	[device = this->device](auto& layout){ device.destroyDescriptorSetLayout(layout); }
+//   uh_camera_descriptor_set_layout = vulkan::unique_handle<vk::DescriptorSetLayout>(
+//	vh_device.createDescriptorSetLayout(create_info, nullptr),
+//	[vh_device = this->vh_device](auto& vh_layout){ vh_device.destroyDescriptorSetLayout(vh_layout); }
 //   )
 //
 template <typename T>
@@ -40,8 +39,8 @@ class unique_handle
  public:
   using obj_t = T;
 
-  unique_handle() : object(nullptr), deleter([](T&) {}) {}
-  unique_handle(T obj, std::function<void(T&)> deleter) : object(obj), deleter(deleter) {}
+  unique_handle() : object(nullptr), deleter([](T&) {}) { }
+  unique_handle(T obj, std::function<void(T&)> deleter) : object(obj), deleter(deleter) { }
   ~unique_handle() { cleanup(); }
 
   unique_handle<T>& operator=(unique_handle<T> const&) = delete;
@@ -55,12 +54,16 @@ class unique_handle
     swap(*this, other);
   }
 
+  // Get a reference to the underlaying Vulkan Handle.
   T& get() { return object; }
-  const T& get() const { return object; }
+  T const& get() const { return object; }
 
-  operator T const &() const { return object; }
+  // Get a pointer to the underlaying Vulkan Handle.
+  T* operator->() { return &object; }
+  T const* operator->() const { return &object; }
 
-  T* data() { return &object; }
+  // Allow using the unary * operator to get a const-reference.
+  T const& operator*() const { return object; }
 
   unique_handle<T>& operator=(unique_handle<T>&& other)
   {
