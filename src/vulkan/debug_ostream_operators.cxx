@@ -254,6 +254,32 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceProperties const& physi
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, SurfaceCapabilitiesKHR const& surface_capabilities)
+{
+  os << '{';
+  os << "minImageCount:" << surface_capabilities.minImageCount << ", ";
+  os << "maxImageCount:" << surface_capabilities.maxImageCount << ", ";
+  os << "currentExtent:" << surface_capabilities.currentExtent << ", ";
+  os << "minImageExtent:" << surface_capabilities.minImageExtent << ", ";
+  os << "maxImageExtent:" << surface_capabilities.maxImageExtent << ", ";
+  os << "maxImageArrayLayers:" << surface_capabilities.maxImageArrayLayers << ", ";
+  os << "supportedTransforms:" << surface_capabilities.supportedTransforms << ", ";
+  os << "currentTransform:" << surface_capabilities.currentTransform << ", ";
+  os << "supportedCompositeAlpha:" << surface_capabilities.supportedCompositeAlpha << ", ";
+  os << "supportedUsageFlags:" << surface_capabilities.supportedUsageFlags;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, SurfaceFormatKHR const& surface_format)
+{
+  os << '{';
+  os << "format:" << surface_format.format << ", ";
+  os << "colorSpace:" << surface_format.colorSpace;
+  os << '}';
+  return os;
+}
+
 } // namespace vk
 
 #endif // CWDEBUG

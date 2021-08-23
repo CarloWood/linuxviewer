@@ -1,6 +1,5 @@
 #include "sys.h"
 #include "HelloTriangleSwapChain.h"
-#include "SwapChainSupportDetails.h"
 #include "debug.h"
 #include <array>
 #include <cstdlib>
@@ -17,19 +16,6 @@ namespace vulkan {
 
 // Local helper functions.
 namespace {
-
-SwapChainSupportDetails get_swap_chain_support(vk::PhysicalDevice vh_physical_device, vk::SurfaceKHR vh_surface)
-{
-  DoutEntering(dc::vulkan, "get_swap_chain_support(" << vh_physical_device << ", " << vh_surface << ")");
-
-  SwapChainSupportDetails details;
-
-  details.capabilities = vh_physical_device.getSurfaceCapabilitiesKHR(vh_surface);
-  details.formats = vh_physical_device.getSurfaceFormatsKHR(vh_surface);
-  details.present_modes = vh_physical_device.getSurfacePresentModesKHR(vh_surface);
-
-  return details;
-}
 
 uint32_t find_memory_type(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice vh_physical_device)
 {
@@ -61,16 +47,16 @@ void create_image_with_info(vk::ImageCreateInfo const& image_create_info, vk::Me
   device->bindImageMemory(vh_image, vh_image_memory, 0);
 }
 
-vk::Extent2D choose_swap_extent(vk::SurfaceCapabilitiesKHR const& capabilities, vk::Extent2D actual_extent)
+vk::Extent2D choose_swap_extent(vk::SurfaceCapabilitiesKHR const& surface_capabilities, vk::Extent2D actual_extent)
 {
-  if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+  if (surface_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
   {
-    return capabilities.currentExtent;
+    return surface_capabilities.currentExtent;
   }
   else
   {
-    actual_extent.width  = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actual_extent.width));
-    actual_extent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actual_extent.height));
+    actual_extent.width  = std::max(surface_capabilities.minImageExtent.width, std::min(surface_capabilities.maxImageExtent.width, actual_extent.width));
+    actual_extent.height = std::max(surface_capabilities.minImageExtent.height, std::min(surface_capabilities.maxImageExtent.height, actual_extent.height));
 
     return actual_extent;
   }
@@ -183,29 +169,37 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
 
 void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue)
 {
+  DoutEntering(dc::vulkan, "HelloTriangleSwapChain::createSwapChain(" << vh_surface << ", " << graphics_queue << ", " << present_queue << ")");
+
+  // Query supported surface details.
   vk::PhysicalDevice vh_physical_device = m_device.vh_physical_device();
-  SwapChainSupportDetails swap_chain_support = get_swap_chain_support(vh_physical_device, vh_surface);
+  vk::SurfaceCapabilitiesKHR surface_capabilities = vh_physical_device.getSurfaceCapabilitiesKHR(vh_surface);
+  Dout(dc::vulkan, "surface_capabilities: " << surface_capabilities);
+  std::vector<vk::SurfaceFormatKHR> surface_formats = vh_physical_device.getSurfaceFormatsKHR(vh_surface);
+  Dout(dc::vulkan, "surface_formats: " << surface_formats);
+  std::vector<vk::PresentModeKHR> available_present_modes = vh_physical_device.getSurfacePresentModesKHR(vh_surface);
+  Dout(dc::vulkan, "available_present_modes: " << available_present_modes);
 
-  vk::SurfaceFormatKHR surfaceFormat = choose_swap_surface_format(swap_chain_support.formats);
-  vk::PresentModeKHR presentMode     = choose_swap_present_mode(swap_chain_support.present_modes);
-  vk::Extent2D extent                = choose_swap_extent(swap_chain_support.capabilities, m_window_extent);
+  vk::SurfaceFormatKHR surface_format = choose_swap_surface_format(surface_formats);
+  vk::PresentModeKHR present_mode     = choose_swap_present_mode(available_present_modes);
+  vk::Extent2D extent                 = choose_swap_extent(surface_capabilities, m_window_extent);
 
-  uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
-  if (swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount)
-    image_count = swap_chain_support.capabilities.maxImageCount;
+  uint32_t image_count = surface_capabilities.minImageCount + 1;
+  if (surface_capabilities.maxImageCount > 0 && image_count > surface_capabilities.maxImageCount)
+    image_count = surface_capabilities.maxImageCount;
 
   vk::SwapchainCreateInfoKHR create_info;
   create_info
     .setSurface(vh_surface)
     .setMinImageCount(image_count)
-    .setImageFormat(surfaceFormat.format)
-    .setImageColorSpace(surfaceFormat.colorSpace)
+    .setImageFormat(surface_format.format)
+    .setImageColorSpace(surface_format.colorSpace)
     .setImageExtent(extent)
     .setImageArrayLayers(1)
     .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
-    .setPreTransform(swap_chain_support.capabilities.currentTransform)
+    .setPreTransform(surface_capabilities.currentTransform)
     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
-    .setPresentMode(presentMode)
+    .setPresentMode(present_mode)
     .setClipped(true)
     ;
 
@@ -225,7 +219,7 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue gr
 
   m_vh_swap_chain = m_device->createSwapchainKHR(create_info);
   m_vhv_swap_chain_images = m_device->getSwapchainImagesKHR(m_vh_swap_chain);
-  m_swap_chain_image_format = surfaceFormat.format;
+  m_swap_chain_image_format = surface_format.format;
   m_swap_chain_extent      = extent;
 }
 
