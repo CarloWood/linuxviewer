@@ -17,13 +17,13 @@ namespace vulkan {
 // Local helper functions.
 namespace {
 
-uint32_t find_memory_type(uint32_t typeFilter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice vh_physical_device)
+uint32_t find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties, vk::PhysicalDevice vh_physical_device)
 {
-  vk::PhysicalDeviceMemoryProperties memProperties;
-  memProperties = vh_physical_device.getMemoryProperties();
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+  vk::PhysicalDeviceMemoryProperties memory_properties;
+  memory_properties = vh_physical_device.getMemoryProperties();
+  for (uint32_t i = 0; i < memory_properties.memoryTypeCount; i++)
   {
-    if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
+    if ((type_filter & (1 << i)) && (memory_properties.memoryTypes[i].propertyFlags & properties) == properties) { return i; }
   }
 
   throw std::runtime_error("failed to find suitable memory type!");
@@ -62,18 +62,25 @@ vk::Extent2D choose_swap_extent(vk::SurfaceCapabilitiesKHR const& surface_capabi
   }
 }
 
-vk::SurfaceFormatKHR choose_swap_surface_format(std::vector<vk::SurfaceFormatKHR> const& available_formats)
+vk::SurfaceFormatKHR choose_swap_surface_format(std::vector<vk::SurfaceFormatKHR> const& surface_formats)
 {
-  for (auto const& available_format : available_formats)
+  // FIXME: shouldn't we prefer B8G8R8A8Srgb ?
+
+  // If the list contains only one entry with undefined format
+  // it means that there are no preferred surface formats and any can be chosen
+  if (surface_formats.size() == 1 && surface_formats[0].format == vk::Format::eUndefined)
+    return { vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
+
+  for (auto const& surface_format : surface_formats)
   {
-    if (available_format.format == vk::Format::eB8G8R8A8Unorm && available_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-      return available_format;
+    if (surface_format.format == vk::Format::eB8G8R8A8Unorm && surface_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+      return surface_format;
   }
 
   // This should have thrown an exception before we got here.
-  ASSERT(!available_formats.empty());
+  ASSERT(!surface_formats.empty());
 
-  return available_formats[0];
+  return surface_formats[0];
 }
 
 vk::PresentModeKHR choose_swap_present_mode(std::vector<vk::PresentModeKHR> const& available_present_modes)
@@ -174,19 +181,25 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue gr
   // Query supported surface details.
   vk::PhysicalDevice vh_physical_device = m_device.vh_physical_device();
   vk::SurfaceCapabilitiesKHR surface_capabilities = vh_physical_device.getSurfaceCapabilitiesKHR(vh_surface);
-  Dout(dc::vulkan, "surface_capabilities: " << surface_capabilities);
+  Dout(dc::vulkan, "Surface capabilities: " << surface_capabilities);
   std::vector<vk::SurfaceFormatKHR> surface_formats = vh_physical_device.getSurfaceFormatsKHR(vh_surface);
-  Dout(dc::vulkan, "surface_formats: " << surface_formats);
+  Dout(dc::vulkan, "Supported surface formats: " << surface_formats);
   std::vector<vk::PresentModeKHR> available_present_modes = vh_physical_device.getSurfacePresentModesKHR(vh_surface);
-  Dout(dc::vulkan, "available_present_modes: " << available_present_modes);
+  Dout(dc::vulkan, "Available present modes: " << available_present_modes);
 
   vk::SurfaceFormatKHR surface_format = choose_swap_surface_format(surface_formats);
-  vk::PresentModeKHR present_mode     = choose_swap_present_mode(available_present_modes);
-  vk::Extent2D extent                 = choose_swap_extent(surface_capabilities, m_window_extent);
+  Dout(dc::vulkan, "Chosen surface format: " << surface_format);
+  m_swap_chain_image_format = surface_format.format;
 
+  vk::PresentModeKHR present_mode = choose_swap_present_mode(available_present_modes);
+  Dout(dc::vulkan, "Chosen present mode: " << present_mode);
+  m_swap_chain_extent = choose_swap_extent(surface_capabilities, m_window_extent);
+
+  // Choose the number of swap chain images.
   uint32_t image_count = surface_capabilities.minImageCount + 1;
   if (surface_capabilities.maxImageCount > 0 && image_count > surface_capabilities.maxImageCount)
     image_count = surface_capabilities.maxImageCount;
+  Dout(dc::vulkan, "Requesting " << image_count << " swap chain images (with extent " << m_swap_chain_extent << ")");
 
   vk::SwapchainCreateInfoKHR create_info;
   create_info
@@ -194,7 +207,7 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue gr
     .setMinImageCount(image_count)
     .setImageFormat(surface_format.format)
     .setImageColorSpace(surface_format.colorSpace)
-    .setImageExtent(extent)
+    .setImageExtent(m_swap_chain_extent)
     .setImageArrayLayers(1)
     .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
     .setPreTransform(surface_capabilities.currentTransform)
@@ -209,18 +222,19 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue gr
       ;
   else
   {
-    uint32_t queueFamilyIndices[] = { static_cast<uint32_t>(graphics_queue.queue_family().get_value()), static_cast<uint32_t>(present_queue.queue_family().get_value()) };
+    uint32_t queue_family_indices[] = { static_cast<uint32_t>(graphics_queue.queue_family().get_value()), static_cast<uint32_t>(present_queue.queue_family().get_value()) };
     create_info
       .setImageSharingMode(vk::SharingMode::eConcurrent)
       .setQueueFamilyIndexCount(2)
-      .setPQueueFamilyIndices(queueFamilyIndices)
+      .setPQueueFamilyIndices(queue_family_indices)
       ;
   }
 
+  Dout(dc::vulkan, "Calling Device::createSwapchainKHR(" << create_info << ")");
   m_vh_swap_chain = m_device->createSwapchainKHR(create_info);
+
   m_vhv_swap_chain_images = m_device->getSwapchainImagesKHR(m_vh_swap_chain);
-  m_swap_chain_image_format = surface_format.format;
-  m_swap_chain_extent      = extent;
+  Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_swap_chain_images.size());
 }
 
 void HelloTriangleSwapChain::createImageViews()
@@ -228,23 +242,23 @@ void HelloTriangleSwapChain::createImageViews()
   m_vhv_swap_chain_image_views.resize(m_vhv_swap_chain_images.size());
   for (size_t i = 0; i < m_vhv_swap_chain_images.size(); ++i)
   {
-    vk::ImageViewCreateInfo viewInfo;
-    viewInfo.image                           = m_vhv_swap_chain_images[i];
-    viewInfo.viewType                        = vk::ImageViewType::e2D;
-    viewInfo.format                          = m_swap_chain_image_format;
-    viewInfo.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
-    viewInfo.subresourceRange.baseMipLevel   = 0;
-    viewInfo.subresourceRange.levelCount     = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount     = 1;
+    vk::ImageViewCreateInfo view_info;
+    view_info.image                           = m_vhv_swap_chain_images[i];
+    view_info.viewType                        = vk::ImageViewType::e2D;
+    view_info.format                          = m_swap_chain_image_format;
+    view_info.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
+    view_info.subresourceRange.baseMipLevel   = 0;
+    view_info.subresourceRange.levelCount     = 1;
+    view_info.subresourceRange.baseArrayLayer = 0;
+    view_info.subresourceRange.layerCount     = 1;
 
-    m_vhv_swap_chain_image_views[i] = m_device->createImageView(viewInfo);
+    m_vhv_swap_chain_image_views[i] = m_device->createImageView(view_info);
   }
 }
 
 void HelloTriangleSwapChain::createRenderPass()
 {
-  vk::AttachmentDescription depth_attachment{};
+  vk::AttachmentDescription depth_attachment;
   depth_attachment.format         = find_depth_format();
   depth_attachment.samples        = vk::SampleCountFlagBits::e1;
   depth_attachment.loadOp         = vk::AttachmentLoadOp::eClear;
@@ -254,7 +268,7 @@ void HelloTriangleSwapChain::createRenderPass()
   depth_attachment.initialLayout  = vk::ImageLayout::eUndefined;
   depth_attachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-  vk::AttachmentReference depth_attachment_ref{};
+  vk::AttachmentReference depth_attachment_ref;
   depth_attachment_ref.attachment = 1;
   depth_attachment_ref.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 

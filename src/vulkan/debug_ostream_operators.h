@@ -55,5 +55,6 @@ std::ostream& operator<<(std::ostream& os, ExtensionProperties const& extension_
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceProperties const& physical_device_properties);
 std::ostream& operator<<(std::ostream& os, SurfaceCapabilitiesKHR const& surface_capabilities);
 std::ostream& operator<<(std::ostream& os, SurfaceFormatKHR const& surface_format);
+std::ostream& operator<<(std::ostream& os, SwapchainCreateInfoKHR const& swap_chain_create_info);
 
 } // namespace vk

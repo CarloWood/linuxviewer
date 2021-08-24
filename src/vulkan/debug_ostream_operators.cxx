@@ -280,6 +280,30 @@ std::ostream& operator<<(std::ostream& os, SurfaceFormatKHR const& surface_forma
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, SwapchainCreateInfoKHR const& swap_chain_create_info)
+{
+  os << '{';
+  os << "pNext:" << swap_chain_create_info.pNext << ", ";
+  os << "flags:" << swap_chain_create_info.flags << ", ";
+  os << "surface:" << swap_chain_create_info.surface << ", ";
+  os << "minImageCount:" << swap_chain_create_info.minImageCount << ", ";
+  os << "imageFormat:" << swap_chain_create_info.imageFormat << ", ";
+  os << "imageColorSpace:" << swap_chain_create_info.imageColorSpace << ", ";
+  os << "imageExtent:" << swap_chain_create_info.imageExtent << ", ";
+  os << "imageArrayLayers:" << swap_chain_create_info.imageArrayLayers << ", ";
+  os << "imageUsage:" << swap_chain_create_info.imageUsage << ", ";
+  os << "imageSharingMode:" << swap_chain_create_info.imageSharingMode << ", ";
+  os << "queueFamilyIndexCount:" << swap_chain_create_info.queueFamilyIndexCount << ", ";
+  os << "pQueueFamilyIndices:" << swap_chain_create_info.pQueueFamilyIndices << ", ";
+  os << "preTransform:" << swap_chain_create_info.preTransform << ", ";
+  os << "compositeAlpha:" << swap_chain_create_info.compositeAlpha << ", ";
+  os << "presentMode:" << swap_chain_create_info.presentMode << ", ";
+  os << "clipped:" << swap_chain_create_info.clipped << ", ";
+  os << "oldSwapchain:" << swap_chain_create_info.oldSwapchain;
+  os << '}';
+  return os;
+}
+
 } // namespace vk
 
 #endif // CWDEBUG
