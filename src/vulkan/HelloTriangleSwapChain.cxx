@@ -242,15 +242,20 @@ void HelloTriangleSwapChain::createImageViews()
   m_vhv_swap_chain_image_views.resize(m_vhv_swap_chain_images.size());
   for (size_t i = 0; i < m_vhv_swap_chain_images.size(); ++i)
   {
+    vk::ImageSubresourceRange image_subresource_range;
+    image_subresource_range
+      .setAspectMask(vk::ImageAspectFlagBits::eColor)
+      .setBaseMipLevel(0)
+      .setLevelCount(1)
+      .setBaseArrayLayer(0)
+      .setLayerCount(1);
+
     vk::ImageViewCreateInfo view_info;
-    view_info.image                           = m_vhv_swap_chain_images[i];
-    view_info.viewType                        = vk::ImageViewType::e2D;
-    view_info.format                          = m_swap_chain_image_format;
-    view_info.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eColor;
-    view_info.subresourceRange.baseMipLevel   = 0;
-    view_info.subresourceRange.levelCount     = 1;
-    view_info.subresourceRange.baseArrayLayer = 0;
-    view_info.subresourceRange.layerCount     = 1;
+    view_info
+      .setImage(m_vhv_swap_chain_images[i])
+      .setViewType(vk::ImageViewType::e2D)
+      .setFormat(m_swap_chain_image_format)
+      .setSubresourceRange(image_subresource_range);
 
     m_vhv_swap_chain_image_views[i] = m_device->createImageView(view_info);
   }
@@ -259,55 +264,58 @@ void HelloTriangleSwapChain::createImageViews()
 void HelloTriangleSwapChain::createRenderPass()
 {
   vk::AttachmentDescription depth_attachment;
-  depth_attachment.format         = find_depth_format();
-  depth_attachment.samples        = vk::SampleCountFlagBits::e1;
-  depth_attachment.loadOp         = vk::AttachmentLoadOp::eClear;
-  depth_attachment.storeOp        = vk::AttachmentStoreOp::eDontCare;
-  depth_attachment.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-  depth_attachment.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-  depth_attachment.initialLayout  = vk::ImageLayout::eUndefined;
-  depth_attachment.finalLayout    = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  depth_attachment
+    .setFormat(find_depth_format())
+    .setSamples(vk::SampleCountFlagBits::e1)
+    .setLoadOp(vk::AttachmentLoadOp::eClear)
+    .setStoreOp(vk::AttachmentStoreOp::eDontCare)
+    .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+    .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+    .setInitialLayout(vk::ImageLayout::eUndefined)
+    .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
   vk::AttachmentReference depth_attachment_ref;
-  depth_attachment_ref.attachment = 1;
-  depth_attachment_ref.layout     = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  depth_attachment_ref
+    .setAttachment(1)
+    .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
   vk::AttachmentDescription color_attachment;
-  color_attachment.format                  = get_swap_chain_image_format();
-  color_attachment.samples                 = vk::SampleCountFlagBits::e1;
-  color_attachment.loadOp                  = vk::AttachmentLoadOp::eClear;
-  color_attachment.storeOp                 = vk::AttachmentStoreOp::eStore;
-  color_attachment.stencilStoreOp          = vk::AttachmentStoreOp::eDontCare;
-  color_attachment.stencilLoadOp           = vk::AttachmentLoadOp::eDontCare;
-  color_attachment.initialLayout           = vk::ImageLayout::eUndefined;
-  color_attachment.finalLayout             = vk::ImageLayout::ePresentSrcKHR;
+  color_attachment
+    .setFormat(get_swap_chain_image_format())
+    .setSamples(vk::SampleCountFlagBits::e1)
+    .setLoadOp(vk::AttachmentLoadOp::eClear)
+    .setStoreOp(vk::AttachmentStoreOp::eStore)
+    .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+    .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+    .setInitialLayout(vk::ImageLayout::eUndefined)
+    .setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
   vk::AttachmentReference color_attachment_ref;
-  color_attachment_ref.attachment            = 0;
-  color_attachment_ref.layout                = vk::ImageLayout::eColorAttachmentOptimal;
+  color_attachment_ref
+    .setAttachment(0)
+    .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
   vk::SubpassDescription subpass;
-  subpass.pipelineBindPoint       = vk::PipelineBindPoint::eGraphics;
-  subpass.colorAttachmentCount    = 1;
-  subpass.pColorAttachments       = &color_attachment_ref;
-  subpass.pDepthStencilAttachment = &depth_attachment_ref;
+  subpass
+    .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+    .setColorAttachments(color_attachment_ref)
+    .setPDepthStencilAttachment(&depth_attachment_ref);
 
   vk::SubpassDependency dependency;
-  dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
-  dependency.srcAccessMask       = vk::AccessFlagBits::eNoneKHR;
-  dependency.srcStageMask        = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
-  dependency.dstSubpass          = 0;
-  dependency.dstStageMask        = vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests;
-  dependency.dstAccessMask       = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+  dependency
+    .setSrcSubpass(VK_SUBPASS_EXTERNAL)
+    .setSrcAccessMask(vk::AccessFlagBits::eNoneKHR)
+    .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests)
+    .setDstSubpass(0)
+    .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests)
+    .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite);
 
   std::array<vk::AttachmentDescription, 2> attachments = { color_attachment, depth_attachment };
   vk::RenderPassCreateInfo render_pass_info;
-  render_pass_info.attachmentCount                     = static_cast<uint32_t>(attachments.size());
-  render_pass_info.pAttachments                        = attachments.data();
-  render_pass_info.subpassCount                        = 1;
-  render_pass_info.pSubpasses                          = &subpass;
-  render_pass_info.dependencyCount                     = 1;
-  render_pass_info.pDependencies                       = &dependency;
+  render_pass_info
+    .setAttachments(attachments)
+    .setSubpasses(subpass)
+    .setDependencies(dependency);
 
   m_vh_render_pass = m_device->createRenderPass(render_pass_info);
 }
@@ -324,33 +332,38 @@ void HelloTriangleSwapChain::createDepthResources()
   for (int i = 0; i < m_vhv_depth_images.size(); ++i)
   {
     vk::ImageCreateInfo image_create_info;
-    image_create_info.imageType     = vk::ImageType::e2D;
-    image_create_info.extent.width  = swap_chain_extent.width;
-    image_create_info.extent.height = swap_chain_extent.height;
-    image_create_info.extent.depth  = 1;
-    image_create_info.mipLevels     = 1;
-    image_create_info.arrayLayers   = 1;
-    image_create_info.format        = depth_format;
-    image_create_info.tiling        = vk::ImageTiling::eOptimal;
-    image_create_info.initialLayout = vk::ImageLayout::eUndefined;
-    image_create_info.usage         = vk::ImageUsageFlagBits::eDepthStencilAttachment;
-    image_create_info.samples       = vk::SampleCountFlagBits::e1;
-    image_create_info.sharingMode   = vk::SharingMode::eExclusive;
+    image_create_info
+      .setImageType(vk::ImageType::e2D)
+      .setExtent({swap_chain_extent.width, swap_chain_extent.height, 1})
+      .setMipLevels(1)
+      .setArrayLayers(1)
+      .setFormat(depth_format)
+      .setTiling(vk::ImageTiling::eOptimal)
+      .setInitialLayout(vk::ImageLayout::eUndefined)
+      .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+      .setSamples(vk::SampleCountFlagBits::e1)
+      .setSharingMode(vk::SharingMode::eExclusive);
 
     // Fill m_vhv_depth_images[i] and m_vhv_depth_image_memorys[i].
     create_image_with_info(image_create_info, vk::MemoryPropertyFlagBits::eDeviceLocal, m_device,
         m_vhv_depth_images[i], m_vhv_depth_image_memorys[i]);
 
-    vk::ImageViewCreateInfo image_view_create_info;
-    image_view_create_info.image                           = m_vhv_depth_images[i];
-    image_view_create_info.viewType                        = vk::ImageViewType::e2D;
-    image_view_create_info.format                          = depth_format;
-    image_view_create_info.subresourceRange.aspectMask     = vk::ImageAspectFlagBits::eDepth;
-    image_view_create_info.subresourceRange.baseMipLevel   = 0;
-    image_view_create_info.subresourceRange.levelCount     = 1;
-    image_view_create_info.subresourceRange.baseArrayLayer = 0;
-    image_view_create_info.subresourceRange.layerCount     = 1;
+    vk::ImageSubresourceRange image_subresource_range;
+    image_subresource_range
+      .setAspectMask(vk::ImageAspectFlagBits::eDepth)
+      .setBaseMipLevel(0)
+      .setLevelCount(1)
+      .setBaseArrayLayer(0)
+      .setLayerCount(1);
 
+    vk::ImageViewCreateInfo image_view_create_info;
+    image_view_create_info
+      .setImage(m_vhv_depth_images[i])
+      .setViewType(vk::ImageViewType::e2D)
+      .setFormat(depth_format)
+      .setSubresourceRange(image_subresource_range);
+
+    // Fill m_vhv_depth_image_views[i].
     m_vhv_depth_image_views[i] = m_device->createImageView(image_view_create_info);
   }
 }
@@ -364,12 +377,12 @@ void HelloTriangleSwapChain::createFramebuffers()
 
     vk::Extent2D swap_chain_extent = get_swap_chain_extent();
     vk::FramebufferCreateInfo framebuffer_create_info;
-    framebuffer_create_info.renderPass      = m_vh_render_pass;
-    framebuffer_create_info.attachmentCount = static_cast<uint32_t>(attachments.size());
-    framebuffer_create_info.pAttachments    = attachments.data();
-    framebuffer_create_info.width           = swap_chain_extent.width;
-    framebuffer_create_info.height          = swap_chain_extent.height;
-    framebuffer_create_info.layers          = 1;
+    framebuffer_create_info
+      .setRenderPass(m_vh_render_pass)
+      .setAttachments(attachments)
+      .setWidth(swap_chain_extent.width)
+      .setHeight(swap_chain_extent.height)
+      .setLayers(1);
 
     m_vhv_swap_chain_framebuffers[i] = m_device->createFramebuffer(framebuffer_create_info);
   }
