@@ -2,13 +2,15 @@
 
 #include "Device.h"
 #include "Queue.h"
-
-#include <vulkan/vulkan.h>
-
+#include "utils/Vector.h"
 #include <string>
-#include <vector>
 
 namespace vulkan {
+
+class SwapChain;
+
+// An index for Vectors containing swap chain images, image views and their related vk::Semaphore and vk::Fence.
+using SwapChainIndex = utils::VectorIndex<SwapChain>;
 
 class HelloTriangleSwapChain
 {
@@ -24,25 +26,31 @@ class HelloTriangleSwapChain
   vk::Queue m_vh_graphics_queue;
   vk::Queue m_vh_present_queue;
 
-  // createSyncObjects
-  std::vector<vk::Semaphore> m_vhv_image_available_semaphores;
-  std::vector<vk::Semaphore> m_vhv_render_finished_semaphores;
-  std::vector<vk::Fence> m_vhv_in_flight_fences;
-  std::vector<vk::Fence> m_vhv_images_in_flight;
-
+  // createSwapChain
   vk::Format m_swap_chain_image_format;
   vk::Extent2D m_swap_chain_extent;
+  vk::SwapchainKHR m_vh_swap_chain;
+  utils::Vector<vk::Image, SwapChainIndex> m_vhv_swap_chain_images;
 
-  std::vector<vk::Framebuffer> m_vhv_swap_chain_framebuffers;
+  // createImageViews
+  utils::Vector<vk::ImageView, SwapChainIndex> m_vhv_swap_chain_image_views;
+
+  // createSyncObjects
+  utils::Vector<vk::Semaphore, SwapChainIndex> m_vhv_image_available_semaphores;
+  utils::Vector<vk::Semaphore, SwapChainIndex> m_vhv_render_finished_semaphores;
+  utils::Vector<vk::Fence, SwapChainIndex> m_vhv_in_flight_fences;
+  utils::Vector<vk::Fence, SwapChainIndex> m_vhv_images_in_flight;
+
+  // createRenderPass
   vk::RenderPass m_vh_render_pass;
 
+  // createDepthResources
   std::vector<vk::Image> m_vhv_depth_images;
   std::vector<vk::DeviceMemory> m_vhv_depth_image_memorys;
   std::vector<vk::ImageView> m_vhv_depth_image_views;
-  std::vector<vk::Image> m_vhv_swap_chain_images;
-  std::vector<vk::ImageView> m_vhv_swap_chain_image_views;
 
-  vk::SwapchainKHR m_vh_swap_chain;
+  // createFramebuffers
+  std::vector<vk::Framebuffer> m_vhv_swap_chain_framebuffers;
 
   size_t m_current_frame = 0;
 
@@ -75,10 +83,10 @@ class HelloTriangleSwapChain
  private:
   void createSwapChain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue);
   void createImageViews();
+  void createSyncObjects();
   void createDepthResources();
   void createRenderPass();
   void createFramebuffers();
-  void createSyncObjects();
 
   // Helper function.
   vk::Format find_depth_format();
