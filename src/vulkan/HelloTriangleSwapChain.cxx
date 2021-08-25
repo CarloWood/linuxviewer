@@ -261,6 +261,26 @@ void HelloTriangleSwapChain::createImageViews()
   }
 }
 
+void HelloTriangleSwapChain::createSyncObjects()
+{
+  m_vhv_image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_images_in_flight.resize(image_count(), VK_NULL_HANDLE);
+
+  vk::SemaphoreCreateInfo semaphore_create_info;
+
+  vk::FenceCreateInfo fence_create_info;
+  fence_create_info.flags = vk::FenceCreateFlagBits::eSignaled;
+
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  {
+    m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
+    m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
+    m_vhv_in_flight_fences[i] = m_device->createFence(fence_create_info);
+  }
+}
+
 void HelloTriangleSwapChain::createRenderPass()
 {
   vk::AttachmentDescription depth_attachment;
@@ -385,26 +405,6 @@ void HelloTriangleSwapChain::createFramebuffers()
       .setLayers(1);
 
     m_vhv_swap_chain_framebuffers[i] = m_device->createFramebuffer(framebuffer_create_info);
-  }
-}
-
-void HelloTriangleSwapChain::createSyncObjects()
-{
-  m_vhv_image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_vhv_render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_vhv_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
-  m_vhv_images_in_flight.resize(image_count(), VK_NULL_HANDLE);
-
-  vk::SemaphoreCreateInfo semaphore_create_info;
-
-  vk::FenceCreateInfo fence_create_info;
-  fence_create_info.flags = vk::FenceCreateFlagBits::eSignaled;
-
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-  {
-    m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
-    m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
-    m_vhv_in_flight_fences[i] = m_device->createFence(fence_create_info);
   }
 }
 
