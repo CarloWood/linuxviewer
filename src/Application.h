@@ -9,7 +9,7 @@
 #include "vulkan/InstanceCreateInfo.h"
 #include "vulkan/ExtensionLoader.h"
 #include "vulkan/Pipeline.h"
-#include "vulkan/HelloTriangleSwapChain.h"
+#include "vulkan/HelloTriangleSwapchain.h"
 #include "vulkan/DeviceCreateInfo.h"
 #include "vulkan/CommandPoolCreateInfo.h"
 #include "statefultask/AIEngine.h"
@@ -123,7 +123,7 @@ class Application : public gui::Application
     istMainWindow,
     istDebugMessenger,
     istVulkanDevice,
-    istSwapChain,
+    istSwapchain,
     istPipeline,
     istCommandBuffers,
     istRun
@@ -143,14 +143,14 @@ class Application : public gui::Application
   Application& create_debug_messenger(DebugUtilsMessengerCreateInfoEXT&& debug_create_info = DebugUtilsMessengerCreateInfoEXT{});
 #endif
   Application& create_vulkan_device(vulkan::DeviceCreateInfo&& device_create_info = vulkan::DeviceCreateInfo{});
-  Application& create_swap_chain();
+  Application& create_swapchain();
   Application& create_pipeline();
   Application& create_command_buffers(vulkan::CommandPoolCreateInfo&& command_pool_create_info = vulkan::CommandPoolCreateInfo{});
 
   // Called from create_vulkan_device, after creating the vulkan device.
   virtual void init_queue_handles() = 0;
 
-  virtual void create_swap_chain_impl() = 0;
+  virtual void create_swapchain_impl() = 0;
 
   // Start the GUI main loop.
   void run();
@@ -208,7 +208,7 @@ class Application : public gui::Application
  private:
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
   vk::PipelineLayout createPipelineLayout(vulkan::Device const& device);
-  void createPipeline(vulkan::Device const& device_handle, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, vk::PipelineLayout vh_pipeline_layout);
+  void createPipeline(vulkan::Device const& device_handle, vulkan::HelloTriangleSwapchain const* swapchain_ptr, vk::PipelineLayout vh_pipeline_layout);
 
  private:
   // Called from the main loop of the GUI.

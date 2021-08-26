@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
       .create_main_window(std::move(main_window_create_info))
       CWDEBUG_ONLY(.create_debug_messenger(std::move(debug_create_info)))
       .create_vulkan_device(std::move(device_create_info))
-      .create_swap_chain()
+      .create_swapchain()
       .create_pipeline()
       .create_command_buffers(std::move(command_pool_create_info))
       ;

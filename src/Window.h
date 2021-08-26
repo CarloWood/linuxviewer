@@ -9,7 +9,7 @@
 namespace vulkan {
 class Pipeline;
 class Device;
-class HelloTriangleSwapChain;
+class HelloTriangleSwapchain;
 } // namespace vulkan
 
 class Window : public gui::Window
@@ -18,14 +18,14 @@ class Window : public gui::Window
   vulkan::unique_handle<vk::SurfaceKHR> m_uh_surface;
 
   // This had to be moved here for now...
-  std::unique_ptr<vulkan::HelloTriangleSwapChain> m_swap_chain;
+  std::unique_ptr<vulkan::HelloTriangleSwapchain> m_swapchain;
   std::vector<vk::CommandBuffer> m_command_buffers;             // The vulkan command buffers that this application uses.
 
  public:
   using gui::Window::Window;
   ~Window();
 
-  void create_swap_chain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
+  void create_swapchain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
   void draw_frame();
 
@@ -39,7 +39,7 @@ class Window : public gui::Window
 
   // Accessors.
   vk::SurfaceKHR vh_surface() const { return *m_uh_surface; }
-  vulkan::HelloTriangleSwapChain const* swap_chain_ptr() const { return m_swap_chain.get(); }
+  vulkan::HelloTriangleSwapchain const* swapchain_ptr() const { return m_swapchain.get(); }
 
  private:
   void create_surface();

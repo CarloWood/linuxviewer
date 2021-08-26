@@ -57,7 +57,7 @@ class Device
 
   void create_command_pool(CommandPoolCreateInfo const& command_pool_create_info);
 
-  // Member functions needed to make HelloTriangleSwapChain happy.
+  // Member functions needed to make HelloTriangleSwapchain happy.
   vk::Device const* operator->() const
   {
     return &*m_uvh_device;

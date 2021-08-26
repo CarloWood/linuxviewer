@@ -90,8 +90,8 @@ void Application::initialization_state(InitializationState const state)
       case istVulkanDevice:
         create_vulkan_device(vulkan::DeviceCreateInfo{});
         break;
-      case istSwapChain:
-        create_swap_chain();
+      case istSwapchain:
+        create_swapchain();
         break;
       case istPipeline:
         create_pipeline();
@@ -163,11 +163,11 @@ Application& Application::create_vulkan_device(vulkan::DeviceCreateInfo&& device
   return *this;
 }
 
-Application& Application::create_swap_chain()
+Application& Application::create_swapchain()
 {
-  initialization_state(istSwapChain);
+  initialization_state(istSwapchain);
 
-  create_swap_chain_impl();
+  create_swapchain_impl();
   return *this;
 }
 
@@ -176,7 +176,7 @@ Application& Application::create_pipeline()
   initialization_state(istPipeline);
 
   vk::PipelineLayout vh_pipeline_layout = createPipelineLayout(m_vulkan_device);
-  createPipeline(m_vulkan_device, main_window_ptr()->swap_chain_ptr(), vh_pipeline_layout);
+  createPipeline(m_vulkan_device, main_window_ptr()->swapchain_ptr(), vh_pipeline_layout);
   m_vulkan_device->destroyPipelineLayout(vh_pipeline_layout);
   return *this;
 }
@@ -224,11 +224,11 @@ vk::PipelineLayout Application::createPipelineLayout(vulkan::Device const& devic
   return vh_pipelineLayout;
 }
 
-void Application::createPipeline(vulkan::Device const& device, vulkan::HelloTriangleSwapChain const* swap_chain_ptr, vk::PipelineLayout vh_pipeline_layout)
+void Application::createPipeline(vulkan::Device const& device, vulkan::HelloTriangleSwapchain const* swapchain_ptr, vk::PipelineLayout vh_pipeline_layout)
 {
   vulkan::PipelineCreateInfo pipelineConfig{};
-  vulkan::Pipeline::defaultPipelineCreateInfo(pipelineConfig, swap_chain_ptr->width(), swap_chain_ptr->height());
-  pipelineConfig.m_vh_render_pass = swap_chain_ptr->vh_render_pass();
+  vulkan::Pipeline::defaultPipelineCreateInfo(pipelineConfig, swapchain_ptr->width(), swapchain_ptr->height());
+  pipelineConfig.m_vh_render_pass = swapchain_ptr->vh_render_pass();
   pipelineConfig.m_vh_pipeline_layout = vh_pipeline_layout;
   m_pipeline = std::make_unique<vulkan::Pipeline>(device, SHADERS_DIR "/simple_shader.vert.spv", SHADERS_DIR "/simple_shader.frag.spv", pipelineConfig);
 }

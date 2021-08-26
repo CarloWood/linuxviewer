@@ -1,6 +1,6 @@
 #include "sys.h"
 #include <vulkan/vulkan.hpp>    // This header must be included before including Window.h, because this TU uses createSurface.
-#include "vulkan/HelloTriangleSwapChain.h"
+#include "vulkan/HelloTriangleSwapchain.h"
 #include "Window.h"
 #include "Application.h"
 
@@ -27,8 +27,8 @@ void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline
   vk::CommandBufferAllocateInfo alloc_info;
   alloc_info.level = vk::CommandBufferLevel::ePrimary;
   alloc_info.commandPool = device.vh_command_pool();
-  ASSERT(m_swap_chain->image_count() > 0);
-  alloc_info.commandBufferCount = static_cast<uint32_t>(m_swap_chain->image_count());
+  ASSERT(m_swapchain->image_count() > 0);
+  alloc_info.commandBufferCount = static_cast<uint32_t>(m_swapchain->image_count());
 
   m_command_buffers = device->allocateCommandBuffers(alloc_info);
 
@@ -38,11 +38,11 @@ void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline
     m_command_buffers[i].begin(begin_info);
 
     vk::RenderPassBeginInfo render_pass_info;
-    render_pass_info.renderPass = m_swap_chain->vh_render_pass();
-    render_pass_info.framebuffer = m_swap_chain->vh_frame_buffer(vulkan::SwapChainIndex{i});    // FIXME: mixture of SwapChainIndex with command buffer index.
+    render_pass_info.renderPass = m_swapchain->vh_render_pass();
+    render_pass_info.framebuffer = m_swapchain->vh_frame_buffer(vulkan::SwapchainIndex{i});    // FIXME: mixture of SwapchainIndex with command buffer index.
 
     render_pass_info.renderArea.offset = vk::Offset2D{ 0, 0 };
-    render_pass_info.renderArea.extent = m_swap_chain->get_swap_chain_extent();
+    render_pass_info.renderArea.extent = m_swapchain->get_swapchain_extent();
 
     std::array<vk::ClearValue, 2> clear_values;
     clear_values[0].color.setFloat32({ 0.1f, 0.1f, 0.1f, 1.0f });
@@ -60,15 +60,15 @@ void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline
   }
 }
 
-void Window::create_swap_chain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue)
+void Window::create_swapchain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue)
 {
-  m_swap_chain = std::make_unique<vulkan::HelloTriangleSwapChain>(device);
+  m_swapchain = std::make_unique<vulkan::HelloTriangleSwapchain>(device);
   auto extent = get_glfw_window().getSize();
-  m_swap_chain->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, *m_uh_surface);
+  m_swapchain->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, *m_uh_surface);
 }
 
 void Window::draw_frame()
 {
-  vulkan::SwapChainIndex image_index{m_swap_chain->acquireNextImage()};
-  m_swap_chain->submitCommandBuffers(m_command_buffers[image_index.get_value()], image_index);  // FIXME: mixture of SwapChainIndex and command buffer index.
+  vulkan::SwapchainIndex image_index{m_swapchain->acquireNextImage()};
+  m_swapchain->submitCommandBuffers(m_command_buffers[image_index.get_value()], image_index);  // FIXME: mixture of SwapchainIndex and command buffer index.
 }
