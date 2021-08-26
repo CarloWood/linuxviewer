@@ -27,7 +27,7 @@ class Window : public gui::Window
 
   void create_swap_chain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
-  void drawFrame();
+  void draw_frame();
 
 #if 0
   vk::Extent2D extent() const

@@ -1,5 +1,6 @@
 #include "sys.h"
 #include <vulkan/vulkan.hpp>    // This header must be included before including Window.h, because this TU uses createSurface.
+#include "vulkan/HelloTriangleSwapChain.h"
 #include "Window.h"
 #include "Application.h"
 
@@ -23,32 +24,33 @@ void Window::createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline
   // Currently we are assuming this function is only called once.
   ASSERT(m_command_buffers.empty());
 
-  vk::CommandBufferAllocateInfo allocInfo;
-  allocInfo.level = vk::CommandBufferLevel::ePrimary;
-  allocInfo.commandPool = device.vh_command_pool();
-  allocInfo.commandBufferCount = static_cast<uint32_t>(m_swap_chain->image_count());
+  vk::CommandBufferAllocateInfo alloc_info;
+  alloc_info.level = vk::CommandBufferLevel::ePrimary;
+  alloc_info.commandPool = device.vh_command_pool();
+  ASSERT(m_swap_chain->image_count() > 0);
+  alloc_info.commandBufferCount = static_cast<uint32_t>(m_swap_chain->image_count());
 
-  m_command_buffers = device->allocateCommandBuffers(allocInfo);
+  m_command_buffers = device->allocateCommandBuffers(alloc_info);
 
-  for (int i = 0; i < m_command_buffers.size(); ++i)
+  for (size_t i = 0; i < m_command_buffers.size(); ++i)
   {
-    vk::CommandBufferBeginInfo beginInfo;
-    m_command_buffers[i].begin(beginInfo);
+    vk::CommandBufferBeginInfo begin_info;
+    m_command_buffers[i].begin(begin_info);
 
-    vk::RenderPassBeginInfo renderPassInfo;
-    renderPassInfo.renderPass = m_swap_chain->vh_render_pass();
-    renderPassInfo.framebuffer = m_swap_chain->vh_frame_buffer(i);
+    vk::RenderPassBeginInfo render_pass_info;
+    render_pass_info.renderPass = m_swap_chain->vh_render_pass();
+    render_pass_info.framebuffer = m_swap_chain->vh_frame_buffer(vulkan::SwapChainIndex{i});    // FIXME: mixture of SwapChainIndex with command buffer index.
 
-    renderPassInfo.renderArea.offset = vk::Offset2D{ 0, 0 };
-    renderPassInfo.renderArea.extent = m_swap_chain->get_swap_chain_extent();
+    render_pass_info.renderArea.offset = vk::Offset2D{ 0, 0 };
+    render_pass_info.renderArea.extent = m_swap_chain->get_swap_chain_extent();
 
-    std::array<vk::ClearValue, 2> clearValues;
-    clearValues[0].color.setFloat32({ 0.1f, 0.1f, 0.1f, 1.0f });
-    clearValues[1].depthStencil.setDepth(1.0f).setStencil(0);
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+    std::array<vk::ClearValue, 2> clear_values;
+    clear_values[0].color.setFloat32({ 0.1f, 0.1f, 0.1f, 1.0f });
+    clear_values[1].depthStencil.setDepth(1.0f).setStencil(0);
+    render_pass_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
+    render_pass_info.pClearValues = clear_values.data();
 
-    m_command_buffers[i].beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
+    m_command_buffers[i].beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
 
     pipeline->bind(m_command_buffers[i]);
     m_command_buffers[i].draw(3, 1, 0, 0);
@@ -65,9 +67,8 @@ void Window::create_swap_chain(vulkan::Device const& device, vulkan::Queue graph
   m_swap_chain->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, *m_uh_surface);
 }
 
-void Window::drawFrame()
+void Window::draw_frame()
 {
-  uint32_t imageIndex = m_swap_chain->acquireNextImage();
-
-  m_swap_chain->submitCommandBuffers(m_command_buffers[imageIndex], imageIndex);
+  vulkan::SwapChainIndex image_index{m_swap_chain->acquireNextImage()};
+  m_swap_chain->submitCommandBuffers(m_command_buffers[image_index.get_value()], image_index);  // FIXME: mixture of SwapChainIndex and command buffer index.
 }

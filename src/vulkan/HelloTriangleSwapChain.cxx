@@ -150,7 +150,7 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
     m_vh_swap_chain = nullptr;
   }
 
-  for (int i = 0; i < m_vhv_depth_images.size(); ++i)
+  for (SwapChainIndex i(0); i != m_swap_chain_end; ++i)
   {
     m_device->destroyImageView(m_vhv_depth_image_views[i]);
     m_device->destroyImage(m_vhv_depth_images[i]);
@@ -161,8 +161,8 @@ HelloTriangleSwapChain::~HelloTriangleSwapChain()
 
   m_device->destroyRenderPass(m_vh_render_pass);
 
-  // cleanup synchronization objects
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  // Cleanup synchronization objects.
+  for (SwapChainIndex i(0); i != m_vhv_swap_chain_images.iend(); ++i)
   {
     m_device->destroySemaphore(m_vhv_render_finished_semaphores[i]);
     m_device->destroySemaphore(m_vhv_image_available_semaphores[i]);
@@ -233,14 +233,18 @@ void HelloTriangleSwapChain::createSwapChain(vk::SurfaceKHR vh_surface, Queue gr
   Dout(dc::vulkan, "Calling Device::createSwapchainKHR(" << create_info << ")");
   m_vh_swap_chain = m_device->createSwapchainKHR(create_info);
 
+  // This initialization should only take place here, and only once.
+  ASSERT(m_vhv_swap_chain_images.empty());
   m_vhv_swap_chain_images = m_device->getSwapchainImagesKHR(m_vh_swap_chain);
-  Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_swap_chain_images.size());
+
+  m_swap_chain_end = m_vhv_swap_chain_images.iend();
+  Dout(dc::vulkan, "Actual number of swap chain images: " << m_swap_chain_end);
 }
 
 void HelloTriangleSwapChain::createImageViews()
 {
-  m_vhv_swap_chain_image_views.resize(m_vhv_swap_chain_images.size());
-  for (size_t i = 0; i < m_vhv_swap_chain_images.size(); ++i)
+  m_vhv_swap_chain_image_views.resize(image_count());
+  for (SwapChainIndex i(0); i != m_swap_chain_end; ++i)
   {
     vk::ImageSubresourceRange image_subresource_range;
     image_subresource_range
@@ -263,9 +267,9 @@ void HelloTriangleSwapChain::createImageViews()
 
 void HelloTriangleSwapChain::createSyncObjects()
 {
-  m_vhv_image_available_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_vhv_render_finished_semaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  m_vhv_in_flight_fences.resize(MAX_FRAMES_IN_FLIGHT);
+  m_vhv_image_available_semaphores.resize(image_count());
+  m_vhv_render_finished_semaphores.resize(image_count());
+  m_vhv_in_flight_fences.resize(image_count());
   m_vhv_images_in_flight.resize(image_count(), VK_NULL_HANDLE);
 
   vk::SemaphoreCreateInfo semaphore_create_info;
@@ -273,7 +277,7 @@ void HelloTriangleSwapChain::createSyncObjects()
   vk::FenceCreateInfo fence_create_info;
   fence_create_info.flags = vk::FenceCreateFlagBits::eSignaled;
 
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+  for (SwapChainIndex i(0); i != m_swap_chain_end; ++i)
   {
     m_vhv_image_available_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
     m_vhv_render_finished_semaphores[i] = m_device->createSemaphore(semaphore_create_info);
@@ -349,7 +353,7 @@ void HelloTriangleSwapChain::createDepthResources()
   m_vhv_depth_image_memorys.resize(image_count());
   m_vhv_depth_image_views.resize(image_count());
 
-  for (int i = 0; i < m_vhv_depth_images.size(); ++i)
+  for (SwapChainIndex i(0); i != m_swap_chain_end; ++i)
   {
     vk::ImageCreateInfo image_create_info;
     image_create_info
@@ -391,7 +395,7 @@ void HelloTriangleSwapChain::createDepthResources()
 void HelloTriangleSwapChain::createFramebuffers()
 {
   m_vhv_swap_chain_framebuffers.resize(image_count());
-  for (size_t i = 0; i < image_count(); ++i)
+  for (SwapChainIndex i(0); i != m_swap_chain_end; ++i)
   {
     std::array<vk::ImageView, 2> attachments = { m_vhv_swap_chain_image_views[i], m_vhv_depth_image_views[i] };
 
@@ -418,12 +422,12 @@ void HelloTriangleSwapChain::createFramebuffers()
 
 uint32_t HelloTriangleSwapChain::acquireNextImage()
 {
-  vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_in_flight_fences[m_current_frame], true, std::numeric_limits<uint64_t>::max());
+  vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_in_flight_fences[m_current_swap_chain_index], true, std::numeric_limits<uint64_t>::max());
   if (wait_for_fences_result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to wait for m_vhv_in_flight_fences!");
 
   auto rv = m_device->acquireNextImageKHR(m_vh_swap_chain, std::numeric_limits<uint64_t>::max(),
-      m_vhv_image_available_semaphores[m_current_frame],  // must be a not signaled semaphore
+      m_vhv_image_available_semaphores[m_current_swap_chain_index],  // must be a not signaled semaphore
       {});
 
   if (rv.result != vk::Result::eSuccess && rv.result != vk::Result::eSuboptimalKHR)
@@ -432,44 +436,46 @@ uint32_t HelloTriangleSwapChain::acquireNextImage()
   return rv.value;
 }
 
-void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const imageIndex)
+void HelloTriangleSwapChain::submitCommandBuffers(vk::CommandBuffer const& buffers, SwapChainIndex const swap_chain_index)
 {
-  if (m_vhv_images_in_flight[imageIndex])
+  if (m_vhv_images_in_flight[swap_chain_index])
   {
-    vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_images_in_flight[imageIndex], true, std::numeric_limits<uint64_t>::max());
+    vk::Result wait_for_fences_result = m_device->waitForFences(1, &m_vhv_images_in_flight[swap_chain_index], true, std::numeric_limits<uint64_t>::max());
     if (wait_for_fences_result != vk::Result::eSuccess)
       throw std::runtime_error("Failed to wait for m_vhv_in_flight_fences!");
   }
-  m_vhv_images_in_flight[imageIndex] = m_vhv_in_flight_fences[m_current_frame];
+  m_vhv_images_in_flight[swap_chain_index] = m_vhv_in_flight_fences[m_current_swap_chain_index];
 
   vk::PipelineStageFlags const pipeline_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
   vk::SubmitInfo submit_info;
   submit_info
-    .setWaitSemaphores(m_vhv_image_available_semaphores[m_current_frame])
+    .setWaitSemaphores(m_vhv_image_available_semaphores[m_current_swap_chain_index])
     .setWaitDstStageMask(pipeline_stage_flags)
     .setCommandBuffers(buffers)
-    .setSignalSemaphores(m_vhv_render_finished_semaphores[m_current_frame])
+    .setSignalSemaphores(m_vhv_render_finished_semaphores[m_current_swap_chain_index])
     ;
 
-  vk::Result reset_fences_result = m_device->resetFences(1, &m_vhv_in_flight_fences[m_current_frame]);
+  vk::Result reset_fences_result = m_device->resetFences(1, &m_vhv_in_flight_fences[m_current_swap_chain_index]);
   if (reset_fences_result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to reset fence for m_vhv_in_flight_fences!");
 
-  m_vh_graphics_queue.submit(submit_info, m_vhv_in_flight_fences[m_current_frame]);
+  m_vh_graphics_queue.submit(submit_info, m_vhv_in_flight_fences[m_current_swap_chain_index]);
 
+  uint32_t const image_index = swap_chain_index.get_value();
   vk::PresentInfoKHR present_info;
   present_info
-    .setWaitSemaphores(m_vhv_render_finished_semaphores[m_current_frame])
+    .setWaitSemaphores(m_vhv_render_finished_semaphores[m_current_swap_chain_index])
     .setSwapchains(m_vh_swap_chain)
-    .setImageIndices(imageIndex)
+    .setImageIndices(image_index)
     ;
 
   auto result = m_vh_present_queue.presentKHR(present_info);
   if (result != vk::Result::eSuccess)
     throw std::runtime_error("Failed to present swap chain image!");
 
-  m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+  ++m_current_frame;
+  m_current_swap_chain_index = SwapChainIndex{m_current_frame % image_count()};
 }
 
 // End of functions called by Window::drawFrame.

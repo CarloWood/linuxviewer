@@ -15,7 +15,7 @@ using SwapChainIndex = utils::VectorIndex<SwapChain>;
 class HelloTriangleSwapChain
 {
  //public:
-  static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+  static constexpr SwapChainIndex c_max_swap_chain_images{2};     // Requested number of swap chain images.
 
  private:
   // Constructor
@@ -31,6 +31,7 @@ class HelloTriangleSwapChain
   vk::Extent2D m_swap_chain_extent;
   vk::SwapchainKHR m_vh_swap_chain;
   utils::Vector<vk::Image, SwapChainIndex> m_vhv_swap_chain_images;
+  SwapChainIndex m_swap_chain_end;                              // The actual number of swap chain images.
 
   // createImageViews
   utils::Vector<vk::ImageView, SwapChainIndex> m_vhv_swap_chain_image_views;
@@ -45,14 +46,15 @@ class HelloTriangleSwapChain
   vk::RenderPass m_vh_render_pass;
 
   // createDepthResources
-  std::vector<vk::Image> m_vhv_depth_images;
-  std::vector<vk::DeviceMemory> m_vhv_depth_image_memorys;
-  std::vector<vk::ImageView> m_vhv_depth_image_views;
+  utils::Vector<vk::Image, SwapChainIndex> m_vhv_depth_images;
+  utils::Vector<vk::DeviceMemory, SwapChainIndex> m_vhv_depth_image_memorys;
+  utils::Vector<vk::ImageView, SwapChainIndex> m_vhv_depth_image_views;
 
   // createFramebuffers
-  std::vector<vk::Framebuffer> m_vhv_swap_chain_framebuffers;
+  utils::Vector<vk::Framebuffer, SwapChainIndex> m_vhv_swap_chain_framebuffers;
 
   size_t m_current_frame = 0;
+  SwapChainIndex m_current_swap_chain_index{0};         // m_current_frame % m_vhv_swap_chain_images.size().
 
  public:
   HelloTriangleSwapChain(Device const& device_ref);
@@ -63,9 +65,9 @@ class HelloTriangleSwapChain
 
   void setup(vk::Extent2D window_extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface);
 
-  vk::Framebuffer vh_frame_buffer(int index) const { return m_vhv_swap_chain_framebuffers[index]; }
+  vk::Framebuffer vh_frame_buffer(SwapChainIndex index) const { return m_vhv_swap_chain_framebuffers[index]; }
   vk::RenderPass vh_render_pass() const { return m_vh_render_pass; }
-  vk::ImageView vh_image_view(int index) { return m_vhv_swap_chain_image_views[index]; }
+  vk::ImageView vh_image_view(SwapChainIndex index) { return m_vhv_swap_chain_image_views[index]; }
   size_t image_count() const { return m_vhv_swap_chain_images.size(); }
   vk::Format get_swap_chain_image_format() const { return m_swap_chain_image_format; }
   vk::Extent2D get_swap_chain_extent() const { return m_swap_chain_extent; }
@@ -78,7 +80,7 @@ class HelloTriangleSwapChain
   }
 
   uint32_t acquireNextImage();
-  void submitCommandBuffers(vk::CommandBuffer const& buffers, uint32_t const image_index);
+  void submitCommandBuffers(vk::CommandBuffer const& buffers, SwapChainIndex const swap_chain_index);
 
  private:
   void createSwapChain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue);

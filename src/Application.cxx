@@ -205,7 +205,7 @@ void Application::run()
   while (running())
   {
     glfw::pollEvents();
-    main_window()->drawFrame();
+    main_window()->draw_frame();
   }
 
   // Block until all GPU operations have completed.
