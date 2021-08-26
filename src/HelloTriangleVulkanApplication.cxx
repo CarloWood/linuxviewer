@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 
     vulkan::PhysicalDeviceFeatures physical_device_features;
     physical_device_features
-      .setSamplerAnisotropy(VK_TRUE)
+      // vk::PhysicalDeviceFeatures
       .setDepthClamp(VK_TRUE)
       ;
 
