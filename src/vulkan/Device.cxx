@@ -317,9 +317,9 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   }
 }
 
-void Device::setup(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
+void Device::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
 {
-  DoutEntering(dc::vulkan, "vulkan::Device::setup(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
+  DoutEntering(dc::vulkan, "vulkan::Device::prepare(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
 
   // Use default if empty.
   if (std::as_const(device_create_info).get_queue_requests().empty())

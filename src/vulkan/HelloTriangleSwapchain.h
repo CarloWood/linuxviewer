@@ -21,7 +21,7 @@ class HelloTriangleSwapchain
   // Constructor
   Device const& m_device;
 
-  // setup
+  // prepare
   vk::Extent2D m_window_extent;
   vk::Queue m_vh_graphics_queue;
   vk::Queue m_vh_present_queue;
@@ -63,7 +63,7 @@ class HelloTriangleSwapchain
   HelloTriangleSwapchain(HelloTriangleSwapchain const&) = delete;
   void operator=(HelloTriangleSwapchain const&) = delete;
 
-  void setup(vk::Extent2D window_extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface);
+  void prepare(vk::Extent2D window_extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface);
 
   vk::Framebuffer vh_frame_buffer(SwapchainIndex index) const { return m_vhv_swapchain_framebuffers[index]; }
   vk::RenderPass vh_render_pass() const { return m_vh_render_pass; }

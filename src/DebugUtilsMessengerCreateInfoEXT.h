@@ -15,7 +15,7 @@ struct DebugUtilsMessengerCreateInfoEXT : public vk::DebugUtilsMessengerCreateIn
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 
   DebugUtilsMessengerCreateInfoEXT();
-  void setup(Application* application);
+  void setup_callback(Application* application);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

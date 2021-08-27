@@ -64,7 +64,7 @@ void Window::create_swapchain(vulkan::Device const& device, vulkan::Queue graphi
 {
   m_swapchain = std::make_unique<vulkan::HelloTriangleSwapchain>(device);
   auto extent = get_glfw_window().getSize();
-  m_swapchain->setup({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, *m_uh_surface);
+  m_swapchain->prepare({ static_cast<uint32_t>(std::get<0>(extent)), static_cast<uint32_t>(std::get<1>(extent)) }, graphics_queue, present_queue, *m_uh_surface);
 }
 
 void Window::draw_frame()

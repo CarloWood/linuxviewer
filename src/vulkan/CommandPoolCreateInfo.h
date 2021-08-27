@@ -14,7 +14,7 @@ struct CommandPoolCreateInfo : vk::CommandPoolCreateInfo
 #endif
 
  private:
-  QueueRequestIndex m_queue_request_index;      // A cache for information that is used in setup.
+  QueueRequestIndex m_queue_request_index;      // A cache for information that is used in prepare.
 #ifdef CWDEBUG
   std::string m_debug_name = default_debug_name;
 #endif
@@ -26,7 +26,7 @@ struct CommandPoolCreateInfo : vk::CommandPoolCreateInfo
     return *this;
   }
 
-  void setup(vulkan::Device const& device)
+  void prepare(vulkan::Device const& device)
   {
     setQueueFamilyIndex(device.get_queue_family(m_queue_request_index).get_value());
   }

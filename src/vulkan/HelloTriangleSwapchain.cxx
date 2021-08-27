@@ -124,9 +124,9 @@ vk::Format find_supported_format(std::vector<vk::Format> const& candidates, vk::
 HelloTriangleSwapchain::HelloTriangleSwapchain(Device const& device) : m_device{device} { }
 
 // And initialization.
-void HelloTriangleSwapchain::setup(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface)
+void HelloTriangleSwapchain::prepare(vk::Extent2D extent, Queue graphics_queue, Queue present_queue, vk::SurfaceKHR vh_surface)
 {
-  DoutEntering(dc::vulkan, "HelloTriangleSwapchain::setup(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << vh_surface << ")");
+  DoutEntering(dc::vulkan, "HelloTriangleSwapchain::prepare(" << extent << ", " << graphics_queue << ", " << present_queue << ", " << vh_surface << ")");
   m_window_extent = extent;
   m_vh_graphics_queue = graphics_queue.vh_queue();
   m_vh_present_queue = present_queue.vh_queue();
@@ -171,7 +171,7 @@ HelloTriangleSwapchain::~HelloTriangleSwapchain()
 }
 
 //=============================================================================
-// Functions called by setup
+// Functions called by prepare
 //
 
 void HelloTriangleSwapchain::createSwapchain(vk::SurfaceKHR vh_surface, Queue graphics_queue, Queue present_queue)
@@ -413,7 +413,7 @@ void HelloTriangleSwapchain::createFramebuffers()
 }
 
 //
-// End of functions called by setup.
+// End of functions called by prepare.
 //=============================================================================
 
 //=============================================================================

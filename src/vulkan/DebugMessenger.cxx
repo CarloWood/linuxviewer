@@ -5,7 +5,7 @@
 
 namespace vulkan {
 
-void DebugMessenger::setup(vk::Instance vh_instance, vk::DebugUtilsMessengerCreateInfoEXT const& debug_create_info)
+void DebugMessenger::prepare(vk::Instance vh_instance, vk::DebugUtilsMessengerCreateInfoEXT const& debug_create_info)
 {
   // Keep a copy, because we need that in the destructor.
   m_vh_instance = vh_instance;

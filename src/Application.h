@@ -163,7 +163,7 @@ class Application : public gui::Application
       vulkan::CommandPoolCreateInfo const& command_pool_create_info,
       DebugUtilsMessengerCreateInfoEXT&& debug_create_info)
   {
-    debug_create_info.setup(this);
+    debug_create_info.prepare(this);
     init(argc, argv, main_window_create_info, std::move(device_create_info), command_pool_create_info, debug_create_info);
   }
 

@@ -26,13 +26,13 @@ class Device
   vk::UniqueCommandPool m_command_pool;
 
  public:
-  Device() = default;                           // Must be initialized by calling setup.
+  Device() = default;                           // Must be initialized by calling prepare.
   ~Device();
   // Not copyable or movable.
   Device(Device const&) = delete;
   void operator=(Device const&) = delete;
 
-  void setup(vk::Instance vh_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR vh_surface, DeviceCreateInfo&& device_create_info);
+  void prepare(vk::Instance vh_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR vh_surface, DeviceCreateInfo&& device_create_info);
 
   uint32_t number_of_queues(QueueRequestIndex request_index) const
   {
