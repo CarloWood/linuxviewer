@@ -3,6 +3,7 @@
 #include "GUI_glfw3/gui_Window.h"
 #include "vulkan/Queue.h"
 #include "vulkan/unique_handle.h"
+#include "vulkan/Swapchain.h"
 #include "utils/InsertExtraInitialization.h"
 #include <memory>
 
@@ -16,6 +17,7 @@ class Window : public gui::Window
 {
  private:
   vulkan::unique_handle<vk::SurfaceKHR> m_uh_surface;
+  vulkan::Swapchain m_swapchain2;
 
   // This had to be moved here for now...
   std::unique_ptr<vulkan::HelloTriangleSwapchain> m_swapchain;
