@@ -7,7 +7,7 @@
 #include "GUI_glfw3/gui_Application.h"
 #include "GUI_glfw3/gui_WindowCreateInfo.h"
 #include "vulkan/InstanceCreateInfo.h"
-#include "vulkan/ExtensionLoader.h"
+#include "vulkan/DispatchLoader.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/HelloTriangleSwapchain.h"
 #include "vulkan/DeviceCreateInfo.h"
@@ -49,7 +49,7 @@ class Application : public gui::Application
   AIEngine m_gui_idle_engine;                           // Task engine to run tasks from the gui main loop.
 
   // Loader for vulkan extension functions.
-  vulkan::ExtensionLoader m_extension_loader;
+  vulkan::DispatchLoader m_dispatch_loader;
 
   // Vulkan instance.
   vk::UniqueInstance m_instance;                        // Per application state. Creating a vk::Instance object initializes

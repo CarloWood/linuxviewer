@@ -59,7 +59,7 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
 #endif
   Dout(dc::finish, "done (" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms)");
   // Mandatory call after creating the vulkan instance.
-  m_extension_loader.setup(*m_instance);
+  m_dispatch_loader.load(*m_instance);
 }
 
 void Application::initialization_state(InitializationState const state)
@@ -156,7 +156,7 @@ Application& Application::create_vulkan_device(vulkan::DeviceCreateInfo&& device
   initialization_state(istVulkanDevice);
 
   // The m_vulkan_device draws to m_main_window.
-  m_vulkan_device.setup(*m_instance, m_extension_loader, main_window_ptr()->vh_surface(), std::move(device_create_info));
+  m_vulkan_device.setup(*m_instance, m_dispatch_loader, main_window_ptr()->vh_surface(), std::move(device_create_info));
 
   // Call virtual function that allows the derived application to extract the queue handles it needs.
   init_queue_handles();

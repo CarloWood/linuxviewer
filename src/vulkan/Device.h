@@ -15,7 +15,7 @@ namespace vulkan {
 
 struct DeviceCreateInfo;
 struct CommandPoolCreateInfo;
-class ExtensionLoader;
+class DispatchLoader;
 
 class Device
 {
@@ -32,7 +32,7 @@ class Device
   Device(Device const&) = delete;
   void operator=(Device const&) = delete;
 
-  void setup(vk::Instance vh_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR vh_surface, DeviceCreateInfo&& device_create_info);
+  void setup(vk::Instance vh_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR vh_surface, DeviceCreateInfo&& device_create_info);
 
   uint32_t number_of_queues(QueueRequestIndex request_index) const
   {

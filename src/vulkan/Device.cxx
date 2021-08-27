@@ -4,7 +4,7 @@
 #include "CommandPoolCreateInfo.h"
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
-#include "ExtensionLoader.h"
+#include "DispatchLoader.h"
 #include "find_missing_extensions.h"
 #include "utils/Vector.h"
 #include "utils/Array.h"
@@ -317,7 +317,7 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   }
 }
 
-void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
+void Device::setup(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, vk::SurfaceKHR surface, DeviceCreateInfo&& device_create_info)
 {
   DoutEntering(dc::vulkan, "vulkan::Device::setup(" << vulkan_instance << ", " << surface << ", " << device_create_info << ")");
 
@@ -397,11 +397,11 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   Dout(dc::vulkan, "Calling m_vh_physical_device.createDevice(" << device_create_info << ")");
   m_device = m_vh_physical_device.createDeviceUnique(device_create_info);
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  extension_loader.setup(vulkan_instance, *m_device);
+  dispatch_loader.load(vulkan_instance, *m_device);
 
 #ifdef CWDEBUG
   // Set the debug name of the device.
-  // Note: when not using -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 this requires the extension_loader to be initialized (see the line above).
+  // Note: when not using -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 this requires the dispatch_loader to be initialized (see the line above).
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eDevice,
     (uint64_t)static_cast<VkDevice>(*m_device),

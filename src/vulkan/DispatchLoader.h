@@ -13,24 +13,24 @@ namespace vulkan {
 #if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
 // Define a dynamic loader.
-class ExtensionLoader
+class DispatchLoader
 {
  private:
   vk::DynamicLoader m_dynamic_loader;
 
  public:
-  ExtensionLoader()
+  DispatchLoader()
   {
     PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = m_dynamic_loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
   }
 
-  void setup(vk::Instance vh_instance)
+  void load(vk::Instance vh_instance)
   {
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vh_instance);
   }
 
-  void setup(vk::Instance, vk::Device vh_device)
+  void load(vk::Instance, vk::Device vh_device)
   {
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vh_device);
   }
@@ -39,11 +39,11 @@ class ExtensionLoader
 #else // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
 // Define a static loader that (pre)loads everything we use.
-class ExtensionLoader
+class DispatchLoader
 {
  public:
-  void setup(vk::Instance);
-  void setup(vk::Instance, vk::Device);
+  void load(vk::Instance);
+  void load(vk::Instance, vk::Device);
 };
 
 #endif // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1

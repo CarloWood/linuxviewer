@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "ExtensionLoader.h"
+#include "DispatchLoader.h"
 
 #if VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
@@ -9,7 +9,7 @@ VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
 #else // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1
 
 // Manually load VK_EXT_debug_utils extension functions.
-// Copied from https://github.com/krOoze/Hello_Triangle/blob/master/src/ExtensionLoader.h
+// Copied from https://github.com/krOoze/Hello_Triangle/blob/master/src/DispatchLoader.h
 
 #include <unordered_map>
 
@@ -91,12 +91,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkSetDebugUtilsObjectNameEXT(VkDevice device, VkD
 
 namespace vulkan {
 
-void ExtensionLoader::setup(vk::Instance vulkan_instance)
+void DispatchLoader::load(vk::Instance vulkan_instance)
 {
   loadDebugUtilsCommands(vulkan_instance);
 }
 
-void ExtensionLoader::setup(vk::Instance vulkan_instance, vk::Device vulkan_device)
+void DispatchLoader::load(vk::Instance vulkan_instance, vk::Device vulkan_device)
 {
   loadDebugUtilsCommands(vulkan_instance, vulkan_device);
 }

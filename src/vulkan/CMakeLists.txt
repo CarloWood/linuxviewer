@@ -71,8 +71,8 @@ target_sources(vulkan_ObjLib
   PRIVATE
     "InstanceCreateInfo.cxx"
     "InstanceCreateInfo.h"
-    "ExtensionLoader.cxx"
-    "ExtensionLoader.h"
+    "DispatchLoader.cxx"
+    "DispatchLoader.h"
     "PhysicalDeviceFeatures.cxx"
     "PhysicalDeviceFeatures.h"
     "DeviceCreateInfo.cxx"
