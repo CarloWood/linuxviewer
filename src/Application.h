@@ -52,7 +52,7 @@ class Application : public gui::Application
   vulkan::ExtensionLoader m_extension_loader;
 
   // Vulkan instance.
-  vk::UniqueInstance m_uvh_instance;                    // Per application state. Creating a vk::Instance object initializes
+  vk::UniqueInstance m_instance;                        // Per application state. Creating a vk::Instance object initializes
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.
@@ -201,7 +201,7 @@ class Application : public gui::Application
 
  public:
   // Accessors.
-  vk::Instance vh_instance() const { return *m_uvh_instance; }
+  vk::Instance vh_instance() const { return *m_instance; }
   std::shared_ptr<Window> main_window() const;
   Window const* main_window_ptr() const { return static_cast<Window const*>(m_main_window.get()); }
 

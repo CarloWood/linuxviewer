@@ -395,19 +395,19 @@ void Device::setup(vk::Instance vulkan_instance, ExtensionLoader& extension_load
   device_create_info.setQueueCreateInfos(queue_create_infos);
 
   Dout(dc::vulkan, "Calling m_vh_physical_device.createDevice(" << device_create_info << ")");
-  m_uvh_device = m_vh_physical_device.createDeviceUnique(device_create_info);
+  m_device = m_vh_physical_device.createDeviceUnique(device_create_info);
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  extension_loader.setup(vulkan_instance, *m_uvh_device);
+  extension_loader.setup(vulkan_instance, *m_device);
 
 #ifdef CWDEBUG
   // Set the debug name of the device.
   // Note: when not using -DVULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1 this requires the extension_loader to be initialized (see the line above).
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eDevice,
-    (uint64_t)static_cast<VkDevice>(*m_uvh_device),
+    (uint64_t)static_cast<VkDevice>(*m_device),
     device_create_info.debug_name()
   );
-  m_uvh_device->setDebugUtilsObjectNameEXT(name_info);
+  m_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 
@@ -418,16 +418,16 @@ Device::~Device()
 
 void Device::create_command_pool(CommandPoolCreateInfo const& command_pool_create_info)
 {
-  m_uvh_command_pool = m_uvh_device->createCommandPoolUnique(command_pool_create_info);
+  m_command_pool = m_device->createCommandPoolUnique(command_pool_create_info);
 
 #ifdef CWDEBUG
   // Set the debug name of the command pool.
   vk::DebugUtilsObjectNameInfoEXT name_info(
     vk::ObjectType::eCommandPool,
-    (uint64_t)static_cast<VkCommandPool>(*m_uvh_command_pool),
+    (uint64_t)static_cast<VkCommandPool>(*m_command_pool),
     command_pool_create_info.debug_name()
   );
-  m_uvh_device->setDebugUtilsObjectNameEXT(name_info);
+  m_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
 }
 

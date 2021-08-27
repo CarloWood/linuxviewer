@@ -21,9 +21,9 @@ class Device
 {
  private:
   vk::PhysicalDevice m_vh_physical_device;      // The underlaying physical device.
-  vk::UniqueDevice m_uvh_device;                // A handle to the logical device.
+  vk::UniqueDevice m_device;                    // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
-  vk::UniqueCommandPool m_uvh_command_pool;
+  vk::UniqueCommandPool m_command_pool;
 
  public:
   Device() = default;                           // Must be initialized by calling setup.
@@ -46,7 +46,7 @@ class Device
     // Use number_of_queues() to find out what the largest possible index is.
     ASSERT(queue_index < reply.number_of_queues());
     GPU_queue_family_handle const qfh = reply.get_queue_family_handle();
-    return { qfh, m_uvh_device->getQueue(qfh.get_value(), queue_index) };
+    return { qfh, m_device->getQueue(qfh.get_value(), queue_index) };
   }
 
   GPU_queue_family_handle get_queue_family(QueueRequestIndex request_index) const
@@ -60,7 +60,7 @@ class Device
   // Member functions needed to make HelloTriangleSwapchain happy.
   vk::Device const* operator->() const
   {
-    return &*m_uvh_device;
+    return &*m_device;
   }
 
   vk::PhysicalDevice vh_physical_device() const
@@ -70,7 +70,7 @@ class Device
 
   vk::CommandPool vh_command_pool() const
   {
-    return *m_uvh_command_pool;
+    return *m_command_pool;
   }
 
 #ifdef CWDEBUG

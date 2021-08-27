@@ -11,7 +11,7 @@ class DebugMessenger
 {
  private:
   vk::Instance m_vh_instance;                                   // Copy of the instance that was passed to setup.
-  vk::UniqueDebugUtilsMessengerEXT m_uvh_debug_messenger;       // The debug messenger handle.
+  vk::UniqueDebugUtilsMessengerEXT m_debug_messenger;           // The unlaying debug messenger.
 
  public:
   DebugMessenger() = default;
