@@ -1,9 +1,9 @@
 #pragma once
 
 #include "GUI_glfw3/gui_Window.h"
-#include "vulkan/Queue.h"
-#include "vulkan/unique_handle.h"
-#include "vulkan/Swapchain.h"
+#include "vulkan.old/Queue.h"
+#include "vulkan.old/unique_handle.h"
+#include "vulkan.old/Swapchain.h"
 #include "utils/InsertExtraInitialization.h"
 #include <memory>
 
@@ -27,7 +27,7 @@ class Window : public gui::Window
   using gui::Window::Window;
   ~Window();
 
-  void create_swapchain(vulkan::Device const& device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
+  void create_swapchain(vulkan::Device const* device, vulkan::Queue graphics_queue, vulkan::Queue present_queue);
   void createCommandBuffers(vulkan::Device const& device, vulkan::Pipeline* pipeline);
   void draw_frame();
 

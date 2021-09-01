@@ -15,8 +15,8 @@
 #include "evio/protocol/EOFDecoder.h"
 #include "utils/debug_ostream_operators.h"
 #include "utils/threading/Gate.h"
-#include "vulkan/DeviceCreateInfo.h"
-#include "vulkan/CommandPoolCreateInfo.h"
+#include "vulkan.old/DeviceCreateInfo.h"
+#include "vulkan.old/CommandPoolCreateInfo.h"
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <functional>

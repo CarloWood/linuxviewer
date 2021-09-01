@@ -49,17 +49,13 @@ void create_image_with_info(vk::ImageCreateInfo const& image_create_info, vk::Me
 
 vk::Extent2D choose_swap_extent(vk::SurfaceCapabilitiesKHR const& surface_capabilities, vk::Extent2D actual_extent)
 {
-  if (surface_capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
-  {
-    return surface_capabilities.currentExtent;
-  }
-  else
-  {
-    actual_extent.width  = std::max(surface_capabilities.minImageExtent.width, std::min(surface_capabilities.maxImageExtent.width, actual_extent.width));
-    actual_extent.height = std::max(surface_capabilities.minImageExtent.height, std::min(surface_capabilities.maxImageExtent.height, actual_extent.height));
+  // The value {-1, -1} is special.
+  if (surface_capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
+    return { std::clamp(actual_extent.width, surface_capabilities.minImageExtent.width, surface_capabilities.maxImageExtent.width),
+             std::clamp(actual_extent.height, surface_capabilities.minImageExtent.height, surface_capabilities.maxImageExtent.height) };
 
-    return actual_extent;
-  }
+  // Most of the cases we define size of the swapchain images equal to current window's size.
+  return surface_capabilities.currentExtent;
 }
 
 vk::SurfaceFormatKHR choose_swap_surface_format(std::vector<vk::SurfaceFormatKHR> const& surface_formats)

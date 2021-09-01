@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Application.h"
-#include "vulkan/Queue.h"
+#include "vulkan.old/Queue.h"
 #include "debug.h"
 
 class LinuxViewerApplication : public Application
@@ -27,7 +27,7 @@ class LinuxViewerApplication : public Application
  public:
   void create_swapchain_impl() override
   {
-    main_window()->create_swapchain(m_vulkan_device, m_graphics_queue, m_present_queue);
+    main_window()->create_swapchain(&m_vulkan_device, m_graphics_queue, m_present_queue);
   }
 
  protected:

@@ -95,6 +95,8 @@ target_sources(vulkan_ObjLib
     "QueueReply.h"
     "Queue.cxx"
     "Queue.h"
+    "Swapchain.cxx"
+    "Swapchain.h"
     "CommandPoolCreateInfo.cxx"
     "CommandPoolCreateInfo.h"
 

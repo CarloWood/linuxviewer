@@ -1,0 +1,368 @@
+vk::Instance            // handle
+
+  declaration
+    vk::UniqueInstance            Instance;             // In VulkanCommonParameters
+  usage
+    Vulkan.Instance
+  used by
+    VulkanCommon::LoadExportedEntryPoints
+    VulkanCommon::LoadGlobalLevelEntryPoints
+    VulkanCommon::CreateInstance
+    VulkanCommon::CreatePresentationSurface
+    VulkanCommon::CreateDevice
+    
+
+vk::PhysicalDevice      // handle
+
+  declaration
+    vk::PhysicalDevice            PhysicalDevice;       // In VulkanCommonParameters
+  usage
+    Vulkan.PhysicalDevice
+  used by
+    VulkanCommon::GetPhysicalDevice
+    VulkanCommon::CreateDevice
+    VulkanCommon::CheckPhysicalDeviceProperties
+    VulkanCommon::CreateSwapChain
+
+
+vk::Device              // handle
+
+  declaration
+    vk::UniqueDevice              Device;               // In VulkanCommonParameters
+  usage
+    Vulkan.Device
+    GetDevice()                                         // vk::Device const& VulkanCommon::GetDevice() const;
+  used by
+    VulkanCommon::OnWindowSizeChanged
+    VulkanCommon::GetDevice
+    VulkanCommon::CreateDevice
+    VulkanCommon::LoadDeviceLevelEntryPoints
+    VulkanCommon::GetDeviceQueue
+    VulkanCommon::CreateSwapChain
+    VulkanCommon::CreateSwapChainImageViews
+    VulkanCommon::~VulkanCommon
+
+
+vk::SurfaceKHR          // handle
+
+  declaration
+    vk::UniqueSurfaceKHR          PresentationSurface;  // In VulkanCommonParameters
+  usages
+    Vulkan.PresentationSurface
+    GetPresentationSurface()                            // vk::SurfaceKHR const & VulkanCommon::GetPresentationSurface() const  /***NOT USED***/
+
+
+vk::DeviceMemory        // handle
+
+  declaration
+    vk::UniqueDeviceMemory        Memory;               // In ImageParameters
+  usage
+    image.Memory
+
+  declaration
+    vk::UniqueDeviceMemory          Memory;             // In BufferParameters
+  usage
+    Buffer.Memory
+    buffer.Memory
+
+
+vk::SwapchainKHR        // handle
+
+  declaration
+    vk::UniqueSwapchainKHR            Handle;           // In SwapChainParameters
+  usage
+    Vulkan.SwapChain.Handle
+    current_frame.Swapchain->Handle
+
+
+Queue Family            // uint32_t
+
+  declaration
+    uint32_t                      FamilyIndex;          // In QueueParameters
+  usage
+    Vulkan.GraphicsQueue.FamilyIndex
+    Vulkan.PresentQueue.FamilyIndex
+    GetGraphicsQueue().FamilyIndex
+
+
+vk::Queue               // handle
+
+  declaration
+    vk::Queue                     Handle;               // In QueueParameters
+  usage
+    Vulkan.GraphicsQueue.Handle
+    Vulkan.PresentQueue.Handle
+    GetGraphicsQueue().Handle
+    GetPresentQueue().Handle
+
+
+vk::Image               // handle
+
+  declaration
+    std::vector<vk::Image>            Images;           // In SwapChainParameters
+  usage
+    Vulkan.SwapChain.Images
+    GetSwapChain().Images
+
+
+vk::ImageView           // handle
+
+  declaration
+    std::vector<vk::UniqueImageView>  ImageViews;       // In SwapChainParameters
+    vk::UniqueImageView           View;                 // In ImageParameters
+  usage
+    DepthAttachment.View
+    image.View
+    Parameters.BackgroundTexture.View
+    Parameters.Texture.View
+
+
+vk::Buffer              // handle
+
+  declaration
+    vk::UniqueBuffer                Handle;             // In BufferParameters
+  usage
+    VertexBuffer.Buffer.Handle
+    IndexBuffer.Buffer.Handle
+    buffer.Handle
+    staging_buffer.Buffer.Handle
+    Parameters.VertexBuffer.Handle
+    Parameters.InstanceBuffer.Handle
+
+
+vk::BufferView          // handle
+
+  declaration
+    none
+  usage
+    none
+
+
+vk::Fence               // handle
+
+  declaration
+    vk::UniqueFence                       Fence;        // In FrameResourcesData
+  usage
+    current_frame.FrameResources->Fence
+    frame_resources->Fence
+
+
+vk::Semaphore           // handle
+
+  declaration
+    vk::UniqueSemaphore                   ImageAvailableSemaphore;      // In FrameResourcesData
+    vk::UniqueSemaphore                   FinishedRenderingSemaphore;   // In FrameResourcesData
+  usage
+    current_frame.FrameResources->ImageAvailableSemaphore
+    frame_resources->ImageAvailableSemaphore
+    current_frame.FrameResources->FinishedRenderingSemaphore
+    frame_resources->FinishedRenderingSemaphore
+
+
+vk::Sampler             // handle
+
+  declaration
+    vk::UniqueSampler             Sampler               // In ImageParameters
+  usage
+    Vulkan.Image.Sampler
+    Parameters.BackgroundTexture.Sampler
+    Parameters.Texture.Sampler
+
+
+vk::CommandPool         // handle
+
+  declaration
+    vk::UniqueCommandPool                 CommandPool   // In SampleFrameResourcesData
+  usage
+    frame_resources->CommandPool
+
+
+vk::CommandBuffer       // handle
+
+  declaration
+    vk::UniqueCommandBuffer               PreCommandBuffer;
+    vk::UniqueCommandBuffer               PostCommandBuffer;
+  usage
+    frame_resources->PreCommandBuffer2
+    frame_resources->PostCommandBuffer2
+    SAMPLE_CURRENT_FRAME_RESOURCES_PTR( current_frame )->PreCommandBuffer
+    SAMPLE_CURRENT_FRAME_RESOURCES_PTR( current_frame )->PostCommandBuffer
+
+
+vk::DescriptorSetLayout // handle
+
+  declaration
+    vk::UniqueDescriptorSetLayout   Layout      // In DescriptorSetParameters
+  usage
+    Vulkan.DescriptorSet.Layout
+    descriptor_set.Layout
+    Parameters.DescriptorSet.Layout
+
+
+vk::DescriptorPool      // handle
+
+  declaration
+    vk::UniqueDescriptorPool        Pool;       // In DescriptorSetParameters
+  usage
+    descriptor_set.Pool
+
+
+vk::DescriptorSet       // handle
+
+  declaration
+    vk::UniqueDescriptorSet         Handle      // In DescriptorSetParameters
+  usage
+    Vulkan.DescriptorSet.Handle
+    Parameters.DescriptorSet.Handle
+    descriptor_set.Handle
+
+
+vk::PipelineLayout      // handle
+
+  declaration
+    vk::UniquePipelineLayout              PipelineLayout;       // In GUIResources
+  usage
+    Vulkan.PipelineLayout2
+
+  declaration
+    vk::UniquePipelineLayout                    PipelineLayout; // In SampleParameters
+  usage
+    Parameters.PipelineLayout3
+
+
+vk::RenderPass          // handle
+
+  declaration
+    vk::UniqueRenderPass                        RenderPass;     // In SampleParameters
+    vk::UniqueRenderPass                        PostRenderPass; // In SampleParameters
+  usage
+    Parameters.RenderPass
+    Parameters.PostRenderPass
+
+
+vk::Framebuffer         // handle
+
+  declaration
+    vk::UniqueFramebuffer                 Framebuffer;          // In FrameResourcesData
+  usage
+    current_frame.FrameResources->Framebuffer
+
+
+vk::QueryPool           // handle
+
+  declaration
+    none
+  usage
+    none
+
+
+Query                   // uint32_t
+
+  declaration
+    none
+  usage
+    none
+
+
+vk::ShaderModule        // handle
+
+  declaration
+    local
+  usage
+    local
+
+
+vk::PipelineCache       // handle
+
+  declaration
+    vk::PipelineCache()                                         // temporary
+  usage
+    local
+
+
+vk::Pipeline            // handle
+
+  declaration
+    vk::UniquePipeline                    GraphicsPipeline;             // In GUIResources
+    vk::UniquePipeline                          GraphicsPipeline;       // In SampleParameters
+    vk::Pipeline()                                                      // temporary
+  usage
+    Vulkan.GraphicsPipeline
+    Parameters.GraphicsPipeline
+
+
+vk::Event               // handle
+
+  declaration
+    none
+  usage
+    none
+
+
+class MouseInputStateData
+
+  declaration
+    MouseInputStateData MouseState;                     // In ProjectBase (protected)
+  usage
+    MouseState
+
+
+struct ButtonsStateData
+
+  declaration
+    struct ButtonsStateData {                           // In MouseInputStateData
+    ...
+    } Buttons[2];
+  usage
+    mouse_state.Buttons
+    MouseState.Buttons
+    Buttons[
+
+
+struct BufferParameters
+
+  declaration
+    BufferParameters          Buffer;                           // In StagingBufferParameters
+    BufferParameters                            VertexBuffer;   // In SampleParameters
+    BufferParameters                            InstanceBuffer; // In SampleParameters
+  usage
+    drawing_resources.VertexBuffer.Buffer
+    drawing_resources.IndexBuffer.Buffer
+    staging_buffer.Buffer
+    Parameters.VertexBuffer
+    Parameters.InstanceBuffer
+
+
+struct CurrentFrameData
+
+  declaration
+    static CurrentFrameData current_frame = {                   // In Sample::Draw()
+  usage
+    local
+
+
+struct DescriptorSetParameters
+struct DrawDataParameters
+struct FrameResourcesData
+struct ImageParameters
+struct QueueParameters
+struct RenderPassAttachmentData
+struct RenderPassSubpassData
+struct SampleFrameResourcesData
+struct SampleParameters
+struct StagingBufferParameters
+struct SwapChainParameters
+struct TexcoordData
+struct VertexData
+struct VulkanCommonParameters
+struct WindowParameters
+struct PositionData
+struct PositionDeltaData
+
+class ProjectBase
+class GUI
+struct GUIResources
+class Sample
+class SampleCommon
+class VulkanCommon
+class Window

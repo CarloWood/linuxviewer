@@ -87,4 +87,4 @@ add_subdirectory(protocols)
 add_subdirectory(data_types)
 
 # Vulkan stuff.
-add_subdirectory(vulkan)
+add_subdirectory(vulkan.old)

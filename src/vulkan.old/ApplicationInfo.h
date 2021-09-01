@@ -12,10 +12,9 @@ struct ApplicationInfo : vk::ApplicationInfo
   static constexpr uint32_t    s_default_engineVersion = 1;
   static constexpr uint32_t    s_default_apiVersion = VK_API_VERSION_1_1;
 
-  constexpr ApplicationInfo(
-      char const* pApplicationName_
-      ) : vk::ApplicationInfo(
-        pApplicationName_,
+  constexpr ApplicationInfo(char const* application_name) :
+    vk::ApplicationInfo(
+        application_name,
         s_default_applicationVersion,
         s_default_pEngineName,
         s_default_engineVersion,

@@ -6,20 +6,20 @@
 #include "Window.h"
 #include "GUI_glfw3/gui_Application.h"
 #include "GUI_glfw3/gui_WindowCreateInfo.h"
-#include "vulkan/InstanceCreateInfo.h"
-#include "vulkan/DispatchLoader.h"
-#include "vulkan/Pipeline.h"
-#include "vulkan/HelloTriangleSwapchain.h"
-#include "vulkan/DeviceCreateInfo.h"
-#include "vulkan/CommandPoolCreateInfo.h"
+#include "vulkan.old/InstanceCreateInfo.h"
+#include "vulkan.old/DispatchLoader.h"
+#include "vulkan.old/Pipeline.h"
+#include "vulkan.old/HelloTriangleSwapchain.h"
+#include "vulkan.old/DeviceCreateInfo.h"
+#include "vulkan.old/CommandPoolCreateInfo.h"
 #include "statefultask/AIEngine.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include "debug.h"
 #ifdef CWDEBUG
-#include "vulkan/DebugMessenger.h"
-#include "vulkan/debug_ostream_operators.h"
+#include "vulkan.old/DebugMessenger.h"
+#include "vulkan.old/debug_ostream_operators.h"
 #endif
 
 namespace vulkan {

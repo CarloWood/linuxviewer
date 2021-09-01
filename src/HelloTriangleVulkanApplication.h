@@ -1,11 +1,10 @@
 #pragma once
 
-#include "vulkan/Queue.h"
+#include "vulkan.old/Queue.h"
 #include "Application.h"
 
 class HelloTriangleVulkanApplication : public Application
 {
- public:
   using Application::Application;
 
  private:
@@ -26,7 +25,7 @@ class HelloTriangleVulkanApplication : public Application
   // Called from Application::create_swapchain().
   void create_swapchain_impl() override
   {
-    main_window()->create_swapchain(m_vulkan_device, m_graphics_queue, m_present_queue);
+    main_window()->create_swapchain(&m_vulkan_device, m_graphics_queue, m_present_queue);
   }
 
  protected:

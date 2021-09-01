@@ -1,8 +1,8 @@
 #include "sys.h"
 #include "HelloTriangleVulkanApplication.h"
-#include "vulkan/InstanceCreateInfo.h"
-#include "vulkan/DeviceCreateInfo.h"
-#include "vulkan/CommandPoolCreateInfo.h"
+#include "vulkan.old/InstanceCreateInfo.h"
+#include "vulkan.old/DeviceCreateInfo.h"
+#include "vulkan.old/CommandPoolCreateInfo.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif

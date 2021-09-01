@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils/MemoryPagePool.h"
-#include "vulkan/ApplicationInfo.h"
+#include "vulkan.old/ApplicationInfo.h"
 #ifdef CWDEBUG
 #include <iosfwd>
 #include <functional>
@@ -10,7 +10,7 @@
 
 // Default values for the creation of an Application object.
 // This class also contains the ApplicationInfo that is passed to the vulkan instance.
-struct ApplicationCreateInfo : vulkan::ApplicationInfo
+struct ApplicationCreateInfo : public vulkan::ApplicationInfo
 {
   using blocks_t = utils::MemoryPagePool::blocks_t;
 
