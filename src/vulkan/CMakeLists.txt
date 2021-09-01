@@ -51,105 +51,67 @@ foreach(source IN LISTS SHADERS)
   list(APPEND SPV_SHADERS ${SHADERS_BINARY_DIR}/${FILENAME}.spv)
 endforeach()
 
-add_custom_target(shaders_old ALL DEPENDS ${SPV_SHADERS})
+add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
 
 #==============================================================================
 # BUILD PROJECT
 #
 
 # This project is an OBJECT-library, used by other git submodules and the main project.
-add_library(vulkan_old_ObjLib OBJECT)
+add_library(vulkan_ObjLib OBJECT)
 
 # Set SOURCE_DIR to the current directory.
 set_property(
-  TARGET vulkan_old_ObjLib
+  TARGET vulkan_ObjLib
   PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-# The list of source files.
-target_sources(vulkan_old_ObjLib
-  PRIVATE
-    "InstanceCreateInfo.cxx"
-    "InstanceCreateInfo.h"
-    "DispatchLoader.cxx"
-    "DispatchLoader.h"
-    "PhysicalDeviceFeatures.cxx"
-    "PhysicalDeviceFeatures.h"
-    "DeviceCreateInfo.cxx"
-    "DeviceCreateInfo.h"
-    "Device.cxx"
-    "Device.h"
-    "DebugMessenger.cxx"
-    "DebugMessenger.h"
-    "PipelineCreateInfo.cxx"
-    "PipelineCreateInfo.h"
-    "Pipeline.cxx"
-    "Pipeline.h"
-    "HelloTriangleSwapchain.cxx"
-    "HelloTriangleSwapchain.h"
-    "QueueFlags.cxx"
-    "QueueFlags.h"
-    "QueueRequest.cxx"
-    "QueueRequest.h"
-    "QueueReply.cxx"
-    "QueueReply.h"
-    "Queue.cxx"
-    "Queue.h"
-    "Swapchain.cxx"
-    "Swapchain.h"
-    "CommandPoolCreateInfo.cxx"
-    "CommandPoolCreateInfo.h"
+file(GLOB SOURCE_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
+)
 
-    "check_instance_extensions_availability.cxx"
-    "check_instance_extensions_availability.h"
-    "debug_ostream_operators.cxx"
-    "debug_ostream_operators.h"
+file(GLOB HEADER_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+)
+
+# The list of source files.
+target_sources(vulkan_ObjLib
+  PRIVATE
+    ${SOURCE_FILES}
+    ${HEADER_FILES}
+
+    #"check_instance_extensions_availability.cxx"
+    #"check_instance_extensions_availability.h"
+    #"debug_ostream_operators.cxx"
+    #"debug_ostream_operators.h"
 )
 
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(vulkan_old_ObjLib
+target_include_directories(vulkan_ObjLib
   PUBLIC
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
 # Because we currently include glfwpp/glfwpp.h.
-target_compile_definitions(vulkan_old_ObjLib
+target_compile_definitions(vulkan_ObjLib
   PUBLIC
     GLFW_INCLUDE_VULKAN
     SHADERS_DIR="${SHADERS_BINARY_DIR}"
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
 )
 
-# Require support for C++17.
-target_compile_features(vulkan_old_ObjLib
-  PUBLIC cxx_std_17
+# Require support for C++20.
+target_compile_features(vulkan_ObjLib
+  PUBLIC cxx_std_20
 )
 
 # Set link dependencies.
-target_link_libraries(vulkan_old_ObjLib
+target_link_libraries(vulkan_ObjLib
   PUBLIC
-    GLFWPP
     Vulkan::Vulkan
     AICxx::cwds
-    magic_enum::magic_enum
-)
-
-add_executable(minimalexample
-  minimal_example.cxx
-)
-
-target_compile_definitions(minimalexample
-  PUBLIC
-    VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
-)
-
-target_link_libraries(minimalexample
-  PRIVATE
-    GLFWPP
-    Vulkan::Vulkan
-    PkgConfig::Shaderc
 )
 
 # Create an ALIAS target.
-add_library(LinuxViewer::vulkan_old ALIAS vulkan_old_ObjLib)
+add_library(LinuxViewer::vulkan ALIAS vulkan_ObjLib)

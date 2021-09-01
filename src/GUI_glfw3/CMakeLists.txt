@@ -61,7 +61,7 @@ target_compile_features(glfw3gui_ObjLib
 target_link_libraries(glfw3gui_ObjLib
   PUBLIC
     AICxx::utils
-    LinuxViewer::vulkan
+    LinuxViewer::vulkan_old
 )
 
 # Create an ALIAS target.

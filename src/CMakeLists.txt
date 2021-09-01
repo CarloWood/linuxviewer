@@ -47,7 +47,7 @@ target_link_libraries(linuxviewer
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
     LinuxViewer::glfw3gui
-    LinuxViewer::vulkan
+    LinuxViewer::vulkan_old
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task
@@ -74,7 +74,7 @@ add_executable(hellotriangle
 target_link_libraries(hellotriangle
   PRIVATE
     LinuxViewer::glfw3gui
-    LinuxViewer::vulkan
+    LinuxViewer::vulkan_old
     AICxx::resolver-task
     dns::dns
     ${AICXX_OBJECTS_LIST}
@@ -88,3 +88,4 @@ add_subdirectory(data_types)
 
 # Vulkan stuff.
 add_subdirectory(vulkan.old)
+add_subdirectory(vulkan)
