@@ -68,10 +68,12 @@ set_property(
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.cxx
 )
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.h
 )
 
 # The list of source files.
@@ -97,8 +99,11 @@ target_include_directories(vulkan_ObjLib
 target_compile_definitions(vulkan_ObjLib
   PUBLIC
     GLFW_INCLUDE_VULKAN
-    SHADERS_DIR="${SHADERS_BINARY_DIR}"
+    VK_USE_PLATFORM_XCB_KHR
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+    VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+  PRIVATE
+    SHADERS_DIR="${SHADERS_BINARY_DIR}"
 )
 
 # Require support for C++20.
@@ -110,7 +115,11 @@ target_compile_features(vulkan_ObjLib
 target_link_libraries(vulkan_ObjLib
   PUBLIC
     Vulkan::Vulkan
-    AICxx::cwds
+    AICxx::xcb-task
+    AICxx::xcb-task::OrgFreedesktopXcbError
+    AICxx::utils
+    farmhash::farmhash
+    ${PLATFORM_LIBRARY}
 )
 
 # Create an ALIAS target.

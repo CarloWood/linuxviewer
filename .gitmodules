@@ -54,3 +54,7 @@
 	path = src/GUI_glfw3/glfwpp
 	url = https://github.com/CarloWood/glfwpp.git
         branch = main
+[submodule "xcb-task"]
+	path = xcb-task
+	url = https://github.com/CarloWood/xcb-task.git
+	branch = master

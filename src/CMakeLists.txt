@@ -24,6 +24,21 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 #add_definitions(
 #)
 
+add_executable(mytest
+  TestApplication.cxx
+  TestApplication.h
+)
+
+target_link_libraries(mytest
+  PRIVATE
+    LinuxViewer::vulkan
+    AICxx::xcb-task
+    AICxx::xcb-task::OrgFreedesktopXcbError
+    AICxx::resolver-task
+    dns::dns
+    ${AICXX_OBJECTS_LIST}
+)
+
 add_executable(linuxviewer 
   LinuxViewerApplication.cxx
   LinuxViewerApplication.h
