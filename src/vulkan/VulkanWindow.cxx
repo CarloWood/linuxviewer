@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "VulkanWindow.h"
+#include "Application.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 
 namespace task {
@@ -17,6 +18,13 @@ char const* VulkanWindow::state_str_impl(state_type run_state) const
   return "UNKNOWN STATE";
 }
 
+void VulkanWindow::initialize_impl()
+{
+  DoutEntering(dc::vulkan, "VulkanWindow::initialize_impl() [" << this << "]");
+  m_application->add(this);
+  set_state(VulkanWindow_xcb_connection);
+}
+
 void VulkanWindow::multiplex_impl(state_type run_state)
 {
   switch (run_state)
@@ -28,7 +36,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       break;
     case VulkanWindow_create:
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
-      m_window->create(m_title, m_size.width, m_size.height, this);
+      m_window->create(m_title, m_extent.width, m_extent.height, this);
       set_state(VulkanWindow_render_loop);
       break;
     case VulkanWindow_render_loop:
@@ -53,6 +61,7 @@ void VulkanWindow::finish_impl()
   // function and then leave the scope of the boost::intrusive_ptr that keeps
   // this tasks alive. When it gets destructed, also Window will be destructed
   // and it's destructor does the work required to close the window.
+  m_application->remove(this);
 }
 
 } // namespace task

@@ -10,6 +10,10 @@ namespace xcb {
 class ConnectionBrokerKey;
 } // namespace xcb
 
+namespace vulkan {
+class Application;
+} // namespace vulkan
+
 namespace task {
 
 /**
@@ -21,17 +25,20 @@ class VulkanWindow : public AIStatefulTask
  private:
   static constexpr condition_type connection_set_up = 1;
 
+  // Constructor
+  vulkan::Application* m_application;
+  std::unique_ptr<linuxviewer::OS::Window> m_window;                            // Initialized in VulkanWindow_create
+
   // set_title
   std::string m_title;
   // set_size
-  vk::Extent2D m_size;
+  vk::Extent2D m_extent;
   // set_xcb_connection
   boost::intrusive_ptr<task::Broker<task::XcbConnection>> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
   boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;        // VulkanWindow_start
-  std::unique_ptr<linuxviewer::OS::Window> m_window;                            // construct<MyWindow>() / VulkanWindow_create
   std::atomic_bool m_must_close = false;
 
  protected:
@@ -51,17 +58,18 @@ class VulkanWindow : public AIStatefulTask
   static state_type constexpr state_end = VulkanWindow_close + 1;
 
   /// Construct an VulkanWindow object.
-  VulkanWindow(CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug))
-    { DoutEntering(dc::statefultask(mSMDebug), "VulkanWindow() [" << (void*)this << "]"); }
+  VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug = false)) :
+    AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window))
+    { DoutEntering(dc::statefultask(mSMDebug), "VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]"); }
 
-  void set_title(std::string title)
+  void set_title(std::string&& title)
   {
     m_title = std::move(title);
   }
 
-  void set_size(vk::Extent2D size)
+  void set_size(vk::Extent2D extent)
   {
-    m_size = size;
+    m_extent = extent;
   }
 
   // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
@@ -69,13 +77,6 @@ class VulkanWindow : public AIStatefulTask
   {
     m_broker = broker;
     m_broker_key = broker_key;
-  }
-
-  template<typename WindowType>
-  void set_window_type()
-  {
-    static_assert(std::is_base_of_v<linuxviewer::OS::Window, WindowType>, "WindowType must be derived from linuxviewer::OS::Window");
-    m_window = std::make_unique<WindowType>();
   }
 
   void close()
@@ -95,6 +96,9 @@ class VulkanWindow : public AIStatefulTask
 
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override final;
+
+  /// Set up task for running.
+  void initialize_impl() override;
 
   /// Handle mRunState.
   void multiplex_impl(state_type run_state) override;

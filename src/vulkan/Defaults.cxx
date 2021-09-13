@@ -1,5 +1,30 @@
 #include "sys.h"
 #include "Defaults.h"
+#include "Application.h"
+
+namespace vulkan {
+
+//
+// Defaults for vulkan::Application
+//
+
+int Application::thread_pool_number_of_worker_threads() const
+{
+  return default_number_of_threads;
+}
+
+int Application::thread_pool_queue_capacity(QueuePriority UNUSED_ARG(priority)) const
+{
+  // By default, make the size of each thread pool queue equal to the number of worker threads.
+  return m_thread_pool.number_of_workers();
+}
+
+int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)) const
+{
+  return default_reserved_threads;
+}
+
+} // namespace vulkan
 
 #ifdef CWDEBUG
 #include "utils/PrintList.h"
