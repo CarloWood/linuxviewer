@@ -36,6 +36,9 @@ void Application::initialize(int argc, char** argv)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::initialize(" << argc << ", ...)");
 
+  // Only call initialize once. Calling it twice leads to a nasty dead-lock that was hard to debug ;).
+  ASSERT(!m_event_loop);
+
   // Parse command line parameters before doing any initialization, so the command line arguments can influence the initialization too.
   if (argc > 0)
     parse_command_line_parameter(argc, argv);
@@ -100,9 +103,6 @@ void Application::remove(task::VulkanWindow* window_task)
 // This function does not return until the program terminated.
 void Application::run(int argc, char* argv[])
 {
-  parse_command_line_parameter(argc, argv);
-  initialize();
-
   // Main application begin.
   try
   {

@@ -43,7 +43,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       if (AI_LIKELY(!m_must_close))
       {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        yield();
+        yield(m_application->m_medium_priority_queue);
         break;
       }
       set_state(VulkanWindow_close);
