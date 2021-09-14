@@ -2,6 +2,9 @@
 #include "TestApplication.h"
 #include "vulkan/OperatingSystem.h"
 #include "debug.h"
+#ifdef CWDEBUG
+#include "utils/debug_ostream_operators.h"
+#endif
 
 using namespace linuxviewer;
 
@@ -46,15 +49,31 @@ int main(int argc, char* argv[])
   Debug(NAMESPACE_DEBUG::init());
   Dout(dc::notice, "Entering main()");
 
-  // Create the application object.
-  TestApplication application;
+  try
+  {
+    // Create the application object.
+    TestApplication application;
 
-  // Initialize application using the virtual functions of TestApplication.
-  application.initialize(argc, argv);
+    // Initialize application using the virtual functions of TestApplication.
+    application.initialize(argc, argv);
 
-  // Create a window.
-  application.create_main_window(std::make_unique<Window>(), "TestApplication", {1000, 800});
+    // Create a window.
+    application.create_main_window(std::make_unique<Window>(), "TestApplication", {1000, 800});
 
-  // Run the application.
-  application.run(argc, argv);
+    // Run the application.
+    application.run(argc, argv);
+  }
+  catch (AIAlert::Error const& error)
+  {
+    // Application terminated with an error.
+    Dout(dc::warning, "\e[31m" << error << ", caught in TestApplication.cxx\e[0m");
+  }
+#ifndef CWDEBUG // Commented out so we can see in gdb where an exception is thrown from.
+  catch (std::exception& exception)
+  {
+    DoutFatal(dc::core, "\e[31mstd::exception: " << exception.what() << " caught in TestApplication.cxx\e[0m");
+  }
+#endif
+
+  Dout(dc::notice, "Leaving main()");
 }

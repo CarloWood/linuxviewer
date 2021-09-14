@@ -6,6 +6,7 @@
 #include "threadpool/AIThreadPool.h"
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
+#include "utils/threading/Gate.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
 
@@ -55,6 +56,9 @@ class Application
 
   // Configuration of the main X server connection.
   xcb::ConnectionBrokerKey m_main_display_broker_key;
+
+  // To stop the main thread from exiting.
+  utils::threading::Gate m_until_terminated;
 
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::VulkanWindow>>;

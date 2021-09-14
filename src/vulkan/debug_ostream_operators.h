@@ -39,6 +39,9 @@ std::ostream& operator<<(std::ostream& os, Flags flags) requires details::Concep
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, Extent2D const& extend_2D);
+std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D);
+
 } // namespace vk
 
 #include "Defaults.h"           // For its print_on capability.

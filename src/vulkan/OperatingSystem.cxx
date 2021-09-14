@@ -1,6 +1,6 @@
 #include "sys.h"
-#include "OperatingSystem.h"
 #include "VulkanWindow.h"
+#include "OperatingSystem.h"
 #include "debug.h"
 #include <thread>
 #include <chrono>
@@ -186,9 +186,12 @@ void Window::On_WM_DELETE_WINDOW(uint32_t timestamp)
   m_window_task.reset();
   // At this point the task MUST still be kept alive, because upon destruction
   // it will destruct this Window and we can't have that while still inside
-  // a virtual function. Moreover, we really should only have ONE boost::intrusive_ptr
-  // left which we expect to get out of scope once the task returns from run().
-  ASSERT(m_window_task->unique().is_true());
+  // a virtual function.
+  //
+  // We should have one boost::intrusive_ptr's left: the one in Application::m_window_list.
+  // This will be removed from the running task (finish_impl), which prevents the
+  // immediate destruction until the task fully finished. At that point this Window
+  // will be destructed causing a call to Window::destroy.
 }
 
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)

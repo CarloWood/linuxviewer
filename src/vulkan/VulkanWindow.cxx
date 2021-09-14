@@ -1,9 +1,23 @@
 #include "sys.h"
 #include "VulkanWindow.h"
+#include "OperatingSystem.h"
 #include "Application.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 
 namespace task {
+
+VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug)) :
+  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window))
+{
+  DoutEntering(dc::statefultask(mSMDebug), "VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
+}
+
+VulkanWindow::~VulkanWindow()
+{
+  DoutEntering(dc::statefultask(mSMDebug), "~VulkanWindow() [" << (void*)this << "]");
+  if (m_window)
+    m_window->destroy();
+}
 
 char const* VulkanWindow::state_str_impl(state_type run_state) const
 {
@@ -21,6 +35,7 @@ char const* VulkanWindow::state_str_impl(state_type run_state) const
 void VulkanWindow::initialize_impl()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::initialize_impl() [" << this << "]");
+
   m_application->add(this);
   set_state(VulkanWindow_xcb_connection);
 }

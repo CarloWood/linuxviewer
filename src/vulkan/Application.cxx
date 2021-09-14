@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "debug.h"
 #ifdef CWDEBUG
-#include "utils/debug_ostream_operators.h"
+#include "debug_ostream_operators.h"
 #endif
 
 namespace vulkan {
@@ -63,6 +63,8 @@ void Application::initialize(int argc, char** argv)
 
 void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, std::string&& title, vk::Extent2D extent)
 {
+  DoutEntering(dc::vulkan, "Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ")");
+
   // Call Application::initialize() immediately after constructing the Application.
   //
   // For example:
@@ -87,12 +89,14 @@ void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& 
 
 void Application::add(task::VulkanWindow* window_task)
 {
+  DoutEntering(dc::vulkan, "Application::add(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
   window_list_w->emplace_back(window_task);
 }
 
 void Application::remove(task::VulkanWindow* window_task)
 {
+  DoutEntering(dc::vulkan, "Application::remove(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
   window_list_w->erase(
       std::remove_if(window_list_w->begin(), window_list_w->end(), [window_task](auto element){ return element.get() == window_task; }),
@@ -103,32 +107,16 @@ void Application::remove(task::VulkanWindow* window_task)
 // This function does not return until the program terminated.
 void Application::run(int argc, char* argv[])
 {
-  // Main application begin.
-  try
-  {
+  // The main thread goes to sleep for the entirety of the application.
+  m_until_terminated.wait();
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+  Dout(dc::notice, "======= Program terminated ======");
 
-    // Vulkan preparations and initialization.
-//    project.prepare(window.get_parameters());
+  // Stop the broker task.
+  m_xcb_connection_broker->terminate([](task::XcbConnection* xcb_connection){ xcb_connection->close(); });
 
-    // Stop the broker task.
-    m_xcb_connection_broker->terminate([](task::XcbConnection* xcb_connection){ xcb_connection->close(); });
-
-    // Application terminated cleanly.
-    m_event_loop->join();
-  }
-  catch (AIAlert::Error const& error)
-  {
-    // Application terminated with an error.
-    Dout(dc::warning, "\e[31m" << error << ", caught in TestApplication.cxx\e[0m");
-  }
-#ifndef CWDEBUG // Commented out so we can see in gdb where an exception is thrown from.
-  catch (std::exception& exception)
-  {
-    DoutFatal(dc::core, "\e[31mstd::exception: " << exception.what() << " caught in TestApplication.cxx\e[0m");
-  }
-#endif
+  // Application terminated cleanly.
+  m_event_loop->join();
 }
 
 } // namespace vulkan

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "OperatingSystem.h"
 #include "statefultask/Broker.h"
 #include "xcb-task/XcbConnection.h"
 #include <vulkan/vulkan.hpp>
@@ -13,6 +12,10 @@ class ConnectionBrokerKey;
 namespace vulkan {
 class Application;
 } // namespace vulkan
+
+namespace linuxviewer::OS {
+class Window;
+} // namespace linuxviewer::OS
 
 namespace task {
 
@@ -58,9 +61,7 @@ class VulkanWindow : public AIStatefulTask
   static state_type constexpr state_end = VulkanWindow_close + 1;
 
   /// Construct an VulkanWindow object.
-  VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug = false)) :
-    AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window))
-    { DoutEntering(dc::statefultask(mSMDebug), "VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]"); }
+  VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void set_title(std::string&& title)
   {
@@ -87,12 +88,7 @@ class VulkanWindow : public AIStatefulTask
 
  protected:
   /// Call finish() (or abort()), not delete.
-  ~VulkanWindow() override
-  {
-    DoutEntering(dc::statefultask(mSMDebug), "~VulkanWindow() [" << (void*)this << "]");
-    if (m_window)
-      m_window->destroy();
-  }
+  ~VulkanWindow() override;
 
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override final;
