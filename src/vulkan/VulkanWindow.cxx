@@ -9,12 +9,12 @@ namespace task {
 VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
 }
 
 VulkanWindow::~VulkanWindow()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "~VulkanWindow() [" << (void*)this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::~VulkanWindow() [" << (void*)this << "]");
   if (m_window)
     m_window->destroy();
 }
@@ -53,6 +53,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
       m_window->create(m_title, m_extent.width, m_extent.height, this);
       set_state(VulkanWindow_render_loop);
+
       break;
     case VulkanWindow_render_loop:
       if (AI_LIKELY(!m_must_close))
