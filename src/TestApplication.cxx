@@ -10,6 +10,12 @@ using namespace linuxviewer;
 
 class Window : public OS::Window
 {
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    // Limit the frame rate of this window to 10 frames per second.
+    return threadpool::Interval<100, std::chrono::milliseconds>{};
+  }
+
   void OnWindowSizeChanged() override
   {
     DoutEntering(dc::notice, "Window::OnWindowSizeChanged()");

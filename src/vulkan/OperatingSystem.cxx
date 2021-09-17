@@ -27,6 +27,9 @@ void Window::create(std::string_view const& title, int width, int height, boost:
   // Keep a reference to the corresponding window task.
   m_window_task = std::move(window_task);
 
+  // Set the maximum frame rate.
+  m_window_task->set_frame_rate_interval(get_frame_rate_interval());
+
   m_parameters.m_xcb_connection->create_main_window(
 //    XCB_COPY_FROM_PARENT,                       // depth
     m_parameters.Handle,                        // window handle
@@ -150,6 +153,13 @@ bool Window::rendering_loop(ProjectBase& project) const
 }
 #endif
 
+//virtual
+threadpool::Timer::Interval Window::get_frame_rate_interval() const
+{
+  return threadpool::Interval<10, std::chrono::milliseconds>{};
+}
+
+#if 0
 bool Window::rendering_loop()
 {
   bool result = true;
@@ -178,6 +188,7 @@ bool Window::rendering_loop()
 
   return result;
 }
+#endif
 
 void Window::On_WM_DELETE_WINDOW(uint32_t timestamp)
 {

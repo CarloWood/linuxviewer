@@ -36,7 +36,7 @@ struct WindowParameters
   Display*              DisplayPtr;
   Window                Handle;
 #endif
-  };
+};
 
 // ************************************************************ //
 // Window                                                       //
@@ -56,11 +56,12 @@ class Window : public xcb::WindowBase
   void             set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
   void             create(std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task);
   void             destroy();
-  bool             rendering_loop();
+//  bool             rendering_loop();
 
   WindowParameters get_parameters() const { return m_parameters; }
 
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override;
+  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
 };
 
 } // namespace linuxviewer::OS

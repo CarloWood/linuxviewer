@@ -2,6 +2,7 @@
 
 #include "statefultask/Broker.h"
 #include "xcb-task/XcbConnection.h"
+#include "threadpool/Timer.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 
@@ -27,6 +28,7 @@ class VulkanWindow : public AIStatefulTask
 {
  private:
   static constexpr condition_type connection_set_up = 1;
+  static constexpr condition_type frame_timer = 2;
 
   // Constructor
   vulkan::Application* m_application;
@@ -43,6 +45,13 @@ class VulkanWindow : public AIStatefulTask
   // run
   boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;        // VulkanWindow_start
   std::atomic_bool m_must_close = false;
+
+  threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
+  threadpool::Timer m_frame_rate_limiter;
+
+#ifdef CWDEBUG
+  bool const mVWDebug;                                                          // A copy of mSMDebug.
+#endif
 
  protected:
   /// The base class of this task.
@@ -71,6 +80,11 @@ class VulkanWindow : public AIStatefulTask
   void set_size(vk::Extent2D extent)
   {
     m_extent = extent;
+  }
+
+  void set_frame_rate_interval(threadpool::Timer::Interval frame_rate_interval)
+  {
+    m_frame_rate_interval = frame_rate_interval;
   }
 
   // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.

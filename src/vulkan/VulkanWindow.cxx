@@ -7,7 +7,7 @@
 namespace task {
 
 VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug)) :
-  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window))
+  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window)), m_frame_rate_limiter([this](){ signal(frame_timer); }), mVWDebug(mSMDebug)
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
 }
@@ -15,6 +15,7 @@ VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<lin
 VulkanWindow::~VulkanWindow()
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::~VulkanWindow() [" << (void*)this << "]");
+  m_frame_rate_limiter.stop();
   if (m_window)
     m_window->destroy();
 }
@@ -53,18 +54,22 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
       m_window->create(m_title, m_extent.width, m_extent.height, this);
       set_state(VulkanWindow_render_loop);
-
+      // Turn off debug output for this statefultask while processing the render loop.
+      Debug(mSMDebug = false);
       break;
     case VulkanWindow_render_loop:
       if (AI_LIKELY(!m_must_close))
       {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        wait(frame_timer);
+        m_frame_rate_limiter.start(m_frame_rate_interval);
         yield(m_application->m_medium_priority_queue);
         break;
       }
       set_state(VulkanWindow_close);
       [[fallthrough]];
     case VulkanWindow_close:
+      // Turn on debug output again.
+      Debug(mSMDebug = mVWDebug);
       finish();
       break;
   }
