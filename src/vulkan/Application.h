@@ -52,7 +52,7 @@ class Application
   std::unique_ptr<resolver::Scope> m_resolver_scope;
 
   // A task that hands out connections to the X server.
-  boost::intrusive_ptr<task::Broker<task::XcbConnection>> m_xcb_connection_broker;
+  boost::intrusive_ptr<task::VulkanWindow::xcb_connection_broker_type> m_xcb_connection_broker;
 
   // Configuration of the main X server connection.
   xcb::ConnectionBrokerKey m_main_display_broker_key;
@@ -80,7 +80,10 @@ class Application
   void run(int argc, char* argv[]);
 
  protected:
-  virtual void parse_command_line_parameter(int argc, char* argv[]);
+  // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).
+  virtual std::string default_display_name() const;
+
+  virtual void parse_command_line_parameters(int argc, char* argv[]);
 
   // Override this function to change the number of worker threads.
   virtual int thread_pool_number_of_worker_threads() const;

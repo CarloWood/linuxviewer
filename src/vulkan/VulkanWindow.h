@@ -26,6 +26,9 @@ namespace task {
  */
 class VulkanWindow : public AIStatefulTask
 {
+ public:
+  using xcb_connection_broker_type = task::Broker<task::XcbConnection, std::function<void()>>;
+
  private:
   static constexpr condition_type connection_set_up = 1;
   static constexpr condition_type frame_timer = 2;
@@ -39,7 +42,7 @@ class VulkanWindow : public AIStatefulTask
   // set_size
   vk::Extent2D m_extent;
   // set_xcb_connection
-  boost::intrusive_ptr<task::Broker<task::XcbConnection>> m_broker;
+  boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
@@ -88,9 +91,9 @@ class VulkanWindow : public AIStatefulTask
   }
 
   // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
-  void set_xcb_connection(boost::intrusive_ptr<task::Broker<task::XcbConnection>> broker, xcb::ConnectionBrokerKey const* broker_key)
+  void set_xcb_connection(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
   {
-    m_broker = broker;
+    m_broker = std::move(broker);
     m_broker_key = broker_key;
   }
 

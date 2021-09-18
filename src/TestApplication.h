@@ -12,4 +12,9 @@ class TestApplication : public vulkan::Application
     // Lets use 4 worker threads in the thread pool.
     return 4;
   }
+
+  std::string default_display_name() const override
+  {
+    return "";
+  }
 };

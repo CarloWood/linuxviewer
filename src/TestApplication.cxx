@@ -65,6 +65,7 @@ int main(int argc, char* argv[])
 
     // Create a window.
     application.create_main_window(std::make_unique<Window>(), "TestApplication", {1000, 800});
+    application.create_main_window(std::make_unique<Window>(), "Second window", {400, 400});
 
     // Run the application.
     application.run(argc, argv);

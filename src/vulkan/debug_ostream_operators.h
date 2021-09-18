@@ -3,6 +3,8 @@
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
 
+namespace vk {
+
 namespace details {
 
 template<typename>
@@ -28,8 +30,6 @@ concept ConceptVkFlagsWithToString =
   (ConceptIsVkFlags<FE> || std::is_enum_v<FE>) && ConceptHasToString<FE>;
 
 } // namespace details
-
-namespace vk {
 
 // Print enum (class) types and Flags using vk::to_string.
 template<typename Flags>
