@@ -118,6 +118,8 @@ void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& 
   // Window initialization.
   window_task->set_title(std::move(title));
   window_task->set_size(extent);
+  // The key passed to set_xcb_connection MUST be canonicalized!
+  m_main_display_broker_key.canonicalize();
   window_task->set_xcb_connection(m_xcb_connection_broker, &m_main_display_broker_key);
 
   // Create window and start rendering loop.
