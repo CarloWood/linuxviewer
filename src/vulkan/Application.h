@@ -4,6 +4,7 @@
 #include "DispatchLoader.h"
 #include "ApplicationInfo.h"
 #include "InstanceCreateInfo.h"
+#include "PhysicalDeviceFeatures.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -135,6 +136,9 @@ class Application
 
   // Override this function to add Instance layers and/or extensions.
   virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
+
+  // Override this function to change the default physical device features.
+  virtual void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const { }
 };
 
 } // namespace vulkan

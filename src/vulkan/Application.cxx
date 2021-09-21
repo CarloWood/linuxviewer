@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "DebugUtilsMessengerCreateInfoEXT.h"
 #include "VulkanWindow.h"
+#include "PhysicalDeviceFeatures.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include <algorithm>
@@ -118,6 +119,11 @@ void Application::initialize(int argc, char** argv)
 
   prepare_instance_info(instance_create_info);
   createInstance(instance_create_info);
+
+  PhysicalDeviceFeatures physical_device_features;
+  prepare_physical_device_features(physical_device_features);
+
+  Dout(dc::notice, "physical_device_features = " << physical_device_features);
 }
 
 void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title)

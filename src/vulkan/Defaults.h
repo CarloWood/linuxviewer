@@ -139,6 +139,16 @@ VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
+VK_DEFAULTS_DECLARE(PhysicalDeviceFeatures)
+{
+  PhysicalDeviceFeatures()
+  {
+    setSamplerAnisotropy(VK_TRUE);
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
 } // namespace vk_defaults
 
 #endif // VULKAN_DEFAULTS_H

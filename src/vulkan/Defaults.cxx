@@ -108,6 +108,74 @@ void Instance::print_members(std::ostream& os, char const* prefix) const
     "m_instance: " << static_cast<VkInstance>(*this);
 }
 
+void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+#define SHOW_IF_TRUE(var) \
+  do { if (var) { os << prefix << #var; prefix = ", "; } } while(0)
+
+  prefix = "<";
+  SHOW_IF_TRUE(robustBufferAccess);
+  SHOW_IF_TRUE(fullDrawIndexUint32);
+  SHOW_IF_TRUE(imageCubeArray);
+  SHOW_IF_TRUE(independentBlend);
+  SHOW_IF_TRUE(geometryShader);
+  SHOW_IF_TRUE(tessellationShader);
+  SHOW_IF_TRUE(sampleRateShading);
+  SHOW_IF_TRUE(dualSrcBlend);
+  SHOW_IF_TRUE(logicOp);
+  SHOW_IF_TRUE(multiDrawIndirect);
+  SHOW_IF_TRUE(drawIndirectFirstInstance);
+  SHOW_IF_TRUE(depthClamp);
+  SHOW_IF_TRUE(depthBiasClamp);
+  SHOW_IF_TRUE(fillModeNonSolid);
+  SHOW_IF_TRUE(depthBounds);
+  SHOW_IF_TRUE(wideLines);
+  SHOW_IF_TRUE(largePoints);
+  SHOW_IF_TRUE(alphaToOne);
+  SHOW_IF_TRUE(multiViewport);
+  SHOW_IF_TRUE(samplerAnisotropy);
+  SHOW_IF_TRUE(textureCompressionETC2);
+  SHOW_IF_TRUE(textureCompressionASTC_LDR);
+  SHOW_IF_TRUE(textureCompressionBC);
+  SHOW_IF_TRUE(occlusionQueryPrecise);
+  SHOW_IF_TRUE(pipelineStatisticsQuery);
+  SHOW_IF_TRUE(vertexPipelineStoresAndAtomics);
+  SHOW_IF_TRUE(fragmentStoresAndAtomics);
+  SHOW_IF_TRUE(shaderTessellationAndGeometryPointSize);
+  SHOW_IF_TRUE(shaderImageGatherExtended);
+  SHOW_IF_TRUE(shaderStorageImageExtendedFormats);
+  SHOW_IF_TRUE(shaderStorageImageMultisample);
+  SHOW_IF_TRUE(shaderStorageImageReadWithoutFormat);
+  SHOW_IF_TRUE(shaderStorageImageWriteWithoutFormat);
+  SHOW_IF_TRUE(shaderUniformBufferArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderSampledImageArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderStorageBufferArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderStorageImageArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderClipDistance);
+  SHOW_IF_TRUE(shaderCullDistance);
+  SHOW_IF_TRUE(shaderFloat64);
+  SHOW_IF_TRUE(shaderInt64);
+  SHOW_IF_TRUE(shaderInt16);
+  SHOW_IF_TRUE(shaderResourceResidency);
+  SHOW_IF_TRUE(shaderResourceMinLod);
+  SHOW_IF_TRUE(sparseBinding);
+  SHOW_IF_TRUE(sparseResidencyBuffer);
+  SHOW_IF_TRUE(sparseResidencyImage2D);
+  SHOW_IF_TRUE(sparseResidencyImage3D);
+  SHOW_IF_TRUE(sparseResidency2Samples);
+  SHOW_IF_TRUE(sparseResidency4Samples);
+  SHOW_IF_TRUE(sparseResidency8Samples);
+  SHOW_IF_TRUE(sparseResidency16Samples);
+  SHOW_IF_TRUE(sparseResidencyAliased);
+  SHOW_IF_TRUE(variableMultisampleRate);
+  SHOW_IF_TRUE(inheritedQueries);
+  os << ">";
+
+#undef SHOW_IF_TRUE
+}
+
 } // namespace vk_defaults
 
 #if !defined(DOXYGEN)

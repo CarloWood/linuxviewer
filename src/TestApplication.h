@@ -17,4 +17,10 @@ class TestApplication : public vulkan::Application
   {
     return "TestApplication";
   }
+
+  void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const override
+  {
+    // Use the setters from vk::PhysicalDeviceFeatures.
+    physical_device_features.setDepthClamp(true);
+  }
 };
