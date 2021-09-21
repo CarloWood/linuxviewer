@@ -1,6 +1,9 @@
 #pragma once
 
 #include "VulkanWindow.h"
+#include "DispatchLoader.h"
+#include "ApplicationInfo.h"
+#include "InstanceCreateInfo.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -57,7 +60,7 @@ class Application
   // Configuration of the main X server connection.
   xcb::ConnectionBrokerKey m_main_display_broker_key;
 
-  // To stop the main thread from exiting.
+  // To stop the main thread from exiting until the last xcb connection is closed.
   utils::threading::Gate m_until_terminated;
 
   // All windows.
@@ -65,10 +68,22 @@ class Application
   using window_list_t = aithreadsafe::Wrapper<window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   window_list_t m_window_list;
 
+  // Loader for vulkan extension functions.
+  DispatchLoader m_dispatch_loader;
+
+  // Vulkan instance.
+  vk::UniqueInstance m_instance;                        // Per application state. Creating a vk::Instance object initializes
+                                                        // the Vulkan library and allows the application to pass information
+                                                        // about itself to the implementation. Using vk::UniqueInstance also
+                                                        // automatically destroys it.
+
  private:
   friend class task::VulkanWindow;
   void add(task::VulkanWindow* window_task);
   void remove(task::VulkanWindow* window_task);
+
+  // Create and initialize the vulkan instance (m_instance).
+  void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
 
  public:
   Application();
@@ -76,8 +91,26 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
-  void create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, std::string&& title, vk::Extent2D extent);
+  void create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
   void run(int argc, char* argv[]);
+
+#ifdef CWDEBUG
+  void debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData);
+
+  static VkBool32 debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    void* pUserData)
+  {
+    Application* self = reinterpret_cast<Application*>(pUserData);
+    self->debugCallback(messageSeverity, messageType, pCallbackData);
+    return VK_FALSE;
+  }
+#endif
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).
@@ -93,6 +126,15 @@ class Application
 
   // Override this function to change the number of reserved threads for each queue (except the last, of course).
   virtual int thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)) const;
+
+  // Override this function to change the default ApplicatioInfo values.
+  virtual std::string application_name() const { return vk_defaults::ApplicationInfo::default_application_name; }
+
+  // Override this function to change the default application version. The result should be a value returned by vk_utils::encode_version.
+  virtual uint32_t application_version() const { return vk_defaults::ApplicationInfo::default_application_version; }
+
+  // Override this function to add Instance layers and/or extensions.
+  virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
 };
 
 } // namespace vulkan

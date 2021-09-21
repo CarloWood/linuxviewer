@@ -4,9 +4,9 @@
 #ifndef VULKAN_DEFAULTS_H
 #define VULKAN_DEFAULTS_H
 
+#include "utils/encode_version.h"
 #include "debug.h"
 #include <vulkan/vulkan.hpp>
-#include <array>
 
 /*=****************************************************************************
  * Convenience marocs                                                         *
@@ -43,6 +43,10 @@ extern channel_ct vkerror;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 
+namespace vk_defaults {
+void debug_init();
+} // namespace vk_defaults
+
 #endif // CWDEBUG
 
 /*=****************************************************************************
@@ -53,12 +57,15 @@ namespace vk_defaults {
 
 VK_DEFAULTS_DECLARE(ApplicationInfo)
 {
+  static constexpr char const* default_application_name = "Application Name";
+  static constexpr uint32_t default_application_version = vk_utils::encode_version(0, 0, 0);
+
   constexpr ApplicationInfo() : vk::ApplicationInfo{
-    .pApplicationName        = "Application Name",
-    .applicationVersion      = VK_MAKE_VERSION(0, 0, 0),
+    .pApplicationName        = default_application_name,
+    .applicationVersion      = default_application_version,
     .pEngineName             = "LinuxViewer",
-    .engineVersion           = VK_MAKE_VERSION(0, 1, 0),
-    .apiVersion              = VK_API_VERSION_1_1,
+    .engineVersion           = vk_utils::encode_version(0, 1, 0),
+    .apiVersion              = VK_API_VERSION_1_2,
   } { }
   VK_DEFAULTS_DEBUG_MEMBERS
 };
@@ -72,13 +79,12 @@ VK_DEFAULTS_DECLARE(InstanceCreateInfo)
     CWDEBUG_ONLY("VK_EXT_debug_utils",)
   };
 #ifdef CWDEBUG
-  // Enable valiation layers only when in debug mode.
   static constexpr std::array      default_enabled_layers = {
-    "VK_LAYER_KHRONOS_validation",
+    "VK_LAYER_KHRONOS_validation"
   };
 #endif
 
-  InstanceCreateInfo() : vk::InstanceCreateInfo{
+  constexpr InstanceCreateInfo() : vk::InstanceCreateInfo{
     .pApplicationInfo        = &default_application_info,
 #ifdef CWDEBUG
     .enabledLayerCount       = default_enabled_layers.size(),
@@ -99,7 +105,7 @@ VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 #endif
 
-  DebugUtilsMessengerCreateInfoEXT() : vk::DebugUtilsMessengerCreateInfoEXT{
+  constexpr DebugUtilsMessengerCreateInfoEXT() : vk::DebugUtilsMessengerCreateInfoEXT{
 #ifdef CWDEBUG
     .messageSeverity         = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
     .messageType             = default_messageType,
@@ -121,6 +127,15 @@ VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
 
 VK_DEFAULTS_DECLARE(Instance)
 {
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
+VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
+{
+  DebugUtilsObjectNameInfoEXT(VkDebugUtilsObjectNameInfoEXT const& object_name_info)
+  {
+    vk::DebugUtilsObjectNameInfoEXT::operator=(object_name_info);
+  }
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 

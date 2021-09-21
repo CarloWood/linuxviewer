@@ -35,6 +35,7 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 namespace vk_defaults {
 
 using vk_utils::print_version;
+using vk_utils::print_api_version;
 using vk_utils::print_list;
 using NAMESPACE_DEBUG::print_string;
 
@@ -53,7 +54,7 @@ void ApplicationInfo::print_members(std::ostream& os, char const* prefix) const
     ", applicationVersion:"      << print_version(applicationVersion) <<
     ", pEngineName:"             << print_string(pEngineName) <<
     ", engineVersion:"           << print_version(engineVersion) <<
-    ", apiVersion:"              << print_version(apiVersion);
+    ", apiVersion:"              << print_api_version(apiVersion);
 }
 
 void InstanceCreateInfo::print_members(std::ostream& os, char const* prefix) const
@@ -87,6 +88,20 @@ void DebugUtilsMessengerCreateInfoEXT::print_members(std::ostream& os, char cons
     ", pUserData:"               << pUserData;
 }
 
+void DebugUtilsObjectNameInfoEXT::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  using std::hex;
+  os <<
+      "objectType:"              << to_string(objectType) <<
+    ", objectHandle:"     << hex << objectHandle <<
+    ", pObjectName:"             << print_string(pObjectName);
+}
+
 void Instance::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix <<
@@ -104,5 +119,17 @@ channel_ct vkwarning("VKWARNING");
 channel_ct vkerror("VKERROR");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
+
+namespace vk_defaults {
+
+void debug_init()
+{
+  if (!DEBUGCHANNELS::dc::vkerror.is_on())
+    DEBUGCHANNELS::dc::vkerror.on();
+  if (!DEBUGCHANNELS::dc::vkwarning.is_on() && DEBUGCHANNELS::dc::warning.is_on())
+    DEBUGCHANNELS::dc::vkwarning.on();
+}
+
+} // namespace vk_defaults
 
 #endif

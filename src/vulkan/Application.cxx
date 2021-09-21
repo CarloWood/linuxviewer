@@ -1,9 +1,11 @@
 #include "sys.h"
 #include "Application.h"
+#include "DebugUtilsMessengerCreateInfoEXT.h"
 #include "VulkanWindow.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include <algorithm>
+#include <chrono>
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
@@ -97,9 +99,28 @@ void Application::initialize(int argc, char** argv)
   std::function<void()> cb = [this](){ m_until_terminated.open(); };
   m_xcb_connection_broker = statefultask::create<task::VulkanWindow::xcb_connection_broker_type>(false, cb);
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
+
+  ApplicationInfo application_info;
+  application_info.set_application_name(application_name());
+  application_info.set_application_version(application_version());
+  InstanceCreateInfo instance_create_info(application_info.read_access());
+
+#ifdef CWDEBUG
+  // Turn on required debug channels.
+  vk_defaults::debug_init();
+
+  // Set debug call back function to call the static Application::debugCallback(this).
+  DebugUtilsMessengerCreateInfoEXT debug_create_info(&Application::debugCallback, this);
+  // Add extension debug_create_info to use during Instance creation and destruction.
+  VkDebugUtilsMessengerCreateInfoEXT& ref = debug_create_info;
+  instance_create_info.setPNext(&ref);
+#endif
+
+  prepare_instance_info(instance_create_info);
+  createInstance(instance_create_info);
 }
 
-void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, std::string&& title, vk::Extent2D extent)
+void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title)
 {
   DoutEntering(dc::vulkan, "Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ")");
 
@@ -109,15 +130,17 @@ void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& 
   //
   //   MyApplication application;
   //   application.initialize(argc, argv);      // <-- this is missing if you assert here.
-  //   application.create_main_window("My main window", { 800, 600 }, std::make_unique<MyWindow>());
+  //   application.create_main_window(std::make_unique<MyWindow>(), { 800, 600 }, "My main window");
   //
   ASSERT(m_event_loop);
 
   auto window_task = statefultask::create<task::VulkanWindow>(this, std::move(window) COMMA_CWDEBUG_ONLY(true));
 
   // Window initialization.
-  window_task->set_title(std::move(title));
   window_task->set_size(extent);
+  if (title.empty())
+    title = application_name();
+  window_task->set_title(std::move(title));
   // The key passed to set_xcb_connection MUST be canonicalized!
   m_main_display_broker_key.canonicalize();
   window_task->set_xcb_connection(m_xcb_connection_broker, &m_main_display_broker_key);
@@ -140,6 +163,61 @@ void Application::remove(task::VulkanWindow* window_task)
   window_list_w->erase(
       std::remove_if(window_list_w->begin(), window_list_w->end(), [window_task](auto element){ return element.get() == window_task; }),
       window_list_w->end());
+}
+
+// Default callback function for debug output from vulkan layers.
+void Application::debugCallback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    VkDebugUtilsMessageTypeFlagsEXT messageType,
+    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
+{
+  char const* color_end = "";
+  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+  {
+    Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
+    color_end = "\e[0m";
+  }
+  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+  {
+    Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
+    color_end = "\e[0m";
+  }
+  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+    Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
+  else
+    Dout(dc::vkverbose|continued_cf, pCallbackData->pMessage);
+
+  if (pCallbackData->objectCount > 0)
+  {
+    Dout(dc::continued, " [with an objectCount of " << pCallbackData->objectCount << "]");
+    for (int i = 0; i < pCallbackData->objectCount; ++i)
+      Dout(dc::vulkan, static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
+  }
+
+  Dout(dc::finish, color_end);
+}
+
+void Application::createInstance(vulkan::InstanceCreateInfo const& instance_create_info)
+{
+  DoutEntering(dc::vulkan, "Application::createInstance(" << instance_create_info.read_access() << ")");
+
+  // Check that all required layers are available.
+  instance_create_info.check_instance_layers_availability();
+
+  // Check that all required extensions are available.
+  instance_create_info.check_instance_extensions_availability();
+
+  Dout(dc::vulkan|continued_cf|flush_cf, "Calling vk::createInstanceUnique()... ");
+#ifdef CWDEBUG
+  std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+#endif
+  m_instance = vk::createInstanceUnique(instance_create_info.read_access());
+#ifdef CWDEBUG
+  std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+#endif
+  Dout(dc::finish, "done (" << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << " ms)");
+  // Mandatory call after creating the vulkan instance.
+  m_dispatch_loader.load(*m_instance);
 }
 
 // Run the application.

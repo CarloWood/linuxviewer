@@ -13,8 +13,8 @@ class TestApplication : public vulkan::Application
     return 4;
   }
 
-  std::string default_display_name() const override
+  std::string application_name() const override
   {
-    return "";
+    return "TestApplication";
   }
 };
