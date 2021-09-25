@@ -176,6 +176,44 @@ void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix)
 #undef SHOW_IF_TRUE
 }
 
+void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags << ", ";
+  os << "pQueueCreateInfos:<";
+  for (int i = 0; i < queueCreateInfoCount; ++i)
+  {
+    if (i > 0)
+      os << ',';
+    os << pQueueCreateInfos[i];
+  }
+  os << ">, ";
+  os << "ppEnabledLayerNames:<";
+  for (int i = 0; i < enabledLayerCount; ++i)
+  {
+    if (i > 0)
+      os << ',';
+    os << print_string(ppEnabledLayerNames[i]);
+  }
+  os << ">, ";
+  os << "ppEnabledExtensionNames:<";
+  for (int i = 0; i < enabledExtensionCount; ++i)
+  {
+    if (i > 0)
+      os << ',';
+    os << print_string(ppEnabledExtensionNames[i]);
+  }
+  os << ">, pEnabledFeatures";
+  if (pEnabledFeatures)
+    os << "->" << *pEnabledFeatures;
+  else
+    os << ":nullptr";
+}
+
 } // namespace vk_defaults
 
 #if !defined(DOXYGEN)

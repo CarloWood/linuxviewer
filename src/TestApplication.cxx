@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "vulkan/OperatingSystem.h"
+#include "vulkan/LogicalDevice.h"
 #include "debug.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
@@ -50,6 +51,20 @@ class Window : public OS::Window
 #endif
 };
 
+class LogicalDevice : public vulkan::LogicalDevice
+{
+ public:
+  LogicalDevice()
+  {
+    DoutEntering(dc::notice, "LogicalDevice::LogicalDevice() [" << this << "]");
+  }
+
+  ~LogicalDevice()
+  {
+    DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
+  }
+};
+
 int main(int argc, char* argv[])
 {
   Debug(NAMESPACE_DEBUG::init());
@@ -64,8 +79,11 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    application.create_main_window(std::make_unique<Window>(), {1000, 800});
-    application.create_main_window(std::make_unique<Window>(), {400, 400}, "Second window");
+    auto root_window = application.create_root_window(std::make_unique<Window>(), {1000, 800});
+    //application.create_root_window(std::make_unique<Window>(), {400, 400}, "Second window");
+
+    // Create a logical device that supports presenting to root_window.
+    application.create_logical_device(std::make_unique<LogicalDevice>(), root_window);
 
     // Run the application.
     application.run(argc, argv);

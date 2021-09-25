@@ -124,3 +124,7 @@ target_link_libraries(vulkan_ObjLib
 
 # Create an ALIAS target.
 add_library(LinuxViewer::vulkan ALIAS vulkan_ObjLib)
+
+# Test executable.
+add_executable(allocator_test tests/allocator_test.cxx)
+target_link_libraries(allocator_test ${AICXX_OBJECTS_LIST})

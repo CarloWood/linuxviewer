@@ -4,7 +4,9 @@
 #ifndef VULKAN_DEFAULTS_H
 #define VULKAN_DEFAULTS_H
 
+#include "QueueRequest.h"
 #include "utils/encode_version.h"
+#include "utils/Array.h"
 #include "debug.h"
 #include <vulkan/vulkan.hpp>
 
@@ -144,6 +146,30 @@ VK_DEFAULTS_DECLARE(PhysicalDeviceFeatures)
   PhysicalDeviceFeatures()
   {
     setSamplerAnisotropy(VK_TRUE);
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
+VK_DEFAULTS_DECLARE(DeviceQueueCreateInfo)
+{
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
+VK_DEFAULTS_DECLARE(DeviceCreateInfo)
+{
+  static constexpr utils::Array<vulkan::QueueRequest, 2> default_queue_requests = {{{
+    { .queue_flags = vulkan::QueueFlagBits::eGraphics, .max_number_of_queues = 1 },
+    { .queue_flags = vulkan::QueueFlagBits::ePresentation, .max_number_of_queues = 1 }
+  }}};
+#ifdef CWDEBUG
+  // This name reflects the usual place where the handle to the device will be stored.
+  static constexpr char const* default_debug_name = "Application::m_vulkan_device";
+#endif
+
+  DeviceCreateInfo(PhysicalDeviceFeatures const& physical_device_features)
+  {
+    setPEnabledFeatures(&physical_device_features);
   }
 
   VK_DEFAULTS_DEBUG_MEMBERS

@@ -42,8 +42,8 @@ class DispatchLoader
 class DispatchLoader
 {
  public:
-  void load(vk::Instance);
-  void load(vk::Instance, vk::Device);
+  void load(vk::Instance vh_instance);
+  void load(vk::Instance vh_instance, vk::Device vh_device);
 };
 
 #endif // VULKAN_HPP_DISPATCH_LOADER_DYNAMIC == 1

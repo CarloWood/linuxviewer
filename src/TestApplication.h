@@ -1,6 +1,9 @@
 #pragma once
 
 #include "vulkan/Application.h"
+#include "vulkan/PhysicalDeviceFeatures.h"
+#include "vulkan/DeviceCreateInfo.h"
+#include "vulkan/QueueFlags.h"
 
 class TestApplication : public vulkan::Application
 {
@@ -22,5 +25,25 @@ class TestApplication : public vulkan::Application
   {
     // Use the setters from vk::PhysicalDeviceFeatures.
     physical_device_features.setDepthClamp(true);
+  }
+
+  void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override
+  {
+    using vulkan::QueueFlagBits;
+
+    device_create_info
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::eGraphics,
+        .max_number_of_queues = 14,
+        .priority = 1.0})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 3,
+        .priority = 0.3})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 2,
+        .priority = 0.2})
+    ;
   }
 };

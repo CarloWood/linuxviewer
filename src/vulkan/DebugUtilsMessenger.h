@@ -7,14 +7,21 @@
 
 namespace vulkan {
 
-class DebugMessenger
+class DebugUtilsMessenger
 {
  private:
   vk::Instance m_vh_instance;                                   // Copy of the instance that was passed to prepare.
-  vk::UniqueDebugUtilsMessengerEXT m_debug_messenger;           // The unlaying debug messenger.
+  vk::UniqueDebugUtilsMessengerEXT m_debug_utils_messenger;     // The unlaying debug messenger.
 
  public:
-  DebugMessenger() = default;
+  DebugUtilsMessenger() = default;
+
+  // The default debug callback for debug messages from vulkan.
+  static VkBool32 debugCallback(
+      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+      VkDebugUtilsMessageTypeFlagsEXT messageType,
+      VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+      void* pUserData);
 
   // The life time of the vulkan instance that is passed to prepare must be longer
   // than the life time of this object. The reason for that is that the destructor

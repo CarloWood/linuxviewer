@@ -193,7 +193,12 @@ bool Window::rendering_loop()
 void Window::On_WM_DELETE_WINDOW(uint32_t timestamp)
 {
   DoutEntering(dc::notice, "Window::On_WM_DELETE_WINDOW(" << timestamp << ")");
-  m_window_task->close();
+  // In practise this test should never fail, but since it takes a while before a window
+  // is really closed, it is possible that someone clicks on the close button fast enough
+  // that two or more WM_DELETE_WINDOW events get through for the same window.
+  // This test avoids a crash in that case.
+  if (m_window_task)
+    m_window_task->close();
   m_window_task.reset();
   // At this point the task MUST still be kept alive, because upon destruction
   // it will destruct this Window and we can't have that while still inside

@@ -2,9 +2,8 @@
 
 #include "VulkanWindow.h"
 #include "DispatchLoader.h"
-#include "ApplicationInfo.h"
-#include "InstanceCreateInfo.h"
-#include "PhysicalDeviceFeatures.h"
+#include "DebugUtilsMessenger.h"
+#include "LogicalDevice.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -24,7 +23,9 @@ class Scope;
 
 namespace vulkan {
 
-struct DeviceCreateInfo;
+class InstanceCreateInfo;
+class DeviceCreateInfo;
+class PhysicalDeviceFeatures;
 
 class Application
 {
@@ -77,6 +78,17 @@ class Application
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.
+#ifdef CWDEBUG
+  // In order to get the order of destruction correct,
+  // this must be defined below m_vh_instance,
+  // and preferably before m_vulkan_device.
+  DebugUtilsMessenger m_debug_utils_messenger;          // Debug message utility extension. Print vulkan layer debug output to dc::vulkan.
+#endif
+
+  // All logical devices.
+  using logical_device_list_container_t = std::vector<std::unique_ptr<LogicalDevice>>;
+  using logical_device_list_t = aithreadsafe::Wrapper<logical_device_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  logical_device_list_t m_logical_device_list;
 
  private:
   friend class task::VulkanWindow;
@@ -92,26 +104,9 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
-  void create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
+  task::VulkanWindow const* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
+  void create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
   void run(int argc, char* argv[]);
-
-#ifdef CWDEBUG
-  void debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData);
-
-  static VkBool32 debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
-    void* pUserData)
-  {
-    Application* self = reinterpret_cast<Application*>(pUserData);
-    self->debugCallback(messageSeverity, messageType, pCallbackData);
-    return VK_FALSE;
-  }
-#endif
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).
@@ -129,16 +124,19 @@ class Application
   virtual int thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)) const;
 
   // Override this function to change the default ApplicatioInfo values.
-  virtual std::string application_name() const { return vk_defaults::ApplicationInfo::default_application_name; }
+  virtual std::string application_name() const;
 
   // Override this function to change the default application version. The result should be a value returned by vk_utils::encode_version.
-  virtual uint32_t application_version() const { return vk_defaults::ApplicationInfo::default_application_version; }
+  virtual uint32_t application_version() const;
 
   // Override this function to add Instance layers and/or extensions.
   virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
 
   // Override this function to change the default physical device features.
   virtual void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const { }
+
+  // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
+  virtual void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const { }
 };
 
 } // namespace vulkan

@@ -1,8 +1,9 @@
 #include "sys.h"
 #include "Application.h"
+#include "ApplicationInfo.h"
 #include "DebugUtilsMessengerCreateInfoEXT.h"
+#include "InstanceCreateInfo.h"
 #include "VulkanWindow.h"
-#include "PhysicalDeviceFeatures.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include <algorithm>
@@ -21,12 +22,14 @@ namespace vulkan {
 // Therefore initialization happens after construction.
 Application::Application() : m_thread_pool(1)
 {
+  DoutEntering(dc::vulkan, "vulkan::Application::Application()");
 }
 
 // This instantiates the destructor of our std::unique_ptr's. Put here instead of the header
 // so that we could use forward declarations for EventLoop and DnsResolver.
 Application::~Application()
 {
+  DoutEntering(dc::vulkan, "vulkan::Application::~Application()");
 }
 
 //virtual
@@ -36,10 +39,22 @@ std::string Application::default_display_name() const
   return ":0";
 }
 
-// virtual
+//virtual
 void Application::parse_command_line_parameters(int argc, char* argv[])
 {
   DoutEntering(dc::vulkan, "vulkan::Application::parse_command_line_parameters(" << argc << ", " << debug::print_argv(argv) << ")");
+}
+
+//virtual
+std::string Application::application_name() const
+{
+  return vk_defaults::ApplicationInfo::default_application_name;
+}
+
+//virtual
+uint32_t Application::application_version() const
+{
+  return vk_defaults::ApplicationInfo::default_application_version;
 }
 
 // Finish initialization of a default constructed Application.
@@ -110,25 +125,35 @@ void Application::initialize(int argc, char** argv)
   // Turn on required debug channels.
   vk_defaults::debug_init();
 
-  // Set debug call back function to call the static Application::debugCallback(this).
-  DebugUtilsMessengerCreateInfoEXT debug_create_info(&Application::debugCallback, this);
+  // Set debug call back function to call the static DebugUtilsMessenger::debugCallback(nullptr);
+  DebugUtilsMessengerCreateInfoEXT debug_create_info(&DebugUtilsMessenger::debugCallback, nullptr);
   // Add extension debug_create_info to use during Instance creation and destruction.
-  VkDebugUtilsMessengerCreateInfoEXT& ref = debug_create_info;
-  instance_create_info.setPNext(&ref);
+  VkDebugUtilsMessengerCreateInfoEXT& debug_create_info_ref = debug_create_info;
+  instance_create_info.setPNext(&debug_create_info_ref);
 #endif
 
   prepare_instance_info(instance_create_info);
   createInstance(instance_create_info);
 
+#ifdef CWDEBUG
+  m_debug_utils_messenger.prepare(*m_instance, debug_create_info);
+#endif
+}
+
+#if 0
   PhysicalDeviceFeatures physical_device_features;
   prepare_physical_device_features(physical_device_features);
 
-  Dout(dc::notice, "physical_device_features = " << physical_device_features);
-}
+  DeviceCreateInfo device_create_info(physical_device_features);
+  device_create_info.setDebugName("Vulkan Device");
+  prepare_logical_device(device_create_info);
 
-void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title)
+  Dout(dc::notice, "device_create_info = " << device_create_info);
+#endif
+
+task::VulkanWindow const* Application::create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title)
 {
-  DoutEntering(dc::vulkan, "Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ")");
 
   // Call Application::initialize() immediately after constructing the Application.
   //
@@ -140,7 +165,7 @@ void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& 
   //
   ASSERT(m_event_loop);
 
-  auto window_task = statefultask::create<task::VulkanWindow>(this, std::move(window) COMMA_CWDEBUG_ONLY(true));
+  boost::intrusive_ptr<task::VulkanWindow> window_task = statefultask::create<task::VulkanWindow>(this, std::move(window) COMMA_CWDEBUG_ONLY(true));
 
   // Window initialization.
   window_task->set_size(extent);
@@ -153,59 +178,47 @@ void Application::create_main_window(std::unique_ptr<linuxviewer::OS::Window>&& 
 
   // Create window and start rendering loop.
   window_task->run();
+
+  // The window is returned in order to pass it to create_logical_device.
+  //
+  // This is kinda of a race condition in that the returned pointer only points to valid data
+  // for as long as the task is still alive, but since the task keeps running for the duration
+  // of the render loop of this window it will be alive until it is closed.
+  //
+  // The pointer should be passed to create_logical_device almost immediately after
+  // returning from this function.
+  return window_task.get();
+}
+
+void Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
+{
+  DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
+
+  logical_device->prepare(*m_instance, m_dispatch_loader, root_window);
+
+  logical_device_list_t::wat logical_device_list(m_logical_device_list);
+  logical_device_list->emplace_back(std::move(logical_device));
 }
 
 void Application::add(task::VulkanWindow* window_task)
 {
-  DoutEntering(dc::vulkan, "Application::add(" << window_task << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::add(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
   window_list_w->emplace_back(window_task);
 }
 
 void Application::remove(task::VulkanWindow* window_task)
 {
-  DoutEntering(dc::vulkan, "Application::remove(" << window_task << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::remove(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
   window_list_w->erase(
       std::remove_if(window_list_w->begin(), window_list_w->end(), [window_task](auto element){ return element.get() == window_task; }),
       window_list_w->end());
 }
 
-// Default callback function for debug output from vulkan layers.
-void Application::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
-{
-  char const* color_end = "";
-  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-  {
-    Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
-    color_end = "\e[0m";
-  }
-  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-  {
-    Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
-    color_end = "\e[0m";
-  }
-  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
-    Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
-  else
-    Dout(dc::vkverbose|continued_cf, pCallbackData->pMessage);
-
-  if (pCallbackData->objectCount > 0)
-  {
-    Dout(dc::continued, " [with an objectCount of " << pCallbackData->objectCount << "]");
-    for (int i = 0; i < pCallbackData->objectCount; ++i)
-      Dout(dc::vulkan, static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
-  }
-
-  Dout(dc::finish, color_end);
-}
-
 void Application::createInstance(vulkan::InstanceCreateInfo const& instance_create_info)
 {
-  DoutEntering(dc::vulkan, "Application::createInstance(" << instance_create_info.read_access() << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::createInstance(" << instance_create_info.read_access() << ")");
 
   // Check that all required layers are available.
   instance_create_info.check_instance_layers_availability();
