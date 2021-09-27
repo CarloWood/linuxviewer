@@ -20,7 +20,7 @@ namespace vulkan {
 //
 // Because this is a base class, virtual functions can't be used in the constructor.
 // Therefore initialization happens after construction.
-Application::Application() : m_thread_pool(1)
+Application::Application() : m_dmri(m_mpp.instance()), m_thread_pool(1)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::Application()");
 }

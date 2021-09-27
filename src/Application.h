@@ -1,6 +1,7 @@
 #pragma once
 
 // We use the GUI implementation on top of glfw3.
+#include "statefultask/DefaultMemoryPagePool.h"
 #include "ApplicationCreateInfo.h"
 #include "DebugUtilsMessengerCreateInfoEXT.h"
 #include "Window.h"
@@ -13,7 +14,6 @@
 #include "vulkan.old/DeviceCreateInfo.h"
 #include "vulkan.old/CommandPoolCreateInfo.h"
 #include "statefultask/AIEngine.h"
-#include "statefultask/DefaultMemoryPagePool.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
 #include "debug.h"

@@ -10,6 +10,7 @@
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "utils/threading/Gate.h"
+#include "utils/DequeMemoryResource.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
 
@@ -43,6 +44,9 @@ class Application
  protected:
   // Create a AIMemoryPagePool object (must be created before thread_pool).
   AIMemoryPagePool m_mpp;
+
+  // Initialize the deque memory resources table.
+  utils::DequeMemoryResource::Initialization m_dmri;
 
   // Create the thread pool.
   AIThreadPool m_thread_pool;
