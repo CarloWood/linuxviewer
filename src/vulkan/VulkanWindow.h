@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statefultask/Broker.h"
+#include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
 #include "threadpool/Timer.h"
 #include <vulkan/vulkan.hpp>
@@ -28,6 +29,9 @@ class VulkanWindow : public AIStatefulTask
 {
  public:
   using xcb_connection_broker_type = task::Broker<task::XcbConnection, std::function<void()>>;
+
+  // This event is triggered as soon as m_window is created.
+  statefultask::TaskEvent m_window_created_event;
 
  private:
   static constexpr condition_type connection_set_up = 1;

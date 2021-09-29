@@ -110,7 +110,7 @@ class Application
   void initialize(int argc = 0, char** argv = nullptr);
   task::VulkanWindow const* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
   void create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
-  void run(int argc, char* argv[]);
+  void run();
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).

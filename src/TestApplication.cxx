@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
     application.create_logical_device(std::make_unique<LogicalDevice>(), root_window);
 
     // Run the application.
-    application.run(argc, argv);
+    application.run();
   }
   catch (AIAlert::Error const& error)
   {

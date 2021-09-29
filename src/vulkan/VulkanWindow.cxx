@@ -53,6 +53,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
     case VulkanWindow_create:
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
       m_window->create(m_title, m_extent.width, m_extent.height, this);
+      m_window_created_event.trigger();
       set_state(VulkanWindow_render_loop);
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);

@@ -241,7 +241,7 @@ void Application::createInstance(vulkan::InstanceCreateInfo const& instance_crea
 
 // Run the application.
 // This function does not return until the program terminated.
-void Application::run(int argc, char* argv[])
+void Application::run()
 {
   // The main thread goes to sleep for the entirety of the application.
   m_until_terminated.wait();
