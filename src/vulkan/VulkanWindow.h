@@ -74,7 +74,7 @@ class VulkanWindow : public AIStatefulTask
 
  public:
   /// One beyond the largest state of this task.
-  static state_type constexpr state_end = VulkanWindow_close + 1;
+  static constexpr state_type state_end = VulkanWindow_close + 1;
 
   /// Construct an VulkanWindow object.
   VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug = false));
