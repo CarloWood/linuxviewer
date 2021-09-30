@@ -32,6 +32,11 @@ struct WindowParameters
 #if defined(VK_USE_PLATFORM_XCB_KHR)
   boost::intrusive_ptr<xcb::Connection> m_xcb_connection;
   xcb_window_t          Handle;
+
+  vk::XcbSurfaceCreateInfoKHR get_surface_create_info() const
+  {
+    return vk::XcbSurfaceCreateInfoKHR{}.setConnection(*m_xcb_connection).setWindow(Handle);
+  }
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
   Display*              DisplayPtr;
   Window                Handle;
@@ -48,17 +53,25 @@ class Window : public xcb::WindowBase
  private:
   WindowParameters m_parameters;
   boost::intrusive_ptr<task::VulkanWindow> m_window_task;
+  vk::UniqueSurfaceKHR m_surface;
 
  public:
   Window() = default;
   ~Window() { destroy(); }
 
-  void             set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
-  void             create(std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task);
-  void             destroy();
-//  bool             rendering_loop();
+  void set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
+  void create(vk::Instance vh_instance, std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task);
+  void destroy();
 
   WindowParameters get_parameters() const { return m_parameters; }
+
+  // Accessor
+  vk::SurfaceKHR vh_surface() const
+  {
+    // Only call this function when m_surface is known to be valid.
+    ASSERT(m_surface);
+    return *m_surface;
+  }
 
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override;
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;

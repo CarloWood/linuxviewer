@@ -102,12 +102,6 @@ void DebugUtilsObjectNameInfoEXT::print_members(std::ostream& os, char const* pr
     ", pObjectName:"             << print_string(pObjectName);
 }
 
-void Instance::print_members(std::ostream& os, char const* prefix) const
-{
-  os << prefix <<
-    "m_instance: " << static_cast<VkInstance>(*this);
-}
-
 void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix;

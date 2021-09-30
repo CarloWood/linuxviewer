@@ -23,4 +23,12 @@ std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D)
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, Instance const& instance)
+{
+  os << '{';
+  os << "m_instance: " << static_cast<VkInstance>(instance);
+  os << '}';
+  return os;
+}
+
 } // namespace vk

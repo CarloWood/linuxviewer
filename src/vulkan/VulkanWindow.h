@@ -107,6 +107,9 @@ class VulkanWindow : public AIStatefulTask
     m_must_close = true;
   }
 
+  // Accessors.
+  vk::SurfaceKHR vh_surface() const;
+
  protected:
   /// Call finish() (or abort()), not delete.
   ~VulkanWindow() override;

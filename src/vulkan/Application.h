@@ -99,8 +99,14 @@ class Application
   void add(task::VulkanWindow* window_task);
   void remove(task::VulkanWindow* window_task);
 
+  friend class task::LogicalDevice;
+  void create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
+
   // Create and initialize the vulkan instance (m_instance).
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
+
+  // Accessor.
+  vk::Instance vh_instance() const { return *m_instance; }
 
  public:
   Application();
@@ -109,7 +115,7 @@ class Application
  public:
   void initialize(int argc = 0, char** argv = nullptr);
   task::VulkanWindow const* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
-  void create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
+  boost::intrusive_ptr<task::LogicalDevice> create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
   void run();
 
  protected:
@@ -135,12 +141,6 @@ class Application
 
   // Override this function to add Instance layers and/or extensions.
   virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
-
-  // Override this function to change the default physical device features.
-  virtual void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const { }
-
-  // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
-  virtual void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const { }
 };
 
 } // namespace vulkan

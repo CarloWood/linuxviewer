@@ -52,7 +52,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       break;
     case VulkanWindow_create:
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
-      m_window->create(m_title, m_extent.width, m_extent.height, this);
+      m_window->create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height, this);
       m_window_created_event.trigger();
       set_state(VulkanWindow_render_loop);
       // Turn off debug output for this statefultask while processing the render loop.
@@ -84,6 +84,11 @@ void VulkanWindow::finish_impl()
   // this tasks alive. When it gets destructed, also Window will be destructed
   // and it's destructor does the work required to close the window.
   m_application->remove(this);
+}
+
+vk::SurfaceKHR VulkanWindow::vh_surface() const
+{
+  return m_window->vh_surface();
 }
 
 } // namespace task

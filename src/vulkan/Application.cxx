@@ -190,14 +190,27 @@ task::VulkanWindow const* Application::create_root_window(std::unique_ptr<linuxv
   return window_task.get();
 }
 
-void Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
+boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
 
+  auto logical_device_task = statefultask::create<task::LogicalDevice>(this COMMA_CWDEBUG_ONLY(true));
+  logical_device_task->set_logical_device(std::move(logical_device));
+  logical_device_task->set_root_window(root_window);
+
+  logical_device_task->run(m_high_priority_queue);
+
+  return logical_device_task;
+}
+
+void Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
+{
+  DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
+
   logical_device->prepare(*m_instance, m_dispatch_loader, root_window);
 
-  logical_device_list_t::wat logical_device_list(m_logical_device_list);
-  logical_device_list->emplace_back(std::move(logical_device));
+  logical_device_list_t::wat logical_device_list_w(m_logical_device_list);
+  logical_device_list_w->emplace_back(std::move(logical_device));
 }
 
 void Application::add(task::VulkanWindow* window_task)

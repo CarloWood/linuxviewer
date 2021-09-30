@@ -127,11 +127,6 @@ VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
-VK_DEFAULTS_DECLARE(Instance)
-{
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
 VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
 {
   DebugUtilsObjectNameInfoEXT(VkDebugUtilsObjectNameInfoEXT const& object_name_info)

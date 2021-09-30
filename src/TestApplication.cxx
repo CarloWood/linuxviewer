@@ -59,9 +59,35 @@ class LogicalDevice : public vulkan::LogicalDevice
     DoutEntering(dc::notice, "LogicalDevice::LogicalDevice() [" << this << "]");
   }
 
-  ~LogicalDevice()
+  ~LogicalDevice() override
   {
     DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
+  }
+
+  void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const override
+  {
+    // Use the setters from vk::PhysicalDeviceFeatures.
+    physical_device_features.setDepthClamp(true);
+  }
+
+  void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override
+  {
+    using vulkan::QueueFlagBits;
+
+    device_create_info
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::eGraphics,
+        .max_number_of_queues = 14,
+        .priority = 1.0})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 3,
+        .priority = 0.3})
+    .addQueueRequests({
+        .queue_flags = QueueFlagBits::ePresentation,
+        .max_number_of_queues = 2,
+        .priority = 0.2})
+    ;
   }
 };
 
@@ -83,7 +109,7 @@ int main(int argc, char* argv[])
     //application.create_root_window(std::make_unique<Window>(), {400, 400}, "Second window");
 
     // Create a logical device that supports presenting to root_window.
-    application.create_logical_device(std::make_unique<LogicalDevice>(), root_window);
+    auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), root_window);
 
     // Run the application.
     application.run();
