@@ -2,7 +2,7 @@
 #include "find_missing_names.h"
 #include <algorithm>
 
-namespace utils {
+namespace vk_utils {
 
 // Return a vector of all names listed in `required_names` that are missing in `available_names`.
 std::vector<char const*> find_missing_names(
@@ -22,4 +22,4 @@ std::vector<char const*> find_missing_names(
   return missing_names;
 }
 
-} // namespace utils
+} // namespace vk_utils

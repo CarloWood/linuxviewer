@@ -1,34 +1,11 @@
 #include "sys.h"
 #include "debug_ostream_operators.h"
+#include "utils/print_version.h"
 #include <iostream>
 
 namespace vk {
 
-std::ostream& operator<<(std::ostream& os, Extent2D const& extend_2D)
-{
-  os << '{';
-  os << "width:" << extend_2D.width << ", ";
-  os << "height:" << extend_2D.height;
-  os << '}';
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D)
-{
-  os << '{';
-  os << "width:" << extend_3D.width << ", ";
-  os << "height:" << extend_3D.height << ", ";
-  os << "depth:" << extend_3D.depth;
-  os << '}';
-  return os;
-}
-
-std::ostream& operator<<(std::ostream& os, Instance const& instance)
-{
-  os << '{';
-  os << "m_instance: " << static_cast<VkInstance>(instance);
-  os << '}';
-  return os;
-}
+using NAMESPACE_DEBUG::print_string;
+using vk_utils::print_api_version;
 
 } // namespace vk

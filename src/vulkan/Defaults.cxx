@@ -39,13 +39,6 @@ using vk_utils::print_api_version;
 using vk_utils::print_list;
 using NAMESPACE_DEBUG::print_string;
 
-void PrintOn::print_on(std::ostream& os) const
-{
-  os << '{';
-  print_members(os, "");
-  os << '}';
-}
-
 void ApplicationInfo::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix <<
@@ -106,6 +99,7 @@ void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix)
 {
   os << prefix;
 
+  // All `var` are VkBool32.
 #define SHOW_IF_TRUE(var) \
   do { if (var) { os << prefix << #var; prefix = ", "; } } while(0)
 
@@ -206,6 +200,67 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
     os << "->" << *pEnabledFeatures;
   else
     os << ":nullptr";
+}
+
+void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+  os << "queueFamilyIndex:" << queueFamilyIndex << ", ";
+  os << "queueCount: " << queueCount << ", ";
+  os << "pQueuePriorities:<";
+  for (int i = 0; i < queueCount; ++i)
+  {
+    if (i > 0)
+      os << ',';
+    os << pQueuePriorities[i];
+  }
+  os << '>';
+}
+
+void Extent2D::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "width:" << width << ", ";
+  os << "height:" << height;
+}
+
+void Extent3D::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "width:" << width << ", ";
+  os << "height:" << height << ", ";
+  os << "depth:" << depth;
+}
+
+void Instance::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "m_instance: " << this->operator VkInstance();
+}
+
+void QueueFamilyProperties::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "queueFlags:" << queueFlags << ", ";
+  os << "queueCount:" << queueCount << ", ";
+  os << "timestampValidBits:" << timestampValidBits << ", ";
+  os << "minImageTransferGranularity:" << minImageTransferGranularity;
+}
+
+void ExtensionProperties::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "extensionName:" << print_string(extensionName) << ", ";
+  os << "specVersion:" << specVersion;
+}
+
+void PhysicalDeviceProperties::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "apiVersion:" << print_api_version(apiVersion) << ", ";
+  os << "driverVersion:" << print_api_version(driverVersion) << ", ";
+  os << "vendorID:0x" << std::hex << vendorID << ", ";
+  os << "deviceID:0x" << std::hex << deviceID << ", ";
+  os << "deviceType:" << to_string(deviceType) << ", ";
+  os << "deviceName:" << print_string(deviceName) << ", ";
+//  os << "pipelineCacheUUID:" << UUID(reinterpret_cast<char const*>(static_cast<uint8_t const*>(physical_device_properties.pipelineCacheUUID))) << ", ";
+//    VULKAN_HPP_NAMESPACE::PhysicalDeviceLimits                                   limits            = {};
+//    VULKAN_HPP_NAMESPACE::PhysicalDeviceSparseProperties                         sparseProperties  = {};
 }
 
 } // namespace vk_defaults

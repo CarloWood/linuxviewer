@@ -87,6 +87,9 @@ class LogicalDevice : public vulkan::LogicalDevice
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 2,
         .priority = 0.2})
+#ifdef CWDEBUG
+    .setDebugName("LogicalDevice");
+#endif
     ;
   }
 };

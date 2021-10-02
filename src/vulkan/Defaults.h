@@ -14,26 +14,30 @@
  * Convenience marocs                                                         *
  ******************************************************************************/
 
-#ifndef CWDEBUG
-
 #define VK_DEFAULTS_DECLARE(vk_type) struct vk_type : vk::vk_type
+
+#ifndef CWDEBUG
 #define VK_DEFAULTS_DEBUG_MEMBERS
-
-#else // CWDEBUG
-
-#define VK_DEFAULTS_DECLARE(vk_type) struct vk_type : vk::vk_type, PrintOn
+#else
+// The idea behind passing a prefix to print_members is so that you can call
+// print_members(os, prefix) from within another print_members to append the
+// members (start with an optional leading ", " if anything was already printed
+// before that point).
 #define VK_DEFAULTS_DEBUG_MEMBERS \
- protected: \
-  virtual void print_members(std::ostream& os, char const* prefix) const;
+  void print_on(std::ostream& os) const \
+  { \
+    os << '{'; \
+    print_members(os, ""); \
+    os << '}'; \
+  } \
+  void print_members(std::ostream& os, char const* prefix) const;
 
-namespace vk_defaults {
-struct PrintOn
-{
-  void print_on(std::ostream& os) const;
- protected:
-  virtual void print_members(std::ostream& os, char const* prefix) const = 0;
-};
-} // namespace vk_defaults
+// For types that only need debug output.
+#define DECLARE_PRINT_MEMBERS_CLASS(vk_type) \
+  VK_DEFAULTS_DECLARE(vk_type) \
+  { \
+    VK_DEFAULTS_DEBUG_MEMBERS \
+  };
 
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -146,11 +150,6 @@ VK_DEFAULTS_DECLARE(PhysicalDeviceFeatures)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
-VK_DEFAULTS_DECLARE(DeviceQueueCreateInfo)
-{
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
 VK_DEFAULTS_DECLARE(DeviceCreateInfo)
 {
   static constexpr utils::Array<vulkan::QueueRequest, 2> default_queue_requests = {{{
@@ -158,8 +157,9 @@ VK_DEFAULTS_DECLARE(DeviceCreateInfo)
     { .queue_flags = vulkan::QueueFlagBits::ePresentation, .max_number_of_queues = 1 }
   }}};
 #ifdef CWDEBUG
-  // This name reflects the usual place where the handle to the device will be stored.
-  static constexpr char const* default_debug_name = "Application::m_vulkan_device";
+  // There can be multiple logical devices, so you are encouraged to override
+  // LogicalDevice::prepare_logical_device and call SetDebugName there.
+  static constexpr char const* default_debug_name = "Default Vulkan Device";
 #endif
 
   DeviceCreateInfo(PhysicalDeviceFeatures const& physical_device_features)
@@ -169,6 +169,16 @@ VK_DEFAULTS_DECLARE(DeviceCreateInfo)
 
   VK_DEFAULTS_DEBUG_MEMBERS
 };
+
+#ifdef CWDEBUG
+DECLARE_PRINT_MEMBERS_CLASS(Extent2D)
+DECLARE_PRINT_MEMBERS_CLASS(Extent3D)
+DECLARE_PRINT_MEMBERS_CLASS(Instance)
+DECLARE_PRINT_MEMBERS_CLASS(QueueFamilyProperties)
+DECLARE_PRINT_MEMBERS_CLASS(ExtensionProperties)
+DECLARE_PRINT_MEMBERS_CLASS(PhysicalDeviceProperties)
+DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
+#endif
 
 } // namespace vk_defaults
 

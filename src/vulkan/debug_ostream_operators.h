@@ -39,10 +39,6 @@ std::ostream& operator<<(std::ostream& os, Flags flags) requires details::Concep
   return os;
 }
 
-std::ostream& operator<<(std::ostream& os, Extent2D const& extend_2D);
-std::ostream& operator<<(std::ostream& os, Extent3D const& extend_3D);
-std::ostream& operator<<(std::ostream& os, Instance const& instance);
-
 } // namespace vk
 
 #include "Defaults.h"           // For its print_on capability.
@@ -54,17 +50,21 @@ std::ostream& operator<<(std::ostream& os, Instance const& instance);
 
 namespace vk {
 
+// Classes that have vk_defaults.
+DECLARE_OSTREAM_INSERTER(Extent2D)
+DECLARE_OSTREAM_INSERTER(Extent3D)
 DECLARE_OSTREAM_INSERTER(ApplicationInfo)
 DECLARE_OSTREAM_INSERTER(InstanceCreateInfo)
+DECLARE_OSTREAM_INSERTER(Instance)
 DECLARE_OSTREAM_INSERTER(DebugUtilsObjectNameInfoEXT)
 DECLARE_OSTREAM_INSERTER(PhysicalDeviceFeatures)
+DECLARE_OSTREAM_INSERTER(QueueFamilyProperties)
+DECLARE_OSTREAM_INSERTER(ExtensionProperties)
+DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
 DECLARE_OSTREAM_INSERTER(DeviceQueueCreateInfo)
 DECLARE_OSTREAM_INSERTER(DeviceCreateInfo)
 #if 0
-DECLARE_OSTREAM_INSERTER(QueueFamilyProperties)
 DECLARE_OSTREAM_INSERTER(QueueFlagBits)
-DECLARE_OSTREAM_INSERTER(ExtensionProperties)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
 DECLARE_OSTREAM_INSERTER(SurfaceCapabilitiesKHR)
 DECLARE_OSTREAM_INSERTER(SurfaceFormatKHR)
 DECLARE_OSTREAM_INSERTER(SwapchainCreateInfoKHR)

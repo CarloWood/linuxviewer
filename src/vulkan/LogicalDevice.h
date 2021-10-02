@@ -2,6 +2,7 @@
 
 #include "DispatchLoader.h"
 #include "VulkanWindow.h"
+#include "QueueReply.h"
 #include <boost/intrusive_ptr.hpp>
 
 namespace vulkan {
@@ -11,6 +12,11 @@ class DeviceCreateInfo;
 
 class LogicalDevice
 {
+ private:
+  vk::PhysicalDevice m_vh_physical_device;      // The underlaying physical device.
+  vk::UniqueDevice m_device;                    // A handle to the logical device.
+  utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
+
  public:
   virtual ~LogicalDevice() = default;
 

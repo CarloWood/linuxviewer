@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defaults.h"
+#include "LogicalDevice.h"
 #include "utils/Vector.h"
 #include <vector>
 #ifdef CWDEBUG
@@ -11,6 +12,9 @@ namespace vulkan {
 
 class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
 {
+  // Needs access to vk_defaults::DeviceCreateInfo::setQueueCreateInfos.
+  friend void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr);
+
  private:
   utils::Vector<QueueRequest> m_queue_requests = {};    // Required queue flags. The default is used when this is empty.
   QueueFlags m_queue_flags = QueueFlagBits::none;       // Bitwise-OR of all queue_flags in m_queue_requests.

@@ -18,7 +18,7 @@ void InstanceCreateInfo::check_instance_layers_availability() const
     available_names.push_back(property.layerName);
   Dout(dc::vulkan, "Available instance layers:" << print_using(available_names, QuotedList{}));
 
-  auto missing_layers = utils::find_missing_names(m_enabled_layer_names, available_names);
+  auto missing_layers = vk_utils::find_missing_names(m_enabled_layer_names, available_names);
 
   if (!missing_layers.empty())
   {
@@ -46,7 +46,7 @@ void InstanceCreateInfo::check_instance_extensions_availability() const
   Dout(dc::vulkan, "Available instance extensions:" << print_using(available_names, QuotedList{}));
 
   // Check that every extension name in required_extensions is available.
-  auto missing_extensions = utils::find_missing_names(m_enabled_extension_names, available_names);
+  auto missing_extensions = vk_utils::find_missing_names(m_enabled_extension_names, available_names);
 
   if (!missing_extensions.empty())
   {
