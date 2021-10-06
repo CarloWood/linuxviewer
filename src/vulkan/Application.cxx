@@ -151,9 +151,10 @@ void Application::initialize(int argc, char** argv)
   Dout(dc::notice, "device_create_info = " << device_create_info);
 #endif
 
-task::VulkanWindow const* Application::create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title)
+task::VulkanWindow* Application::create_root_window(
+    std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, int window_cookie, std::string&& title, task::LogicalDevice const* logical_device)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ", " << logical_device << ")");
 
   // Call Application::initialize() immediately after constructing the Application.
   //
@@ -172,6 +173,8 @@ task::VulkanWindow const* Application::create_root_window(std::unique_ptr<linuxv
   if (title.empty())
     title = application_name();
   window_task->set_title(std::move(title));
+  window_task->set_window_cookie(window_cookie);
+  window_task->set_logical_device(logical_device);
   // The key passed to set_xcb_connection MUST be canonicalized!
   m_main_display_broker_key.canonicalize();
   window_task->set_xcb_connection(m_xcb_connection_broker, &m_main_display_broker_key);
@@ -190,7 +193,7 @@ task::VulkanWindow const* Application::create_root_window(std::unique_ptr<linuxv
   return window_task.get();
 }
 
-boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
+boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
 
@@ -203,14 +206,21 @@ boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std
   return logical_device_task;
 }
 
-void Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window)
+void Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
 
   logical_device->prepare(*m_instance, m_dispatch_loader, root_window);
+  Dout(dc::vulkan, "Created LogicalDevice " << *logical_device);
 
-  logical_device_list_t::wat logical_device_list_w(m_logical_device_list);
-  logical_device_list_w->emplace_back(std::move(logical_device));
+  int logical_device_index;
+  {
+    logical_device_list_t::wat logical_device_list_w(m_logical_device_list);
+    logical_device_index = logical_device_list_w->size();
+    logical_device_list_w->emplace_back(std::move(logical_device));
+  }
+
+  root_window->set_logical_device_index(logical_device_index);
 }
 
 void Application::add(task::VulkanWindow* window_task)
@@ -263,6 +273,13 @@ void Application::run()
 
   // Stop the broker task. All xcb_connections should already be closed, but if they are not then do it here.
   m_xcb_connection_broker->terminate([](task::XcbConnection* xcb_connection){ xcb_connection->close(); });
+
+  // Wait till all logical devices are idle.
+  {
+    logical_device_list_t::rat logical_device_list_r(m_logical_device_list);
+    for (auto& device : *logical_device_list_r)
+      device->wait_idle();
+  }
 
   // Application terminated cleanly.
   m_event_loop->join();

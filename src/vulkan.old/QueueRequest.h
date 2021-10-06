@@ -12,7 +12,7 @@ namespace vulkan {
 struct QueueRequest
 {
   QueueFlags queue_flags;               // Request a queue with ALL of the flags.
-  uint32_t max_number_of_queues = 0;    // Allocate at most this many queues like that. Zero means: as many as supported by the device.
+  uint32_t max_number_of_queues = 0;    // Allocate at most this many queues like that. Zero means as many as supported by the device.
   float priority = 1.0;                 // Requested relative priority for those queues.
 
 #ifdef CWDEBUG

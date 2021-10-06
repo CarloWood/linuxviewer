@@ -99,11 +99,14 @@ class Application
   void add(task::VulkanWindow* window_task);
   void remove(task::VulkanWindow* window_task);
 
-  friend class task::LogicalDevice;
-  void create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
-
   // Create and initialize the vulkan instance (m_instance).
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
+
+  friend class task::LogicalDevice;
+  void create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
+
+  task::VulkanWindow* create_root_window(
+      std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, int window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
 
   // Accessor.
   vk::Instance vh_instance() const { return *m_instance; }
@@ -114,8 +117,27 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
-  task::VulkanWindow const* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, std::string&& title = {});
-  boost::intrusive_ptr<task::LogicalDevice> create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow const* root_window);
+
+  task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
+      int window_cookie, std::string&& title = {})
+  {
+    return create_root_window(std::move(window), extent, window_cookie, std::move(title), nullptr);
+  }
+
+  task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
+      int window_cookie, task::LogicalDevice const& logical_device, std::string&& title = {})
+  {
+    return create_root_window(std::move(window), extent, window_cookie, std::move(title), &logical_device);
+  }
+
+  boost::intrusive_ptr<task::LogicalDevice> create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
+
+  LogicalDevice* get_logical_device(int logical_device_index) const
+  {
+    logical_device_list_t::crat logical_device_list_r(m_logical_device_list);
+    return (*logical_device_list_r)[logical_device_index].get();
+  }
+
   void run();
 
  protected:

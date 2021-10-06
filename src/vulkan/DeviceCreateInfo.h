@@ -27,8 +27,26 @@ class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
   using vk_defaults::DeviceCreateInfo::DeviceCreateInfo;
 
   // Setter for required queue flags.
-  DeviceCreateInfo& addQueueRequests(QueueRequest queue_request)
+  DeviceCreateInfo& addQueueRequest(QueueRequest queue_request)
   {
+    if (queue_request.priority == 0.0)
+      queue_request.priority = 1.0;
+    m_queue_requests.push_back(queue_request);
+    m_queue_flags |= queue_request.queue_flags;
+    return *this;
+  }
+
+  DeviceCreateInfo& combineQueueRequest(QueueRequest queue_request)
+  {
+    // combineQueueRequest can not be the first call. Start with addQueueRequest.
+    ASSERT(!m_queue_requests.empty());
+    queue_request.combined_with = m_queue_requests.iend() - 1;
+    // Sorry but it is currently not supported to combined three or more requests.
+    ASSERT(m_queue_requests.back().combined_with.undefined());
+    if (queue_request.max_number_of_queues == 0)
+      queue_request.max_number_of_queues = m_queue_requests.back().max_number_of_queues;
+    if (queue_request.priority == 0.0)
+      queue_request.priority = m_queue_requests.back().priority;
     m_queue_requests.push_back(queue_request);
     m_queue_flags |= queue_request.queue_flags;
     return *this;
@@ -48,9 +66,9 @@ class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
   // Used to set the default.
   void set_default_queue_requests()
   {
-    // Don't call this function twice, or when addQueueRequests was already called by the user.
+    // Don't call this function twice, or when addQueueRequest was already called by the user.
     ASSERT(m_queue_requests.empty());
-    std::for_each(default_queue_requests.begin(), default_queue_requests.end(), [this](QueueRequest const& queue_request){ addQueueRequests(queue_request); });
+    std::for_each(default_queue_requests.begin(), default_queue_requests.end(), [this](QueueRequest const& queue_request){ addQueueRequest(queue_request); });
   }
 
   // Accessor.
