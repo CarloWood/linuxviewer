@@ -59,8 +59,8 @@ class LogicalDevice
   std::string const& debug_name() const { return m_debug_name; }
 #endif
 
-  // Return the (next) presentation queue for root_window, as returned by Application::create_root_window.
-  vk::Queue acquire_queue(QueueFlags flags, int window_cookie) const;
+  // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
+  vk::Queue acquire_queue(QueueFlags flags, int window_cookie);
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.

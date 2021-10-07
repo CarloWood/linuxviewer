@@ -85,14 +85,14 @@ class LogicalDevice : public vulkan::LogicalDevice
     // {0}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::eGraphics,
-        .max_number_of_queues = 13,
+//        .max_number_of_queues = 13,
         .priority = 1.0})
     // {1}
-//    .combineQueueRequest({
-    .addQueueRequest({
+    .combineQueueRequest({
+//    .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
-        .max_number_of_queues = 3,                      // Only used when it can not be combined.
-        .priority = 0.3})                               // Only used when it can not be combined.
+        .max_number_of_queues = 4,                      // Only used when it can not be combined.
+        .priority = 0.8})                               // Only used when it can not be combined.
     // {2}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
@@ -113,10 +113,10 @@ class LogicalDevice : public vulkan::LogicalDevice
       switch (window_cookie)
       {
         case root_window_cookie1:
-          return vulkan::QueueRequestIndex{2};
+          return vulkan::QueueRequestIndex{1};
           break;
         case root_window_cookie2:
-          return vulkan::QueueRequestIndex{1};
+          return vulkan::QueueRequestIndex{2};
           break;
       }
     // Unknown.

@@ -23,26 +23,35 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     void* UNUSED_ARG(user_data))
 {
   char const* color_end = "";
+  libcwd::channel_ct* dcp;
   if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
   {
+    dcp = &DEBUGCHANNELS::dc::vkerror;
     Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[0m";
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {
+    dcp = &DEBUGCHANNELS::dc::vkwarning;
     Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[0m";
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+  {
+    dcp = &DEBUGCHANNELS::dc::vkinfo;
     Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
+  }
   else
+  {
+    dcp = &DEBUGCHANNELS::dc::vkverbose;
     Dout(dc::vkverbose|continued_cf, pCallbackData->pMessage);
+  }
 
   if (pCallbackData->objectCount > 0)
   {
     Dout(dc::continued, " [with an objectCount of " << pCallbackData->objectCount << "]");
     for (int i = 0; i < pCallbackData->objectCount; ++i)
-      Dout(dc::vulkan, static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
+      Dout(*dcp, static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
   }
 
   Dout(dc::finish, color_end);

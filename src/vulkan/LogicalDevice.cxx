@@ -68,7 +68,11 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
   ASSERT(queue_replies.empty());
 
   // queue_replies is filled, indexed by request; so we will have as many results (replies) as requests.
-  queue_replies.resize(number_of_requests);
+  {
+    // Use swap instead of resize, because QueueReply contains an atomic and is therefore not moveable.
+    utils::Vector<QueueReply, QueueRequestIndex> new_queue_replies(number_of_requests);
+    queue_replies.swap(new_queue_replies);
+  }
 
   // At this point we know that each request matches at least one queue family.
   // For example, assume we have four queue families (A, B, C and D) and five requests (0, 1, 2, 3, and 4).
@@ -204,21 +208,29 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
                   penalty -= 0.4 * P0;
                 }
               }
-#ifdef CWDEBUG
-              // Print debug information about the current configuration.
-              std::ostringstream oss;
-              char const* prefix = "";
-              for (int r = 0; r < number_of_requests; ++r)
-              {
-                oss << prefix << "request: " << r << ", queue family: " << ml_qf[r] << ", handed out: " << ml_h[r];
-                prefix = "; ";
-              }
-              Dout(dc::vulkan, "Configuration: {" << oss.str() << "}, penalty: " << penalty);
-#endif
               if (penalty < minimum_penalty)
               {
-                // We found a better configuration.
                 minimum_penalty = penalty;
+
+                // For now, only print a new configuration when it is better than the previous one.
+                // Otherwise this floods too much.
+                // We found a better configuration.
+#ifdef CWDEBUG
+                // Print debug information about the current configuration.
+                std::ostringstream oss;
+                char const* prefix = "";
+                for (QueueRequestIndex qri(0); qri < QueueRequestIndex(number_of_requests); ++qri)
+                {
+                  QueueFamilyPropertiesIndex queue_family = queue_families_by_request[qri][ml_qf[qri.get_value()]];
+                  int H = ml_h[qri.get_value()];
+                  if (H > 0)
+                    oss << prefix << "{QF:" << queue_family << ", H:" << H << "}";
+                  else
+                    oss << prefix << "{combined with " << queue_requests[qri].combined_with << "}";
+                  prefix = ", ";
+                }
+                Dout(dc::vulkan, "Configuration: <" << oss.str() << ">, penalty: " << penalty);
+#endif
 
                 // Fill in the replies for this configuration: for each request: queue family (index) and number of handed out queues.
                 for (QueueRequestIndex qri(0); qri < QueueRequestIndex(number_of_requests); ++qri)
@@ -419,7 +431,7 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
 #endif
 }
 
-vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, int window_cookie) const
+vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, int window_cookie)
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
 
@@ -432,13 +444,13 @@ vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, int window_cookie) cons
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
   {
     QueueReply const& reply = m_queue_replies[qri];
-    Dout(dc::notice, reply);
+    //Dout(dc::notice, reply);
     auto qfpi = reply.get_queue_family();
     if (reply.combined_with().undefined() &&                                    // Skip combined replies.
         (m_queue_families[qfpi].get_queue_flags() & flags) == flags)            // This queue family supports requested flags?
     {
       ++support_count;
-      if ((m_queue_replies[qri].requested_queue_flags() & flags) == flags)      // The corresponding request requested the same flags?
+      if ((m_queue_replies[qri].requested_queue_flags() & flags) == flags)      // The corresponding QueueRequest requested the same flags?
       {
         queue_request_index = qri;
         ++request_count;
@@ -460,7 +472,14 @@ vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, int window_cookie) cons
       ASSERT(!queue_request_index.undefined());
     }
     QueueFamilyPropertiesIndex queue_family_properties_index = m_queue_replies[queue_request_index].get_queue_family();;
-    return m_device->getQueue(queue_family_properties_index.get_value(), 0);
+    int next_queue_index = m_queue_replies[queue_request_index].acquire_queue();
+    if (next_queue_index == -1)
+    {
+      THROW_ALERT("Trying to acquire a queue with flags [FLAGS], but we have run out; there were only [N] such queues.",
+          AIArgs("[FLAGS]", flags)("[N]", m_queue_replies[queue_request_index].number_of_queues()));
+    }
+    Dout(dc::vulkan, "Calling vk::Device::getQueue(" << queue_family_properties_index.get_value() << ", " << next_queue_index << ")");
+    return m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index);
   }
 
   // Unsupported request.

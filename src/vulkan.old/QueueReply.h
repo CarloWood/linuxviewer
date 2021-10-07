@@ -18,7 +18,7 @@ class QueueReply
 {
  private:
   GPU_queue_family_handle m_queue_family_handle;        // The queue family that should be used.
-  uint32_t m_number_of_queues;                          // The actual number of queues that should be allocated.
+  uint32_t m_number_of_queues;                          // The number of queues that can be allocated; this might be less than the max_number_of_queues of the corresponding QueueRequest.
 
  public:
   QueueReply() = default;
