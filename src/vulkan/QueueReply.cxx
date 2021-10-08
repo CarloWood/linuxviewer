@@ -14,6 +14,8 @@ void QueueReply::print_on(std::ostream& os) const
     os << "m_start_index:" << m_start_index;
   else
     os << "m_combined_with:" << m_combined_with;
+  os << ", m_acquired:" << m_acquired << ", ";
+  os << "m_window_cookies:0x" << std::hex << m_window_cookies << std::dec;
   os << '}';
 }
 #endif

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "QueueReply.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -31,6 +32,7 @@ class VulkanWindow : public AIStatefulTask
 {
  public:
   using xcb_connection_broker_type = task::Broker<task::XcbConnection, std::function<void()>>;
+  using window_cookie_type = vulkan::QueueReply::window_cookies_type;
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
@@ -55,7 +57,7 @@ class VulkanWindow : public AIStatefulTask
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
-  int m_window_cookie = {};                                                     // Unique ID for the creation event of this window (as determined by the user).
+  window_cookie_type m_window_cookie = {};                                      // Unique bit for the creation event of this window (as determined by the user).
   boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;        // Initialized in VulkanWindow_start.
   std::atomic_bool m_must_close = false;
   std::atomic_int m_logical_device_index = -1;                                  // Index into Application::m_logical_device_list.
@@ -109,12 +111,12 @@ class VulkanWindow : public AIStatefulTask
     m_frame_rate_interval = frame_rate_interval;
   }
 
-  int window_cookie() const
+  window_cookie_type window_cookie() const
   {
     return m_window_cookie;
   }
 
-  void set_window_cookie(int window_cookie)
+  void set_window_cookie(window_cookie_type window_cookie)
   {
     m_window_cookie = window_cookie;
   }

@@ -24,6 +24,7 @@ struct QueueRequest
                                         // Zero means: addQueueRequests: 1.0.
                                         //             combineQueueRequests: the same as the last QueueFlags added (with either addQueueRequests or combineQueueRequests).
   QueueRequestIndex combined_with;      // A previous request that these queues may be combined with if possible.
+  uint32_t windows = -1;                // Bit mask with window cookies that this request applies too.
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

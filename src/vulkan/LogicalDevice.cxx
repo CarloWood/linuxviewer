@@ -235,22 +235,17 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
                 // Fill in the replies for this configuration: for each request: queue family (index) and number of handed out queues.
                 for (QueueRequestIndex qri(0); qri < QueueRequestIndex(number_of_requests); ++qri)
                 {
+                  QueueRequest const& request = queue_requests[qri];
                   QueueFamilyPropertiesIndex queue_family = queue_families_by_request[qri][ml_qf[qri.get_value()]];
-                  QueueFlags queue_flags = queue_requests[qri].queue_flags;
+                  QueueFlags queue_flags = request.queue_flags;
                   int H = ml_h[qri.get_value()];
                   QueueRequestIndex qri0;
                   if (H == 0)
                   {
-                    qri0 = queue_requests[qri].combined_with;
+                    qri0 = request.combined_with;
                     ASSERT(!qri0.undefined());
-                    int H1 = ml_h[qri0.get_value()];
-                    queue_flags |= queue_requests[qri0].queue_flags;
-                    // The assertions check that we are only changing the queue_flags.
-                    ASSERT(queue_replies[qri0].get_queue_family() == queue_family);
-                    ASSERT(queue_replies[qri0].number_of_queues() == H1);
-                    queue_replies[qri0] = QueueReply(queue_family, H1, queue_flags);
                   }
-                  queue_replies[qri] = QueueReply(queue_family, H, queue_flags, qri0);
+                  queue_replies[qri] = QueueReply(queue_family, H, queue_flags, request.windows, qri0);
                 }
               }
             }
@@ -431,59 +426,77 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
 #endif
 }
 
-vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, int window_cookie)
+vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie)
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
+  // window_cookie is a bit mask and must represent a single window.
+  ASSERT(utils::is_power_of_two(window_cookie));
+
+  // Accumulate the combined queue flags.
+  utils::Vector<QueueFlags, QueueRequestIndex> combined_queue_flags(m_queue_replies.size());
+  // Run over all QueueReply's.
+  QueueRequestIndex const qri_end{m_queue_replies.size()};
+  for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
+  {
+    QueueReply const& reply = m_queue_replies[qri];
+    if (!(reply.get_window_cookies() & window_cookie))          // Skip requests that are not to be used for this window.
+      continue;
+    combined_queue_flags[qri] |= reply.requested_queue_flags();
+    if (!reply.combined_with().undefined())
+      combined_queue_flags[reply.combined_with()] |= reply.requested_queue_flags();
+  }
 
   // If there is only one QueueReply with flags support, return that.
   // In both of the following counts, combined reply's are NOT counted (because they are not an extra choice).
   int support_count = 0;        // The number of QueueReply's whose queue family supports flags (even if that is the same queue family).
   int request_count = 0;        // The number of QueueReply's whose request flags matches flags.
-  QueueRequestIndex queue_request_index;
-  QueueRequestIndex const qri_end{m_queue_replies.size()};
+  QueueRequestIndex queue_request_index;        // The index into the vector of QueueReply's that matched (the last one if there are more).
+
+  // Run over all QueueReply's.
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
   {
     QueueReply const& reply = m_queue_replies[qri];
-    //Dout(dc::notice, reply);
+    if (!reply.combined_with().undefined())                                     // Skip combined replies.
+      continue;
+
+    Dout(dc::notice, "Reply = " << reply << "; combined_queue_flags = " << combined_queue_flags[qri]);
+
     auto qfpi = reply.get_queue_family();
-    if (reply.combined_with().undefined() &&                                    // Skip combined replies.
-        (m_queue_families[qfpi].get_queue_flags() & flags) == flags)            // This queue family supports requested flags?
+    if ((m_queue_families[qfpi].get_queue_flags() & flags) == flags)            // This queue family supports requested flags?
     {
       ++support_count;
-      if ((m_queue_replies[qri].requested_queue_flags() & flags) == flags)      // The corresponding QueueRequest requested the same flags?
+      if ((combined_queue_flags[qri] & flags) == flags)                         // The corresponding QueueRequest requested the same flags?
       {
-        queue_request_index = qri;
+        queue_request_index = qri;                                              // We found a (the?) matching queue request/reply.
         ++request_count;
       }
     }
   }
   Dout(dc::notice, "Found " << support_count << " QueueReply's that support " << flags << " and " << request_count << " QueueRequest's that requested them.");
-  if (support_count > 0)
+
+  // Deal with errors.
+  if (support_count == 0)
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+  if (request_count == 0)
+    THROW_ALERT("Trying to acquire a queue with flags [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+  if (request_count > 1)
   {
-    if (request_count == 0)
-      THROW_ALERT("Trying to acquire a queue with flags [FLAGS] without having requested those flags.", AIArgs("[FLAGS]", flags));
-    // If exactly one request matches flags, then use that.
-    if (request_count > 1)
-    {
-      // Ask the user which request for flags he wanted to pair with window_cookie.
-      queue_request_index = queue_index(flags, window_cookie);
-      Dout(dc::notice, "LogicalDevice::queue_index(" << flags << ", " << window_cookie << ") returned " << queue_request_index);
-      // The user supplied virtual function `queue_index` must return a valid queue request index.
-      ASSERT(!queue_request_index.undefined());
-    }
-    QueueFamilyPropertiesIndex queue_family_properties_index = m_queue_replies[queue_request_index].get_queue_family();;
-    int next_queue_index = m_queue_replies[queue_request_index].acquire_queue();
-    if (next_queue_index == -1)
-    {
-      THROW_ALERT("Trying to acquire a queue with flags [FLAGS], but we have run out; there were only [N] such queues.",
-          AIArgs("[FLAGS]", flags)("[N]", m_queue_replies[queue_request_index].number_of_queues()));
-    }
-    Dout(dc::vulkan, "Calling vk::Device::getQueue(" << queue_family_properties_index.get_value() << ", " << next_queue_index << ")");
-    return m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index);
+    // Make sure there is only one solution per window for any combination of requested flags.
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], more than one solution was found.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
   }
 
-  // Unsupported request.
-  return {};
+  // Reserve a queue index from the pool of total queues.
+  int next_queue_index = m_queue_replies[queue_request_index].acquire_queue();
+  if (next_queue_index == -1)
+  {
+    THROW_ALERT("Trying to acquire a queue with flags [FLAGS], but we have run out; there were only [N] such queues.",
+        AIArgs("[FLAGS]", flags)("[N]", m_queue_replies[queue_request_index].number_of_queues()));
+  }
+
+  // Allocate the queue and return the handle.
+  QueueFamilyPropertiesIndex queue_family_properties_index = m_queue_replies[queue_request_index].get_queue_family();;
+  Dout(dc::vulkan, "Calling vk::Device::getQueue(" << queue_family_properties_index.get_value() << ", " << next_queue_index << ")");
+  return m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index);
 }
 
 #ifdef CWDEBUG

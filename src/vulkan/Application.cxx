@@ -152,9 +152,11 @@ void Application::initialize(int argc, char** argv)
 #endif
 
 task::VulkanWindow* Application::create_root_window(
-    std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, int window_cookie, std::string&& title, task::LogicalDevice const* logical_device)
+    std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie,
+    std::string&& title, task::LogicalDevice const* logical_device)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << ", \"" << title << "\", " << extent << ", " << logical_device << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << extent << ", " <<
+      std::hex << window_cookie << std::dec << ", \"" << title << "\", " << logical_device << ")");
 
   // Call Application::initialize() immediately after constructing the Application.
   //

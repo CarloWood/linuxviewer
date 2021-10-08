@@ -106,7 +106,7 @@ class Application
   void create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
 
   task::VulkanWindow* create_root_window(
-      std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, int window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
+      std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
 
   // Accessor.
   vk::Instance vh_instance() const { return *m_instance; }
@@ -119,13 +119,13 @@ class Application
   void initialize(int argc = 0, char** argv = nullptr);
 
   task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
-      int window_cookie, std::string&& title = {})
+      task::VulkanWindow::window_cookie_type window_cookie, std::string&& title = {})
   {
     return create_root_window(std::move(window), extent, window_cookie, std::move(title), nullptr);
   }
 
   task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
-      int window_cookie, task::LogicalDevice const& logical_device, std::string&& title = {})
+      task::VulkanWindow::window_cookie_type window_cookie, task::LogicalDevice const& logical_device, std::string&& title = {})
   {
     return create_root_window(std::move(window), extent, window_cookie, std::move(title), &logical_device);
   }

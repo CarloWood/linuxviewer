@@ -60,7 +60,7 @@ class LogicalDevice
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  vk::Queue acquire_queue(QueueFlags flags, int window_cookie);
+  vk::Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie);
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
@@ -72,9 +72,6 @@ class LogicalDevice
 
   // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
   virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const { }
-
-  // Override this function if you have QueueRequest's with overlapping QueueFlagBits.
-  virtual QueueRequestIndex queue_index(QueueFlags flags, int window_cookie) const { return {}; }
 };
 
 } // namespace vulkan

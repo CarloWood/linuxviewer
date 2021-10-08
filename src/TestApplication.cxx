@@ -92,35 +92,18 @@ class LogicalDevice : public vulkan::LogicalDevice
 //    .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 4,                      // Only used when it can not be combined.
-        .priority = 0.8})                               // Only used when it can not be combined.
+        .priority = 0.8,                                // Only used when it can not be combined.
+        .windows = root_window_cookie1})                // This may only be used for window1.
     // {2}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 2,
-        .priority = 0.2})
+        .priority = 0.2,
+        .windows = root_window_cookie2})
 #ifdef CWDEBUG
     .setDebugName("LogicalDevice");
 #endif
     ;
-  }
-
-  vulkan::QueueRequestIndex queue_index(vulkan::QueueFlags flags, int window_cookie) const override
-  {
-    using vulkan::QueueFlagBits;
-    if (flags == QueueFlagBits::eGraphics)
-      return vulkan::QueueRequestIndex{0};
-    else if (flags == QueueFlagBits::ePresentation)
-      switch (window_cookie)
-      {
-        case root_window_cookie1:
-          return vulkan::QueueRequestIndex{1};
-          break;
-        case root_window_cookie2:
-          return vulkan::QueueRequestIndex{2};
-          break;
-      }
-    // Unknown.
-    return {};
   }
 };
 
