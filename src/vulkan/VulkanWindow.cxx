@@ -116,21 +116,19 @@ void VulkanWindow::create_swapchain()
 
   vulkan::LogicalDevice* logical_device = m_application->get_logical_device(m_logical_device_index);
 
-  vk::Queue vh_graphics_queue, vh_presentation_queue;
-  try
+  vk::Queue vh_graphics_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
+  vk::Queue vh_presentation_queue;
+
+  if (!vh_graphics_queue)
   {
-    vh_graphics_queue = vh_presentation_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
-  }
-  catch (AIAlert::Error const& error)
-  {
-    Dout(dc::vulkan, error);
+    // The combination of eGraphics|ePresentation failed. We have to try separately.
     vh_graphics_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics, m_window_cookie);
     vh_presentation_queue = logical_device->acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
   }
+  else
+    vh_presentation_queue = vh_graphics_queue;
 
   m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue);
-
-  auto pq = m_presentation_surface.vh_presentation_queue();
 }
 
 void VulkanWindow::finish_impl()

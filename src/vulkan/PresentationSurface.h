@@ -18,7 +18,6 @@ class PresentationSurface
   {
     // Only call set_queues once.
     ASSERT(!m_graphics_queue && !m_presentation_queue);
-    Debug(attach_gdb());
     m_graphics_queue = graphics_queue;
     m_presentation_queue = presentation_queue;
   }

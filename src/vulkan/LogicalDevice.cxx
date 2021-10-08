@@ -6,6 +6,7 @@
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
 #include "utils/find_missing_names.h"
+#include "utils/is_power_of_two.h"
 #include "utils/MultiLoop.h"
 #include "debug.h"
 
@@ -478,7 +479,13 @@ vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::win
   if (support_count == 0)
     THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
   if (request_count == 0)
-    THROW_ALERT("Trying to acquire a queue with flags [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+  {
+    // If flags has more than one bit set, return an empty handle indicating that the combination could not be found
+    // and a new attempt with less bits should be tried.
+    if (!utils::is_power_of_two(static_cast<QueueFlags::MaskType>(flags)))
+      return {};
+    THROW_ALERT("Trying to acquire a queue with flag [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+  }
   if (request_count > 1)
   {
     // Make sure there is only one solution per window for any combination of requested flags.
