@@ -9,7 +9,7 @@ namespace linuxviewer::OS {
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
 
-void Window::create(vk::Instance vh_instance, std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task)
 {
   DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(\"" << title << "\", " << width << ", " << height << ") [" << this << "]");
 
@@ -47,7 +47,7 @@ void Window::create(vk::Instance vh_instance, std::string_view const& title, int
 
   // Create a vulkan surface for this window.
   auto surface_create_info = m_parameters.get_surface_create_info();
-  m_surface = vh_instance.createXcbSurfaceKHRUnique(surface_create_info);
+  return vh_instance.createXcbSurfaceKHRUnique(surface_create_info);
 }
 
 void Window::destroy()

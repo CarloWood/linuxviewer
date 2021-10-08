@@ -61,7 +61,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
     case VulkanWindow_create:
       // Create a new xcb window using the established connection.
       m_window->set_xcb_connection(m_xcb_connection_task->connection());
-      m_window->create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height, this);
+      m_presentation_surface = m_window->create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height, this);
       // Trigger the "window created" event.
       m_window_created_event.trigger();
       // If a logical device was passed then we need to copy its index as soon as that becomes available.
@@ -116,16 +116,21 @@ void VulkanWindow::create_swapchain()
 
   vulkan::LogicalDevice* logical_device = m_application->get_logical_device(m_logical_device_index);
 
-  vk::Queue presentation_queue;
+  vk::Queue vh_graphics_queue, vh_presentation_queue;
   try
   {
-    presentation_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
+    vh_graphics_queue = vh_presentation_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
   }
   catch (AIAlert::Error const& error)
   {
-    Dout(dc::vulkan, "Failed to obtain a queue that supports both ePresentation and eGraphics: " << error);
-    presentation_queue = logical_device->acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
+    Dout(dc::vulkan, error);
+    vh_graphics_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics, m_window_cookie);
+    vh_presentation_queue = logical_device->acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
   }
+
+  m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue);
+
+  auto pq = m_presentation_surface.vh_presentation_queue();
 }
 
 void VulkanWindow::finish_impl()
@@ -140,7 +145,7 @@ void VulkanWindow::finish_impl()
 
 vk::SurfaceKHR VulkanWindow::vh_surface() const
 {
-  return m_window->vh_surface();
+  return m_presentation_surface.vh_surface();
 }
 
 } // namespace task
