@@ -129,6 +129,8 @@ void VulkanWindow::create_swapchain()
     vh_presentation_queue = vh_graphics_queue;
 
   m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue);
+
+  m_swapchain.prepare(m_presentation_surface);
 }
 
 void VulkanWindow::finish_impl()

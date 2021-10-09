@@ -2,6 +2,7 @@
 
 #include "QueueReply.h"
 #include "PresentationSurface.h"
+#include "Swapchain.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -64,6 +65,7 @@ class VulkanWindow : public AIStatefulTask
   std::atomic_int m_logical_device_index = -1;                                  // Index into Application::m_logical_device_list.
                                                                                 // Initialized in LogicalDevice_create by call to Application::create_device.
   vulkan::PresentationSurface m_presentation_surface;                           // The presentation surface information (surface-, graphics- and presentation queue handles).
+  vulkan::Swapchain m_swapchain;                                                // The swap chain used for this surface.
 
   threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
