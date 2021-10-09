@@ -88,11 +88,11 @@ target_sources(vulkan_ObjLib
 # Add debug source files.
 if (OptionEnableLibcwd)
   file(GLOB DEBUG_SOURCE_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/vd_utils/*.cxx
+    ${CMAKE_CURRENT_SOURCE_DIR}/debug/*.cxx
   )
 
   file(GLOB DEBUG_HEADER_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/vd_utils/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/debug/*.h
   )
 
   # Add to the list of source files.

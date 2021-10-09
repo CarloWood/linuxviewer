@@ -3,7 +3,6 @@
 #include "VulkanWindow.h"
 #include "DispatchLoader.h"
 #include "LogicalDevice.h"
-#include "vd_utils/DebugUtilsMessenger.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -13,6 +12,9 @@
 #include "utils/DequeMemoryResource.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
+#ifdef CWDEBUG
+#include "debug/DebugUtilsMessenger.h"
+#endif
 
 namespace evio {
 class EventLoop;

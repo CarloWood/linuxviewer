@@ -3,7 +3,7 @@
 #include "QueueFlags.h"
 #include "utils/Vector.h"
 #ifdef CWDEBUG
-#include "vd_utils/debug_ostream_operators.h"
+#include "debug/debug_ostream_operators.h"
 #include <iomanip>
 #endif
 #include "debug.h"
