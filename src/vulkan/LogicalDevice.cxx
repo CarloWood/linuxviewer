@@ -5,7 +5,7 @@
 #include "DeviceCreateInfo.h"
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
-#include "utils/find_missing_names.h"
+#include "vk_utils/find_missing_names.h"
 #include "utils/is_power_of_two.h"
 #include "utils/MultiLoop.h"
 #include "debug.h"

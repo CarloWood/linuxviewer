@@ -68,12 +68,12 @@ set_property(
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
 )
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
 )
 
 # The list of source files.
