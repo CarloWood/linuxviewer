@@ -1,9 +1,6 @@
 #pragma once
 
 #include "vulkan/Application.h"
-#include "vulkan/PhysicalDeviceFeatures.h"
-#include "vulkan/DeviceCreateInfo.h"
-#include "vulkan/QueueFlags.h"
 
 class TestApplication : public vulkan::Application
 {

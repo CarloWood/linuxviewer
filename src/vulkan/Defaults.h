@@ -1,4 +1,5 @@
 // Must be inserted first.
+#include "debug.h"
 #include "debug_ostream_operators.h"
 
 #ifndef VULKAN_DEFAULTS_H
@@ -7,7 +8,6 @@
 #include "QueueRequest.h"
 #include "vk_utils/encode_version.h"
 #include "utils/Array.h"
-#include "debug.h"
 #include <vulkan/vulkan.hpp>
 
 /*=****************************************************************************

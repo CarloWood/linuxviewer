@@ -69,11 +69,13 @@ set_property(
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
 )
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
 )
 
 # The list of source files.
@@ -81,17 +83,31 @@ target_sources(vulkan_ObjLib
   PRIVATE
     ${SOURCE_FILES}
     ${HEADER_FILES}
-
-    #"check_instance_extensions_availability.cxx"
-    #"check_instance_extensions_availability.h"
-    #"debug_ostream_operators.cxx"
-    #"debug_ostream_operators.h"
 )
+
+# Add debug source files.
+if (OptionEnableLibcwd)
+  file(GLOB DEBUG_SOURCE_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/vd_utils/*.cxx
+  )
+
+  file(GLOB DEBUG_HEADER_FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/vd_utils/*.h
+  )
+
+  # Add to the list of source files.
+  target_sources(vulkan_ObjLib
+    PRIVATE
+      ${DEBUG_SOURCE_FILES}
+      ${DEBUG_HEADER_FILES}
+  )
+endif ()
 
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(vulkan_ObjLib
   PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 

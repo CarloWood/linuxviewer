@@ -2,6 +2,8 @@
 #include "TestApplication.h"
 #include "vulkan/OperatingSystem.h"
 #include "vulkan/LogicalDevice.h"
+#include "vulkan/PhysicalDeviceFeatures.h"
+#include "vulkan/infos/DeviceCreateInfo.h"
 #include "debug.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"

@@ -2,7 +2,7 @@
 #include "DeviceCreateInfo.h"
 #include <cstring>
 #ifdef CWDEBUG
-#include "debug_ostream_operators.h"
+#include "vd_utils/debug_ostream_operators.h"
 #endif
 
 namespace vulkan {
