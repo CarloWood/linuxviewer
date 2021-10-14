@@ -53,6 +53,7 @@ class Window : public xcb::WindowBase
  private:
   WindowParameters m_parameters;
   boost::intrusive_ptr<task::VulkanWindow> m_window_task;
+  vk::Extent2D m_extent;
 
  public:
   Window() = default;
@@ -63,8 +64,12 @@ class Window : public xcb::WindowBase
   void destroy();
 
   WindowParameters get_parameters() const { return m_parameters; }
+  vk::Extent2D const& get_extent() const { return m_extent; }
 
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override;
+  void OnWindowSizeChanged(uint32_t width, uint32_t height) override { m_extent.setWidth(width).setHeight(height); }
+  void get_extent(uint32_t& width, uint32_t& height) override { width = m_extent.width; height = m_extent.height; }
+
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
 };
 

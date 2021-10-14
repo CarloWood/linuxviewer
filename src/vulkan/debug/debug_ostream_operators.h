@@ -63,12 +63,9 @@ DECLARE_OSTREAM_INSERTER(ExtensionProperties)
 DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
 DECLARE_OSTREAM_INSERTER(DeviceQueueCreateInfo)
 DECLARE_OSTREAM_INSERTER(DeviceCreateInfo)
-#if 0
-DECLARE_OSTREAM_INSERTER(QueueFlagBits)
 DECLARE_OSTREAM_INSERTER(SurfaceCapabilitiesKHR)
 DECLARE_OSTREAM_INSERTER(SurfaceFormatKHR)
 DECLARE_OSTREAM_INSERTER(SwapchainCreateInfoKHR)
-#endif
 
 } // namespace vk
 

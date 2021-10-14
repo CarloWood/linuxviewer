@@ -19,9 +19,11 @@ class Window : public OS::Window
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
-  void OnWindowSizeChanged() override
+  void OnWindowSizeChanged(uint32_t width, uint32_t height) override
   {
-    DoutEntering(dc::notice, "Window::OnWindowSizeChanged()");
+    DoutEntering(dc::notice, "Window::OnWindowSizeChanged(" << width << ", " << height << ")");
+    // MUST call the base class implementation.
+    OS::Window::OnWindowSizeChanged(width, height);
   }
 
   void MouseMove(int x, int y) override
@@ -126,7 +128,7 @@ int main(int argc, char* argv[])
     auto root_window1 = application.create_root_window(std::make_unique<Window>(), {1000, 800}, LogicalDevice::root_window_cookie1);
 
     // Create a logical device that supports presenting to root_window1.
-    auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), root_window1);
+    auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
     auto root_window2 = application.create_root_window(std::make_unique<Window>(), {400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");

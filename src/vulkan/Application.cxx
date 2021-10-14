@@ -110,9 +110,7 @@ void Application::initialize(int argc, char** argv)
   m_resolver_scope = std::make_unique<resolver::Scope>(m_low_priority_queue, false);
 
   // Start the connection broker.
-  // When the last XCB connection is closed, terminate the application.
-  std::function<void()> cb = [this](){ m_until_terminated.open(); };
-  m_xcb_connection_broker = statefultask::create<task::VulkanWindow::xcb_connection_broker_type>(false, cb);
+  m_xcb_connection_broker = statefultask::create<task::VulkanWindow::xcb_connection_broker_type>(CWDEBUG_ONLY(false));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
 
   ApplicationInfo application_info;
@@ -150,12 +148,12 @@ void Application::initialize(int argc, char** argv)
   Dout(dc::notice, "device_create_info = " << device_create_info);
 #endif
 
-task::VulkanWindow* Application::create_root_window(
+boost::intrusive_ptr<task::VulkanWindow> Application::create_root_window(
     std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie,
-    std::string&& title, task::LogicalDevice const* logical_device)
+    std::string&& title, task::LogicalDevice const* logical_device_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << extent << ", " <<
-      std::hex << window_cookie << std::dec << ", \"" << title << "\", " << logical_device << ")");
+      std::hex << window_cookie << std::dec << ", \"" << title << "\", " << logical_device_task << ")");
 
   // Call Application::initialize() immediately after constructing the Application.
   //
@@ -170,12 +168,12 @@ task::VulkanWindow* Application::create_root_window(
   boost::intrusive_ptr<task::VulkanWindow> window_task = statefultask::create<task::VulkanWindow>(this, std::move(window) COMMA_CWDEBUG_ONLY(true));
 
   // Window initialization.
-  window_task->set_size(extent);
+  window_task->set_extent(extent);
   if (title.empty())
     title = application_name();
   window_task->set_title(std::move(title));
   window_task->set_window_cookie(window_cookie);
-  window_task->set_logical_device(logical_device);
+  window_task->set_logical_device_task(logical_device_task);
   // The key passed to set_xcb_connection MUST be canonicalized!
   m_main_display_broker_key.canonicalize();
   window_task->set_xcb_connection(m_xcb_connection_broker, &m_main_display_broker_key);
@@ -185,33 +183,29 @@ task::VulkanWindow* Application::create_root_window(
 
   // The window is returned in order to pass it to create_logical_device.
   //
-  // This is kinda of a race condition in that the returned pointer only points to valid data
-  // for as long as the task is still alive, but since the task keeps running for the duration
-  // of the render loop of this window it will be alive until it is closed.
-  //
   // The pointer should be passed to create_logical_device almost immediately after
-  // returning from this function.
-  return window_task.get();
+  // returning from this function with a std::move.
+  return window_task;
 }
 
-boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
+boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window.get() << ")");
 
   auto logical_device_task = statefultask::create<task::LogicalDevice>(this COMMA_CWDEBUG_ONLY(true));
   logical_device_task->set_logical_device(std::move(logical_device));
-  logical_device_task->set_root_window(root_window);
+  logical_device_task->set_root_window(std::move(root_window));
 
   logical_device_task->run(m_high_priority_queue);
 
   return logical_device_task;
 }
 
-void Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
+int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", " << (void*)root_window << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", " << (void*)root_window.get() << ")");
 
-  logical_device->prepare(*m_instance, m_dispatch_loader, root_window);
+  logical_device->prepare(*m_instance, m_dispatch_loader, root_window.get());
   Dout(dc::vulkan, "Created LogicalDevice " << *logical_device);
 
   int logical_device_index;
@@ -222,12 +216,22 @@ void Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device,
   }
 
   root_window->set_logical_device_index(logical_device_index);
+
+  // The boost::intrusive_ptr<task::VulkanWindow> pointing to root_window is destroyed here, decrementing the reference count as intended.
+  return logical_device_index;
 }
 
 void Application::add(task::VulkanWindow* window_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::add(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
+  if (m_window_created && window_list_w->empty())
+  {
+    // This is not allowed because the program is already terminating, or could be;
+    // allowing this would introduce race conditions.
+    THROW_ALERT("Trying to add a new window after the last window was closed.");
+  }
+  m_window_created = true;
   window_list_w->emplace_back(window_task);
 }
 
@@ -272,15 +276,15 @@ void Application::run()
 
   Dout(dc::notice, "======= Program terminated ======");
 
-  // Stop the broker task. All xcb_connections should already be closed, but if they are not then do it here.
-  m_xcb_connection_broker->terminate([](task::XcbConnection* xcb_connection){ xcb_connection->close(); });
-
   // Wait till all logical devices are idle.
   {
     logical_device_list_t::rat logical_device_list_r(m_logical_device_list);
     for (auto& device : *logical_device_list_r)
       device->wait_idle();
   }
+
+  // Stop the broker task.
+  m_xcb_connection_broker->terminate();
 
   // Application terminated cleanly.
   m_event_loop->join();

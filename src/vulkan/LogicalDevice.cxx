@@ -307,6 +307,15 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   }
 }
 
+bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface const& surface) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::verify_presentation_support(" << surface << ")");
+  auto queue_family_indices = surface.queue_family_indices();
+  bool const presentation_support = m_vh_physical_device.getSurfaceSupportKHR(queue_family_indices[1], surface.vh_surface());
+  Dout(dc::warning(!presentation_support), "The physical device " << m_vh_physical_device << " has no presentation support for the surface " << surface << "!");
+  return presentation_support;
+}
+
 void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr)
 {
   DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vulkan_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
@@ -427,7 +436,7 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
 #endif
 }
 
-vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie)
+Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie)
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
   // window_cookie is a bit mask and must represent a single window.
@@ -503,7 +512,7 @@ vk::Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::win
   // Allocate the queue and return the handle.
   QueueFamilyPropertiesIndex queue_family_properties_index = m_queue_replies[queue_request_index].get_queue_family();;
   Dout(dc::vulkan, "Calling vk::Device::getQueue(" << queue_family_properties_index.get_value() << ", " << next_queue_index << ")");
-  return m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index);
+  return { m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index), queue_family_properties_index };
 }
 
 #ifdef CWDEBUG
@@ -536,13 +545,18 @@ void LogicalDevice::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case LogicalDevice_wait_for_window:
+      // Wait until m_root_window was created (so we can get its Surface).
       m_root_window->m_window_created_event.register_task(this, window_available_condition);
       set_state(LogicalDevice_create);
       wait(window_available_condition);
       break;
     case LogicalDevice_create:
-      m_application->create_device(std::move(m_logical_device), m_root_window);
+      // Create a logical device that supports presentation on m_root_window and add it to the application.
+      m_index = m_application->create_device(std::move(m_logical_device), std::move(m_root_window));
+      // Notify child windows that the logical device index is available.
       m_logical_device_index_available_event.trigger();
+      // Allow deletion of this window now that we're done with this pointer.
+      m_root_window.reset();
       set_state(LogicalDevice_done);
       [[fallthrough]];
     case LogicalDevice_done:

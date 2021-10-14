@@ -171,24 +171,22 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
   if (pNext)
     os << "pNext:" << pNext << ", ";
 
-  os << "flags:" << flags << ", ";
-  os << "pQueueCreateInfos:<";
+  os << "flags:" << flags <<
+      ", pQueueCreateInfos:<";
   for (int i = 0; i < queueCreateInfoCount; ++i)
   {
     if (i > 0)
       os << ',';
     os << pQueueCreateInfos[i];
   }
-  os << ">, ";
-  os << "ppEnabledLayerNames:<";
+  os << ">, ppEnabledLayerNames:<";
   for (int i = 0; i < enabledLayerCount; ++i)
   {
     if (i > 0)
       os << ',';
     os << print_string(ppEnabledLayerNames[i]);
   }
-  os << ">, ";
-  os << "ppEnabledExtensionNames:<";
+  os << ">, ppEnabledExtensionNames:<";
   for (int i = 0; i < enabledExtensionCount; ++i)
   {
     if (i > 0)
@@ -206,9 +204,9 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
 {
   if (pNext)
     os << "pNext:" << pNext << ", ";
-  os << "queueFamilyIndex:" << queueFamilyIndex << ", ";
-  os << "queueCount: " << queueCount << ", ";
-  os << "pQueuePriorities:<";
+  os << "queueFamilyIndex:" << queueFamilyIndex <<
+      ", queueCount: " << queueCount <<
+      ", pQueuePriorities:<";
   for (int i = 0; i < queueCount; ++i)
   {
     if (i > 0)
@@ -220,15 +218,15 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
 
 void Extent2D::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "width:" << width << ", ";
-  os << "height:" << height;
+  os << "width:" << width <<
+      ", height:" << height;
 }
 
 void Extent3D::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "width:" << width << ", ";
-  os << "height:" << height << ", ";
-  os << "depth:" << depth;
+  os << "width:" << width <<
+      ", height:" << height <<
+      ", depth:" << depth;
 }
 
 void Instance::print_members(std::ostream& os, char const* prefix) const
@@ -238,29 +236,79 @@ void Instance::print_members(std::ostream& os, char const* prefix) const
 
 void QueueFamilyProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "queueFlags:" << queueFlags << ", ";
-  os << "queueCount:" << queueCount << ", ";
-  os << "timestampValidBits:" << timestampValidBits << ", ";
-  os << "minImageTransferGranularity:" << minImageTransferGranularity;
+  os << "queueFlags:" << queueFlags <<
+      ", queueCount:" << queueCount <<
+      ", timestampValidBits:" << timestampValidBits <<
+      ", minImageTransferGranularity:" << minImageTransferGranularity;
 }
 
 void ExtensionProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "extensionName:" << print_string(extensionName) << ", ";
-  os << "specVersion:" << specVersion;
+  os << "extensionName:" << print_string(extensionName) <<
+      ", specVersion:" << specVersion;
 }
 
 void PhysicalDeviceProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "apiVersion:" << print_api_version(apiVersion) << ", ";
-  os << "driverVersion:" << print_api_version(driverVersion) << ", ";
-  os << "vendorID:0x" << std::hex << vendorID << ", ";
-  os << "deviceID:0x" << std::hex << deviceID << ", ";
-  os << "deviceType:" << to_string(deviceType) << ", ";
-  os << "deviceName:" << print_string(deviceName) << ", ";
+  os << "apiVersion:" << print_api_version(apiVersion) <<
+      ", driverVersion:" << print_api_version(driverVersion) <<
+      ", vendorID:0x" << std::hex << vendorID <<
+      ", deviceID:0x" << std::hex << deviceID <<
+      ", deviceType:" << to_string(deviceType) <<
+      ", deviceName:" << print_string(deviceName);
 //  os << "pipelineCacheUUID:" << UUID(reinterpret_cast<char const*>(static_cast<uint8_t const*>(physical_device_properties.pipelineCacheUUID))) << ", ";
 //    VULKAN_HPP_NAMESPACE::PhysicalDeviceLimits                                   limits            = {};
 //    VULKAN_HPP_NAMESPACE::PhysicalDeviceSparseProperties                         sparseProperties  = {};
+}
+
+void SurfaceCapabilitiesKHR::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "minImageCount:" << minImageCount <<
+      ", maxImageCount:" << maxImageCount <<
+      ", currentExtent:" << currentExtent <<
+      ", minImageExtent:" << minImageExtent <<
+      ", maxImageExtent:" << maxImageExtent <<
+      ", maxImageArrayLayers:" << maxImageArrayLayers <<
+      ", supportedTransforms:" << supportedTransforms <<
+      ", currentTransform:" << currentTransform <<
+      ", supportedCompositeAlpha:" << supportedCompositeAlpha <<
+      ", supportedUsageFlags:" << supportedUsageFlags;
+}
+
+void SurfaceFormatKHR::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "format:" << format <<
+      ", colorSpace:" << colorSpace;
+}
+
+void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix) const
+{
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", surface:" << surface <<
+      ", minImageCount:" << minImageCount <<
+      ", imageFormat:" << imageFormat <<
+      ", imageColorSpace:" << imageColorSpace <<
+      ", imageExtent:" << imageExtent <<
+      ", imageArrayLayers:" << imageArrayLayers <<
+      ", imageUsage:" << imageUsage <<
+      ", imageSharingMode:" << imageSharingMode <<
+      ", queueFamilyIndexCount:" << queueFamilyIndexCount <<
+      ", pQueueFamilyIndices:<";
+  for (int i = 0; i < queueFamilyIndexCount; ++i)
+  {
+    if (i > 0)
+      os << ',';
+    os << pQueueFamilyIndices[i];
+  }
+  os << ">"
+      ", preTransform:" << preTransform <<
+      ", compositeAlpha:" << compositeAlpha <<
+      ", presentMode:" << presentMode <<
+      ", clipped:" << clipped <<
+      ", oldSwapchain:" << oldSwapchain;
 }
 
 } // namespace vk_defaults

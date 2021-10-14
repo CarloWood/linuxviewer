@@ -3,12 +3,14 @@
 #include "DispatchLoader.h"
 #include "VulkanWindow.h"
 #include "QueueReply.h"
+#include "Queue.h"
 #include <boost/intrusive_ptr.hpp>
 
 namespace vulkan {
 
 class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
+class PresentationSurface;
 
 // The collection of queue family properties for a given physical device.
 class QueueFamilies
@@ -51,6 +53,12 @@ class LogicalDevice
 
   void prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr);
 
+  // Accessor for underlaying physical and logical device.
+  vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
+  vk::Device handle() const { return *m_device; }
+
+  bool verify_presentation_support(vulkan::PresentationSurface const&) const;
+
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;
 
@@ -60,7 +68,7 @@ class LogicalDevice
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  vk::Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie);
+  Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie);
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
@@ -82,8 +90,11 @@ class LogicalDevice : public AIStatefulTask
 {
  private:
   vulkan::Application* m_application;
-  task::VulkanWindow* m_root_window;                                    // The root window that we have to support presentation to (if any).
-  std::unique_ptr<vulkan::LogicalDevice> m_logical_device;
+  boost::intrusive_ptr<task::VulkanWindow> m_root_window;               // The root window that we have to support presentation to (if any).
+                                                                        // This is reset as soon as we added ourselves to m_application; so don't use it.
+  std::unique_ptr<vulkan::LogicalDevice> m_logical_device;              // Temporary storage of a pointer to the logical device object.
+                                                                        // This is moved away to the Application and becomes nullptr; so don't use it.
+  int m_index = -1;                                                     // Logical device index into Application::m_registered_tasks.
 
  public:
   statefultask::TaskEvent m_logical_device_index_available_event;       // Triggered when m_root_window has its logical device index set.
@@ -108,9 +119,9 @@ class LogicalDevice : public AIStatefulTask
   LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application) { }
 
   void set_logical_device(std::unique_ptr<vulkan::LogicalDevice>&& logical_device) { m_logical_device = std::move(logical_device); }
-  void set_root_window(task::VulkanWindow* root_window) { m_root_window = root_window; }
+  void set_root_window(boost::intrusive_ptr<task::VulkanWindow>&& root_window) { m_root_window = std::move(root_window); }
 
-  int get_index() const { return m_root_window->get_logical_device_index(); }
+  int get_index() const { ASSERT(m_index != -1); return m_index; }
 
  protected:
   /// Call finish() (or abort()), not delete.

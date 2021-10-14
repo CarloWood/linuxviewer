@@ -178,6 +178,9 @@ DECLARE_PRINT_MEMBERS_CLASS(QueueFamilyProperties)
 DECLARE_PRINT_MEMBERS_CLASS(ExtensionProperties)
 DECLARE_PRINT_MEMBERS_CLASS(PhysicalDeviceProperties)
 DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(SurfaceCapabilitiesKHR)
+DECLARE_PRINT_MEMBERS_CLASS(SurfaceFormatKHR)
+DECLARE_PRINT_MEMBERS_CLASS(SwapchainCreateInfoKHR)
 #endif
 
 } // namespace vk_defaults

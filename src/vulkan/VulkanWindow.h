@@ -9,6 +9,9 @@
 #include "threadpool/Timer.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
+#ifdef CWDEBUG
+#include "cwds/tracked_intrusive_ptr.h"
+#endif
 
 namespace xcb {
 class ConnectionBrokerKey;
@@ -16,6 +19,7 @@ class ConnectionBrokerKey;
 
 namespace vulkan {
 class Application;
+class LogicalDevice;
 } // namespace vulkan
 
 namespace linuxviewer::OS {
@@ -33,7 +37,7 @@ class LogicalDevice;
 class VulkanWindow : public AIStatefulTask
 {
  public:
-  using xcb_connection_broker_type = task::Broker<task::XcbConnection, std::function<void()>>;
+  using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
 
   // This event is triggered as soon as m_window is created.
@@ -45,22 +49,22 @@ class VulkanWindow : public AIStatefulTask
   static constexpr condition_type logical_device_index_available = 4;
 
   // Constructor
-  vulkan::Application* m_application;
-  std::unique_ptr<linuxviewer::OS::Window> m_window;                            // Initialized in VulkanWindow_create.
+  boost::intrusive_ptr<vulkan::Application> m_application;                      // Pointer to the underlaying application, which terminates when the last such reference is destructed.
+  std::unique_ptr<linuxviewer::OS::Window> const m_window;                      // Initialized in VulkanWindow_create.
 
   // set_title
   std::string m_title;
-  // set_size
-  vk::Extent2D m_extent;
-  // set_logical_device
-  LogicalDevice const* m_logical_device = nullptr;
-  // set_xcb_connection
+  // set_extent
+  vk::Extent2D m_extent;                                                        // The initial window size. Not updated later on, so don't use it.
+  // set_logical_device_task
+  LogicalDevice const* m_logical_device_task = nullptr;                         // Cache valued of the task::LogicalDevice const* that was passed to
+  // set_xcb_connection                                                         // Application::create_root_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
   window_cookie_type m_window_cookie = {};                                      // Unique bit for the creation event of this window (as determined by the user).
-  boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;        // Initialized in VulkanWindow_start.
+  boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in VulkanWindow_start.
   std::atomic_bool m_must_close = false;
   std::atomic_int m_logical_device_index = -1;                                  // Index into Application::m_logical_device_list.
                                                                                 // Initialized in LogicalDevice_create by call to Application::create_device.
@@ -83,6 +87,7 @@ class VulkanWindow : public AIStatefulTask
     VulkanWindow_xcb_connection = direct_base_type::state_end,
     VulkanWindow_create,
     VulkanWindow_logical_device_index_available,
+    VulkanWindow_acquire_queues,
     VulkanWindow_create_swapchain,
     VulkanWindow_render_loop,
     VulkanWindow_close
@@ -100,14 +105,14 @@ class VulkanWindow : public AIStatefulTask
     m_title = std::move(title);
   }
 
-  void set_size(vk::Extent2D extent)
+  void set_extent(vk::Extent2D extent)
   {
     m_extent = extent;
   }
 
-  void set_logical_device(LogicalDevice const* logical_device)
+  void set_logical_device_task(LogicalDevice const* logical_device_task)
   {
-    m_logical_device = logical_device;
+    m_logical_device_task = logical_device_task;
   }
 
   void set_frame_rate_interval(threadpool::Timer::Interval frame_rate_interval)
@@ -132,7 +137,7 @@ class VulkanWindow : public AIStatefulTask
     m_broker_key = broker_key;
   }
 
-  // Called by Application::create_device.
+  // Called by Application::create_device or VulkanWindow_logical_device_index_available.
   void set_logical_device_index(int index)
   {
     // Do not pass a root_window to Application::create_logical_device that was already associated with a logical device
@@ -160,7 +165,10 @@ class VulkanWindow : public AIStatefulTask
   }
 
   // Accessors.
-  vk::SurfaceKHR vh_surface() const;
+  vk::SurfaceKHR vh_surface() const
+  {
+    return m_presentation_surface.vh_surface();
+  }
 
   int get_logical_device_index() const
   {
@@ -171,7 +179,16 @@ class VulkanWindow : public AIStatefulTask
     return logical_device_index;
   }
 
+  vulkan::PresentationSurface const& presentation_surface() const
+  {
+    return m_presentation_surface;
+  }
+
+  vulkan::LogicalDevice const* logical_device() const;
+  vk::Extent2D get_extent() const;
+
  private:
+  void acquire_queues();
   void create_swapchain();
 
  protected:
@@ -192,3 +209,7 @@ class VulkanWindow : public AIStatefulTask
 };
 
 } // namespace task
+
+#ifdef CWDEBUG
+DECLARE_TRACKED_BOOST_INTRUSIVE_PTR(task::VulkanWindow)
+#endif

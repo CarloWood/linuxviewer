@@ -69,12 +69,13 @@ class Application
   xcb::ConnectionBrokerKey m_main_display_broker_key;
 
   // To stop the main thread from exiting until the last xcb connection is closed.
-  utils::threading::Gate m_until_terminated;
+  mutable utils::threading::Gate m_until_terminated;
 
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::VulkanWindow>>;
   using window_list_t = aithreadsafe::Wrapper<window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   window_list_t m_window_list;
+  bool m_window_created = false;                        // Set to true the first time a window is created.
 
   // Loader for vulkan extension functions.
   DispatchLoader m_dispatch_loader;
@@ -101,13 +102,33 @@ class Application
   void add(task::VulkanWindow* window_task);
   void remove(task::VulkanWindow* window_task);
 
+  // Counts the number of `boost::intrusive_ptr<Application>` objects.
+  // When the last one such object is destructed, the application is terminated.
+  mutable std::atomic<int> m_count;
+
+  friend void intrusive_ptr_add_ref(Application const* ptr)
+  {
+    ptr->m_count.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  friend void intrusive_ptr_release(Application const* ptr)
+  {
+    if (ptr->m_count.fetch_sub(1, std::memory_order_release) == 1)
+    {
+      std::atomic_thread_fence(std::memory_order_acquire);
+      // The last reference was destructed; terminate the application.
+      Dout(dc::notice, "Last reference to Application was removed. Terminating application.");
+      ptr->m_until_terminated.open();
+    }
+  }
+
   // Create and initialize the vulkan instance (m_instance).
   void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
 
   friend class task::LogicalDevice;
-  void create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
+  int create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window);
 
-  task::VulkanWindow* create_root_window(
+  boost::intrusive_ptr<task::VulkanWindow> create_root_window(
       std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
 
   // Accessor.
@@ -120,7 +141,7 @@ class Application
  public:
   void initialize(int argc = 0, char** argv = nullptr);
 
-  task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
+  boost::intrusive_ptr<task::VulkanWindow> create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
       task::VulkanWindow::window_cookie_type window_cookie, std::string&& title = {})
   {
     return create_root_window(std::move(window), extent, window_cookie, std::move(title), nullptr);
@@ -129,10 +150,10 @@ class Application
   task::VulkanWindow* create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
       task::VulkanWindow::window_cookie_type window_cookie, task::LogicalDevice const& logical_device, std::string&& title = {})
   {
-    return create_root_window(std::move(window), extent, window_cookie, std::move(title), &logical_device);
+    return create_root_window(std::move(window), extent, window_cookie, std::move(title), &logical_device).get();
   }
 
-  boost::intrusive_ptr<task::LogicalDevice> create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
+  boost::intrusive_ptr<task::LogicalDevice> create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window);
 
   LogicalDevice* get_logical_device(int logical_device_index) const
   {
