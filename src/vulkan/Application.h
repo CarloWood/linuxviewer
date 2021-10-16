@@ -97,6 +97,11 @@ class Application
   using logical_device_list_t = aithreadsafe::Wrapper<logical_device_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   logical_device_list_t m_logical_device_list;
 
+  // UNSORTED REMAINING OBJECTS.
+  static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
+  vk::UniqueRenderPass m_render_pass;           // FIXME: how many are needed, where/how to store them?
+  vk::UniqueRenderPass m_post_render_pass;
+
  private:
   friend class task::VulkanWindow;
   void add(task::VulkanWindow* window_task);
@@ -123,13 +128,23 @@ class Application
   }
 
   // Create and initialize the vulkan instance (m_instance).
-  void createInstance(vulkan::InstanceCreateInfo const& instance_create_info);
+  void create_instance(vulkan::InstanceCreateInfo const& instance_create_info);
+
+  boost::intrusive_ptr<task::VulkanWindow> create_root_window(
+      std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
 
   friend class task::LogicalDevice;
   int create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window);
 
-  boost::intrusive_ptr<task::VulkanWindow> create_root_window(
-      std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
+  void create_unsorted_remaining_objects();
+  // Calls all of:
+  void create_frame_resources();
+  void create_render_passes();
+  void create_descriptor_set();
+  void create_textures();
+  void create_pipeline_layout();
+  void create_graphics_pipeline();
+  void create_vertex_buffers();
 
   // Accessor.
   vk::Instance vh_instance() const { return *m_instance; }

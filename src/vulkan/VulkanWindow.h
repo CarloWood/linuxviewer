@@ -191,6 +191,11 @@ class VulkanWindow : public AIStatefulTask
   vulkan::LogicalDevice const* logical_device() const;
   vk::Extent2D get_extent() const;
 
+  vulkan::Swapchain const& swapchain() const
+  {
+    return m_swapchain;
+  }
+
  private:
   void acquire_queues();
   void create_swapchain();

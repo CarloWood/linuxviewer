@@ -515,6 +515,48 @@ Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_
   return { m_device->getQueue(queue_family_properties_index.get_value(), next_queue_index), queue_family_properties_index };
 }
 
+vk::UniqueRenderPass LogicalDevice::create_render_pass(
+    std::vector<RenderPassAttachmentData> const& attachment_descriptions,
+    std::vector<RenderPassSubpassData> const& subpass_descriptions,
+    std::vector<vk::SubpassDependency> const& dependencies) const
+{
+  std::vector<vk::AttachmentDescription> attachments;
+  for (auto const& attachment : attachment_descriptions)
+    attachments.emplace_back(vk::AttachmentDescription{
+        .flags          = {},                                      // VkAttachmentDescriptionFlags
+        .format         = attachment.Format,                       // VkFormat
+        .samples        = vk::SampleCountFlagBits::e1,             // VkSampleCountFlagBits
+        .loadOp         = attachment.LoadOp,                       // VkAttachmentLoadOp
+        .storeOp        = attachment.StoreOp,                      // VkAttachmentStoreOp
+        .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,         // VkAttachmentLoadOp
+        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,        // VkAttachmentStoreOp
+        .initialLayout  = attachment.InitialLayout,                // VkImageLayout
+        .finalLayout    = attachment.FinalLayout                   // VkImageLayout
+      });
+
+  std::vector<vk::SubpassDescription> subpasses;
+  for (auto const& subpass : subpass_descriptions)
+    subpasses.emplace_back(vk::SubpassDescription{
+        .flags = {},                                               // VkSubpassDescriptionFlags
+        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,     // VkPipelineBindPoint
+        .inputAttachmentCount = static_cast<uint32_t>(subpass.InputAttachments.size()),
+        .pInputAttachments = subpass.InputAttachments.data(),      // VkAttachmentReference const*
+        .colorAttachmentCount = static_cast<uint32_t>(subpass.ColorAttachments.size()),
+        .pColorAttachments = subpass.ColorAttachments.data(),      // VkAttachmentReference const*
+        .pResolveAttachments = nullptr,                            // VkAttachmentReference const*
+        .pDepthStencilAttachment = &subpass.DepthStencilAttachment // VkAttachmentReference const*
+      });
+
+  vk::RenderPassCreateInfo render_pass_create_info;
+  render_pass_create_info
+    .setAttachments(attachments)
+    .setSubpasses(subpasses)
+    .setDependencies(dependencies)
+    ;
+
+  return m_device->createRenderPassUnique(render_pass_create_info);
+}
+
 #ifdef CWDEBUG
 void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 {
@@ -557,6 +599,9 @@ void LogicalDevice::multiplex_impl(state_type run_state)
       m_logical_device_index_available_event.trigger();
       // Allow deletion of this window now that we're done with this pointer.
       m_root_window.reset();
+      // Create the unsorted remaining objects. FIXME: should this be done here?
+      m_application->create_unsorted_remaining_objects();
+      // This task is done.
       set_state(LogicalDevice_done);
       [[fallthrough]];
     case LogicalDevice_done:

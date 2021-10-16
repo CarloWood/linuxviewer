@@ -3,6 +3,8 @@
 #include "DispatchLoader.h"
 #include "VulkanWindow.h"
 #include "QueueReply.h"
+#include "RenderPassAttachmentData.h"
+#include "RenderPassSubpassData.h"
 #include "Queue.h"
 #include <boost/intrusive_ptr.hpp>
 
@@ -69,6 +71,12 @@ class LogicalDevice
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
   Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie);
+
+  // Create a RenderPass.
+  vk::UniqueRenderPass create_render_pass(
+      std::vector<RenderPassAttachmentData> const& attachment_descriptions,
+      std::vector<RenderPassSubpassData> const& subpass_descriptions,
+      std::vector<vk::SubpassDependency> const& dependencies) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.

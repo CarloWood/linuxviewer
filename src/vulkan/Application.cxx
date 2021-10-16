@@ -130,23 +130,12 @@ void Application::initialize(int argc, char** argv)
 #endif
 
   prepare_instance_info(instance_create_info);
-  createInstance(instance_create_info);
+  create_instance(instance_create_info);
 
 #ifdef CWDEBUG
   m_debug_utils_messenger.prepare(*m_instance, debug_create_info);
 #endif
 }
-
-#if 0
-  PhysicalDeviceFeatures physical_device_features;
-  prepare_physical_device_features(physical_device_features);
-
-  DeviceCreateInfo device_create_info(physical_device_features);
-  device_create_info.setDebugName("Vulkan Device");
-  prepare_logical_device(device_create_info);
-
-  Dout(dc::notice, "device_create_info = " << device_create_info);
-#endif
 
 boost::intrusive_ptr<task::VulkanWindow> Application::create_root_window(
     std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie,
@@ -244,9 +233,9 @@ void Application::remove(task::VulkanWindow* window_task)
       window_list_w->end());
 }
 
-void Application::createInstance(vulkan::InstanceCreateInfo const& instance_create_info)
+void Application::create_instance(vulkan::InstanceCreateInfo const& instance_create_info)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::createInstance(" << instance_create_info.read_access() << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_instance(" << instance_create_info.read_access() << ")");
 
   // Check that all required layers are available.
   instance_create_info.check_instance_layers_availability();
@@ -288,6 +277,136 @@ void Application::run()
 
   // Application terminated cleanly.
   m_event_loop->join();
+}
+
+void Application::create_unsorted_remaining_objects()
+{
+  DoutEntering(dc::vulkan, "Application::create_unsorted_remaining_objects()");
+  create_frame_resources();
+  create_render_passes();
+  create_descriptor_set();
+  create_textures();
+  create_pipeline_layout();
+  create_graphics_pipeline();
+  create_vertex_buffers();
+}
+
+void Application::create_frame_resources()
+{
+  DoutEntering(dc::vulkan, "Application::create_frame_resources()");
+}
+
+void Application::create_render_passes()
+{
+  DoutEntering(dc::vulkan, "Application::create_render_passes()");
+
+  // We only draw do things for the first window.
+  task::VulkanWindow const& window = *window_list_t::rat(m_window_list)->at(0);
+  LogicalDevice const* device = window.logical_device();
+  Swapchain const& swapchain = window.swapchain();
+
+  std::vector<RenderPassSubpassData> subpass_descriptions = {
+    {
+      {},                                                         // std::vector<VkAttachmentReference> const  &InputAttachments
+      {                                                           // std::vector<VkAttachmentReference> const  &ColorAttachments
+        {
+          0,                                                      // uint32_t                                   attachment
+          vk::ImageLayout::eColorAttachmentOptimal                // VkImageLayout                              layout
+        }
+      },
+      {                                                           // VkAttachmentReference const               &DepthStencilAttachment;
+        1,                                                        // uint32_t                                   attachment
+        vk::ImageLayout::eDepthStencilAttachmentOptimal           // VkImageLayout                              layout
+      }
+    }
+  };
+
+  std::vector<vk::SubpassDependency> dependencies = {
+    {
+      VK_SUBPASS_EXTERNAL,                                        // uint32_t                       srcSubpass
+      0,                                                          // uint32_t                       dstSubpass
+      vk::PipelineStageFlagBits::eColorAttachmentOutput,          // VkPipelineStageFlags           srcStageMask
+      vk::PipelineStageFlagBits::eColorAttachmentOutput,          // VkPipelineStageFlags           dstStageMask
+      vk::AccessFlagBits::eColorAttachmentWrite,                  // VkAccessFlags                  srcAccessMask
+      vk::AccessFlagBits::eColorAttachmentWrite,                  // VkAccessFlags                  dstAccessMask
+      vk::DependencyFlagBits::eByRegion                           // VkDependencyFlags              dependencyFlags
+    },
+    {
+      0,                                                          // uint32_t                       srcSubpass
+      VK_SUBPASS_EXTERNAL,                                        // uint32_t                       dstSubpass
+      vk::PipelineStageFlagBits::eColorAttachmentOutput,          // VkPipelineStageFlags           srcStageMask
+      vk::PipelineStageFlagBits::eColorAttachmentOutput,          // VkPipelineStageFlags           dstStageMask
+      vk::AccessFlagBits::eColorAttachmentWrite,                  // VkAccessFlags                  srcAccessMask
+      vk::AccessFlagBits::eColorAttachmentWrite,                  // VkAccessFlags                  dstAccessMask
+      vk::DependencyFlagBits::eByRegion                           // VkDependencyFlags              dependencyFlags
+    }
+  };
+
+  // Render pass - from present_src to color_attachment
+  {
+    std::vector<RenderPassAttachmentData> attachment_descriptions = {
+      {
+        swapchain.format(),                                       // VkFormat                       format
+        vk::AttachmentLoadOp::eClear,                             // VkAttachmentLoadOp             loadOp
+        vk::AttachmentStoreOp::eStore,                            // VkAttachmentStoreOp            storeOp
+        vk::ImageLayout::ePresentSrcKHR,                          // VkImageLayout                  initialLayout
+        vk::ImageLayout::eColorAttachmentOptimal                  // VkImageLayout                  finalLayout
+      },
+      {
+        s_default_depth_format,                                   // VkFormat                       format
+        vk::AttachmentLoadOp::eClear,                             // VkAttachmentLoadOp             loadOp
+        vk::AttachmentStoreOp::eStore,                            // VkAttachmentStoreOp            storeOp
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,          // VkImageLayout                  initialLayout
+        vk::ImageLayout::eDepthStencilAttachmentOptimal           // VkImageLayout                  finalLayout
+      }
+    };
+    m_render_pass = logical_device_list_t::rat(m_logical_device_list)->at(0)->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+  }
+  // Post-render pass - from color_attachment to present_src
+  {
+    std::vector<RenderPassAttachmentData> attachment_descriptions = {
+      {
+        swapchain.format(),                                       // VkFormat                       format
+        vk::AttachmentLoadOp::eLoad,                              // VkAttachmentLoadOp             loadOp
+        vk::AttachmentStoreOp::eStore,                            // VkAttachmentStoreOp            storeOp
+        vk::ImageLayout::eColorAttachmentOptimal,                 // VkImageLayout                  initialLayout
+        vk::ImageLayout::ePresentSrcKHR                           // VkImageLayout                  finalLayout
+      },
+      {
+        s_default_depth_format,                                   // VkFormat                       format
+        vk::AttachmentLoadOp::eDontCare,                          // VkAttachmentLoadOp             loadOp
+        vk::AttachmentStoreOp::eDontCare,                         // VkAttachmentStoreOp            storeOp
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,          // VkImageLayout                  initialLayout
+        vk::ImageLayout::eDepthStencilAttachmentOptimal           // VkImageLayout                  finalLayout
+      }
+    };
+    m_post_render_pass = logical_device_list_t::rat(m_logical_device_list)->at(0)->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+  }
+}
+
+void Application::create_descriptor_set()
+{
+  DoutEntering(dc::vulkan, "Application::create_descriptor_set()");
+}
+
+void Application::create_textures()
+{
+  DoutEntering(dc::vulkan, "Application::create_texture()");
+}
+
+void Application::create_pipeline_layout()
+{
+  DoutEntering(dc::vulkan, "Application::create_pipeline_layout()");
+}
+
+void Application::create_graphics_pipeline()
+{
+  DoutEntering(dc::vulkan, "Application::create_graphics_pipeline()");
+}
+
+void Application::create_vertex_buffers()
+{
+  DoutEntering(dc::vulkan, "Application::create_vertex_buffers()");
 }
 
 } // namespace vulkan
