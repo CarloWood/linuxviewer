@@ -3,6 +3,7 @@
 #include "OperatingSystem.h"
 #include "LogicalDevice.h"
 #include "Application.h"
+#include "FrameResourcesData.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
@@ -130,11 +131,21 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       Debug(mSMDebug = false);
       break;
     case VulkanWindow_render_loop:
-      if (AI_LIKELY(!m_must_close))
+      if (AI_LIKELY(!m_must_close && m_swapchain.can_render()))
       {
-        wait(frame_timer);
         m_frame_rate_limiter.start(m_frame_rate_interval);
+        m_window->draw_frame();
         yield(m_application->m_medium_priority_queue);
+        wait(frame_timer);
+        break;
+      }
+      if (!m_must_close)
+      {
+        // We can't render, drop frame rate to 7.8 FPS (because slow_down already uses 128 ms anyway).
+        static threadpool::Timer::Interval s_no_render_frame_rate_interval{threadpool::Interval<128, std::chrono::milliseconds>()};
+        m_frame_rate_limiter.start(s_no_render_frame_rate_interval);
+        yield(m_application->m_low_priority_queue);
+        wait(frame_timer);
         break;
       }
       set_state(VulkanWindow_close);

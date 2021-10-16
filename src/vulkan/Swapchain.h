@@ -39,6 +39,11 @@ class Swapchain
       vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode);
 
   void recreate(task::VulkanWindow const* owning_window, vk::Extent2D window_extent);
+
+  bool can_render() const
+  {
+    return m_can_render;
+  }
 };
 
 } // namespace vulkan

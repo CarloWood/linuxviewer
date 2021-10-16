@@ -41,12 +41,12 @@ class Window : public OS::Window
     DoutEntering(dc::notice, "Window::ResetMouse()");
   }
 
-#if 0
-  void Draw() override
+  void draw_frame() override
   {
-    DoutEntering(dc::notice, "Window::Draw()");
+    DoutEntering(dc::notice, "Window::draw_frame()");
   }
 
+#if 0
   bool ReadyToDraw() const override
   {
     DoutEntering(dc::notice, "Window::ReadyToDraw()");

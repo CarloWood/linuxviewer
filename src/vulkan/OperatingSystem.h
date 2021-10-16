@@ -71,6 +71,7 @@ class Window : public xcb::WindowBase
   void get_extent(uint32_t& width, uint32_t& height) override { width = m_extent.width; height = m_extent.height; }
 
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
+  virtual void draw_frame() = 0;
 };
 
 } // namespace linuxviewer::OS

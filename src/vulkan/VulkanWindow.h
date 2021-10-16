@@ -3,6 +3,7 @@
 #include "QueueReply.h"
 #include "PresentationSurface.h"
 #include "Swapchain.h"
+#include "CurrentFrameData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -73,6 +74,9 @@ class VulkanWindow : public AIStatefulTask
 
   threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
+
+  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources;
+  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, 0 };
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                          // A copy of mSMDebug.

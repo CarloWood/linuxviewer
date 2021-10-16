@@ -227,6 +227,8 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D w
 
     m_image_views.emplace_back(vh_logical_device.createImageViewUnique(image_view_create_info));
   }
+
+  m_can_render = true;
 }
 
 } // namespace vulkan
