@@ -92,13 +92,13 @@ class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
     return m_device_extensions;
   }
 
+  void print_on(std::ostream& os) const;
+
 #ifdef CWDEBUG
   char const* debug_name() const
   {
     return m_debug_name.c_str();
   }
-
-  void print_on(std::ostream& os) const;
 #endif
 };
 

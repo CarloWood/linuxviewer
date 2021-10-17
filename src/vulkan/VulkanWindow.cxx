@@ -12,7 +12,7 @@
 namespace task {
 
 VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug)) :
-  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window)), m_frame_rate_limiter([this](){ signal(frame_timer); }), mVWDebug(mSMDebug)
+  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window)), m_frame_rate_limiter([this](){ signal(frame_timer); }) COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
   // Don't do that.
@@ -154,9 +154,6 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       // Turn on debug output again.
       Debug(mSMDebug = mVWDebug);
       finish();
-      Dout(dc::notice, "this = " << this);
-      tracked::intrusive_ptr<VulkanWindow>::for_each_instance([](tracked::intrusive_ptr<VulkanWindow> const* ptr){
-          Dout(dc::notice, "Object at " << (void*)ptr->get() << " kept alive by " << print_using(ptr, &tracked::intrusive_ptr<VulkanWindow>::print_tracker_info_on)); });
       break;
   }
 }

@@ -345,7 +345,7 @@ void Device::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_load
   }
 
   if (!m_vh_physical_device)
-    THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
+    THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]");
 
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Properties:");

@@ -31,9 +31,12 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 #include "vk_utils/print_version.h"
 #include "debug.h"
 #include <iomanip>
+#endif
+#include "vk_utils/print_flags.h"
 
 namespace vk_defaults {
 
+#ifdef CWDEBUG
 using vk_utils::print_version;
 using vk_utils::print_api_version;
 using vk_utils::print_list;
@@ -164,6 +167,8 @@ void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix)
 #undef SHOW_IF_TRUE
 }
 
+#endif // CWDEBUG
+
 void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix;
@@ -177,27 +182,30 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
   {
     if (i > 0)
       os << ',';
-    os << pQueueCreateInfos[i];
+    static_cast<DeviceQueueCreateInfo const&>(pQueueCreateInfos[i]).print_members(os, "");
   }
   os << ">, ppEnabledLayerNames:<";
   for (int i = 0; i < enabledLayerCount; ++i)
   {
     if (i > 0)
       os << ',';
-    os << print_string(ppEnabledLayerNames[i]);
+    os << '"' << ppEnabledLayerNames[i] << '"';
   }
   os << ">, ppEnabledExtensionNames:<";
   for (int i = 0; i < enabledExtensionCount; ++i)
   {
     if (i > 0)
       os << ',';
-    os << print_string(ppEnabledExtensionNames[i]);
+    os << '"' << ppEnabledExtensionNames[i] << '"';
   }
-  os << ">, pEnabledFeatures";
+  os << ">";
+#ifdef CWDEBUG
+  os << ", pEnabledFeatures";
   if (pEnabledFeatures)
     os << "->" << *pEnabledFeatures;
   else
     os << ":nullptr";
+#endif
 }
 
 void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) const
@@ -215,6 +223,8 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
   }
   os << '>';
 }
+
+#ifdef CWDEBUG
 
 void Extent2D::print_members(std::ostream& os, char const* prefix) const
 {
@@ -310,8 +320,11 @@ void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix)
       ", clipped:" << clipped <<
       ", oldSwapchain:" << oldSwapchain;
 }
+#endif // CWDEBUG
 
 } // namespace vk_defaults
+
+#ifdef CWDEBUG
 
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -335,4 +348,4 @@ void debug_init()
 
 } // namespace vk_defaults
 
-#endif
+#endif // CWDEBUG

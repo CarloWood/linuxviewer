@@ -135,7 +135,7 @@ target_link_libraries(vulkan_ObjLib
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::utils
     farmhash::farmhash
-    ${PLATFORM_LIBRARY}
+    ${CMAKE_DL_LIBS}
 )
 
 # Create an ALIAS target.

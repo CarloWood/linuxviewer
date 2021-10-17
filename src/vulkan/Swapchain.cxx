@@ -4,6 +4,7 @@
 #include "PresentationSurface.h"
 #include "LogicalDevice.h"
 #include "debug.h"
+#include "vk_utils/print_flags.h"
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
 #endif

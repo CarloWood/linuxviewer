@@ -28,21 +28,23 @@ DeviceCreateInfo& DeviceCreateInfo::addDeviceExtentions(vk::ArrayProxy<char cons
   return *this;
 }
 
-#ifdef CWDEBUG
 void DeviceCreateInfo::print_on(std::ostream& os) const
 {
-  os << '{';
-  os << static_cast<vk::DeviceCreateInfo const&>(*this) << ", ";
-  os << "m_queue_flags:" << m_queue_flags << ", ";
-  os << "m_device_extensions:<";
+  print_members(os, "{");
+  os << ", m_queue_flags:";
+  m_queue_flags.print_on(os);
+  os << ", m_device_extensions:<";
   char const* prefix = "";
   for (char const* name : m_device_extensions)
   {
-    os << prefix << debug::print_string(name);
+    os << prefix;
+    if (name)
+      os << '"' << name << '"';
+    else
+      os << "nullptr";
     prefix = ", ";
   }
   os << ">}";
 }
-#endif
 
 } // namespace vulkan

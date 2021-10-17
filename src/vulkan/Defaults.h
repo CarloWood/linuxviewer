@@ -16,14 +16,11 @@
 
 #define VK_DEFAULTS_DECLARE(vk_type) struct vk_type : vk::vk_type
 
-#ifndef CWDEBUG
-#define VK_DEFAULTS_DEBUG_MEMBERS
-#else
 // The idea behind passing a prefix to print_members is so that you can call
 // print_members(os, prefix) from within another print_members to append the
 // members (start with an optional leading ", " if anything was already printed
 // before that point).
-#define VK_DEFAULTS_DEBUG_MEMBERS \
+#define VK_DEFAULTS_PRINT_ON_MEMBERS \
   void print_on(std::ostream& os) const \
   { \
     os << '{'; \
@@ -36,8 +33,13 @@
 #define DECLARE_PRINT_MEMBERS_CLASS(vk_type) \
   VK_DEFAULTS_DECLARE(vk_type) \
   { \
-    VK_DEFAULTS_DEBUG_MEMBERS \
+    VK_DEFAULTS_PRINT_ON_MEMBERS \
   };
+
+#ifndef CWDEBUG
+#define VK_DEFAULTS_DEBUG_MEMBERS
+#else
+#define VK_DEFAULTS_DEBUG_MEMBERS VK_DEFAULTS_PRINT_ON_MEMBERS
 
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -167,7 +169,8 @@ VK_DEFAULTS_DECLARE(DeviceCreateInfo)
     setPEnabledFeatures(&physical_device_features);
   }
 
-  VK_DEFAULTS_DEBUG_MEMBERS
+  // Also used in a Release build.
+  VK_DEFAULTS_PRINT_ON_MEMBERS
 };
 
 #ifdef CWDEBUG
@@ -177,11 +180,11 @@ DECLARE_PRINT_MEMBERS_CLASS(Instance)
 DECLARE_PRINT_MEMBERS_CLASS(QueueFamilyProperties)
 DECLARE_PRINT_MEMBERS_CLASS(ExtensionProperties)
 DECLARE_PRINT_MEMBERS_CLASS(PhysicalDeviceProperties)
-DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
 DECLARE_PRINT_MEMBERS_CLASS(SurfaceCapabilitiesKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SurfaceFormatKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SwapchainCreateInfoKHR)
 #endif
+DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
 
 } // namespace vk_defaults
 

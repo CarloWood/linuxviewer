@@ -3,6 +3,7 @@
 
 namespace vulkan {
 
+#ifdef CWDEBUG
 void QueueFlags::print_on(std::ostream& os) const
 {
   static constexpr auto& entries = magic_enum::enum_entries<QueueFlagBits>();
@@ -15,5 +16,6 @@ void QueueFlags::print_on(std::ostream& os) const
       os << entry.second;
     }
 }
+#endif
 
 } // namespace vulkan

@@ -4,6 +4,8 @@
 #include <algorithm>
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
+#else
+#include "../vulkan/vk_utils/print_flags.h"
 #endif
 
 namespace vulkan {

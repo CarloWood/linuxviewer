@@ -109,9 +109,7 @@ class QueueFlags : public vk::Flags<QueueFlagBits>
     return operator=(*this ^ rhs);
   }
 
-#ifdef CWDEBUG
   void print_on(std::ostream& os) const;
-#endif
 };
 
 inline QueueFlags operator|(QueueFlagBits lhs, QueueFlagBits rhs)

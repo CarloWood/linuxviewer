@@ -2,6 +2,8 @@
 #include "InstanceCreateInfo.h"
 #include "vk_utils/find_missing_names.h"
 #include "utils/AIAlert.h"
+#include "utils/print_using.h"
+#include "utils/QuotedList.h"
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {

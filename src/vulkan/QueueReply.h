@@ -1,6 +1,7 @@
 #pragma once
 
 #include "QueueFamilyProperties.h"
+#include "QueueRequest.h"
 #include <cstdint>
 #include <atomic>
 #ifdef CWDEBUG
