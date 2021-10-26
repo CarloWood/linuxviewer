@@ -11,6 +11,7 @@
 #include "utils/threading/Gate.h"
 #include "utils/DequeMemoryResource.h"
 #include <boost/intrusive_ptr.hpp>
+#include <filesystem>
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessenger.h"
@@ -71,6 +72,9 @@ class Application
   // To stop the main thread from exiting until the last xcb connection is closed.
   mutable utils::threading::Gate m_until_terminated;
 
+  // Path with resources.
+  std::filesystem::path m_resources_path;
+
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::VulkanWindow>>;
   using window_list_t = aithreadsafe::Wrapper<window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -96,11 +100,6 @@ class Application
   using logical_device_list_container_t = std::vector<std::unique_ptr<LogicalDevice>>;
   using logical_device_list_t = aithreadsafe::Wrapper<logical_device_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   logical_device_list_t m_logical_device_list;
-
-  // UNSORTED REMAINING OBJECTS.
-  static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  vk::UniqueRenderPass m_render_pass;           // FIXME: how many are needed, where/how to store them?
-  vk::UniqueRenderPass m_post_render_pass;
 
  private:
   friend class task::VulkanWindow;
@@ -155,6 +154,11 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+  std::filesystem::path resources_path() const
+  {
+    return m_resources_path;
+  }
 
   boost::intrusive_ptr<task::VulkanWindow> create_root_window(std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent,
       task::VulkanWindow::window_cookie_type window_cookie, std::string&& title = {})

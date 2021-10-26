@@ -26,6 +26,7 @@ DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
 DECLARE_OSTREAM_INSERTER(SurfaceCapabilitiesKHR)
 DECLARE_OSTREAM_INSERTER(SurfaceFormatKHR)
 DECLARE_OSTREAM_INSERTER(SwapchainCreateInfoKHR)
+DECLARE_OSTREAM_INSERTER(ImageSubresourceRange)
 
 } // namespace vk
 

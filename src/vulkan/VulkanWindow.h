@@ -4,6 +4,9 @@
 #include "PresentationSurface.h"
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
+#include "DescriptorSetParameters.h"
+#include "ImageParameters.h"
+#include "BufferParameters.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -37,6 +40,10 @@ class LogicalDevice;
  */
 class VulkanWindow : public AIStatefulTask
 {
+  // FIXME: move to user application.
+  static constexpr int s_max_objects_count = 1000;
+  static constexpr int s_quad_tessellation = 40;
+
  public:
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
@@ -75,12 +82,24 @@ class VulkanWindow : public AIStatefulTask
   threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
+  static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources;
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, 0 };
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                          // A copy of mSMDebug.
 #endif
+
+  // UNSORTED REMAINING OBJECTS.
+  vk::UniqueRenderPass m_render_pass;           // FIXME: how many are needed, where/how to store them?
+  vk::UniqueRenderPass m_post_render_pass;
+  vulkan::DescriptorSetParameters m_descriptor_set;
+  vulkan::ImageParameters m_background_texture;
+  vulkan::ImageParameters m_texture;
+  vk::UniquePipelineLayout m_pipeline_layout;
+  vk::UniquePipeline m_graphics_pipeline;
+  vulkan::BufferParameters m_vertex_buffer;
+  vulkan::BufferParameters m_instance_buffer;
 
  protected:
   /// The base class of this task.
@@ -188,7 +207,7 @@ class VulkanWindow : public AIStatefulTask
     return m_presentation_surface;
   }
 
-  vulkan::LogicalDevice const* logical_device() const;
+  vulkan::LogicalDevice* get_logical_device() const;
   vk::Extent2D get_extent() const;
 
   vulkan::Swapchain const& swapchain() const
@@ -196,9 +215,42 @@ class VulkanWindow : public AIStatefulTask
     return m_swapchain;
   }
 
+  void OnWindowSizeChanged();
+  void OnSampleWindowSizeChanged_Pre();
+  void OnSampleWindowSizeChanged_Post();
+
+  void set_image_memory_barrier(
+    vk::Image vh_image,
+    vk::ImageSubresourceRange const& image_subresource_range,
+    vk::ImageLayout current_image_layout,
+    vk::AccessFlags current_image_access,
+    vk::PipelineStageFlags generating_stages,
+    vk::ImageLayout new_image_layout,
+    vk::AccessFlags new_image_access,
+    vk::PipelineStageFlags consuming_stages) const;
+
+  void copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
+    uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,
+    vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
+    vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
+
+  void copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
+    vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
+    vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
+
  private:
   void acquire_queues();
   void create_swapchain();
+
+ public:
+  // Called from Application::*same name*.
+  void create_frame_resources();
+  void create_render_passes();
+  void create_descriptor_set();
+  void create_textures();
+  void create_pipeline_layout();
+  void create_graphics_pipeline();
+  void create_vertex_buffers();
 
  protected:
   /// Call finish() (or abort()), not delete.

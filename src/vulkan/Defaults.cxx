@@ -320,6 +320,16 @@ void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix)
       ", clipped:" << clipped <<
       ", oldSwapchain:" << oldSwapchain;
 }
+
+void ImageSubresourceRange::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "aspectMask:" << aspectMask <<
+      ", baseMipLevel:" << baseMipLevel <<
+      ", levelCount:" << levelCount <<
+      ", baseArrayLayer:" << baseArrayLayer <<
+      ", layerCount:" << layerCount;
+}
+
 #endif // CWDEBUG
 
 } // namespace vk_defaults

@@ -19,13 +19,6 @@ class Window : public OS::Window
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
-  void OnWindowSizeChanged(uint32_t width, uint32_t height) override
-  {
-    DoutEntering(dc::notice, "Window::OnWindowSizeChanged(" << width << ", " << height << ")");
-    // MUST call the base class implementation.
-    OS::Window::OnWindowSizeChanged(width, height);
-  }
-
   void MouseMove(int x, int y) override
   {
     DoutEntering(dc::notice, "Window::MouseMove(" << x << ", " << y << ")");
@@ -46,13 +39,11 @@ class Window : public OS::Window
     DoutEntering(dc::notice, "Window::draw_frame()");
   }
 
-#if 0
-  bool ReadyToDraw() const override
+  void OnWindowSizeChanged_Post() override
   {
-    DoutEntering(dc::notice, "Window::ReadyToDraw()");
-    return false;
+//FIXME, add m_gui    m_gui.OnWindowSizeChanged();
+    m_window_task->OnSampleWindowSizeChanged_Post();
   }
-#endif
 };
 
 class LogicalDevice : public vulkan::LogicalDevice

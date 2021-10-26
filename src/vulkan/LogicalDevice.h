@@ -6,7 +6,10 @@
 #include "RenderPassAttachmentData.h"
 #include "RenderPassSubpassData.h"
 #include "Queue.h"
+#include "ImageParameters.h"
+#include "DescriptorSetParameters.h"
 #include <boost/intrusive_ptr.hpp>
+#include <filesystem>
 
 namespace vulkan {
 
@@ -70,7 +73,7 @@ class LogicalDevice
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie);
+  Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie) const;
 
   // Create a RenderPass.
   vk::UniqueRenderPass create_render_pass(
@@ -81,6 +84,44 @@ class LogicalDevice
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
   void wait_idle() const { m_device->waitIdle(); }
+
+  // Unsorted additional functions.
+  vk::UniqueSemaphore create_semaphore() const
+  {
+    return m_device->createSemaphoreUnique({});
+  }
+  vk::UniqueFence create_fence(bool signaled) const
+  {
+    return m_device->createFenceUnique({ .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags(0u) });
+  }
+  vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
+  {
+    return m_device->waitForFences(fences, wait_all, timeout);
+  }
+  vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags) const
+  {
+    return m_device->createCommandPoolUnique({ .flags = flags, .queueFamilyIndex = queue_family_index });
+  }
+  void create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view) const;
+  void create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image) const;
+  ImageParameters create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect) const;
+  vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename) const;
+  vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords) const;
+  void allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const;
+  void create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool) const;
+  DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes) const;
+  void create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout) const;
+  void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool,
+      std::vector<vk::UniqueDescriptorSet>& descriptor_sets) const;
+  std::vector<vk::UniqueCommandBuffer> allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count) const;
+  void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
+      std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
+      std::vector<vk::BufferView> const& buffer_views = {}) const;
+  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts,
+      std::vector<vk::PushConstantRange> const& push_constant_ranges) const;
+  void create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer & buffer) const;
+  void allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const;
+  BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty) const;
 
  private:
   // Override this function to change the default physical device features.

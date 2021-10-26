@@ -50,7 +50,7 @@ struct WindowParameters
 // ************************************************************ //
 class Window : public xcb::WindowBase
 {
- private:
+ protected:
   WindowParameters m_parameters;
   boost::intrusive_ptr<task::VulkanWindow> m_window_task;
   vk::Extent2D m_extent;
@@ -67,11 +67,20 @@ class Window : public xcb::WindowBase
   vk::Extent2D const& get_extent() const { return m_extent; }
 
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override;
-  void OnWindowSizeChanged(uint32_t width, uint32_t height) override { m_extent.setWidth(width).setHeight(height); }
+  void OnWindowSizeChanged(uint32_t width, uint32_t height) override final
+  {
+    // Update m_extent so that get_extent() will return the new value.
+    m_extent.setWidth(width).setHeight(height);
+    // This first calls OnWindowSizeChanged_Pre(), then recreates the swapchain using get_extent() and finally calls OnWindowSizeChanged_Post.
+    m_window_task->OnWindowSizeChanged();
+  }
   void get_extent(uint32_t& width, uint32_t& height) override { width = m_extent.width; height = m_extent.height; }
 
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
   virtual void draw_frame() = 0;
+
+  virtual void OnWindowSizeChanged_Pre() { m_window_task->OnSampleWindowSizeChanged_Pre(); }
+  virtual void OnWindowSizeChanged_Post() { m_window_task->OnSampleWindowSizeChanged_Post(); }
 };
 
 } // namespace linuxviewer::OS

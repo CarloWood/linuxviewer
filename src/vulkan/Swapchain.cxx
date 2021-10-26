@@ -118,7 +118,7 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
 {
   DoutEntering(dc::vulkan, "Swapchain::prepare(" << owning_window << ", " << ", " << selected_usage << ", " << selected_present_mode << ")");
 
-  vk::PhysicalDevice vh_physical_device = owning_window->logical_device()->vh_physical_device();
+  vk::PhysicalDevice vh_physical_device = owning_window->get_logical_device()->vh_physical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Query supported surface details.
@@ -184,7 +184,7 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D w
     return;
   }
 
-  vk::Device vh_logical_device = owning_window->logical_device()->handle();
+  vk::Device vh_logical_device = owning_window->get_logical_device()->handle();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Wait until the old stuff isn't used anymore.
@@ -230,6 +230,28 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D w
   }
 
   m_can_render = true;
+}
+
+void Swapchain::set_image_memory_barriers(
+    task::VulkanWindow const* owning_window,
+    vk::ImageSubresourceRange const& image_subresource_range,
+    vk::ImageLayout current_image_layout,
+    vk::AccessFlags current_image_access,
+    vk::PipelineStageFlags generating_stages,
+    vk::ImageLayout new_image_layout,
+    vk::AccessFlags new_image_access,
+    vk::PipelineStageFlags consuming_stages)
+{
+  for (auto& swapchain_image : m_vhv_images)
+    owning_window->set_image_memory_barrier(
+      swapchain_image,
+      image_subresource_range,
+      current_image_layout,
+      current_image_access,
+      generating_stages,
+      new_image_layout,
+      new_image_access,
+      consuming_stages);
 }
 
 } // namespace vulkan

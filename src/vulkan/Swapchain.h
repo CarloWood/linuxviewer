@@ -48,6 +48,20 @@ class Swapchain
   {
     return m_create_info.imageFormat;
   }
+
+  vk::Extent2D const& extent() const
+  {
+    return m_extent;
+  }
+
+  void set_image_memory_barriers(task::VulkanWindow const* owning_window,
+      vk::ImageSubresourceRange const& image_subresource_range,
+      vk::ImageLayout current_image_layout,
+      vk::AccessFlags current_image_access,
+      vk::PipelineStageFlags generating_stages,
+      vk::ImageLayout new_image_layout,
+      vk::AccessFlags new_image_access,
+      vk::PipelineStageFlags consuming_stages); // FIXME: use a struct
 };
 
 } // namespace vulkan

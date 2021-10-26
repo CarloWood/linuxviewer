@@ -24,7 +24,7 @@ class QueueReply
   QueueFlags m_requested_queue_flags;           // The requested queue flags (copy of corresponding QueueRequest).
   uint32_t m_start_index = {};                  // The index of the first queue of this Reply in it respective queue family.
   QueueRequestIndex m_combined_with;            // Set when this is a duplicate of the Reply that it was combined with.
-  std::atomic<uint32_t> m_acquired;             // The number of queues of this pool that were already acquired (with LogicalDevice::acquire_queue).
+  mutable std::atomic<uint32_t> m_acquired;     // The number of queues of this pool that were already acquired (with LogicalDevice::acquire_queue).
                                                 // Hence 0 <= m_acquired <= m_number_of_queues.
   window_cookies_type m_window_cookies;         // A bit mask with the windows for which this reply may be used.
 
@@ -85,7 +85,7 @@ class QueueReply
 
   // Should ONLY be called by LogicalDevice::acquire_queue.
   // Returns the next queue index, if any is still free.
-  int acquire_queue()
+  int acquire_queue() const
   {
     int next_queue_index = m_acquired.fetch_add(1);
     if (next_queue_index >= m_number_of_queues)
@@ -96,7 +96,7 @@ class QueueReply
     return m_start_index + next_queue_index;
   }
 
-  void release_queue()
+  void release_queue() const
   {
     int old_acquired = m_acquired.fetch_sub(1);
     // Calling release_queue more often than acquire_queue!

@@ -6,6 +6,8 @@
 #include "QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
 #include "vk_utils/find_missing_names.h"
+#include "vk_utils/print_using_to_string.h"
+#include "vk_utils/get_binary_file_contents.h"
 #include "utils/is_power_of_two.h"
 #include "utils/MultiLoop.h"
 #include "debug.h"
@@ -436,7 +438,7 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
 #endif
 }
 
-Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie)
+Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
   // window_cookie is a bit mask and must represent a single window.
@@ -524,14 +526,14 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
   for (auto const& attachment : attachment_descriptions)
     attachments.emplace_back(vk::AttachmentDescription{
         .flags          = {},                                      // VkAttachmentDescriptionFlags
-        .format         = attachment.Format,                       // VkFormat
+        .format         = attachment.m_format,                     // VkFormat
         .samples        = vk::SampleCountFlagBits::e1,             // VkSampleCountFlagBits
-        .loadOp         = attachment.LoadOp,                       // VkAttachmentLoadOp
-        .storeOp        = attachment.StoreOp,                      // VkAttachmentStoreOp
+        .loadOp         = attachment.m_load_op,                    // VkAttachmentLoadOp
+        .storeOp        = attachment.m_store_op,                   // VkAttachmentStoreOp
         .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,         // VkAttachmentLoadOp
         .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,        // VkAttachmentStoreOp
-        .initialLayout  = attachment.InitialLayout,                // VkImageLayout
-        .finalLayout    = attachment.FinalLayout                   // VkImageLayout
+        .initialLayout  = attachment.m_initial_layout,             // VkImageLayout
+        .finalLayout    = attachment.m_final_layout                 // VkImageLayout
       });
 
   std::vector<vk::SubpassDescription> subpasses;
@@ -555,6 +557,278 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
     ;
 
   return m_device->createRenderPassUnique(render_pass_create_info);
+}
+
+void LogicalDevice::create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image) const
+{
+  vk::ImageCreateInfo image_create_info{
+    .imageType = vk::ImageType::e2D,
+    .format = format,
+    .extent = {
+      .width = width,
+      .height = height,
+      .depth = 1
+    },
+    .mipLevels = 1,
+    .arrayLayers = 1,
+    .samples = vk::SampleCountFlagBits::e1,
+    .tiling = vk::ImageTiling::eOptimal,
+    .usage = usage
+  };
+  image = m_device->createImageUnique(image_create_info);
+}
+
+void LogicalDevice::create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view) const
+{
+  vk::ImageViewCreateInfo image_view_create_info{
+    .image = image,
+    .viewType = vk::ImageViewType::e2D,
+    .format = format,
+    .components = vk::ComponentMapping(),
+    .subresourceRange = {
+      .aspectMask = aspect,
+      .baseMipLevel = 0,
+      .levelCount = 1,
+      .baseArrayLayer = 0,
+      .layerCount  = 1
+    }
+  };
+  image_view = m_device->createImageViewUnique(image_view_create_info);
+}
+
+ImageParameters LogicalDevice::create_image(
+    uint32_t width,
+    uint32_t height,
+    vk::Format format,
+    vk::ImageUsageFlags usage,
+    vk::MemoryPropertyFlagBits property,
+    vk::ImageAspectFlags aspect) const
+{
+  vk::UniqueImage tmp_image;
+  create_image(width, height, format, usage, tmp_image);
+
+  vk::UniqueDeviceMemory tmp_memory;
+  allocate_image_memory(*tmp_image, property, tmp_memory);
+
+  m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
+
+  vk::UniqueImageView tmp_view;
+  create_image_view(*tmp_image, format, aspect, tmp_view);
+
+  ImageParameters image;
+  image.m_image = std::move(tmp_image);
+  image.m_memory = std::move(tmp_memory);
+  image.m_image_view = std::move(tmp_view);
+
+  return std::move(image);
+}
+
+vk::UniqueShaderModule LogicalDevice::create_shader_module(std::filesystem::path const& filename) const
+{
+  std::vector<char> const code = vk_utils::get_binary_file_contents(filename);
+
+  vk::ShaderModuleCreateInfo shader_module_create_info{
+    .flags = vk::ShaderModuleCreateFlags(0),
+    .codeSize = code.size(),
+    .pCode = reinterpret_cast<uint32_t const*>(code.data())
+  };
+
+  return m_device->createShaderModuleUnique(shader_module_create_info);
+}
+
+vk::UniqueSampler LogicalDevice::create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << mipmap_mode << ", " << address_mode << ", " << unnormalized_coords << ")");
+
+  vk::SamplerCreateInfo sampler_create_info{
+    .flags = vk::SamplerCreateFlags(0),
+    .magFilter = vk::Filter::eLinear,
+    .minFilter = vk::Filter::eLinear,
+    .mipmapMode = mipmap_mode,
+    .addressModeU = address_mode,
+    .addressModeV = address_mode,
+    .addressModeW = address_mode,
+    .mipLodBias = 0.0f,
+    .anisotropyEnable = VK_FALSE,
+    .maxAnisotropy = 1.0f,
+    .compareEnable = VK_FALSE,
+    .compareOp = vk::CompareOp::eAlways,
+    .minLod = 0.0f,
+    .maxLod = 0.0f,
+    .borderColor = vk::BorderColor::eFloatOpaqueBlack,
+    .unnormalizedCoordinates = unnormalized_coords
+  };
+  return m_device->createSamplerUnique(sampler_create_info);
+}
+
+void LogicalDevice::allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const
+{
+  vk::MemoryRequirements image_memory_requirements = m_device->getImageMemoryRequirements(image);
+  vk::PhysicalDeviceMemoryProperties memory_properties = m_vh_physical_device.getMemoryProperties();
+
+  for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)
+  {
+    if ((image_memory_requirements.memoryTypeBits & (1 << i)) &&
+      ((memory_properties.memoryTypes[i].propertyFlags & property) == property))
+    {
+      try
+      {
+        memory = m_device->allocateMemoryUnique({.allocationSize = image_memory_requirements.size, .memoryTypeIndex = i});
+        return;
+      }
+      catch (...)
+      {
+        // Iterate over all supported memory types; only if none of them could be used, throw exception.
+      }
+    }
+  }
+  throw std::runtime_error("Could not allocate a memory for an image!");
+}
+
+void LogicalDevice::create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool) const
+{
+  vk::DescriptorPoolCreateInfo descriptor_pool_create_info{
+    .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+    .maxSets = max_sets,
+    .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
+    .pPoolSizes = pool_sizes.data()
+  };
+  descriptor_pool = m_device->createDescriptorPoolUnique(descriptor_pool_create_info);
+}
+
+void LogicalDevice::create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout) const
+{
+  vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{
+    .flags = vk::DescriptorSetLayoutCreateFlags(0),
+    .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
+    .pBindings = layout_bindings.data()
+  };
+  set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info);
+}
+
+void LogicalDevice::allocate_descriptor_sets(
+    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets) const
+{
+  vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
+    .descriptorPool = descriptor_pool,
+    .descriptorSetCount = static_cast<uint32_t>(descriptor_set_layout.size()),
+    .pSetLayouts = descriptor_set_layout.data()
+  };
+  descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
+}
+
+std::vector<vk::UniqueCommandBuffer> LogicalDevice::allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count) const
+{
+  vk::CommandBufferAllocateInfo command_buffer_allocate_info;
+  command_buffer_allocate_info
+    .setCommandPool(pool)
+    .setLevel(level)
+    .setCommandBufferCount(count)
+    ;
+  return m_device->allocateCommandBuffersUnique(command_buffer_allocate_info);
+}
+
+DescriptorSetParameters LogicalDevice::create_descriptor_resources(
+    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes) const
+{
+  vk::UniqueDescriptorSetLayout tmp_layout;
+  create_descriptor_set_layout(layout_bindings, tmp_layout);
+
+  vk::UniqueDescriptorPool tmp_pool;
+  create_descriptor_pool(pool_sizes, 1, tmp_pool);
+
+  std::vector<vk::UniqueDescriptorSet> tmp_sets;
+  allocate_descriptor_sets({ *tmp_layout }, *tmp_pool, tmp_sets);
+
+  DescriptorSetParameters descriptor_set;
+  descriptor_set.m_layout = std::move(tmp_layout);
+  descriptor_set.m_pool = std::move(tmp_pool);
+  descriptor_set.m_handle = std::move(tmp_sets[0]);
+
+  return std::move(descriptor_set);
+}
+
+void LogicalDevice::update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
+    std::vector<vk::DescriptorImageInfo> const& image_infos, std::vector<vk::DescriptorBufferInfo> const& buffer_infos, std::vector<vk::BufferView> const& buffer_views) const
+{
+  vk::WriteDescriptorSet descriptor_writes{
+    .dstSet = descriptor_set,
+    .dstBinding = binding,
+    .dstArrayElement = array_element,
+    .descriptorCount = 1,
+    .descriptorType = descriptor_type,
+    .pImageInfo = image_infos.size() ? image_infos.data() : nullptr,
+    .pBufferInfo = buffer_infos.size() ? buffer_infos.data() : nullptr,
+    .pTexelBufferView = buffer_views.size() ? buffer_views.data() : nullptr
+  };
+
+  m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
+}
+
+vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
+    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges) const
+{
+  vk::PipelineLayoutCreateInfo layout_create_info{
+    .flags = vk::PipelineLayoutCreateFlags(0),
+    .setLayoutCount = static_cast<uint32_t>(descriptor_set_layouts.size()),
+    .pSetLayouts = descriptor_set_layouts.data(),
+    .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
+    .pPushConstantRanges = push_constant_ranges.data()
+  };
+
+  return m_device->createPipelineLayoutUnique(layout_create_info);
+}
+
+void LogicalDevice::create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer & buffer) const
+{
+  vk::BufferCreateInfo buffer_create_info{
+    .flags = vk::BufferCreateFlags(0),
+    .size = size,
+    .usage = usage
+  };
+  buffer = m_device->createBufferUnique(buffer_create_info);
+}
+
+void LogicalDevice::allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const
+{
+  vk::MemoryRequirements buffer_memory_requirements = m_device->getBufferMemoryRequirements(buffer);
+  vk::PhysicalDeviceMemoryProperties memory_properties = m_vh_physical_device.getMemoryProperties();
+
+  for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)
+  {
+    if ((buffer_memory_requirements.memoryTypeBits & (1 << i)) &&
+        ((memory_properties.memoryTypes[i].propertyFlags & property) == property) ) {
+      try
+      {
+        memory = m_device->allocateMemoryUnique({ .allocationSize = buffer_memory_requirements.size, .memoryTypeIndex = i });
+        return;
+      }
+      catch( ... )
+      {
+        // Iterate over all supported memory types; only if none of them could be used, throw exception
+      }
+    }
+  }
+
+  throw std::runtime_error( "Could not allocate a memory for a buffer!" );
+}
+
+BufferParameters LogicalDevice::create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty) const
+{
+  vk::UniqueBuffer tmp_buffer;
+  create_buffer(size, usage, tmp_buffer);
+
+  vk::UniqueDeviceMemory tmp_memory;
+  allocate_buffer_memory(*tmp_buffer, memoryProperty, tmp_memory);
+
+  m_device->bindBufferMemory(*tmp_buffer, *tmp_memory, vk::DeviceSize(0));
+
+  BufferParameters buffer;
+  buffer.m_size = size;
+  buffer.m_buffer = std::move(tmp_buffer);
+  buffer.m_memory = std::move(tmp_memory);
+
+  return std::move(buffer);
 }
 
 #ifdef CWDEBUG
