@@ -162,46 +162,6 @@ void Application::initialize(int argc, char** argv)
 #endif
 }
 
-boost::intrusive_ptr<task::VulkanWindow> Application::create_root_window(
-    std::unique_ptr<linuxviewer::OS::Window>&& window, vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie,
-    std::string&& title, task::LogicalDevice const* logical_device_task)
-{
-  DoutEntering(dc::vulkan, "vulkan::Application::create_main_window(" << (void*)window.get() << extent << ", " <<
-      std::hex << window_cookie << std::dec << ", \"" << title << "\", " << logical_device_task << ")");
-
-  // Call Application::initialize() immediately after constructing the Application.
-  //
-  // For example:
-  //
-  //   MyApplication application;
-  //   application.initialize(argc, argv);      // <-- this is missing if you assert here.
-  //   application.create_main_window(std::make_unique<MyWindow>(), { 800, 600 }, "My main window");
-  //
-  ASSERT(m_event_loop);
-
-  boost::intrusive_ptr<task::VulkanWindow> window_task = statefultask::create<task::VulkanWindow>(this, std::move(window) COMMA_CWDEBUG_ONLY(true));
-
-  // Window initialization.
-  window_task->set_extent(extent);
-  if (title.empty())
-    title = application_name();
-  window_task->set_title(std::move(title));
-  window_task->set_window_cookie(window_cookie);
-  window_task->set_logical_device_task(logical_device_task);
-  // The key passed to set_xcb_connection MUST be canonicalized!
-  m_main_display_broker_key.canonicalize();
-  window_task->set_xcb_connection(m_xcb_connection_broker, &m_main_display_broker_key);
-
-  // Create window and start rendering loop.
-  window_task->run();
-
-  // The window is returned in order to pass it to create_logical_device.
-  //
-  // The pointer should be passed to create_logical_device almost immediately after
-  // returning from this function with a std::move.
-  return window_task;
-}
-
 boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window.get() << ")");

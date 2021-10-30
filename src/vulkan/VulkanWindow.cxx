@@ -6,6 +6,7 @@
 #include "FrameResourcesData.h"
 #include "VertexData.h"
 #include "StagingBufferParameters.h"
+#include "../SampleParameters.h"           // FIXME: should be part of derived class, not needed here.
 #include "vk_utils/get_image_data.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
@@ -15,29 +16,21 @@
 
 namespace task {
 
-VulkanWindow::VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug)) :
-  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_window(std::move(window)), m_frame_rate_limiter([this](){ signal(frame_timer); }) COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
+VulkanWindow::VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
+  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }) COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ", " << (void*)m_window.get() << ") [" << (void*)this << "]");
-  // Don't do that.
-  ASSERT(m_window);
+  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ") [" << (void*)this << "]");
 }
 
 VulkanWindow::~VulkanWindow()
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::~VulkanWindow() [" << (void*)this << "]");
   m_frame_rate_limiter.stop();
-  m_window->destroy();
 }
 
 vulkan::LogicalDevice* VulkanWindow::get_logical_device() const
 {
   return m_application->get_logical_device(get_logical_device_index());
-}
-
-vk::Extent2D VulkanWindow::get_extent() const
-{
-  return m_window->get_extent();
 }
 
 char const* VulkanWindow::state_str_impl(state_type run_state) const
@@ -70,6 +63,8 @@ void VulkanWindow::initialize_impl()
     abort();
     return;
   }
+
+  m_frame_rate_interval = get_frame_rate_interval();
   set_state(VulkanWindow_xcb_connection);
 }
 
@@ -86,8 +81,8 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       break;
     case VulkanWindow_create:
       // Create a new xcb window using the established connection.
-      m_window->set_xcb_connection(m_xcb_connection_task->connection());
-      m_presentation_surface = m_window->create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height, this);
+      linuxviewer::OS::Window::set_xcb_connection(m_xcb_connection_task->connection());
+      m_presentation_surface = create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height);
       // Trigger the "window created" event.
       m_window_created_event.trigger();
       // If a logical device was passed then we need to copy its index as soon as that becomes available.
@@ -138,7 +133,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       if (AI_LIKELY(!m_must_close && m_swapchain.can_render()))
       {
         m_frame_rate_limiter.start(m_frame_rate_interval);
-        m_window->draw_frame();
+        draw_frame();
         yield(m_application->m_medium_priority_queue);
         wait(frame_timer);
         break;
@@ -190,70 +185,22 @@ void VulkanWindow::create_swapchain()
   m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo);
 }
 
-void VulkanWindow::OnWindowSizeChanged()
+void VulkanWindow::OnWindowSizeChanged(uint32_t width, uint32_t height)
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged()");
+  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged(" << width << ", " << height << ")");
+
+  // Update m_extent so that extent() will return the new value.
+  m_extent.setWidth(width).setHeight(height);
+
   int logical_device_index = m_logical_device_index.load(std::memory_order::relaxed);
   if (logical_device_index == -1)
     return;
   vulkan::LogicalDevice* logical_device = m_application->get_logical_device(logical_device_index);
   logical_device->wait_idle();
-  m_window->OnWindowSizeChanged_Pre();
-  m_swapchain.recreate(this, m_window->get_extent());
+  OnWindowSizeChanged_Pre();
+  m_swapchain.recreate(this, extent());
   if (m_swapchain.can_render())
-    m_window->OnWindowSizeChanged_Post();
-}
-
-void VulkanWindow::OnSampleWindowSizeChanged_Pre()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::OnSampleWindowSizeChanged_Pre()");
-}
-
-void VulkanWindow::OnSampleWindowSizeChanged_Post()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::OnSampleWindowSizeChanged_Post()");
-
-  vk::ImageSubresourceRange image_subresource_range;
-  image_subresource_range
-    .setBaseMipLevel(0)
-    .setLevelCount(1)
-    .setBaseArrayLayer(0)
-    .setLayerCount(1)
-    ;
-
-  // Create depth attachment and transition it away from an undefined layout.
-  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eDepth);
-  for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources)
-  {
-    frame_resources_data->m_depth_attachment = get_logical_device()->create_image(
-        m_swapchain.extent().width,
-        m_swapchain.extent().height,
-        s_default_depth_format,
-        vk::ImageUsageFlagBits::eDepthStencilAttachment,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::ImageAspectFlagBits::eDepth);
-    set_image_memory_barrier(
-        *frame_resources_data->m_depth_attachment.m_image,
-        image_subresource_range,
-        vk::ImageLayout::eUndefined,
-        vk::AccessFlags(0),
-        vk::PipelineStageFlagBits::eTopOfPipe,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-        vk::PipelineStageFlagBits::eEarlyFragmentTests);
-  }
-
-  // Pre-transition all swapchain images away from an undefined layout.
-  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eColor);
-  m_swapchain.set_image_memory_barriers(
-      this,
-      image_subresource_range,
-      vk::ImageLayout::eUndefined,
-      vk::AccessFlagBits::eNoneKHR,
-      vk::PipelineStageFlagBits::eTopOfPipe,
-      vk::ImageLayout::ePresentSrcKHR,
-      vk::AccessFlagBits::eMemoryRead,
-      vk::PipelineStageFlagBits::eBottomOfPipe);
+    OnWindowSizeChanged_Post();
 }
 
 void VulkanWindow::set_image_memory_barrier(
@@ -305,119 +252,6 @@ void VulkanWindow::set_image_memory_barrier(
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
     if (logical_device->wait_for_fences( { *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
       throw std::runtime_error("waitForFences");
-  }
-}
-
-void VulkanWindow::create_frame_resources()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
-
-  // We only draw do things for the first window.
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-  for (size_t i = 0; i < m_frame_resources.size(); ++i)
-  {
-    m_frame_resources[i] = std::make_unique<vulkan::FrameResourcesData>();
-    auto& frame_resources = m_frame_resources[i];
-
-    frame_resources->m_image_available_semaphore = logical_device->create_semaphore();
-    frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore();
-    frame_resources->m_fence = logical_device->create_fence(true);
-    // Too specialized (should this be part of a derived class?)
-    frame_resources->m_command_pool =
-      logical_device->create_command_pool(
-          m_presentation_surface.queue_family_indices()[0],
-          vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
-    frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
-    frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
-  }
-
-  OnSampleWindowSizeChanged_Post();
-}
-
-void VulkanWindow::create_render_passes()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::create_render_passes() [" << this << "]");
-
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-  std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
-    {
-      {},                                                         // std::vector<VkAttachmentReference> const& InputAttachments
-      {                                                           // std::vector<VkAttachmentReference> const& ColorAttachments
-        {
-          .attachment = 0,
-          .layout = vk::ImageLayout::eColorAttachmentOptimal
-        }
-      },
-      {                                                           // VkAttachmentReference const& DepthStencilAttachment;
-        .attachment = 1,
-        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-      }
-    }
-  };
-
-  std::vector<vk::SubpassDependency> dependencies = {
-    {
-      .srcSubpass = VK_SUBPASS_EXTERNAL,
-      .dstSubpass = 0,
-      .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-      .dependencyFlags = vk::DependencyFlagBits::eByRegion
-    },
-    {
-      .srcSubpass = 0,
-      .dstSubpass = VK_SUBPASS_EXTERNAL,
-      .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-      .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-      .dependencyFlags = vk::DependencyFlagBits::eByRegion
-    }
-  };
-
-  // Render pass - from present_src to color_attachment.
-  {
-    std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
-      {
-        .m_format = m_swapchain.format(),
-        .m_load_op = vk::AttachmentLoadOp::eClear,
-        .m_store_op = vk::AttachmentStoreOp::eStore,
-        .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
-        .m_final_layout = vk::ImageLayout::eColorAttachmentOptimal
-      },
-      {
-        .m_format = s_default_depth_format,
-        .m_load_op = vk::AttachmentLoadOp::eClear,
-        .m_store_op = vk::AttachmentStoreOp::eStore,
-        .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-      }
-    };
-    m_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
-  }
-
-  // Post-render pass - from color_attachment to present_src.
-  {
-    std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
-      {
-        .m_format = m_swapchain.format(),
-        .m_load_op = vk::AttachmentLoadOp::eLoad,
-        .m_store_op = vk::AttachmentStoreOp::eStore,
-        .m_initial_layout = vk::ImageLayout::eColorAttachmentOptimal,
-        .m_final_layout = vk::ImageLayout::ePresentSrcKHR
-      },
-      {
-        .m_format = s_default_depth_format,
-        .m_load_op = vk::AttachmentLoadOp::eDontCare,
-        .m_store_op = vk::AttachmentStoreOp::eDontCare,
-        .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-      }
-    };
-    m_post_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
   }
 }
 
@@ -556,170 +390,6 @@ void VulkanWindow::create_pipeline_layout()
   m_pipeline_layout = logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges });
 }
 
-void VulkanWindow::create_graphics_pipeline()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::create_graphics_pipeline() [" << this << "]");
-
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-  vk::UniqueShaderModule vertex_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv");
-  vk::UniqueShaderModule fragment_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv");
-
-  std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
-    // Vertex shader.
-    {
-      .flags = vk::PipelineShaderStageCreateFlags(0),
-      .stage = vk::ShaderStageFlagBits::eVertex,
-      .module = *vertex_shader_module,
-      .pName = "main"
-    },
-    // Fragment shader.
-    {
-      .flags = vk::PipelineShaderStageCreateFlags(0),
-      .stage = vk::ShaderStageFlagBits::eFragment,
-      .module = *fragment_shader_module,
-      .pName = "main"
-    }
-  };
-
-  std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
-    {
-      .binding = 0,
-      .stride = sizeof(vulkan::VertexData),
-      .inputRate = vk::VertexInputRate::eVertex
-    },
-    {
-      .binding = 1,
-      .stride = 4 * sizeof(float),
-      .inputRate = vk::VertexInputRate::eInstance
-    }
-  };
-  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
-    {
-      .location = 0,
-      .binding = vertex_binding_description[0].binding,
-      .format = vk::Format::eR32G32B32A32Sfloat,
-      .offset = 0
-    },
-    {
-      .location = 1,
-      .binding = vertex_binding_description[0].binding,
-      .format = vk::Format::eR32G32Sfloat,
-      .offset = offsetof(vulkan::VertexData, Texcoords)
-    },
-    {
-      .location = 2,
-      .binding = vertex_binding_description[1].binding,
-      .format = vk::Format::eR32G32B32A32Sfloat,
-      .offset = 0
-    }
-  };
-
-  vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
-    .flags = vk::PipelineVertexInputStateCreateFlags(0),
-    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
-    .pVertexBindingDescriptions = vertex_binding_description.data(),
-    .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
-    .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
-  };
-
-  vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
-    .flags = vk::PipelineInputAssemblyStateCreateFlags(0),
-    .topology = vk::PrimitiveTopology::eTriangleList,
-    .primitiveRestartEnable = VK_FALSE
-  };
-
-  vk::PipelineViewportStateCreateInfo viewport_state_create_info{
-    .flags = vk::PipelineViewportStateCreateFlags(0),
-    .viewportCount = 1,
-    .pViewports = nullptr,
-    .scissorCount = 1,
-    .pScissors = nullptr
-  };
-  vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
-    .flags = vk::PipelineRasterizationStateCreateFlags(0),
-    .depthClampEnable = VK_FALSE,
-    .rasterizerDiscardEnable = VK_FALSE,
-    .polygonMode = vk::PolygonMode::eFill,
-    .cullMode = vk::CullModeFlagBits::eBack,
-    .frontFace = vk::FrontFace::eCounterClockwise,
-    .depthBiasEnable = VK_FALSE,
-    .depthBiasConstantFactor = 0.0f,
-    .depthBiasClamp = 0.0f,
-    .depthBiasSlopeFactor = 0.0f,
-    .lineWidth = 1.0f
-  };
-
-  vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
-    .flags = vk::PipelineMultisampleStateCreateFlags(0),
-    .rasterizationSamples = vk::SampleCountFlagBits::e1,
-    .sampleShadingEnable = VK_FALSE,
-    .minSampleShading = 1.0f,
-    .pSampleMask = nullptr,
-    .alphaToCoverageEnable = VK_FALSE,
-    .alphaToOneEnable = VK_FALSE
-  };
-
-  vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
-    .flags = vk::PipelineDepthStencilStateCreateFlags(0),
-    .depthTestEnable = VK_TRUE,
-    .depthWriteEnable = VK_TRUE,
-    .depthCompareOp = vk::CompareOp::eLessOrEqual
-  };
-
-  vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
-    .blendEnable = VK_FALSE,
-    .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
-    .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
-    .colorBlendOp = vk::BlendOp::eAdd,
-    .srcAlphaBlendFactor = vk::BlendFactor::eOne,
-    .dstAlphaBlendFactor = vk::BlendFactor::eZero,
-    .alphaBlendOp = vk::BlendOp::eAdd,
-    .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
-  };
-
-  vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
-    .flags = vk::PipelineColorBlendStateCreateFlags(0),
-    .logicOpEnable = VK_FALSE,
-    .logicOp = vk::LogicOp::eCopy,
-    .attachmentCount = 1,
-    .pAttachments = &color_blend_attachment_state
-  };
-
-  std::vector<vk::DynamicState> dynamic_states = {
-    vk::DynamicState::eViewport,
-    vk::DynamicState::eScissor
-  };
-
-  vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
-    .flags = vk::PipelineDynamicStateCreateFlags(0),
-    .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
-    .pDynamicStates = dynamic_states.data()
-  };
-
-  vk::GraphicsPipelineCreateInfo pipeline_create_info{
-    .flags = vk::PipelineCreateFlags(0),
-    .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
-    .pStages = shader_stage_create_infos.data(),
-    .pVertexInputState = &vertex_input_state_create_info,
-    .pInputAssemblyState = &input_assembly_state_create_info,
-    .pTessellationState = nullptr,
-    .pViewportState = &viewport_state_create_info,
-    .pRasterizationState = &rasterization_state_create_info,
-    .pMultisampleState = &multisample_state_create_info,
-    .pDepthStencilState = &depth_stencil_state_create_info,
-    .pColorBlendState = &color_blend_state_create_info,
-    .pDynamicState = &dynamic_state_create_info,
-    .layout = *m_pipeline_layout,
-    .renderPass = *m_render_pass,
-    .subpass = 0,
-    .basePipelineHandle = vk::Pipeline{},
-    .basePipelineIndex = -1
-  };
-
-  m_graphics_pipeline = logical_device->handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
-}
-
 void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const
@@ -812,25 +482,25 @@ void VulkanWindow::create_vertex_buffers()
   std::vector<vulkan::VertexData> vertex_data;
 
   float const size = 0.12f;
-  float step       = 2.0f * size / s_quad_tessellation;
-  for (int x = 0; x < s_quad_tessellation; ++x)
+  float step       = 2.0f * size / SampleParameters::s_quad_tessellation;
+  for (int x = 0; x < SampleParameters::s_quad_tessellation; ++x)
   {
-    for (int y = 0; y < s_quad_tessellation; ++y)
+    for (int y = 0; y < SampleParameters::s_quad_tessellation; ++y)
     {
       float pos_x = -size + x * step;
       float pos_y = -size + y * step;
 
-      vertex_data.push_back({{pos_x, pos_y, 0.0f, 1.0f}, {static_cast<float>(x) / (s_quad_tessellation), static_cast<float>(y) / (s_quad_tessellation)}});
+      vertex_data.push_back({{pos_x, pos_y, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
       vertex_data.push_back(
-          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (s_quad_tessellation), static_cast<float>(y + 1) / (s_quad_tessellation)}});
+          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
       vertex_data.push_back(
-          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (s_quad_tessellation), static_cast<float>(y) / (s_quad_tessellation)}});
+          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
       vertex_data.push_back(
-          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (s_quad_tessellation), static_cast<float>(y) / (s_quad_tessellation)}});
+          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
       vertex_data.push_back(
-          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (s_quad_tessellation), static_cast<float>(y + 1) / (s_quad_tessellation)}});
+          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
       vertex_data.push_back(
-          {{pos_x + step, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (s_quad_tessellation), static_cast<float>(y + 1) / (s_quad_tessellation)}});
+          {{pos_x + step, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
     }
   }
 
@@ -840,7 +510,7 @@ void VulkanWindow::create_vertex_buffers()
       vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
 
   // Per instance data (position offsets and distance)
-  std::vector<float> instance_data(s_max_objects_count * 4);
+  std::vector<float> instance_data(SampleParameters::s_max_objects_count * 4);
   for (size_t i = 0; i < instance_data.size(); i += 4)
   {
     instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
@@ -971,6 +641,93 @@ void VulkanWindow::finish_impl()
   // However, remove us from Application::window_list_t, or else this VulkanWindow
   // won't be destructed as the list stores boost::intrusive_ptr<task::VulkanWindow>'s.
   m_application->remove(this);
+}
+
+//virtual
+threadpool::Timer::Interval VulkanWindow::get_frame_rate_interval() const
+{
+  return threadpool::Interval<10, std::chrono::milliseconds>{};
+}
+
+void VulkanWindow::OnWindowSizeChanged_Pre()
+{
+  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged_Pre()");
+}
+
+void VulkanWindow::OnWindowSizeChanged_Post()
+{
+  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged_Post()");
+
+//FIXME, add m_gui    m_gui.OnWindowSizeChanged();
+
+  vk::ImageSubresourceRange image_subresource_range;
+  image_subresource_range
+    .setBaseMipLevel(0)
+    .setLevelCount(1)
+    .setBaseArrayLayer(0)
+    .setLayerCount(1)
+    ;
+
+  // Create depth attachment and transition it away from an undefined layout.
+  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eDepth);
+  for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources)
+  {
+    frame_resources_data->m_depth_attachment = get_logical_device()->create_image(
+        swapchain().extent().width,
+        swapchain().extent().height,
+        s_default_depth_format,
+        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::ImageAspectFlagBits::eDepth);
+    set_image_memory_barrier(
+        *frame_resources_data->m_depth_attachment.m_image,
+        image_subresource_range,
+        vk::ImageLayout::eUndefined,
+        vk::AccessFlags(0),
+        vk::PipelineStageFlagBits::eTopOfPipe,
+        vk::ImageLayout::eDepthStencilAttachmentOptimal,
+        vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+        vk::PipelineStageFlagBits::eEarlyFragmentTests);
+  }
+
+  // Pre-transition all swapchain images away from an undefined layout.
+  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eColor);
+  swapchain().set_image_memory_barriers(
+      this,
+      image_subresource_range,
+      vk::ImageLayout::eUndefined,
+      vk::AccessFlagBits::eNoneKHR,
+      vk::PipelineStageFlagBits::eTopOfPipe,
+      vk::ImageLayout::ePresentSrcKHR,
+      vk::AccessFlagBits::eMemoryRead,
+      vk::PipelineStageFlagBits::eBottomOfPipe);
+}
+
+void VulkanWindow::create_frame_resources()
+{
+  DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
+
+  // We only draw do things for the first window.
+  vulkan::LogicalDevice const* logical_device = get_logical_device();
+
+  for (size_t i = 0; i < m_frame_resources.size(); ++i)
+  {
+    m_frame_resources[i] = std::make_unique<vulkan::FrameResourcesData>();
+    auto& frame_resources = m_frame_resources[i];
+
+    frame_resources->m_image_available_semaphore = logical_device->create_semaphore();
+    frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore();
+    frame_resources->m_fence = logical_device->create_fence(true);
+    // Too specialized (should this be part of a derived class?)
+    frame_resources->m_command_pool =
+      logical_device->create_command_pool(
+          m_presentation_surface.queue_family_indices()[0],
+          vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
+    frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
+    frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
+  }
+
+  OnWindowSizeChanged_Post();
 }
 
 } // namespace task

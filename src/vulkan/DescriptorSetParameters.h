@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vulkan/vulkan.hpp>
+
 namespace vulkan {
 
 // Container class for descriptor related resources.

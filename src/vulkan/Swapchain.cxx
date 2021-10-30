@@ -133,7 +133,7 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
   // In case of re-use, m_can_render might be true.
   m_can_render = false;
 
-  vk::Extent2D                    desired_extent = choose_extent(surface_capabilities, owning_window->get_extent());
+  vk::Extent2D                    desired_extent = choose_extent(surface_capabilities, owning_window->extent());
   vk::SurfaceFormatKHR            desired_image_format = choose_surface_format(surface_formats);
   vk::ImageUsageFlags             desired_image_usage_flags = choose_usage_flags(surface_capabilities, selected_usage);
   vk::PresentModeKHR              desired_present_mode = choose_present_mode(available_present_modes, selected_present_mode);
@@ -175,6 +175,8 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
 
 void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D window_extent)
 {
+  DoutEntering(dc::vulkan, "Swapchain::recreate(" << owning_window << ", " << window_extent << ")");
+
   m_can_render = false;
 
   if ((window_extent.width == 0) || (window_extent.height == 0))
@@ -197,7 +199,7 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D w
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
   m_create_info
-    .setImageExtent(owning_window->get_extent())
+    .setImageExtent(owning_window->extent())
     .setOldSwapchain(*old_handle)
     ;
 
@@ -240,9 +242,9 @@ void Swapchain::set_image_memory_barriers(
     vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout,
     vk::AccessFlags new_image_access,
-    vk::PipelineStageFlags consuming_stages)
+    vk::PipelineStageFlags consuming_stages) const
 {
-  for (auto& swapchain_image : m_vhv_images)
+  for (auto const& swapchain_image : m_vhv_images)
     owning_window->set_image_memory_barrier(
       swapchain_image,
       image_subresource_range,

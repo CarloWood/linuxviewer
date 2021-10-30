@@ -25,7 +25,7 @@ class Swapchain
   images_type                   m_vhv_images;
   image_views_type              m_image_views;
   SwapchainIndex                m_swapchain_end;        // The actual number of swap chain images.
-  vk::Extent2D                  m_extent;
+  vk::Extent2D                  m_extent;               // Copy of the last (non-zero) value that was passed to recreate.
   vk::PresentModeKHR            m_present_mode;
   vk::ImageUsageFlags           m_usage_flags;
   bool                          m_can_render;
@@ -61,7 +61,7 @@ class Swapchain
       vk::PipelineStageFlags generating_stages,
       vk::ImageLayout new_image_layout,
       vk::AccessFlags new_image_access,
-      vk::PipelineStageFlags consuming_stages); // FIXME: use a struct
+      vk::PipelineStageFlags consuming_stages) const; // FIXME: use a struct
 };
 
 } // namespace vulkan

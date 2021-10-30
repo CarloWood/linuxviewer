@@ -7,6 +7,7 @@
 #include "DescriptorSetParameters.h"
 #include "ImageParameters.h"
 #include "BufferParameters.h"
+#include "OperatingSystem.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -38,12 +39,8 @@ class LogicalDevice;
  * The VulkanWindow task.
  *
  */
-class VulkanWindow : public AIStatefulTask
+class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 {
-  // FIXME: move to user application.
-  static constexpr int s_max_objects_count = 1000;
-  static constexpr int s_quad_tessellation = 40;
-
  public:
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
@@ -56,24 +53,22 @@ class VulkanWindow : public AIStatefulTask
   static constexpr condition_type frame_timer = 2;
   static constexpr condition_type logical_device_index_available = 4;
 
+ protected:
   // Constructor
   boost::intrusive_ptr<vulkan::Application> m_application;                      // Pointer to the underlaying application, which terminates when the last such reference is destructed.
-  std::unique_ptr<linuxviewer::OS::Window> const m_window;                      // Initialized in VulkanWindow_create.
 
+ private:
   // set_title
   std::string m_title;
-  // set_extent
-  vk::Extent2D m_extent;                                                        // The initial window size. Not updated later on, so don't use it.
   // set_logical_device_task
   LogicalDevice const* m_logical_device_task = nullptr;                         // Cache valued of the task::LogicalDevice const* that was passed to
-  // set_xcb_connection                                                         // Application::create_root_window, if any. That can be nullptr so don't use it.
+  // set_xcb_connection_broker_and_key                                          // Application::create_root_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
   window_cookie_type m_window_cookie = {};                                      // Unique bit for the creation event of this window (as determined by the user).
   boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in VulkanWindow_start.
-  std::atomic_bool m_must_close = false;
   std::atomic_int m_logical_device_index = -1;                                  // Index into Application::m_logical_device_list.
                                                                                 // Initialized in LogicalDevice_create by call to Application::create_device.
   vulkan::PresentationSurface m_presentation_surface;                           // The presentation surface information (surface-, graphics- and presentation queue handles).
@@ -82,22 +77,19 @@ class VulkanWindow : public AIStatefulTask
   threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
-  static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources;
-  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, 0 };
-
 #ifdef CWDEBUG
   bool const mVWDebug;                                                          // A copy of mSMDebug.
 #endif
 
+ protected:
   // UNSORTED REMAINING OBJECTS.
-  vk::UniqueRenderPass m_render_pass;           // FIXME: how many are needed, where/how to store them?
-  vk::UniqueRenderPass m_post_render_pass;
+  static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
+  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources;
+  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, 0 };
   vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
-  vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
 
@@ -121,26 +113,16 @@ class VulkanWindow : public AIStatefulTask
   static constexpr state_type state_end = VulkanWindow_close + 1;
 
   /// Construct an VulkanWindow object.
-  VulkanWindow(vulkan::Application* application, std::unique_ptr<linuxviewer::OS::Window>&& window COMMA_CWDEBUG_ONLY(bool debug = false));
+  VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void set_title(std::string&& title)
   {
     m_title = std::move(title);
   }
 
-  void set_extent(vk::Extent2D extent)
-  {
-    m_extent = extent;
-  }
-
   void set_logical_device_task(LogicalDevice const* logical_device_task)
   {
     m_logical_device_task = logical_device_task;
-  }
-
-  void set_frame_rate_interval(threadpool::Timer::Interval frame_rate_interval)
-  {
-    m_frame_rate_interval = frame_rate_interval;
   }
 
   window_cookie_type window_cookie() const
@@ -154,7 +136,7 @@ class VulkanWindow : public AIStatefulTask
   }
 
   // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
-  void set_xcb_connection(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
+  void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
   {
     m_broker = std::move(broker);
     m_broker_key = broker_key;
@@ -181,12 +163,6 @@ class VulkanWindow : public AIStatefulTask
     signal(logical_device_index_available);
   }
 
-  void close()
-  {
-    // Tell the task to finish the next time it enters the render loop.
-    m_must_close = true;
-  }
-
   // Accessors.
   vk::SurfaceKHR vh_surface() const
   {
@@ -208,16 +184,13 @@ class VulkanWindow : public AIStatefulTask
   }
 
   vulkan::LogicalDevice* get_logical_device() const;
-  vk::Extent2D get_extent() const;
 
   vulkan::Swapchain const& swapchain() const
   {
     return m_swapchain;
   }
 
-  void OnWindowSizeChanged();
-  void OnSampleWindowSizeChanged_Pre();
-  void OnSampleWindowSizeChanged_Post();
+  void OnWindowSizeChanged(uint32_t width, uint32_t height) override final;
 
   void set_image_memory_barrier(
     vk::Image vh_image,
@@ -243,14 +216,22 @@ class VulkanWindow : public AIStatefulTask
   void create_swapchain();
 
  public:
+  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
+
   // Called from Application::*same name*.
-  void create_frame_resources();
-  void create_render_passes();
+  virtual void create_render_passes() = 0;
+  virtual void create_graphics_pipeline() = 0;
   void create_descriptor_set();
   void create_textures();
   void create_pipeline_layout();
-  void create_graphics_pipeline();
   void create_vertex_buffers();
+  void create_frame_resources();
+
+ protected:
+  virtual void draw_frame() = 0;
+
+  virtual void OnWindowSizeChanged_Pre();
+  virtual void OnWindowSizeChanged_Post();
 
  protected:
   /// Call finish() (or abort()), not delete.
@@ -272,5 +253,5 @@ class VulkanWindow : public AIStatefulTask
 } // namespace task
 
 #ifdef CWDEBUG
-DECLARE_TRACKED_BOOST_INTRUSIVE_PTR(task::VulkanWindow)
+//DECLARE_TRACKED_BOOST_INTRUSIVE_PTR(task::VulkanWindow)
 #endif

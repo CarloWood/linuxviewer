@@ -13,6 +13,7 @@
 #include <cstdlib>
 #endif
 
+#include "threadpool/Timer.h"
 #include <cstring>
 #include <iostream>
 
@@ -51,36 +52,42 @@ struct WindowParameters
 class Window : public xcb::WindowBase
 {
  protected:
-  WindowParameters m_parameters;
-  boost::intrusive_ptr<task::VulkanWindow> m_window_task;
-  vk::Extent2D m_extent;
+  WindowParameters m_parameters;                // Window system dependent parameters, like window handle and the connection to the X server.
+  vk::Extent2D m_extent;                        // The size of the window.
+                                                // Must be updated with m_extent.setWidth(width).setHeight(height); from
+                                                // overridden OnWindowSizeChanged(uint32_t width, uint32_t height)
+  std::atomic_bool m_must_close = false;        // Is set to true when the window must close.
 
  public:
   Window() = default;
-  ~Window() { destroy(); }
+  ~Window();
 
+  // Called from task state VulkanWindow_create.
   void set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
-  [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, int width, int height, boost::intrusive_ptr<task::VulkanWindow> window_task);
+
+  // Create an X Window on the screen and return a vulkan surface handle for it.
+  // Called from task state VulkanWindow_create.
+  [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, int width, int height);
+  // Close the X Window on the screen and decrease the reference count of the xcb connection.
   void destroy();
 
-  WindowParameters get_parameters() const { return m_parameters; }
-  vk::Extent2D const& get_extent() const { return m_extent; }
-
-  void On_WM_DELETE_WINDOW(uint32_t timestamp) override;
-  void OnWindowSizeChanged(uint32_t width, uint32_t height) override final
+  // Called when the close button is clicked.
+  void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
-    // Update m_extent so that get_extent() will return the new value.
-    m_extent.setWidth(width).setHeight(height);
-    // This first calls OnWindowSizeChanged_Pre(), then recreates the swapchain using get_extent() and finally calls OnWindowSizeChanged_Post.
-    m_window_task->OnWindowSizeChanged();
+    DoutEntering(dc::notice, "Window::On_WM_DELETE_WINDOW(" << timestamp << ")");
+    m_must_close = true;
+    // We should have one boost::intrusive_ptr's left: the one in Application::m_window_list.
+    // This will be removed from the running task (finish_impl), which prevents the
+    // immediate destruction until the task fully finished. At that point this Window
+    // will be destructed causing a call to Window::destroy.
   }
-  void get_extent(uint32_t& width, uint32_t& height) override { width = m_extent.width; height = m_extent.height; }
 
-  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-  virtual void draw_frame() = 0;
+  // Used to set the initial (desired) extent.
+  void set_extent(vk::Extent2D const& extent) { m_extent = extent; }
 
-  virtual void OnWindowSizeChanged_Pre() { m_window_task->OnSampleWindowSizeChanged_Pre(); }
-  virtual void OnWindowSizeChanged_Post() { m_window_task->OnSampleWindowSizeChanged_Post(); }
+  // Accessors.
+  WindowParameters get_parameters() const { return m_parameters; }
+  vk::Extent2D const& extent() const { return m_extent; }
 };
 
 } // namespace linuxviewer::OS

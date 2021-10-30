@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "TestApplication.h"
-#include "vulkan/OperatingSystem.h"
+#include "SampleParameters.h"
+#include "vulkan/VertexData.h"
+#include "vulkan/VulkanWindow.h"
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
@@ -11,8 +13,18 @@
 
 using namespace linuxviewer;
 
-class Window : public OS::Window
+class Window : public task::VulkanWindow
 {
+ public:
+  using task::VulkanWindow::VulkanWindow;
+
+ private:
+  vk::UniqueRenderPass m_render_pass;
+  vk::UniqueRenderPass m_post_render_pass;
+  vk::UniquePipeline m_graphics_pipeline;
+
+  SampleParameters Parameters;
+
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 10 frames per second.
@@ -36,13 +48,259 @@ class Window : public OS::Window
 
   void draw_frame() override
   {
-    DoutEntering(dc::notice, "Window::draw_frame()");
+    DoutEntering(dc::notice, "Window::draw_frame() [" << this << "]");
+
+    //current_frame.ResourceCount = Parameters.FrameResourcesCount;
   }
 
-  void OnWindowSizeChanged_Post() override
+  void create_render_passes() override
   {
-//FIXME, add m_gui    m_gui.OnWindowSizeChanged();
-    m_window_task->OnSampleWindowSizeChanged_Post();
+    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+
+    vulkan::LogicalDevice const* logical_device = get_logical_device();
+
+    std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
+      {
+        {},                                                         // std::vector<VkAttachmentReference> const& InputAttachments
+        {                                                           // std::vector<VkAttachmentReference> const& ColorAttachments
+          {
+            .attachment = 0,
+            .layout = vk::ImageLayout::eColorAttachmentOptimal
+          }
+        },
+        {                                                           // VkAttachmentReference const& DepthStencilAttachment;
+          .attachment = 1,
+          .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
+        }
+      }
+    };
+
+    std::vector<vk::SubpassDependency> dependencies = {
+      {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        .dependencyFlags = vk::DependencyFlagBits::eByRegion
+      },
+      {
+        .srcSubpass = 0,
+        .dstSubpass = VK_SUBPASS_EXTERNAL,
+        .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+        .dependencyFlags = vk::DependencyFlagBits::eByRegion
+      }
+    };
+
+    // Render pass - from present_src to color_attachment.
+    {
+      std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
+        {
+          .m_format = swapchain().format(),
+          .m_load_op = vk::AttachmentLoadOp::eClear,
+          .m_store_op = vk::AttachmentStoreOp::eStore,
+          .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
+          .m_final_layout = vk::ImageLayout::eColorAttachmentOptimal
+        },
+        {
+          .m_format = task::VulkanWindow::s_default_depth_format,
+          .m_load_op = vk::AttachmentLoadOp::eClear,
+          .m_store_op = vk::AttachmentStoreOp::eStore,
+          .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+          .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
+        }
+      };
+      m_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+    }
+
+    // Post-render pass - from color_attachment to present_src.
+    {
+      std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
+        {
+          .m_format = swapchain().format(),
+          .m_load_op = vk::AttachmentLoadOp::eLoad,
+          .m_store_op = vk::AttachmentStoreOp::eStore,
+          .m_initial_layout = vk::ImageLayout::eColorAttachmentOptimal,
+          .m_final_layout = vk::ImageLayout::ePresentSrcKHR
+        },
+        {
+          .m_format = task::VulkanWindow::s_default_depth_format,
+          .m_load_op = vk::AttachmentLoadOp::eDontCare,
+          .m_store_op = vk::AttachmentStoreOp::eDontCare,
+          .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+          .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
+        }
+      };
+      m_post_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+    }
+  }
+
+  void create_graphics_pipeline() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
+
+    vulkan::LogicalDevice const* logical_device = get_logical_device();
+
+    vk::UniqueShaderModule vertex_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv");
+    vk::UniqueShaderModule fragment_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv");
+
+    std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
+      // Vertex shader.
+      {
+        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .stage = vk::ShaderStageFlagBits::eVertex,
+        .module = *vertex_shader_module,
+        .pName = "main"
+      },
+      // Fragment shader.
+      {
+        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .stage = vk::ShaderStageFlagBits::eFragment,
+        .module = *fragment_shader_module,
+        .pName = "main"
+      }
+    };
+
+    std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
+      {
+        .binding = 0,
+        .stride = sizeof(vulkan::VertexData),
+        .inputRate = vk::VertexInputRate::eVertex
+      },
+      {
+        .binding = 1,
+        .stride = 4 * sizeof(float),
+        .inputRate = vk::VertexInputRate::eInstance
+      }
+    };
+    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
+      {
+        .location = 0,
+        .binding = vertex_binding_description[0].binding,
+        .format = vk::Format::eR32G32B32A32Sfloat,
+        .offset = 0
+      },
+      {
+        .location = 1,
+        .binding = vertex_binding_description[0].binding,
+        .format = vk::Format::eR32G32Sfloat,
+        .offset = offsetof(vulkan::VertexData, Texcoords)
+      },
+      {
+        .location = 2,
+        .binding = vertex_binding_description[1].binding,
+        .format = vk::Format::eR32G32B32A32Sfloat,
+        .offset = 0
+      }
+    };
+
+    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
+      .flags = vk::PipelineVertexInputStateCreateFlags(0),
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
+      .pVertexBindingDescriptions = vertex_binding_description.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
+      .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
+    };
+
+    vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
+      .flags = vk::PipelineInputAssemblyStateCreateFlags(0),
+      .topology = vk::PrimitiveTopology::eTriangleList,
+      .primitiveRestartEnable = VK_FALSE
+    };
+
+    vk::PipelineViewportStateCreateInfo viewport_state_create_info{
+      .flags = vk::PipelineViewportStateCreateFlags(0),
+      .viewportCount = 1,
+      .pViewports = nullptr,
+      .scissorCount = 1,
+      .pScissors = nullptr
+    };
+    vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
+      .flags = vk::PipelineRasterizationStateCreateFlags(0),
+      .depthClampEnable = VK_FALSE,
+      .rasterizerDiscardEnable = VK_FALSE,
+      .polygonMode = vk::PolygonMode::eFill,
+      .cullMode = vk::CullModeFlagBits::eBack,
+      .frontFace = vk::FrontFace::eCounterClockwise,
+      .depthBiasEnable = VK_FALSE,
+      .depthBiasConstantFactor = 0.0f,
+      .depthBiasClamp = 0.0f,
+      .depthBiasSlopeFactor = 0.0f,
+      .lineWidth = 1.0f
+    };
+
+    vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
+      .flags = vk::PipelineMultisampleStateCreateFlags(0),
+      .rasterizationSamples = vk::SampleCountFlagBits::e1,
+      .sampleShadingEnable = VK_FALSE,
+      .minSampleShading = 1.0f,
+      .pSampleMask = nullptr,
+      .alphaToCoverageEnable = VK_FALSE,
+      .alphaToOneEnable = VK_FALSE
+    };
+
+    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
+      .flags = vk::PipelineDepthStencilStateCreateFlags(0),
+      .depthTestEnable = VK_TRUE,
+      .depthWriteEnable = VK_TRUE,
+      .depthCompareOp = vk::CompareOp::eLessOrEqual
+    };
+
+    vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
+      .blendEnable = VK_FALSE,
+      .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+      .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+      .colorBlendOp = vk::BlendOp::eAdd,
+      .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+      .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+      .alphaBlendOp = vk::BlendOp::eAdd,
+      .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+    };
+
+    vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
+      .flags = vk::PipelineColorBlendStateCreateFlags(0),
+      .logicOpEnable = VK_FALSE,
+      .logicOp = vk::LogicOp::eCopy,
+      .attachmentCount = 1,
+      .pAttachments = &color_blend_attachment_state
+    };
+
+    std::vector<vk::DynamicState> dynamic_states = {
+      vk::DynamicState::eViewport,
+      vk::DynamicState::eScissor
+    };
+
+    vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
+      .flags = vk::PipelineDynamicStateCreateFlags(0),
+      .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+      .pDynamicStates = dynamic_states.data()
+    };
+
+    vk::GraphicsPipelineCreateInfo pipeline_create_info{
+      .flags = vk::PipelineCreateFlags(0),
+      .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
+      .pStages = shader_stage_create_infos.data(),
+      .pVertexInputState = &vertex_input_state_create_info,
+      .pInputAssemblyState = &input_assembly_state_create_info,
+      .pTessellationState = nullptr,
+      .pViewportState = &viewport_state_create_info,
+      .pRasterizationState = &rasterization_state_create_info,
+      .pMultisampleState = &multisample_state_create_info,
+      .pDepthStencilState = &depth_stencil_state_create_info,
+      .pColorBlendState = &color_blend_state_create_info,
+      .pDynamicState = &dynamic_state_create_info,
+      .layout = *m_pipeline_layout,
+      .renderPass = *m_render_pass,
+      .subpass = 0,
+      .basePipelineHandle = vk::Pipeline{},
+      .basePipelineIndex = -1
+    };
+
+    m_graphics_pipeline = logical_device->handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
   }
 };
 
@@ -116,13 +374,13 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window(std::make_unique<Window>(), {1000, 800}, LogicalDevice::root_window_cookie1);
+    auto root_window1 = application.create_root_window<Window>({1000, 800}, LogicalDevice::root_window_cookie1);
 
     // Create a logical device that supports presenting to root_window1.
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    auto root_window2 = application.create_root_window(std::make_unique<Window>(), {400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

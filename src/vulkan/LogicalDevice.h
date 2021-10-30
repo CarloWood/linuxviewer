@@ -137,8 +137,9 @@ namespace task {
 
 class LogicalDevice : public AIStatefulTask
 {
- private:
+ protected:
   vulkan::Application* m_application;
+ private:
   boost::intrusive_ptr<task::VulkanWindow> m_root_window;               // The root window that we have to support presentation to (if any).
                                                                         // This is reset as soon as we added ourselves to m_application; so don't use it.
   std::unique_ptr<vulkan::LogicalDevice> m_logical_device;              // Temporary storage of a pointer to the logical device object.
