@@ -6,7 +6,6 @@
 #include "FrameResourcesData.h"
 #include "VertexData.h"
 #include "StagingBufferParameters.h"
-#include "../SampleParameters.h"           // FIXME: should be part of derived class, not needed here.
 #include "vk_utils/get_image_data.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
@@ -470,59 +469,6 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
     if (logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
       throw std::runtime_error("waitForFences");
   }
-}
-
-void VulkanWindow::create_vertex_buffers()
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::create_vertex_buffers() [" << this << "]");
-
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-  // 3D model
-  std::vector<vulkan::VertexData> vertex_data;
-
-  float const size = 0.12f;
-  float step       = 2.0f * size / SampleParameters::s_quad_tessellation;
-  for (int x = 0; x < SampleParameters::s_quad_tessellation; ++x)
-  {
-    for (int y = 0; y < SampleParameters::s_quad_tessellation; ++y)
-    {
-      float pos_x = -size + x * step;
-      float pos_y = -size + y * step;
-
-      vertex_data.push_back({{pos_x, pos_y, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-      vertex_data.push_back(
-          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-      vertex_data.push_back(
-          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-      vertex_data.push_back(
-          {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-      vertex_data.push_back(
-          {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-      vertex_data.push_back(
-          {{pos_x + step, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-    }
-  }
-
-  m_vertex_buffer = logical_device->create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
-      vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
-      vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
-
-  // Per instance data (position offsets and distance)
-  std::vector<float> instance_data(SampleParameters::s_max_objects_count * 4);
-  for (size_t i = 0; i < instance_data.size(); i += 4)
-  {
-    instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
-    instance_data[i + 1] = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
-    instance_data[i + 2] = static_cast<float>(std::rand() % 513) / 512.0f;
-    instance_data[i + 3] = 0.0f;
-  }
-
-  m_instance_buffer = logical_device->create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
-      vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
-  copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
-      vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
 }
 
 void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,

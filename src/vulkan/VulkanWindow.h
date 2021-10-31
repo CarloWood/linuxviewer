@@ -55,30 +55,30 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 
  protected:
   // Constructor
-  boost::intrusive_ptr<vulkan::Application> m_application;                      // Pointer to the underlaying application, which terminates when the last such reference is destructed.
+  boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
 
  private:
   // set_title
   std::string m_title;
   // set_logical_device_task
-  LogicalDevice const* m_logical_device_task = nullptr;                         // Cache valued of the task::LogicalDevice const* that was passed to
-  // set_xcb_connection_broker_and_key                                          // Application::create_root_window, if any. That can be nullptr so don't use it.
+  LogicalDevice const* m_logical_device_task = nullptr;                   // Cache valued of the task::LogicalDevice const* that was passed to
+  // set_xcb_connection_broker_and_key                                    // Application::create_root_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
-  window_cookie_type m_window_cookie = {};                                      // Unique bit for the creation event of this window (as determined by the user).
+  window_cookie_type m_window_cookie = {};                                // Unique bit for the creation event of this window (as determined by the user).
   boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in VulkanWindow_start.
-  std::atomic_int m_logical_device_index = -1;                                  // Index into Application::m_logical_device_list.
-                                                                                // Initialized in LogicalDevice_create by call to Application::create_device.
-  vulkan::PresentationSurface m_presentation_surface;                           // The presentation surface information (surface-, graphics- and presentation queue handles).
-  vulkan::Swapchain m_swapchain;                                                // The swap chain used for this surface.
+  std::atomic_int m_logical_device_index = -1;                            // Index into Application::m_logical_device_list.
+                                                                          // Initialized in LogicalDevice_create by call to Application::create_device.
+  vulkan::PresentationSurface m_presentation_surface;                     // The presentation surface information (surface-, graphics- and presentation queue handles).
+  vulkan::Swapchain m_swapchain;                                          // The swap chain used for this surface.
 
-  threadpool::Timer::Interval m_frame_rate_interval;                            // The minimum time between two frames.
+  threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
 #ifdef CWDEBUG
-  bool const mVWDebug;                                                          // A copy of mSMDebug.
+  bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
 
  protected:
@@ -90,8 +90,6 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
-  vulkan::BufferParameters m_vertex_buffer;
-  vulkan::BufferParameters m_instance_buffer;
 
  protected:
   /// The base class of this task.
@@ -112,35 +110,16 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   /// One beyond the largest state of this task.
   static constexpr state_type state_end = VulkanWindow_close + 1;
 
-  /// Construct an VulkanWindow object.
+  /// Construct a VulkanWindow object.
   VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
-  void set_title(std::string&& title)
-  {
-    m_title = std::move(title);
-  }
-
-  void set_logical_device_task(LogicalDevice const* logical_device_task)
-  {
-    m_logical_device_task = logical_device_task;
-  }
-
-  window_cookie_type window_cookie() const
-  {
-    return m_window_cookie;
-  }
-
-  void set_window_cookie(window_cookie_type window_cookie)
-  {
-    m_window_cookie = window_cookie;
-  }
-
-  // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
+  // Called from Application::create_root_window.
+  void set_title(std::string&& title) { m_title = std::move(title); }
+  void set_window_cookie(window_cookie_type window_cookie) { m_window_cookie = window_cookie; }
+  void set_logical_device_task(LogicalDevice const* logical_device_task) { m_logical_device_task = logical_device_task; }
   void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
-  {
-    m_broker = std::move(broker);
-    m_broker_key = broker_key;
-  }
+    // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
+    { m_broker = std::move(broker); m_broker_key = broker_key; }
 
   // Called by Application::create_device or VulkanWindow_logical_device_index_available.
   void set_logical_device_index(int index)
@@ -167,6 +146,11 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   vk::SurfaceKHR vh_surface() const
   {
     return m_presentation_surface.vh_surface();
+  }
+
+  window_cookie_type window_cookie() const
+  {
+    return m_window_cookie;
   }
 
   int get_logical_device_index() const
@@ -221,10 +205,10 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   // Called from Application::*same name*.
   virtual void create_render_passes() = 0;
   virtual void create_graphics_pipeline() = 0;
+  virtual void create_vertex_buffers() = 0;
   void create_descriptor_set();
   void create_textures();
   void create_pipeline_layout();
-  void create_vertex_buffers();
   void create_frame_resources();
 
  protected:
