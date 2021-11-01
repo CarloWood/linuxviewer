@@ -26,4 +26,23 @@ struct SampleParameters
   vk::UniquePipeline                          GraphicsPipeline;
   vulkan::BufferParameters                            VertexBuffer;
   vulkan::BufferParameters                            InstanceBuffer;
+
+  SampleParameters() :
+  ObjectsCount(100),
+  PreSubmitCpuWorkTime(0),
+  PostSubmitCpuWorkTime(0),
+  FrameGenerationTime(0),
+  TotalFrameTime(0),
+  FrameResourcesCount(1),
+  RenderPass(),
+  PostRenderPass(),
+  DescriptorSet(),
+  BackgroundTexture(),
+  Texture(),
+  PipelineLayout(),
+  GraphicsPipeline(),
+  VertexBuffer(),
+  InstanceBuffer()
+  {
+  }
 };

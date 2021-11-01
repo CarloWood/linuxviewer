@@ -98,9 +98,20 @@ class LogicalDevice
   {
     return m_device->waitForFences(fences, wait_all, timeout);
   }
+  void reset_fences(vk::ArrayProxy<vk::Fence const> const& fences) const
+  {
+    m_device->resetFences(fences);
+  }
   vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags) const
   {
     return m_device->createCommandPoolUnique({ .flags = flags, .queueFamilyIndex = queue_family_index });
+  }
+  vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
+  {
+    uint32_t new_image_index;
+    auto result = m_device->acquireNextImageKHR(swapchain, timeout, semaphore, fence, &new_image_index);
+    image_index_out = SwapchainIndex(new_image_index);
+    return result;
   }
   void create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view) const;
   void create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image) const;

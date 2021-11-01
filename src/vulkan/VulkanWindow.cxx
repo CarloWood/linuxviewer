@@ -576,6 +576,128 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   }
 }
 
+void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
+{
+#if 0
+  Timer.Update();
+  Gui.StartFrame( Timer, MouseState );
+  PrepareGUIFrame();
+#endif
+  vulkan::LogicalDevice const* logical_device = get_logical_device();
+
+  current_frame.m_resource_index = (current_frame.m_resource_index + 1) % current_frame.m_resource_count;
+  current_frame.m_frame_resources = m_frame_resources_list[current_frame.m_resource_index].get();
+
+  if (logical_device->wait_for_fences({ *current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+    throw std::runtime_error( "Waiting for a fence takes too long!" );
+
+  logical_device->reset_fences({ *current_frame.m_frame_resources->m_fence });
+}
+
+void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::CommandBuffer command_buffer, vk::RenderPass render_pass)
+{
+#if 0
+  // Draw GUI
+  {
+    Gui.Draw( current_frame.ResourceIndex, command_buffer, render_pass, *current_frame.FrameResources->Framebuffer );
+
+    vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    vk::SubmitInfo submit_info(
+      0,                                                            // uint32_t                     waitSemaphoreCount
+      nullptr,                                                      // const VkSemaphore           *pWaitSemaphores
+      &wait_dst_stage_mask,                                         // const VkPipelineStageFlags  *pWaitDstStageMask;
+      1,                                                            // uint32_t                     commandBufferCount
+      &command_buffer,                                              // const VkCommandBuffer       *pCommandBuffers
+      1,                                                            // uint32_t                     signalSemaphoreCount
+      &(*current_frame.FrameResources->FinishedRenderingSemaphore)  // const VkSemaphore           *pSignalSemaphores
+    );
+    GetPresentationSurface().GetGraphicsQueue().Handle_queue.submit( { submit_info }, *current_frame.FrameResources->Fence );
+  }
+#endif
+  // Present frame
+  {
+    vk::Result result = vk::Result::eSuccess;
+    vk::SwapchainKHR vh_swapchain = *m_swapchain;
+    uint32_t swapchain_image_index = current_frame.m_swapchain_image_index.get_value();
+    vk::PresentInfoKHR present_info{
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = &(*current_frame.m_frame_resources->m_finished_rendering_semaphore),
+      .swapchainCount = 1,
+      .pSwapchains = &vh_swapchain,
+      .pImageIndices = &swapchain_image_index
+    };
+
+    switch (m_presentation_surface.vh_presentation_queue().presentKHR(&present_info))
+    {
+      case vk::Result::eSuccess:
+        break;
+      case vk::Result::eSuboptimalKHR:
+      case vk::Result::eErrorOutOfDateKHR:
+      {
+        // Same as the tail of OnWindowSizeChanged.
+        vulkan::LogicalDevice const* logical_device = get_logical_device();
+        logical_device->wait_idle();
+        OnWindowSizeChanged_Pre();
+        m_swapchain.recreate(this, extent());
+        if (m_swapchain.can_render())
+          OnWindowSizeChanged_Post();
+        break;
+      }
+      default:
+        throw std::runtime_error("Could not present swapchain image!");
+    }
+  }
+}
+
+vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass) const
+{
+  vk::FramebufferCreateInfo framebuffer_create_info{
+    .flags = vk::FramebufferCreateFlags(0),
+    .renderPass = render_pass,
+    .attachmentCount = static_cast<uint32_t>(image_views.size()),
+    .pAttachments = image_views.data(),
+    .width = extent.width,
+    .height = extent.height,
+    .layers = 1
+  };
+
+  vulkan::LogicalDevice const* logical_device = get_logical_device();
+  return logical_device->handle().createFramebufferUnique(framebuffer_create_info);
+}
+
+void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass)
+{
+  vulkan::LogicalDevice const* logical_device = get_logical_device();
+
+  // Acquire swapchain image.
+  switch (logical_device->acquire_next_image(
+        *m_swapchain,
+        3000000000,
+        *current_frame.m_frame_resources->m_image_available_semaphore,
+        vk::Fence(),
+        current_frame.m_swapchain_image_index))
+  {
+    case vk::Result::eSuccess:
+    case vk::Result::eSuboptimalKHR:
+      break;
+    case vk::Result::eErrorOutOfDateKHR:
+      // Same as the tail of OnWindowSizeChanged.
+      logical_device->wait_idle();
+      OnWindowSizeChanged_Pre();
+      m_swapchain.recreate(this, extent());
+      if (m_swapchain.can_render())
+        OnWindowSizeChanged_Post();
+      break;
+    default:
+      throw std::runtime_error("Could not acquire swapchain image!");
+  }
+  // Create a framebuffer for current frame.
+  current_frame.m_frame_resources->m_framebuffer = create_framebuffer(
+      { *m_swapchain.image_views()[current_frame.m_swapchain_image_index],
+        *current_frame.m_frame_resources->m_depth_attachment.m_image_view },
+      m_swapchain.extent(), render_pass);
+}
+
 void VulkanWindow::finish_impl()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::finish_impl() [" << this << "]");
@@ -616,7 +738,7 @@ void VulkanWindow::OnWindowSizeChanged_Post()
 
   // Create depth attachment and transition it away from an undefined layout.
   image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eDepth);
-  for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources)
+  for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
     frame_resources_data->m_depth_attachment = get_logical_device()->create_image(
         swapchain().extent().width,
@@ -656,10 +778,10 @@ void VulkanWindow::create_frame_resources()
   // We only draw do things for the first window.
   vulkan::LogicalDevice const* logical_device = get_logical_device();
 
-  for (size_t i = 0; i < m_frame_resources.size(); ++i)
+  for (size_t i = 0; i < m_frame_resources_list.size(); ++i)
   {
-    m_frame_resources[i] = std::make_unique<vulkan::FrameResourcesData>();
-    auto& frame_resources = m_frame_resources[i];
+    m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>();
+    auto& frame_resources = m_frame_resources_list[i];
 
     frame_resources->m_image_available_semaphore = logical_device->create_semaphore();
     frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore();

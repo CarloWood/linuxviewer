@@ -54,6 +54,16 @@ class Swapchain
     return m_extent;
   }
 
+  image_views_type const& image_views() const
+  {
+    return m_image_views;
+  }
+
+  vk::SwapchainKHR operator*()
+  {
+    return *m_swapchain;
+  }
+
   void set_image_memory_barriers(task::VulkanWindow const* owning_window,
       vk::ImageSubresourceRange const& image_subresource_range,
       vk::ImageLayout current_image_layout,

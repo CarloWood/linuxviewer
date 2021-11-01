@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "SampleParameters.h"
+#include "vulkan/FrameResourcesData.h"
 #include "vulkan/VertexData.h"
 #include "vulkan/VulkanWindow.h"
 #include "vulkan/LogicalDevice.h"
@@ -48,11 +49,125 @@ class Window : public task::VulkanWindow
     DoutEntering(dc::notice, "Window::ResetMouse()");
   }
 
+  void PerformHardcoreCalculations(int duration) const
+  {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    long long calculations_time = 0;
+    float m = 300.5678;
+
+    do
+    {
+      asm volatile ("" : "+r" (m));
+      float _sin = std::sin(std::cos(m));
+      float _pow = std::pow(m, _sin);
+      float _cos = std::cos(std::sin(_pow));
+      asm volatile ("" :: "r" (_cos));
+
+      calculations_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+    }
+    while (calculations_time < 1000 * duration);
+  }
+
   void draw_frame() override
   {
     DoutEntering(dc::notice, "Window::draw_frame() [" << this << "]");
 
-    //current_frame.ResourceCount = Parameters.FrameResourcesCount;
+    m_current_frame.m_resource_count = Parameters.FrameResourcesCount;
+    auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+    // Start frame - calculate times and prepare GUI.
+    start_frame(m_current_frame);
+
+    // Acquire swapchain image and create a framebuffer.
+    acquire_image(m_current_frame, *Parameters.RenderPass);
+
+    // Draw scene/prepare scene's command buffers.
+    {
+      auto frame_generation_begin_time = std::chrono::high_resolution_clock::now();
+
+      // Perform calculation influencing current frame.
+      PerformHardcoreCalculations(Parameters.PreSubmitCpuWorkTime);
+
+      // Draw sample-specific data - includes command buffer submission!!
+      DrawSample(m_current_frame);
+
+      // Perform calculations influencing rendering of a next frame.
+      PerformHardcoreCalculations(Parameters.PostSubmitCpuWorkTime);
+
+      auto frame_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_generation_begin_time);
+      float float_frame_generation_time = static_cast<float>(frame_generation_time.count() * 0.001f);
+      Parameters.FrameGenerationTime = Parameters.FrameGenerationTime * 0.99f + float_frame_generation_time * 0.01f;
+    }
+
+    // Draw GUI and present swapchain image.
+    finish_frame(m_current_frame, *m_current_frame.m_frame_resources->m_post_command_buffer, *Parameters.PostRenderPass);
+
+    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
+    float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
+    Parameters.TotalFrameTime = Parameters.TotalFrameTime * 0.99f + float_frame_time * 0.01f;
+  }
+
+  void DrawSample(vulkan::CurrentFrameData& current_frame)
+  {
+    DoutEntering(dc::vulkan, "Window::DrawSample() [" << this << "]");
+    auto frame_resources = current_frame.m_frame_resources;
+
+    std::vector<vk::ClearValue> clear_values = {
+      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } },
+      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } }
+    };
+
+    auto swapchain_extent = swapchain().extent();
+
+    vk::RenderPassBeginInfo render_pass_begin_info{
+      .renderPass = *Parameters.RenderPass,
+      .framebuffer = *frame_resources->m_framebuffer,
+      .renderArea = {
+        vk::Offset2D(),                                 // VkOffset2D                               offset
+        swapchain_extent,                               // VkExtent2D                               extent
+      },
+      .clearValueCount = static_cast<uint32_t>(clear_values.size()),
+      .pClearValues = clear_values.data()
+    };
+
+    vk::Viewport viewport{
+      .x = 0,
+      .y = 0,
+      .width = static_cast<float>(swapchain_extent.width),
+      .height = static_cast<float>(swapchain_extent.height),
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f
+    };
+
+    vk::Rect2D scissor{
+      .offset = vk::Offset2D(),
+      .extent = swapchain_extent
+    };
+
+    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+    vk::CommandBuffer command_buffer = *frame_resources->m_pre_command_buffer;
+
+    command_buffer.begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
+    command_buffer.beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
+    command_buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, *Parameters.GraphicsPipeline );
+    command_buffer.setViewport( 0, { viewport } );
+    command_buffer.setScissor( 0, { scissor } );
+    command_buffer.bindVertexBuffers( 0, { *Parameters.VertexBuffer.m_buffer, *Parameters.InstanceBuffer.m_buffer }, { 0, 0 } );
+    command_buffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *Parameters.PipelineLayout, 0, { *Parameters.DescriptorSet.m_handle }, {} );
+    command_buffer.pushConstants( *Parameters.PipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
+    command_buffer.draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
+    command_buffer.endRenderPass();
+    command_buffer.end();
+
+    vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    vk::SubmitInfo submit_info{
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = &(*current_frame.m_frame_resources->m_image_available_semaphore),
+      .pWaitDstStageMask = &wait_dst_stage_mask,
+      .commandBufferCount = 1,
+      .pCommandBuffers = &command_buffer
+    };
+    presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
   }
 
   void create_vertex_buffers() override

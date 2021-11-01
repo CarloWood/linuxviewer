@@ -84,8 +84,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
  protected:
   // UNSORTED REMAINING OBJECTS.
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources;
-  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, 0 };
+  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;
+  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, {} };
   vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
@@ -216,6 +216,12 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 
   virtual void OnWindowSizeChanged_Pre();
   virtual void OnWindowSizeChanged_Post();
+
+ protected:
+  void start_frame(vulkan::CurrentFrameData& current_frame);
+  void finish_frame(vulkan::CurrentFrameData& current_frame, vk::CommandBuffer command_buffer, vk::RenderPass render_pass);
+  vk::UniqueFramebuffer create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass) const;
+  void acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass);
 
  protected:
   /// Call finish() (or abort()), not delete.
