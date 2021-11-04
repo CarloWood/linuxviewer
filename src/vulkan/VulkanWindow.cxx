@@ -228,12 +228,12 @@ void VulkanWindow::set_image_memory_barrier(
 
   // Allocate temporary command buffer from a temporary command pool.
   vulkan::LogicalDevice* logical_device = get_logical_device();
-  vk::UniqueCommandPool command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer command_buffer = std::move(logical_device->allocate_command_buffers(*command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier image_memory_barrier{
       .srcAccessMask = current_image_access,
@@ -245,9 +245,9 @@ void VulkanWindow::set_image_memory_barrier(
       .image = vh_image,
       .subresourceRange = image_subresource_range
     };
-    command_buffer->pipelineBarrier(generating_stages, consuming_stages, {}, {}, {}, { image_memory_barrier });
+    tmp_command_buffer->pipelineBarrier(generating_stages, consuming_stages, {}, {}, {}, { image_memory_barrier });
 
-    command_buffer->end();
+    tmp_command_buffer->end();
   }
   // Submit
   {
@@ -258,7 +258,7 @@ void VulkanWindow::set_image_memory_barrier(
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*command_buffer),
+      .pCommandBuffers = &(*tmp_command_buffer),
       .signalSemaphoreCount = 0,
       .pSignalSemaphores = nullptr
     };
@@ -431,12 +431,12 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
     logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
   // Allocate temporary command buffer from a temporary command pool.
-  vk::UniqueCommandPool command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer command_buffer = std::move(logical_device->allocate_command_buffers(*command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::BufferMemoryBarrier pre_transfer_buffer_memory_barrier{
       .srcAccessMask = current_buffer_access,
@@ -447,14 +447,14 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = buffer_offset,
       .size = data_size
     };
-    command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags( 0 ), {}, { pre_transfer_buffer_memory_barrier }, {});
+    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags( 0 ), {}, { pre_transfer_buffer_memory_barrier }, {});
 
     vk::BufferCopy buffer_copy_region{
       .srcOffset = 0,
       .dstOffset = buffer_offset,
       .size = data_size
     };
-    command_buffer->copyBuffer(*staging_buffer.m_buffer.m_buffer, target_buffer, { buffer_copy_region });
+    tmp_command_buffer->copyBuffer(*staging_buffer.m_buffer.m_buffer, target_buffer, { buffer_copy_region });
 
     vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -465,8 +465,8 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = buffer_offset,
       .size = data_size
     };
-    command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
-    command_buffer->end();
+    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
+    tmp_command_buffer->end();
   }
   // Submit
   {
@@ -477,7 +477,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*command_buffer)
+      .pCommandBuffers = &(*tmp_command_buffer)
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
     if (logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
@@ -515,12 +515,12 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   }
 
   // Allocate temporary command buffer from a temporary command pool
-  vk::UniqueCommandPool command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer command_buffer = std::move(logical_device->allocate_command_buffers(*command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier pre_transfer_image_memory_barrier{
       .srcAccessMask = current_image_access,
@@ -532,7 +532,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .image = target_image,
       .subresourceRange = image_subresource_range
     };
-    command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
+    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
 
     std::vector<vk::BufferImageCopy> buffer_image_copy;
     buffer_image_copy.reserve(image_subresource_range.levelCount);
@@ -556,7 +556,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
         }
       });
     }
-    command_buffer->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    tmp_command_buffer->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
     vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -568,9 +568,9 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .image = target_image,
       .subresourceRange = image_subresource_range
     };
-    command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
+    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
 
-    command_buffer->end();
+    tmp_command_buffer->end();
   }
 
   // Submit
@@ -582,7 +582,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*command_buffer)
+      .pCommandBuffers = &(*tmp_command_buffer)
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
     if (logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
