@@ -41,6 +41,7 @@ char const* VulkanWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(VulkanWindow_logical_device_index_available);
     AI_CASE_RETURN(VulkanWindow_acquire_queues);
     AI_CASE_RETURN(VulkanWindow_create_swapchain);
+    AI_CASE_RETURN(VulkanWindow_create_remaining_objects);
     AI_CASE_RETURN(VulkanWindow_render_loop);
     AI_CASE_RETURN(VulkanWindow_close);
   }
@@ -124,10 +125,21 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       [[fallthrough]];
     case VulkanWindow_create_swapchain:
       create_swapchain();
+      set_state(VulkanWindow_create_remaining_objects);
+      [[fallthrough]];
+    case VulkanWindow_create_remaining_objects:
+      m_frame_resources_list.resize(5);   // FIXME: belongs in derived class.
+      create_frame_resources();
+      create_render_passes();
+      create_descriptor_set();
+      create_textures();
+      create_pipeline_layout();
+      create_graphics_pipeline();
+      create_vertex_buffers();
       set_state(VulkanWindow_render_loop);
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);
-      break;
+      [[fallthrough]];
     case VulkanWindow_render_loop:
       if (AI_LIKELY(!m_must_close && m_swapchain.can_render()))
       {
@@ -212,6 +224,8 @@ void VulkanWindow::set_image_memory_barrier(
     vk::AccessFlags new_image_access,
     vk::PipelineStageFlags consuming_stages) const
 {
+  DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(...)");
+
   // Allocate temporary command buffer from a temporary command pool.
   vulkan::LogicalDevice* logical_device = get_logical_device();
   vk::UniqueCommandPool command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
@@ -578,6 +592,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
 
 void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
 {
+  DoutEntering(dc::vulkan, "VulkanWindow::start_frame(...)");
 #if 0
   Timer.Update();
   Gui.StartFrame( Timer, MouseState );
@@ -596,24 +611,23 @@ void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
 
 void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::CommandBuffer command_buffer, vk::RenderPass render_pass)
 {
-#if 0
+  DoutEntering(dc::vulkan, "VulkanWindow::finish_frame(...)");
   // Draw GUI
   {
-    Gui.Draw( current_frame.ResourceIndex, command_buffer, render_pass, *current_frame.FrameResources->Framebuffer );
+//    Gui.Draw( current_frame.ResourceIndex, command_buffer, render_pass, *current_frame.FrameResources->Framebuffer );
 
     vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    vk::SubmitInfo submit_info(
-      0,                                                            // uint32_t                     waitSemaphoreCount
-      nullptr,                                                      // const VkSemaphore           *pWaitSemaphores
-      &wait_dst_stage_mask,                                         // const VkPipelineStageFlags  *pWaitDstStageMask;
-      1,                                                            // uint32_t                     commandBufferCount
-      &command_buffer,                                              // const VkCommandBuffer       *pCommandBuffers
-      1,                                                            // uint32_t                     signalSemaphoreCount
-      &(*current_frame.FrameResources->FinishedRenderingSemaphore)  // const VkSemaphore           *pSignalSemaphores
-    );
-    GetPresentationSurface().GetGraphicsQueue().Handle_queue.submit( { submit_info }, *current_frame.FrameResources->Fence );
+    vk::SubmitInfo submit_info{
+      .waitSemaphoreCount = 0,
+      .pWaitSemaphores = nullptr,
+      .pWaitDstStageMask = &wait_dst_stage_mask,
+//      .commandBufferCount = 1,
+//      .pCommandBuffers = &command_buffer,
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores = &(*current_frame.m_frame_resources->m_finished_rendering_semaphore)
+    };
+    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, *current_frame.m_frame_resources->m_fence);
   }
-#endif
   // Present frame
   {
     vk::Result result = vk::Result::eSuccess;
@@ -651,6 +665,7 @@ void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::Com
 
 vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass) const
 {
+  DoutEntering(dc::vulkan, "VulkanWindow::create_framebuffer(...)");
   vk::FramebufferCreateInfo framebuffer_create_info{
     .flags = vk::FramebufferCreateFlags(0),
     .renderPass = render_pass,
@@ -667,6 +682,7 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
 
 void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass)
 {
+  DoutEntering(dc::vulkan, "VulkanWindow::acquire_image(...)");
   vulkan::LogicalDevice const* logical_device = get_logical_device();
 
   // Acquire swapchain image.
@@ -725,6 +741,9 @@ void VulkanWindow::OnWindowSizeChanged_Pre()
 void VulkanWindow::OnWindowSizeChanged_Post()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged_Post()");
+
+  // Should already be set.
+  ASSERT(swapchain().extent().width > 0);
 
 //FIXME, add m_gui    m_gui.OnWindowSizeChanged();
 
@@ -794,6 +813,13 @@ void VulkanWindow::create_frame_resources()
     frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
     frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
   }
+
+  m_current_frame = vulkan::CurrentFrameData{
+    .m_frame_resources = m_frame_resources_list[0].get(),
+    .m_resource_count = static_cast<uint32_t>(m_frame_resources_list.size()),
+    .m_resource_index = 0,
+    .m_swapchain_image_index = {}
+  };
 
   OnWindowSizeChanged_Post();
 }

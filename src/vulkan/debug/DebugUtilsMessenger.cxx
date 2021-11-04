@@ -29,6 +29,10 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     dcp = &DEBUGCHANNELS::dc::vkerror;
     Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[0m";
+#ifdef CWDEBUG
+    if (NAMESPACE_DEBUG::being_traced())
+      DoutFatal(dc::core, "Trap point");
+#endif
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {

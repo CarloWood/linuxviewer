@@ -17,15 +17,15 @@ struct SampleParameters
   float                                       TotalFrameTime;
   int                                         FrameResourcesCount;
 
-  vk::UniqueRenderPass                        RenderPass;
-  vk::UniqueRenderPass                        PostRenderPass;
-  vulkan::DescriptorSetParameters                     DescriptorSet;
-  vulkan::ImageParameters                             BackgroundTexture;
-  vulkan::ImageParameters                             Texture;
-  vk::UniquePipelineLayout                    PipelineLayout;
-  vk::UniquePipeline                          GraphicsPipeline;
-  vulkan::BufferParameters                            VertexBuffer;
-  vulkan::BufferParameters                            InstanceBuffer;
+//  vk::UniqueRenderPass                        RenderPass;
+//  vk::UniqueRenderPass                        PostRenderPass;
+//  vulkan::DescriptorSetParameters                     DescriptorSet;
+//  vulkan::ImageParameters                             BackgroundTexture;
+//  vulkan::ImageParameters                             Texture;
+//  vk::UniquePipelineLayout                    PipelineLayout;
+//  vk::UniquePipeline                          GraphicsPipeline;
+//  vulkan::BufferParameters                            VertexBuffer;
+//  vulkan::BufferParameters                            InstanceBuffer;
 
   SampleParameters() :
   ObjectsCount(100),
@@ -33,16 +33,16 @@ struct SampleParameters
   PostSubmitCpuWorkTime(0),
   FrameGenerationTime(0),
   TotalFrameTime(0),
-  FrameResourcesCount(1),
-  RenderPass(),
-  PostRenderPass(),
-  DescriptorSet(),
-  BackgroundTexture(),
-  Texture(),
-  PipelineLayout(),
-  GraphicsPipeline(),
-  VertexBuffer(),
-  InstanceBuffer()
+  FrameResourcesCount(1)
+//  RenderPass(),
+//  PostRenderPass(),
+//  DescriptorSet(),
+//  BackgroundTexture(),
+//  Texture(),
+//  PipelineLayout(),
+//  GraphicsPipeline(),
+//  VertexBuffer(),
+//  InstanceBuffer()
   {
   }
 };

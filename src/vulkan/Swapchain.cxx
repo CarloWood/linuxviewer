@@ -173,13 +173,13 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
   recreate(owning_window, desired_extent);
 }
 
-void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D window_extent)
+void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D surface_extent)
 {
-  DoutEntering(dc::vulkan, "Swapchain::recreate(" << owning_window << ", " << window_extent << ")");
+  DoutEntering(dc::vulkan, "Swapchain::recreate(" << owning_window << ", " << surface_extent << ")");
 
   m_can_render = false;
 
-  if ((window_extent.width == 0) || (window_extent.height == 0))
+  if ((surface_extent.width == 0) || (surface_extent.height == 0))
   {
     // Current surface size is (0, 0) so we can't create a swapchain or render anything (m_can_render == false).
     // But we don't want to kill the application as this situation may occur i.e. when window gets minimized.

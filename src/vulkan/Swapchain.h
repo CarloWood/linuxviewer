@@ -21,11 +21,11 @@ class Swapchain
  private:
   std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_create_info.
   vk::SwapchainCreateInfoKHR    m_create_info;          // A cached copy of the create info object, initialized in prepare and reused in recreate.
+                                                        // Contains a copy of the last (non-zero) extent of the owning_window that was passed to recreate.
   vk::UniqueSwapchainKHR        m_swapchain;
   images_type                   m_vhv_images;
   image_views_type              m_image_views;
   SwapchainIndex                m_swapchain_end;        // The actual number of swap chain images.
-  vk::Extent2D                  m_extent;               // Copy of the last (non-zero) value that was passed to recreate.
   vk::PresentModeKHR            m_present_mode;
   vk::ImageUsageFlags           m_usage_flags;
   bool                          m_can_render;
@@ -51,7 +51,7 @@ class Swapchain
 
   vk::Extent2D const& extent() const
   {
-    return m_extent;
+    return m_create_info.imageExtent;
   }
 
   image_views_type const& image_views() const

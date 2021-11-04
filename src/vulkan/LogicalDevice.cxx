@@ -873,8 +873,6 @@ void LogicalDevice::multiplex_impl(state_type run_state)
       m_logical_device_index_available_event.trigger();
       // Allow deletion of this window now that we're done with this pointer.
       m_root_window.reset();
-      // Create the unsorted remaining objects. FIXME: should this be done here?
-      m_application->create_unsorted_remaining_objects();
       // This task is done.
       set_state(LogicalDevice_done);
       [[fallthrough]];

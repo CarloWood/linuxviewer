@@ -102,6 +102,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
     VulkanWindow_logical_device_index_available,
     VulkanWindow_acquire_queues,
     VulkanWindow_create_swapchain,
+    VulkanWindow_create_remaining_objects,
     VulkanWindow_render_loop,
     VulkanWindow_close
   };
@@ -203,13 +204,13 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
 
   // Called from Application::*same name*.
+  void create_frame_resources();
   virtual void create_render_passes() = 0;
-  virtual void create_graphics_pipeline() = 0;
-  virtual void create_vertex_buffers() = 0;
   void create_descriptor_set();
   void create_textures();
   void create_pipeline_layout();
-  void create_frame_resources();
+  virtual void create_graphics_pipeline() = 0;
+  virtual void create_vertex_buffers() = 0;
 
  protected:
   virtual void draw_frame() = 0;

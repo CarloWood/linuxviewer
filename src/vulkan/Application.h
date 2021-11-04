@@ -137,16 +137,6 @@ class Application
   friend class task::LogicalDevice;
   int create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window);
 
-  void create_unsorted_remaining_objects();
-  // Calls all of:
-  void create_frame_resources();
-  void create_render_passes();
-  void create_descriptor_set();
-  void create_textures();
-  void create_pipeline_layout();
-  void create_graphics_pipeline();
-  void create_vertex_buffers();
-
   // Accessor.
   vk::Instance vh_instance() const { return *m_instance; }
 

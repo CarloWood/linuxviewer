@@ -79,7 +79,7 @@ class Window : public task::VulkanWindow
     start_frame(m_current_frame);
 
     // Acquire swapchain image and create a framebuffer.
-    acquire_image(m_current_frame, *Parameters.RenderPass);
+    acquire_image(m_current_frame, *m_render_pass);
 
     // Draw scene/prepare scene's command buffers.
     {
@@ -100,11 +100,13 @@ class Window : public task::VulkanWindow
     }
 
     // Draw GUI and present swapchain image.
-    finish_frame(m_current_frame, *m_current_frame.m_frame_resources->m_post_command_buffer, *Parameters.PostRenderPass);
+    finish_frame(m_current_frame, *m_current_frame.m_frame_resources->m_post_command_buffer, *m_post_render_pass);
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
     Parameters.TotalFrameTime = Parameters.TotalFrameTime * 0.99f + float_frame_time * 0.01f;
+
+    Dout(dc::vulkan, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
   }
 
   void DrawSample(vulkan::CurrentFrameData& current_frame)
@@ -120,7 +122,7 @@ class Window : public task::VulkanWindow
     auto swapchain_extent = swapchain().extent();
 
     vk::RenderPassBeginInfo render_pass_begin_info{
-      .renderPass = *Parameters.RenderPass,
+      .renderPass = *m_render_pass,
       .framebuffer = *frame_resources->m_framebuffer,
       .renderArea = {
         vk::Offset2D(),                                 // VkOffset2D                               offset
@@ -147,17 +149,19 @@ class Window : public task::VulkanWindow
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
     vk::CommandBuffer command_buffer = *frame_resources->m_pre_command_buffer;
 
+    Dout(dc::vulkan, "Start recording command buffer.");
     command_buffer.begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
     command_buffer.beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
-    command_buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, *Parameters.GraphicsPipeline );
+    command_buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline );
     command_buffer.setViewport( 0, { viewport } );
     command_buffer.setScissor( 0, { scissor } );
-    command_buffer.bindVertexBuffers( 0, { *Parameters.VertexBuffer.m_buffer, *Parameters.InstanceBuffer.m_buffer }, { 0, 0 } );
-    command_buffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *Parameters.PipelineLayout, 0, { *Parameters.DescriptorSet.m_handle }, {} );
-    command_buffer.pushConstants( *Parameters.PipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
+    command_buffer.bindVertexBuffers( 0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 } );
+    command_buffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {} );
+    command_buffer.pushConstants( *m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
     command_buffer.draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
     command_buffer.endRenderPass();
     command_buffer.end();
+    Dout(dc::vulkan, "End recording command buffer.");
 
     vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     vk::SubmitInfo submit_info{
@@ -167,7 +171,9 @@ class Window : public task::VulkanWindow
       .commandBufferCount = 1,
       .pCommandBuffers = &command_buffer
     };
+    Dout(dc::vulkan, "Submitting command buffer.");
     presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
+    Dout(dc::vulkan, "Leaving Window::DrawSample.");
   }
 
   void create_vertex_buffers() override
@@ -274,7 +280,7 @@ class Window : public task::VulkanWindow
           .m_load_op = vk::AttachmentLoadOp::eClear,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
-          .m_final_layout = vk::ImageLayout::eColorAttachmentOptimal
+          .m_final_layout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
         },
         {
           .m_format = task::VulkanWindow::s_default_depth_format,
@@ -550,7 +556,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+//    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();
