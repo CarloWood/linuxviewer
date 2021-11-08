@@ -118,7 +118,7 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
 {
   DoutEntering(dc::vulkan, "Swapchain::prepare(" << owning_window << ", " << ", " << selected_usage << ", " << selected_present_mode << ")");
 
-  vk::PhysicalDevice vh_physical_device = owning_window->get_logical_device()->vh_physical_device();
+  vk::PhysicalDevice vh_physical_device = owning_window->logical_device().vh_physical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Query supported surface details.
@@ -186,7 +186,7 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
     return;
   }
 
-  vk::Device vh_logical_device = owning_window->get_logical_device()->handle();
+  vk::Device vh_logical_device = owning_window->logical_device().handle();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Wait until the old stuff isn't used anymore.

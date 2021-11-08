@@ -181,8 +181,6 @@ class Window : public task::VulkanWindow
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
 
-    vulkan::LogicalDevice const* logical_device = get_logical_device();
-
     // 3D model
     std::vector<vulkan::VertexData> vertex_data;
 
@@ -209,7 +207,7 @@ class Window : public task::VulkanWindow
       }
     }
 
-    m_vertex_buffer = logical_device->create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
+    m_vertex_buffer = logical_device().create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffer")));
     copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
@@ -225,7 +223,7 @@ class Window : public task::VulkanWindow
       instance_data[i + 3] = 0.0f;
     }
 
-    m_instance_buffer = logical_device->create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
+    m_instance_buffer = logical_device().create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
     copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
@@ -235,8 +233,6 @@ class Window : public task::VulkanWindow
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
-
-    vulkan::LogicalDevice const* logical_device = get_logical_device();
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
       {
@@ -293,7 +289,7 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
-      m_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+      m_render_pass = logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_render_pass")));
     }
 
@@ -315,7 +311,7 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
-      m_post_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+      m_post_render_pass = logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_post_render_pass")));
     }
   }
@@ -324,11 +320,9 @@ class Window : public task::VulkanWindow
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-    vk::UniqueShaderModule vertex_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv"
+    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv"
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
-    vk::UniqueShaderModule fragment_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv"
+    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv"
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
@@ -483,7 +477,7 @@ class Window : public task::VulkanWindow
       .basePipelineIndex = -1
     };
 
-    m_graphics_pipeline = logical_device->handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
+    m_graphics_pipeline = logical_device().handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
     DebugSetName(m_graphics_pipeline, debug_name_prefix("m_graphics_pipeline"));
   }
 };
@@ -564,7 +558,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-//    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

@@ -175,11 +175,11 @@ boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std
   return logical_device_task;
 }
 
-int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window)
+int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", " << (void*)root_window.get() << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", [" << root_window << "])");
 
-  logical_device->prepare(*m_instance, m_dispatch_loader, root_window.get());
+  logical_device->prepare(*m_instance, m_dispatch_loader, root_window);
   Dout(dc::vulkan, "Created LogicalDevice " << *logical_device);
 
   int logical_device_index;

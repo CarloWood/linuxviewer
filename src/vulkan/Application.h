@@ -135,7 +135,7 @@ class Application
       vk::Extent2D extent, task::VulkanWindow::window_cookie_type window_cookie, std::string&& title, task::LogicalDevice const* logical_device);
 
   friend class task::LogicalDevice;
-  int create_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window);
+  int create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window);
 
   // Accessor.
   vk::Instance vh_instance() const { return *m_instance; }

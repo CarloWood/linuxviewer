@@ -57,6 +57,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
  protected:
   // Constructor
   boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
+  vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
+                                                                          // VulkanWindow_logical_device_index_available.
 
  private:
   // set_title
@@ -144,6 +146,9 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
     signal(logical_device_index_available);
   }
 
+  // Called from LogicalDevice_create.
+  void cache_logical_device() { m_logical_device = get_logical_device(); }
+
   // Accessors.
   vk::SurfaceKHR vh_surface() const
   {
@@ -170,6 +175,14 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   }
 
   vulkan::LogicalDevice* get_logical_device() const;
+
+  // Return a cached value of get_logical_device().
+  vulkan::LogicalDevice const& logical_device() const
+  {
+    // Bug in linuxviewer. This should not be called before m_logical_device is initialized.
+    ASSERT(m_logical_device);
+    return *m_logical_device;
+  }
 
   vulkan::Swapchain const& swapchain() const
   {

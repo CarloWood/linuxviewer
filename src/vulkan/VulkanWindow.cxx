@@ -30,6 +30,9 @@ VulkanWindow::~VulkanWindow()
 
 vulkan::LogicalDevice* VulkanWindow::get_logical_device() const
 {
+  DoutEntering(dc::vulkan, "VulkanWindow::get_logical_device() [" << this << "]");
+  // This is a reasonable expensive call: it locks a mutex to access a vector.
+  // Therefore VulkanWindow stores a copy that can be used from the render loop.
   return m_application->get_logical_device(get_logical_device_index());
 }
 
@@ -108,6 +111,11 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       set_state(VulkanWindow_acquire_queues);
       [[fallthrough]];
     case VulkanWindow_acquire_queues:
+      // At this point the logical_device_index is available, which means we can call get_logical_device().
+      // Cache the pointer to the vulkan::LogicalDevice.
+      m_logical_device = get_logical_device();
+      // From this moment on we can use the accessor logical_device().
+      // Next get on with the real work.
       acquire_queues();
       if (m_logical_device_task)
       {
@@ -174,16 +182,14 @@ void VulkanWindow::acquire_queues()
   DoutEntering(dc::vulkan, "VulkanWindow::acquire_queues()");
   using vulkan::QueueFlagBits;
 
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
-  vulkan::Queue vh_graphics_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
+  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
   vulkan::Queue vh_presentation_queue;
 
   if (!vh_graphics_queue)
   {
     // The combination of eGraphics|ePresentation failed. We have to try separately.
-    vh_graphics_queue = logical_device->acquire_queue(QueueFlagBits::eGraphics, m_window_cookie);
-    vh_presentation_queue = logical_device->acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
+    vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics, m_window_cookie);
+    vh_presentation_queue = logical_device().acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
   }
   else
     vh_presentation_queue = vh_graphics_queue;
@@ -228,10 +234,9 @@ void VulkanWindow::set_image_memory_barrier(
   DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(...)");
 
   // Allocate temporary command buffer from a temporary command pool.
-  vulkan::LogicalDevice* logical_device = get_logical_device();
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+  vk::UniqueCommandPool tmp_command_pool = logical_device().create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
       COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device().allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
         COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
@@ -254,7 +259,7 @@ void VulkanWindow::set_image_memory_barrier(
   }
   // Submit
   {
-    auto fence = logical_device->create_fence(false
+    auto fence = logical_device().create_fence(false
         COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::fence")));
 
     vk::SubmitInfo submit_info{
@@ -267,7 +272,7 @@ void VulkanWindow::set_image_memory_barrier(
       .pSignalSemaphores = nullptr
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
-    if (logical_device->wait_for_fences( { *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
+    if (logical_device().wait_for_fences( { *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
       throw std::runtime_error("waitForFences");
   }
 }
@@ -275,8 +280,6 @@ void VulkanWindow::set_image_memory_barrier(
 void VulkanWindow::create_descriptor_set()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_descriptor_set() [" << this << "]");
-
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
 
   std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
     {
@@ -300,15 +303,13 @@ void VulkanWindow::create_descriptor_set()
     .descriptorCount = 2
   }};
 
-  m_descriptor_set = logical_device->create_descriptor_resources(layout_bindings, pool_sizes
+  m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
 }
 
 void VulkanWindow::create_textures()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_textures() [" << this << "]");
-
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
 
   // Background texture.
   {
@@ -317,7 +318,7 @@ void VulkanWindow::create_textures()
     // Create descriptor resources.
     {
       m_background_texture =
-        logical_device->create_image(
+        m_logical_device->create_image(
             width, height,
             vk::Format::eR8G8B8A8Unorm,
             vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
@@ -326,7 +327,7 @@ void VulkanWindow::create_textures()
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
 
       m_background_texture.m_sampler =
-        logical_device->create_sampler(
+        m_logical_device->create_sampler(
             vk::SamplerMipmapMode::eNearest,
             vk::SamplerAddressMode::eClampToEdge,
             VK_FALSE
@@ -355,7 +356,7 @@ void VulkanWindow::create_textures()
           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
         }
       };
-      logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
+      m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
     }
   }
 
@@ -365,10 +366,10 @@ void VulkanWindow::create_textures()
     std::vector<char> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
     // Create descriptor resources.
     {
-      m_texture = logical_device->create_image(width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+      m_texture = m_logical_device->create_image(width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
           vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-      m_texture.m_sampler = logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
+      m_texture.m_sampler = m_logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
     }
     // Copy data.
@@ -393,7 +394,7 @@ void VulkanWindow::create_textures()
           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
         }
       };
-      logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
+      m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
     }
   }
 }
@@ -402,14 +403,12 @@ void VulkanWindow::create_pipeline_layout()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_pipeline_layout() [" << this << "]");
 
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
   vk::PushConstantRange push_constant_ranges{
     .stageFlags = vk::ShaderStageFlagBits::eVertex,
     .offset = 0,
     .size = 4
   };
-  m_pipeline_layout = logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+  m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 }
 
@@ -421,14 +420,12 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
     buffer_offset << ", " << current_buffer_access << ", " << generating_stages << ", " <<
     new_buffer_access << ", " << consuming_stages << ") [" << this << "]");
 
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
   // Create staging buffer and map its memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+    staging_buffer.m_buffer = m_logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
+    staging_buffer.m_pointer = m_logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
 
@@ -437,14 +434,14 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = 0,
       .size = VK_WHOLE_SIZE
     };
-    logical_device->handle().flushMappedMemoryRanges({ memory_range });
+    m_logical_device->handle().flushMappedMemoryRanges({ memory_range });
 
-    logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
+    m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
   // Allocate temporary command buffer from a temporary command pool.
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+  vk::UniqueCommandPool tmp_command_pool = m_logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
       COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(m_logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
@@ -483,7 +480,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   }
   // Submit
   {
-    vk::UniqueFence fence = logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::fence")));
+    vk::UniqueFence fence = m_logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -493,7 +490,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .pCommandBuffers = &(*tmp_command_buffer)
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
-    if (logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
+    if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
       throw std::runtime_error("waitForFences");
   }
 }
@@ -507,14 +504,12 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " << generating_stages << ", " <<
       new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
 
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
   // Create staging buffer and map it's memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+    staging_buffer.m_buffer = m_logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
+    staging_buffer.m_pointer = m_logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
 
@@ -523,15 +518,15 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
         .offset = 0,
         .size = VK_WHOLE_SIZE
     };
-    logical_device->handle().flushMappedMemoryRanges({ memory_range });
+    m_logical_device->handle().flushMappedMemoryRanges({ memory_range });
 
-    logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
+    m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
 
   // Allocate temporary command buffer from a temporary command pool
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+  vk::UniqueCommandPool tmp_command_pool = m_logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
       COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(m_logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
@@ -591,7 +586,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
 
   // Submit
   {
-    vk::UniqueFence fence = logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::fence")));
+    vk::UniqueFence fence = m_logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -601,7 +596,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .pCommandBuffers = &(*tmp_command_buffer)
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
-    if (logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
+    if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
       throw std::runtime_error("waitForFences");
   }
 }
@@ -614,15 +609,13 @@ void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
   Gui.StartFrame( Timer, MouseState );
   PrepareGUIFrame();
 #endif
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
   current_frame.m_resource_index = (current_frame.m_resource_index + 1) % current_frame.m_resource_count;
   current_frame.m_frame_resources = m_frame_resources_list[current_frame.m_resource_index].get();
 
-  if (logical_device->wait_for_fences({ *current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  if (m_logical_device->wait_for_fences({ *current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error( "Waiting for a fence takes too long!" );
 
-  logical_device->reset_fences({ *current_frame.m_frame_resources->m_fence });
+  m_logical_device->reset_fences({ *current_frame.m_frame_resources->m_fence });
 }
 
 void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::CommandBuffer command_buffer, vk::RenderPass render_pass)
@@ -665,8 +658,7 @@ void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::Com
       case vk::Result::eErrorOutOfDateKHR:
       {
         // Same as the tail of OnWindowSizeChanged.
-        vulkan::LogicalDevice const* logical_device = get_logical_device();
-        logical_device->wait_idle();
+        m_logical_device->wait_idle();
         OnWindowSizeChanged_Pre();
         m_swapchain.recreate(this, extent());
         if (m_swapchain.can_render())
@@ -693,8 +685,7 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
     .layers = 1
   };
 
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-  vk::UniqueFramebuffer framebuffer = logical_device->handle().createFramebufferUnique(framebuffer_create_info);
+  vk::UniqueFramebuffer framebuffer = m_logical_device->handle().createFramebufferUnique(framebuffer_create_info);
   DebugSetName(framebuffer, debug_name);
   return framebuffer;
 }
@@ -702,10 +693,9 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
 void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass)
 {
   DoutEntering(dc::vulkan, "VulkanWindow::acquire_image(...)");
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
 
   // Acquire swapchain image.
-  switch (logical_device->acquire_next_image(
+  switch (m_logical_device->acquire_next_image(
         *m_swapchain,
         3000000000,
         *current_frame.m_frame_resources->m_image_available_semaphore,
@@ -717,7 +707,7 @@ void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::Re
       break;
     case vk::Result::eErrorOutOfDateKHR:
       // Same as the tail of OnWindowSizeChanged.
-      logical_device->wait_idle();
+      m_logical_device->wait_idle();
       OnWindowSizeChanged_Pre();
       m_swapchain.recreate(this, extent());
       if (m_swapchain.can_render())
@@ -782,7 +772,7 @@ void VulkanWindow::OnWindowSizeChanged_Post()
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
-    frame_resources_data->m_depth_attachment = get_logical_device()->create_image(
+    frame_resources_data->m_depth_attachment = m_logical_device->create_image(
         swapchain().extent().width,
         swapchain().extent().height,
         s_default_depth_format,
@@ -819,8 +809,6 @@ void VulkanWindow::create_frame_resources()
   DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
 
   // We only draw do things for the first window.
-  vulkan::LogicalDevice const* logical_device = get_logical_device();
-
   for (size_t i = 0; i < m_frame_resources_list.size(); ++i)
   {
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>();
@@ -829,21 +817,21 @@ void VulkanWindow::create_frame_resources()
     vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + std::to_string(i) + "]");
 #endif
 
-    frame_resources->m_image_available_semaphore = logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
-    frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
-    frame_resources->m_fence = logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_fence")));
+    frame_resources->m_image_available_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
+    frame_resources->m_finished_rendering_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
+    frame_resources->m_fence = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_fence")));
 
     // Too specialized (should this be part of a derived class?)
     frame_resources->m_command_pool =
-      logical_device->create_command_pool(
+      m_logical_device->create_command_pool(
           m_presentation_surface.queue_family_indices()[0],
           vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient
           COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
 
-    frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
+    frame_resources->m_pre_command_buffer = std::move(m_logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
           COMMA_CWDEBUG_ONLY(ambifix("->m_pre_command_buffer")))[0]);
 
-    frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
+    frame_resources->m_post_command_buffer = std::move(m_logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
           COMMA_CWDEBUG_ONLY(ambifix("->m_post_command_buffer")))[0]);
   }
 

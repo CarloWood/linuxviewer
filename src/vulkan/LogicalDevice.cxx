@@ -914,7 +914,9 @@ void LogicalDevice::multiplex_impl(state_type run_state)
       break;
     case LogicalDevice_create:
       // Create a logical device that supports presentation on m_root_window and add it to the application.
-      m_index = m_application->create_device(std::move(m_logical_device), std::move(m_root_window));
+      m_index = m_application->create_device(std::move(m_logical_device), m_root_window.get());
+      // Store a cached value of the vulkan::LogicalDevice* in this window.
+      m_root_window->cache_logical_device();
       // Notify child windows that the logical device index is available.
       m_logical_device_index_available_event.trigger();
       // Allow deletion of this window now that we're done with this pointer.
