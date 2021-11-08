@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LOGICAL_DEVICE_DECLARATION_H
+#define LOGICAL_DEVICE_DECLARATION_H
 
 #include "DispatchLoader.h"
 #include "VulkanWindow.h"
@@ -13,9 +14,11 @@
 
 namespace vulkan {
 
+// Forward declarations.
 class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
 class PresentationSurface;
+struct AmbifixOwner;
 
 // The collection of queue family properties for a given physical device.
 class QueueFamilies
@@ -68,8 +71,11 @@ class LogicalDevice
   void print_members(std::ostream& os, char const* prefix) const;
 
 #ifdef CWDEBUG
+  // Set debug name for this device.
   void set_debug_name(std::string debug_name) { m_debug_name = std::move(debug_name); }
   std::string const& debug_name() const { return m_debug_name; }
+  // Set debug name for an object created from this device.
+  void set_debug_name(vk::DebugUtilsObjectNameInfoEXT const& name_info) const { m_device->setDebugUtilsObjectNameEXT(name_info); }
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
@@ -79,21 +85,16 @@ class LogicalDevice
   vk::UniqueRenderPass create_render_pass(
       std::vector<RenderPassAttachmentData> const& attachment_descriptions,
       std::vector<RenderPassSubpassData> const& subpass_descriptions,
-      std::vector<vk::SubpassDependency> const& dependencies) const;
+      std::vector<vk::SubpassDependency> const& dependencies
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
   void wait_idle() const { m_device->waitIdle(); }
 
   // Unsorted additional functions.
-  vk::UniqueSemaphore create_semaphore() const
-  {
-    return m_device->createSemaphoreUnique({});
-  }
-  vk::UniqueFence create_fence(bool signaled) const
-  {
-    return m_device->createFenceUnique({ .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags(0u) });
-  }
+  inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
     return m_device->waitForFences(fences, wait_all, timeout);
@@ -102,10 +103,7 @@ class LogicalDevice
   {
     m_device->resetFences(fences);
   }
-  vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags) const
-  {
-    return m_device->createCommandPoolUnique({ .flags = flags, .queueFamilyIndex = queue_family_index });
-  }
+  inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
   {
     uint32_t new_image_index;
@@ -113,26 +111,39 @@ class LogicalDevice
     image_index_out = SwapchainIndex(new_image_index);
     return result;
   }
-  void create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view) const;
-  void create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image) const;
-  ImageParameters create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect) const;
-  vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename) const;
-  vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords) const;
-  void allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const;
-  void create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool) const;
-  DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes) const;
-  void create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout) const;
-  void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool,
-      std::vector<vk::UniqueDescriptorSet>& descriptor_sets) const;
-  std::vector<vk::UniqueCommandBuffer> allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count) const;
+  void create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  ImageParameters create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  std::vector<vk::UniqueCommandBuffer> allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;
-  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts,
-      std::vector<vk::PushConstantRange> const& push_constant_ranges) const;
-  void create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer & buffer) const;
-  void allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory) const;
-  BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty) const;
+  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer& buffer
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 
  private:
   // Override this function to change the default physical device features.
@@ -196,3 +207,37 @@ class LogicalDevice : public AIStatefulTask
 };
 
 } // namespace task
+
+#include "debug/DebugSetName.h"
+#endif // LOGICAL_DEVICE_DECLARATION_H
+
+#ifndef LOGICAL_DEVICE_DEFINITIONS_H
+#define LOGICAL_DEVICE_DEFINITIONS_H
+
+namespace vulkan {
+
+// Define inlined functions that use DebugSetName (see https://stackoverflow.com/a/69873866/1487069).
+vk::UniqueSemaphore LogicalDevice::create_semaphore(CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  vk::UniqueSemaphore semaphore = m_device->createSemaphoreUnique({});
+  DebugSetName(semaphore, debug_name);
+  return semaphore;
+}
+
+vk::UniqueFence LogicalDevice::create_fence(bool signaled COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  vk::UniqueFence fence = m_device->createFenceUnique({ .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags(0u) });
+  DebugSetName(fence, debug_name);
+  return fence;
+}
+
+vk::UniqueCommandPool LogicalDevice::create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  vk::UniqueCommandPool command_pool = m_device->createCommandPoolUnique({ .flags = flags, .queueFamilyIndex = queue_family_index });
+  DebugSetName(command_pool, debug_name);
+  return command_pool;
+}
+
+} // namespace vulkan
+
+#endif // LOGICAL_DEVICE_DEFINITIONS_H

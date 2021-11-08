@@ -9,6 +9,7 @@
 #include "vk_utils/get_image_data.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
+#include "debug/DebugSetName.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
@@ -228,8 +229,10 @@ void VulkanWindow::set_image_memory_barrier(
 
   // Allocate temporary command buffer from a temporary command pool.
   vulkan::LogicalDevice* logical_device = get_logical_device();
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_pool")));
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
@@ -251,7 +254,8 @@ void VulkanWindow::set_image_memory_barrier(
   }
   // Submit
   {
-    auto fence = logical_device->create_fence(false);
+    auto fence = logical_device->create_fence(false
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -296,7 +300,8 @@ void VulkanWindow::create_descriptor_set()
     .descriptorCount = 2
   }};
 
-  m_descriptor_set = logical_device->create_descriptor_resources(layout_bindings, pool_sizes);
+  m_descriptor_set = logical_device->create_descriptor_resources(layout_bindings, pool_sizes
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
 }
 
 void VulkanWindow::create_textures()
@@ -317,13 +322,15 @@ void VulkanWindow::create_textures()
             vk::Format::eR8G8B8A8Unorm,
             vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
             vk::MemoryPropertyFlagBits::eDeviceLocal,
-            vk::ImageAspectFlagBits::eColor);
+            vk::ImageAspectFlagBits::eColor
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
 
       m_background_texture.m_sampler =
         logical_device->create_sampler(
             vk::SamplerMipmapMode::eNearest,
             vk::SamplerAddressMode::eClampToEdge,
-            VK_FALSE);
+            VK_FALSE
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
     }
     // Copy data.
     {
@@ -359,8 +366,10 @@ void VulkanWindow::create_textures()
     // Create descriptor resources.
     {
       m_texture = logical_device->create_image(width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-          vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor);
-      m_texture.m_sampler = logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE);
+          vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
+      m_texture.m_sampler = logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
     }
     // Copy data.
     {
@@ -400,7 +409,8 @@ void VulkanWindow::create_pipeline_layout()
     .offset = 0,
     .size = 4
   };
-  m_pipeline_layout = logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges });
+  m_pipeline_layout = logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 }
 
 void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
@@ -416,7 +426,8 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   // Create staging buffer and map its memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible);
+    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::staging_buffer.m_buffer")));
     staging_buffer.m_pointer = logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
@@ -431,8 +442,10 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
     logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
   // Allocate temporary command buffer from a temporary command pool.
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_pool")));
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
@@ -470,7 +483,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   }
   // Submit
   {
-    vk::UniqueFence fence = logical_device->create_fence(false);
+    vk::UniqueFence fence = logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -499,7 +512,8 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   // Create staging buffer and map it's memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible);
+    staging_buffer.m_buffer = logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
     staging_buffer.m_pointer = logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
@@ -515,8 +529,10 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   }
 
   // Allocate temporary command buffer from a temporary command pool
-  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient);
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1 )[0]);
+  vk::UniqueCommandPool tmp_command_pool = logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
+  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")))[0]);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
@@ -575,7 +591,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
 
   // Submit
   {
-    vk::UniqueFence fence = logical_device->create_fence(false);
+    vk::UniqueFence fence = logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -663,7 +679,8 @@ void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::Com
   }
 }
 
-vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass) const
+vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_framebuffer(...)");
   vk::FramebufferCreateInfo framebuffer_create_info{
@@ -677,7 +694,9 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
   };
 
   vulkan::LogicalDevice const* logical_device = get_logical_device();
-  return logical_device->handle().createFramebufferUnique(framebuffer_create_info);
+  vk::UniqueFramebuffer framebuffer = logical_device->handle().createFramebufferUnique(framebuffer_create_info);
+  DebugSetName(framebuffer, debug_name);
+  return framebuffer;
 }
 
 void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass)
@@ -711,7 +730,8 @@ void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::Re
   current_frame.m_frame_resources->m_framebuffer = create_framebuffer(
       { *m_swapchain.image_views()[current_frame.m_swapchain_image_index],
         *current_frame.m_frame_resources->m_depth_attachment.m_image_view },
-      m_swapchain.extent(), render_pass);
+      m_swapchain.extent(), render_pass
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("current_frame.m_frame_resources->m_framebuffer")));
 }
 
 void VulkanWindow::finish_impl()
@@ -757,6 +777,9 @@ void VulkanWindow::OnWindowSizeChanged_Post()
 
   // Create depth attachment and transition it away from an undefined layout.
   image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eDepth);
+#ifdef CWDEBUG
+  int i = 0;
+#endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
     frame_resources_data->m_depth_attachment = get_logical_device()->create_image(
@@ -765,7 +788,8 @@ void VulkanWindow::OnWindowSizeChanged_Post()
         s_default_depth_format,
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::ImageAspectFlagBits::eDepth);
+        vk::ImageAspectFlagBits::eDepth
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(i++) + "]->m_depth_attachment")));
     set_image_memory_barrier(
         *frame_resources_data->m_depth_attachment.m_image,
         image_subresource_range,
@@ -801,17 +825,26 @@ void VulkanWindow::create_frame_resources()
   {
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>();
     auto& frame_resources = m_frame_resources_list[i];
+#ifdef CWDEBUG
+    vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + std::to_string(i) + "]");
+#endif
 
-    frame_resources->m_image_available_semaphore = logical_device->create_semaphore();
-    frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore();
-    frame_resources->m_fence = logical_device->create_fence(true);
+    frame_resources->m_image_available_semaphore = logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
+    frame_resources->m_finished_rendering_semaphore = logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
+    frame_resources->m_fence = logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_fence")));
+
     // Too specialized (should this be part of a derived class?)
     frame_resources->m_command_pool =
       logical_device->create_command_pool(
           m_presentation_surface.queue_family_indices()[0],
-          vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient);
-    frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
-    frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1)[0]);
+          vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient
+          COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
+
+    frame_resources->m_pre_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
+          COMMA_CWDEBUG_ONLY(ambifix("->m_pre_command_buffer")))[0]);
+
+    frame_resources->m_post_command_buffer = std::move(logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
+          COMMA_CWDEBUG_ONLY(ambifix("->m_post_command_buffer")))[0]);
   }
 
   m_current_frame = vulkan::CurrentFrameData{
@@ -823,5 +856,12 @@ void VulkanWindow::create_frame_resources()
 
   OnWindowSizeChanged_Post();
 }
+
+#ifdef CWDEBUG
+vulkan::AmbifixOwner VulkanWindow::debug_name_prefix(std::string prefix) const
+{
+  return { this, std::move(prefix) };
+}
+#endif
 
 } // namespace task

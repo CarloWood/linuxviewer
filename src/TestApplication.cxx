@@ -8,6 +8,7 @@
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "debug.h"
+#include "debug/DebugSetName.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
@@ -209,7 +210,8 @@ class Window : public task::VulkanWindow
     }
 
     m_vertex_buffer = logical_device->create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
-        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffer")));
     copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
 
@@ -224,7 +226,8 @@ class Window : public task::VulkanWindow
     }
 
     m_instance_buffer = logical_device->create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
-        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
     copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
   }
@@ -290,7 +293,8 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
-      m_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+      m_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_render_pass")));
     }
 
     // Post-render pass - from color_attachment to present_src.
@@ -311,7 +315,8 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
-      m_post_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies);
+      m_post_render_pass = logical_device->create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_post_render_pass")));
     }
   }
 
@@ -321,8 +326,10 @@ class Window : public task::VulkanWindow
 
     vulkan::LogicalDevice const* logical_device = get_logical_device();
 
-    vk::UniqueShaderModule vertex_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv");
-    vk::UniqueShaderModule fragment_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv");
+    vk::UniqueShaderModule vertex_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv"
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
+    vk::UniqueShaderModule fragment_shader_module = logical_device->create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv"
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
       // Vertex shader.
@@ -477,6 +484,7 @@ class Window : public task::VulkanWindow
     };
 
     m_graphics_pipeline = logical_device->handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
+    DebugSetName(m_graphics_pipeline, debug_name_prefix("m_graphics_pipeline"));
   }
 };
 
