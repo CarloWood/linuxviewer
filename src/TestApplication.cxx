@@ -20,6 +20,12 @@ class Window : public task::VulkanWindow
  public:
   using task::VulkanWindow::VulkanWindow;
 
+  ~Window()
+  {
+    DoutEntering(dc::vulkan, "Window::~Window()");
+    m_logical_device->wait_idle();
+  }
+
  private:
   vk::UniqueRenderPass m_render_pass;
   vk::UniqueRenderPass m_post_render_pass;
@@ -172,6 +178,7 @@ class Window : public task::VulkanWindow
       .commandBufferCount = 1,
       .pCommandBuffers = &command_buffer
     };
+
     Dout(dc::vulkan, "Submitting command buffer.");
     presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
     Dout(dc::vulkan, "Leaving Window::DrawSample.");
