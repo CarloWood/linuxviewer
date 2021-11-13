@@ -32,11 +32,25 @@ class PresentationSurface
     return *m_surface;
   }
 
+  Queue const& graphics_queue() const
+  {
+    // First call set_queues.
+    ASSERT(m_graphics_queue);
+    return m_graphics_queue;
+  }
+
   vk::Queue vh_graphics_queue() const
   {
     // First call set_queues.
     ASSERT(m_graphics_queue);
     return m_graphics_queue;
+  }
+
+  Queue presentation_queue() const
+  {
+    // First call set_queues.
+    ASSERT(m_presentation_queue);
+    return m_presentation_queue;
   }
 
   vk::Queue vh_presentation_queue() const

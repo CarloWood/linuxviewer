@@ -233,15 +233,26 @@ void VulkanWindow::set_image_memory_barrier(
 {
   DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(...)");
 
-  // Allocate temporary command buffer from a temporary command pool.
-  vk::UniqueCommandPool tmp_command_pool = logical_device().create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(logical_device().allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_buffer")))[0]);
+  // We use a temporary command pool here.
+  using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
+
+  // Construct the temporary command pool.
+  command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_pool")));
+
+  // Take lock on command pool.
+  command_pool_type::wat tmp_command_pool_w(tmp_command_pool);
+
+  // Allocate a temporary command buffer from the temporary command pool.
+  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool_w->allocate_buffer(
+      CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_buffer")));
+
+  // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
+  auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier image_memory_barrier{
       .srcAccessMask = current_image_access,
@@ -253,10 +264,11 @@ void VulkanWindow::set_image_memory_barrier(
       .image = vh_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer->pipelineBarrier(generating_stages, consuming_stages, {}, {}, {}, { image_memory_barrier });
+    tmp_command_buffer_w->pipelineBarrier(generating_stages, consuming_stages, {}, {}, {}, { image_memory_barrier });
 
-    tmp_command_buffer->end();
+    tmp_command_buffer_w->end();
   }
+
   // Submit
   {
     auto fence = logical_device().create_fence(false
@@ -267,7 +279,7 @@ void VulkanWindow::set_image_memory_barrier(
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*tmp_command_buffer),
+      .pCommandBuffers = tmp_command_buffer_w,
       .signalSemaphoreCount = 0,
       .pSignalSemaphores = nullptr
     };
@@ -438,15 +450,27 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
 
     m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
-  // Allocate temporary command buffer from a temporary command pool.
-  vk::UniqueCommandPool tmp_command_pool = m_logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(m_logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_buffer")))[0]);
+
+  // We use a temporary command pool here.
+  using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
+
+  // Construct the temporary command pool.
+  command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_pool")));
+
+  // Take lock on command pool.
+  command_pool_type::wat tmp_command_pool_w(tmp_command_pool);
+
+  // Allocate a temporary command buffer from the temporary command pool.
+  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool_w->allocate_buffer(
+      CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::tmp_command_buffer")));
+
+  // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
+  auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::BufferMemoryBarrier pre_transfer_buffer_memory_barrier{
       .srcAccessMask = current_buffer_access,
@@ -457,14 +481,14 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = buffer_offset,
       .size = data_size
     };
-    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags( 0 ), {}, { pre_transfer_buffer_memory_barrier }, {});
+    tmp_command_buffer_w->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags( 0 ), {}, { pre_transfer_buffer_memory_barrier }, {});
 
     vk::BufferCopy buffer_copy_region{
       .srcOffset = 0,
       .dstOffset = buffer_offset,
       .size = data_size
     };
-    tmp_command_buffer->copyBuffer(*staging_buffer.m_buffer.m_buffer, target_buffer, { buffer_copy_region });
+    tmp_command_buffer_w->copyBuffer(*staging_buffer.m_buffer.m_buffer, target_buffer, { buffer_copy_region });
 
     vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -475,8 +499,8 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = buffer_offset,
       .size = data_size
     };
-    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
-    tmp_command_buffer->end();
+    tmp_command_buffer_w->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
+    tmp_command_buffer_w->end();
   }
   // Submit
   {
@@ -487,7 +511,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*tmp_command_buffer)
+      .pCommandBuffers = tmp_command_buffer_w
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
     if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
@@ -523,15 +547,26 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
     m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
   }
 
-  // Allocate temporary command buffer from a temporary command pool
-  vk::UniqueCommandPool tmp_command_pool = m_logical_device->create_command_pool(m_presentation_surface.queue_family_indices()[0], vk::CommandPoolCreateFlagBits::eTransient
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
-  vk::UniqueCommandBuffer tmp_command_buffer = std::move(m_logical_device->allocate_command_buffers(*tmp_command_pool, vk::CommandBufferLevel::ePrimary, 1
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")))[0]);
+  // We use a temporary command pool here.
+  using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
+
+  // Construct the temporary command pool.
+  command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
+
+  // Take lock on command pool.
+  command_pool_type::wat tmp_command_pool_w(tmp_command_pool);
+
+  // Allocate a temporary command buffer from the temporary command pool.
+  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool_w->allocate_buffer(
+      CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")));
+
+  // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
+  auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier pre_transfer_image_memory_barrier{
       .srcAccessMask = current_image_access,
@@ -543,7 +578,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .image = target_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
+    tmp_command_buffer_w->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
 
     std::vector<vk::BufferImageCopy> buffer_image_copy;
     buffer_image_copy.reserve(image_subresource_range.levelCount);
@@ -567,7 +602,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
         }
       });
     }
-    tmp_command_buffer->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    tmp_command_buffer_w->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
     vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -579,9 +614,9 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .image = target_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
+    tmp_command_buffer_w->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
 
-    tmp_command_buffer->end();
+    tmp_command_buffer_w->end();
   }
 
   // Submit
@@ -593,7 +628,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = &(*tmp_command_buffer)
+      .pCommandBuffers = tmp_command_buffer_w
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
     if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
@@ -618,7 +653,7 @@ void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
   m_logical_device->reset_fences({ *current_frame.m_frame_resources->m_fence });
 }
 
-void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, vk::CommandBuffer command_buffer, vk::RenderPass render_pass)
+void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, /* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
 {
   DoutEntering(dc::vulkan, "VulkanWindow::finish_frame(...)");
   // Draw GUI
@@ -808,31 +843,34 @@ void VulkanWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
 
-  // We only draw do things for the first window.
   for (size_t i = 0; i < m_frame_resources_list.size(); ++i)
   {
-    m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>();
-    auto& frame_resources = m_frame_resources_list[i];
 #ifdef CWDEBUG
     vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + std::to_string(i) + "]");
 #endif
+    m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
+        // Constructor arguments for m_command_pool. Too specialized? (should this be part of a derived class?)
+        m_logical_device, m_presentation_surface.graphics_queue().queue_family()
+        COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
+
+    auto& frame_resources = m_frame_resources_list[i];
 
     frame_resources->m_image_available_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
     frame_resources->m_finished_rendering_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
     frame_resources->m_fence = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_fence")));
 
-    // Too specialized (should this be part of a derived class?)
-    frame_resources->m_command_pool =
-      m_logical_device->create_command_pool(
-          m_presentation_surface.queue_family_indices()[0],
-          vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient
-          COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
 
-    frame_resources->m_pre_command_buffer = std::move(m_logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
-          COMMA_CWDEBUG_ONLY(ambifix("->m_pre_command_buffer")))[0]);
+      frame_resources->m_pre_command_buffer = command_pool_w->allocate_buffer(
+          CWDEBUG_ONLY(ambifix("->m_pre_command_buffer"))
+          );
 
-    frame_resources->m_post_command_buffer = std::move(m_logical_device->allocate_command_buffers(*frame_resources->m_command_pool, vk::CommandBufferLevel::ePrimary, 1
-          COMMA_CWDEBUG_ONLY(ambifix("->m_post_command_buffer")))[0]);
+      frame_resources->m_post_command_buffer = command_pool_w->allocate_buffer(
+          CWDEBUG_ONLY(ambifix("->m_post_command_buffer"))
+          );
+    } // Unlock command pool.
   }
 
   m_current_frame = vulkan::CurrentFrameData{

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ImageParameters.h"
+#include "CommandPool.h"
+#include "CommandBuffer.h"
+#include <memory>
 
 namespace vulkan {
 
@@ -12,9 +15,19 @@ struct FrameResourcesData
   vk::UniqueSemaphore     m_finished_rendering_semaphore;
   vk::UniqueFence         m_fence;
   // Too specialized?
-  vk::UniqueCommandPool   m_command_pool;
-  vk::UniqueCommandBuffer m_pre_command_buffer;
-  vk::UniqueCommandBuffer m_post_command_buffer;
+  using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
+  command_pool_type       m_command_pool;
+  handle::CommandBuffer   m_pre_command_buffer;         // FIXME: this used to be Unique
+  handle::CommandBuffer   m_post_command_buffer;        // FIXME: idem
+
+  FrameResourcesData(
+      // Arguments for m_command_pool.
+      LogicalDevice const* logical_device,
+      QueueFamilyPropertiesIndex queue_family
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& command_pool_debug_name)) :
+    m_command_pool(logical_device, queue_family COMMA_CWDEBUG_ONLY(command_pool_debug_name))
+  {
+  }
 };
 
 } // namespace vulkan

@@ -107,7 +107,7 @@ class Window : public task::VulkanWindow
     }
 
     // Draw GUI and present swapchain image.
-    finish_frame(m_current_frame, *m_current_frame.m_frame_resources->m_post_command_buffer, *m_post_render_pass);
+    finish_frame(m_current_frame, /* *m_current_frame.m_frame_resources->m_post_command_buffer,*/ *m_post_render_pass);
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
@@ -154,34 +154,41 @@ class Window : public task::VulkanWindow
     };
 
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
-    vk::CommandBuffer command_buffer = *frame_resources->m_pre_command_buffer;
 
-    Dout(dc::vulkan, "Start recording command buffer.");
-    command_buffer.begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
-    command_buffer.beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
-    command_buffer.bindPipeline( vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline );
-    command_buffer.setViewport( 0, { viewport } );
-    command_buffer.setScissor( 0, { scissor } );
-    command_buffer.bindVertexBuffers( 0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 } );
-    command_buffer.bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {} );
-    command_buffer.pushConstants( *m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
-    command_buffer.draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
-    command_buffer.endRenderPass();
-    command_buffer.end();
-    Dout(dc::vulkan, "End recording command buffer.");
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
 
-    vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    vk::SubmitInfo submit_info{
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &(*current_frame.m_frame_resources->m_image_available_semaphore),
-      .pWaitDstStageMask = &wait_dst_stage_mask,
-      .commandBufferCount = 1,
-      .pCommandBuffers = &command_buffer
-    };
+      // Get access to the command buffer.
+      auto command_buffer_w = frame_resources->m_pre_command_buffer(command_pool_w);
 
-    Dout(dc::vulkan, "Submitting command buffer.");
-    presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
-    Dout(dc::vulkan, "Leaving Window::DrawSample.");
+      Dout(dc::vulkan, "Start recording command buffer.");
+      command_buffer_w->begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
+      command_buffer_w->beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
+      command_buffer_w->bindPipeline( vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline );
+      command_buffer_w->setViewport( 0, { viewport } );
+      command_buffer_w->setScissor( 0, { scissor } );
+      command_buffer_w->bindVertexBuffers( 0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 } );
+      command_buffer_w->bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {} );
+      command_buffer_w->pushConstants( *m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
+      command_buffer_w->draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
+      command_buffer_w->endRenderPass();
+      command_buffer_w->end();
+      Dout(dc::vulkan, "End recording command buffer.");
+
+      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+      vk::SubmitInfo submit_info{
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &(*current_frame.m_frame_resources->m_image_available_semaphore),
+        .pWaitDstStageMask = &wait_dst_stage_mask,
+        .commandBufferCount = 1,
+        .pCommandBuffers = command_buffer_w
+      };
+
+      Dout(dc::vulkan, "Submitting command buffer.");
+      presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
+      Dout(dc::vulkan, "Leaving Window::DrawSample.");
+    } // Unlock command pool.
   }
 
   void create_vertex_buffers() override

@@ -1,4 +1,5 @@
 #include "sys.h"
+#include "CommandBuffer.h"
 #include "Application.h"
 #include "LogicalDevice.h"
 #include "PhysicalDeviceFeatures.h"
@@ -313,8 +314,8 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
 bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface const& surface) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::verify_presentation_support(" << surface << ")");
-  auto queue_family_indices = surface.queue_family_indices();
-  bool const presentation_support = m_vh_physical_device.getSurfaceSupportKHR(queue_family_indices[1], surface.vh_surface());
+  auto queue_family = surface.presentation_queue().queue_family();
+  bool const presentation_support = m_vh_physical_device.getSurfaceSupportKHR(queue_family.get_value(), surface.vh_surface());
   Dout(dc::warning(!presentation_support), "The physical device " << m_vh_physical_device << " has no presentation support for the surface " << surface << "!");
   return presentation_support;
 }
@@ -744,22 +745,26 @@ void LogicalDevice::allocate_descriptor_sets(
     DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"));
 }
 
-std::vector<vk::UniqueCommandBuffer> LogicalDevice::allocate_command_buffers(
-    vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count
+void LogicalDevice::allocate_command_buffers(
+    vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  vk::CommandBufferAllocateInfo command_buffer_allocate_info;
-  command_buffer_allocate_info
-    .setCommandPool(pool)
-    .setLevel(level)
-    .setCommandBufferCount(count)
-    ;
-  std::vector<vk::UniqueCommandBuffer> vector_of_command_buffers = m_device->allocateCommandBuffersUnique(command_buffer_allocate_info);
+  DoutEntering(dc::vulkan, "LogicalDevice::allocate_command_buffers(" << pool << ", " << level << ", " << count << ", " << command_buffers_out << ") [" << this << "]");
+
+  vk::CommandBufferAllocateInfo command_buffer_allocate_info{
+    .commandPool = pool,
+    .level = level,
+    .commandBufferCount = count
+  };
+
+  vk::Result result = m_device->allocateCommandBuffers(&command_buffer_allocate_info, command_buffers_out);
+  if (AI_UNLIKELY(result != vk::Result::eSuccess))
+    THROW_ALERTC(result, "[DEVICE]->allocateCommandBuffers", AIArgs("[DEVICE]", this->debug_name()));
+
 #ifdef CWDEBUG
   for (int i = 0; i < count; ++i)
-    DebugSetName(vector_of_command_buffers[i], debug_name("[" + std::to_string(i) + "]"));
+    DebugSetName(command_buffers_out[i], debug_name("[" + std::to_string(i) + "]"));
 #endif
-  return vector_of_command_buffers;
 }
 
 DescriptorSetParameters LogicalDevice::create_descriptor_resources(

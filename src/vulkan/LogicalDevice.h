@@ -18,6 +18,7 @@ namespace vulkan {
 class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
 class PresentationSurface;
+class CommandBuffer;
 struct AmbifixOwner;
 
 // The collection of queue family properties for a given physical device.
@@ -103,7 +104,8 @@ class LogicalDevice
   {
     m_device->resetFences(fences);
   }
-  inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
+  inline void destroy_command_pool(vk::CommandPool command_pool) const;
   vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
   {
     uint32_t new_image_index;
@@ -131,7 +133,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  std::vector<vk::UniqueCommandBuffer> allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count
+  void allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
@@ -236,6 +238,11 @@ vk::UniqueCommandPool LogicalDevice::create_command_pool(uint32_t queue_family_i
   vk::UniqueCommandPool command_pool = m_device->createCommandPoolUnique({ .flags = flags, .queueFamilyIndex = queue_family_index });
   DebugSetName(command_pool, debug_name);
   return command_pool;
+}
+
+void LogicalDevice::destroy_command_pool(vk::CommandPool command_pool) const
+{
+  m_device->destroyCommandPool(command_pool);
 }
 
 } // namespace vulkan
