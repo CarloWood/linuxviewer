@@ -636,7 +636,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   }
 }
 
-void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
+void VulkanWindow::start_frame()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::start_frame(...)");
 #if 0
@@ -644,21 +644,21 @@ void VulkanWindow::start_frame(vulkan::CurrentFrameData& current_frame)
   Gui.StartFrame( Timer, MouseState );
   PrepareGUIFrame();
 #endif
-  current_frame.m_resource_index = (current_frame.m_resource_index + 1) % current_frame.m_resource_count;
-  current_frame.m_frame_resources = m_frame_resources_list[current_frame.m_resource_index].get();
+  m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
+  m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
-  if (m_logical_device->wait_for_fences({ *current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error( "Waiting for a fence takes too long!" );
 
-  m_logical_device->reset_fences({ *current_frame.m_frame_resources->m_fence });
+  m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_fence });
 }
 
-void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, /* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
+void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
 {
   DoutEntering(dc::vulkan, "VulkanWindow::finish_frame(...)");
   // Draw GUI
   {
-//    Gui.Draw( current_frame.ResourceIndex, command_buffer, render_pass, *current_frame.FrameResources->Framebuffer );
+//    Gui.Draw(m_current_frame.ResourceIndex, command_buffer, render_pass, *m_current_frame.FrameResources->Framebuffer);
 
     vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     vk::SubmitInfo submit_info{
@@ -668,18 +668,18 @@ void VulkanWindow::finish_frame(vulkan::CurrentFrameData& current_frame, /* vulk
 //      .commandBufferCount = 1,
 //      .pCommandBuffers = &command_buffer,
       .signalSemaphoreCount = 1,
-      .pSignalSemaphores = &(*current_frame.m_frame_resources->m_finished_rendering_semaphore)
+      .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
     };
-    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, *current_frame.m_frame_resources->m_fence);
+    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, *m_current_frame.m_frame_resources->m_fence);
   }
   // Present frame
   {
     vk::Result result = vk::Result::eSuccess;
     vk::SwapchainKHR vh_swapchain = *m_swapchain;
-    uint32_t swapchain_image_index = current_frame.m_swapchain_image_index.get_value();
+    uint32_t swapchain_image_index = m_current_frame.m_swapchain_image_index.get_value();
     vk::PresentInfoKHR present_info{
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &(*current_frame.m_frame_resources->m_finished_rendering_semaphore),
+      .pWaitSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore),
       .swapchainCount = 1,
       .pSwapchains = &vh_swapchain,
       .pImageIndices = &swapchain_image_index
@@ -725,17 +725,17 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
   return framebuffer;
 }
 
-void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass)
+void VulkanWindow::acquire_image(vk::RenderPass render_pass)
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::acquire_image(...)");
+  DoutEntering(dc::vulkan, "VulkanWindow::acquire_image(...) [" << this << "]");
 
   // Acquire swapchain image.
   switch (m_logical_device->acquire_next_image(
         *m_swapchain,
         3000000000,
-        *current_frame.m_frame_resources->m_image_available_semaphore,
+        *m_current_frame.m_frame_resources->m_image_available_semaphore,
         vk::Fence(),
-        current_frame.m_swapchain_image_index))
+        m_current_frame.m_swapchain_image_index))
   {
     case vk::Result::eSuccess:
     case vk::Result::eSuboptimalKHR:
@@ -752,11 +752,11 @@ void VulkanWindow::acquire_image(vulkan::CurrentFrameData& current_frame, vk::Re
       throw std::runtime_error("Could not acquire swapchain image!");
   }
   // Create a framebuffer for current frame.
-  current_frame.m_frame_resources->m_framebuffer = create_framebuffer(
-      { *m_swapchain.image_views()[current_frame.m_swapchain_image_index],
-        *current_frame.m_frame_resources->m_depth_attachment.m_image_view },
+  m_current_frame.m_frame_resources->m_framebuffer = create_framebuffer(
+      { *m_swapchain.image_views()[m_current_frame.m_swapchain_image_index],
+        *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view },
       m_swapchain.extent(), render_pass
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("current_frame.m_frame_resources->m_framebuffer")));
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_current_frame.m_frame_resources->m_framebuffer")));
 }
 
 void VulkanWindow::finish_impl()

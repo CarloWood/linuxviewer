@@ -29,10 +29,6 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     dcp = &DEBUGCHANNELS::dc::vkerror;
     Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[0m";
-#ifdef CWDEBUG
-    if (NAMESPACE_DEBUG::being_traced())
-      DoutFatal(dc::core, "Trap point");
-#endif
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {
@@ -51,14 +47,17 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     Dout(dc::vkverbose|continued_cf, pCallbackData->pMessage);
   }
 
-  if (pCallbackData->objectCount > 0)
+  if (dcp->is_on() && pCallbackData->objectCount > 0)
   {
     Dout(dc::continued, " [with an objectCount of " << pCallbackData->objectCount << "]");
     for (int i = 0; i < pCallbackData->objectCount; ++i)
-      Dout(*dcp, static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
+      Dout(*dcp, (i + 1) << ": " << static_cast<vk_defaults::DebugUtilsObjectNameInfoEXT>(pCallbackData->pObjects[i]));
   }
 
   Dout(dc::finish, color_end);
+
+  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT && NAMESPACE_DEBUG::being_traced())
+    DoutFatal(dc::core, "Trap point");
 
   return VK_FALSE;
 }

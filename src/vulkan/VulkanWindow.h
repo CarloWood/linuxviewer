@@ -233,11 +233,11 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   virtual void OnWindowSizeChanged_Post();
 
  protected:
-  void start_frame(vulkan::CurrentFrameData& current_frame);
-  void finish_frame(vulkan::CurrentFrameData& current_frame, /* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass);
+  void start_frame();
+  void finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass);
   vk::UniqueFramebuffer create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
-  void acquire_image(vulkan::CurrentFrameData& current_frame, vk::RenderPass render_pass);
+  void acquire_image(vk::RenderPass render_pass);
 
 #ifdef CWDEBUG
   vulkan::AmbifixOwner debug_name_prefix(std::string prefix) const;

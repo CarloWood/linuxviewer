@@ -79,14 +79,15 @@ class Window : public task::VulkanWindow
   {
     DoutEntering(dc::notice, "Window::draw_frame() [" << this << "]");
 
-    m_current_frame.m_resource_count = Parameters.FrameResourcesCount;
+    m_current_frame.m_resource_count = Parameters.FrameResourcesCount;  // Slider value.
+    Dout(dc::notice, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 
     // Start frame - calculate times and prepare GUI.
-    start_frame(m_current_frame);
+    start_frame();
 
     // Acquire swapchain image and create a framebuffer.
-    acquire_image(m_current_frame, *m_render_pass);
+    acquire_image(*m_render_pass);
 
     // Draw scene/prepare scene's command buffers.
     {
@@ -96,7 +97,7 @@ class Window : public task::VulkanWindow
       PerformHardcoreCalculations(Parameters.PreSubmitCpuWorkTime);
 
       // Draw sample-specific data - includes command buffer submission!!
-      DrawSample(m_current_frame);
+      DrawSample();
 
       // Perform calculations influencing rendering of a next frame.
       PerformHardcoreCalculations(Parameters.PostSubmitCpuWorkTime);
@@ -107,7 +108,7 @@ class Window : public task::VulkanWindow
     }
 
     // Draw GUI and present swapchain image.
-    finish_frame(m_current_frame, /* *m_current_frame.m_frame_resources->m_post_command_buffer,*/ *m_post_render_pass);
+    finish_frame(/* *m_current_frame.m_frame_resources->m_post_command_buffer,*/ *m_post_render_pass);
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
@@ -116,10 +117,10 @@ class Window : public task::VulkanWindow
     Dout(dc::vulkan, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
   }
 
-  void DrawSample(vulkan::CurrentFrameData& current_frame)
+  void DrawSample()
   {
     DoutEntering(dc::vulkan, "Window::DrawSample() [" << this << "]");
-    auto frame_resources = current_frame.m_frame_resources;
+    auto frame_resources = m_current_frame.m_frame_resources;
 
     std::vector<vk::ClearValue> clear_values = {
       { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } },
@@ -179,7 +180,7 @@ class Window : public task::VulkanWindow
       vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
       vk::SubmitInfo submit_info{
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &(*current_frame.m_frame_resources->m_image_available_semaphore),
+        .pWaitSemaphores = &(*m_current_frame.m_frame_resources->m_image_available_semaphore),
         .pWaitDstStageMask = &wait_dst_stage_mask,
         .commandBufferCount = 1,
         .pCommandBuffers = command_buffer_w
@@ -187,8 +188,9 @@ class Window : public task::VulkanWindow
 
       Dout(dc::vulkan, "Submitting command buffer.");
       presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
-      Dout(dc::vulkan, "Leaving Window::DrawSample.");
     } // Unlock command pool.
+
+    Dout(dc::vulkan, "Leaving Window::DrawSample.");
   }
 
   void create_vertex_buffers() override

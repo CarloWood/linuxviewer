@@ -351,7 +351,10 @@ namespace vk_defaults {
 void debug_init()
 {
   if (!DEBUGCHANNELS::dc::vkerror.is_on())
+  {
+    DoutFatal(dc::core, "vkerror must be turned on from .libcwdrc (and so do all other vk* debug channels).");
     DEBUGCHANNELS::dc::vkerror.on();
+  }
   if (!DEBUGCHANNELS::dc::vkwarning.is_on() && DEBUGCHANNELS::dc::warning.is_on())
     DEBUGCHANNELS::dc::vkwarning.on();
 }
