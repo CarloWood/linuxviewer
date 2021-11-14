@@ -866,10 +866,11 @@ void VulkanWindow::create_frame_resources()
       frame_resources->m_pre_command_buffer = command_pool_w->allocate_buffer(
           CWDEBUG_ONLY(ambifix("->m_pre_command_buffer"))
           );
-
+#if 0
       frame_resources->m_post_command_buffer = command_pool_w->allocate_buffer(
           CWDEBUG_ONLY(ambifix("->m_post_command_buffer"))
           );
+#endif
     } // Unlock command pool.
   }
 

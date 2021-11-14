@@ -17,8 +17,8 @@ struct FrameResourcesData
   // Too specialized?
   using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
   command_pool_type       m_command_pool;
-  handle::CommandBuffer   m_pre_command_buffer;         // FIXME: this used to be Unique
-  handle::CommandBuffer   m_post_command_buffer;        // FIXME: idem
+  handle::CommandBuffer   m_pre_command_buffer;         // Freed when the command pool is destructed.
+//  handle::CommandBuffer   m_post_command_buffer;        // Idem.
 
   FrameResourcesData(
       // Arguments for m_command_pool.
