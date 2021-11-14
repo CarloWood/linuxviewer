@@ -258,6 +258,11 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 
   /// Close window.
   void finish_impl() override;
+
+  virtual bool is_slow() const
+  {
+    return false;
+  }
 };
 
 } // namespace task

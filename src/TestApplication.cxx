@@ -35,6 +35,8 @@ class Window : public task::VulkanWindow
 
   SampleParameters Parameters;
 
+  int m_frame_count = 0;
+
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 10 frames per second.
@@ -77,7 +79,11 @@ class Window : public task::VulkanWindow
 
   void draw_frame() override
   {
-    DoutEntering(dc::notice, "Window::draw_frame() [" << this << "]");
+    DoutEntering(dc::notice, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+
+    // Skip the first frame.
+    if (++m_frame_count == 1)
+      return;
 
     m_current_frame.m_resource_count = Parameters.FrameResourcesCount;  // Slider value.
     Dout(dc::notice, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
@@ -187,7 +193,7 @@ class Window : public task::VulkanWindow
       };
 
       Dout(dc::vulkan, "Submitting command buffer.");
-      presentation_surface().vh_graphics_queue().submit( { submit_info }, vk::Fence() );
+      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_fence );
     } // Unlock command pool.
 
     Dout(dc::vulkan, "Leaving Window::DrawSample.");
@@ -498,6 +504,23 @@ class Window : public task::VulkanWindow
   }
 };
 
+class SlowWindow : public Window
+{
+ public:
+  using Window::Window;
+
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    // Limit the frame rate of this window to 1 frames per second.
+    return threadpool::Interval<1000, std::chrono::milliseconds>{};
+  }
+
+  bool is_slow() const override
+  {
+    return true;
+  }
+};
+
 class LogicalDevice : public vulkan::LogicalDevice
 {
  public:
@@ -574,7 +597,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    auto root_window2 = application.create_root_window<SlowWindow>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

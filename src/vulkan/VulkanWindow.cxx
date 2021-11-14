@@ -648,7 +648,7 @@ void VulkanWindow::start_frame()
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
   if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
-    throw std::runtime_error( "Waiting for a fence takes too long!" );
+    throw std::runtime_error("Waiting for a fence takes too long!");
 
   m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_fence });
 }
@@ -670,7 +670,7 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
       .signalSemaphoreCount = 1,
       .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
     };
-    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, *m_current_frame.m_frame_resources->m_fence);
+    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, VK_NULL_HANDLE);
   }
   // Present frame
   {
@@ -709,7 +709,7 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
 vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_framebuffer(...)");
+  DoutEntering(dc::vulkan, "VulkanWindow::create_framebuffer(...)" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
   vk::FramebufferCreateInfo framebuffer_create_info{
     .flags = vk::FramebufferCreateFlags(0),
     .renderPass = render_pass,
