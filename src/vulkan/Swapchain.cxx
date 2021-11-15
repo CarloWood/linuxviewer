@@ -130,10 +130,10 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
   Dout(dc::vulkan, "Supported surface formats: " << surface_formats);
   Dout(dc::vulkan, "Available present modes: " << available_present_modes);
 
-  // In case of re-use, m_can_render might be true.
-  m_can_render = false;
+  // In case of re-use, cant_render_bit might be reset.
+  owning_window->no_can_render();
 
-  vk::Extent2D                    desired_extent = choose_extent(surface_capabilities, owning_window->extent());
+  vk::Extent2D                    desired_extent = choose_extent(surface_capabilities, owning_window->get_extent());
   vk::SurfaceFormatKHR            desired_image_format = choose_surface_format(surface_formats);
   vk::ImageUsageFlags             desired_image_usage_flags = choose_usage_flags(surface_capabilities, selected_usage);
   vk::PresentModeKHR              desired_present_mode = choose_present_mode(available_present_modes, selected_present_mode);
@@ -177,11 +177,11 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
 {
   DoutEntering(dc::vulkan, "Swapchain::recreate(" << owning_window << ", " << surface_extent << ")");
 
-  m_can_render = false;
+  owning_window->no_can_render();
 
   if ((surface_extent.width == 0) || (surface_extent.height == 0))
   {
-    // Current surface size is (0, 0) so we can't create a swapchain or render anything (m_can_render == false).
+    // Current surface size is (0, 0) so we can't create a swapchain or render anything (cant_render_bit is set).
     // But we don't want to kill the application as this situation may occur i.e. when window gets minimized.
     return;
   }
@@ -199,7 +199,7 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
   m_create_info
-    .setImageExtent(owning_window->extent())
+    .setImageExtent(surface_extent)
     .setOldSwapchain(*old_handle)
     ;
 
@@ -231,7 +231,7 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
     m_image_views.emplace_back(vh_logical_device.createImageViewUnique(image_view_create_info));
   }
 
-  m_can_render = true;
+  owning_window->can_render_again();
 }
 
 void Swapchain::set_image_memory_barriers(

@@ -162,6 +162,7 @@ class Window : public task::VulkanWindow
 
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
+    m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
     {
       // Lock command pool.
       vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
@@ -193,7 +194,7 @@ class Window : public task::VulkanWindow
       };
 
       Dout(dc::vulkan, "Submitting command buffer.");
-      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_fence );
+      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
     } // Unlock command pool.
 
     Dout(dc::vulkan, "Leaving Window::DrawSample.");
@@ -597,7 +598,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    auto root_window2 = application.create_root_window<SlowWindow>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

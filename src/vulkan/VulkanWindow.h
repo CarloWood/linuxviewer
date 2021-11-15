@@ -189,7 +189,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
     return m_swapchain;
   }
 
-  void OnWindowSizeChanged(uint32_t width, uint32_t height) override final;
+  void on_window_size_changed(uint32_t width, uint32_t height) override final;
+  void handle_window_size_changed();
 
   void set_image_memory_barrier(
     vk::Image vh_image,
@@ -229,8 +230,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
  protected:
   virtual void draw_frame() = 0;
 
-  virtual void OnWindowSizeChanged_Pre();
-  virtual void OnWindowSizeChanged_Post();
+  virtual void on_window_size_changed_pre();
+  virtual void on_window_size_changed_post();
 
  protected:
   void start_frame();

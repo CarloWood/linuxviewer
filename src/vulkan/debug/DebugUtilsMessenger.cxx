@@ -26,6 +26,10 @@ VkBool32 DebugUtilsMessenger::debugCallback(
   libcwd::channel_ct* dcp;
   if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
   {
+    // Ignore this "error". See https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/1340
+    if (pCallbackData->messageIdNumber == 0x7cd0911d)
+      return VK_FALSE;
+
     dcp = &DEBUGCHANNELS::dc::vkerror;
     Dout(dc::vkerror|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[0m";

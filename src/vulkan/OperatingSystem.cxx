@@ -16,9 +16,9 @@ Window::~Window()
   destroy();
 }
 
-vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, int width, int height)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent)
 {
-  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(\"" << title << "\", " << width << ", " << height << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(\"" << title << "\", " << extent << ") [" << this << "]");
 
   m_parameters.Handle = m_parameters.m_xcb_connection->generate_id();
   Dout(dc::vulkan, "Generated window handle: " << m_parameters.Handle);
@@ -37,8 +37,8 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
 //    screen->root,                               // parent window
     20,                                         // x offset
     20,                                         // y offset
-    width,                                      // width
-    height,                                     // height
+    extent.width,                               // width
+    extent.height,                              // height
     title,
     0,                                          // border_width
     XCB_WINDOW_CLASS_INPUT_OUTPUT,              // window class
@@ -148,7 +148,7 @@ bool Window::rendering_loop(ProjectBase& project) const
       if (resize)
       {
         resize = false;
-        project.OnWindowSizeChanged();
+        project.on_window_size_changed();
       }
       if (project.ReadyToDraw())
       {

@@ -7,6 +7,10 @@
 
 namespace vulkan {
 
+#ifdef CWDEBUG
+class AmbifixOwner;
+#endif
+
 class PresentationSurface
 {
   vk::UniqueSurfaceKHR m_surface;
@@ -17,13 +21,8 @@ class PresentationSurface
   PresentationSurface() = default;
   void operator=(vk::UniqueSurfaceKHR&& surface) { m_surface = std::move(surface); }
 
-  void set_queues(Queue graphics_queue, Queue presentation_queue)
-  {
-    // Only call set_queues once.
-    ASSERT(!m_graphics_queue && !m_presentation_queue);
-    m_graphics_queue = graphics_queue;
-    m_presentation_queue = presentation_queue;
-  }
+  void set_queues(Queue graphics_queue, Queue presentation_queue
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
   vk::SurfaceKHR vh_surface() const
   {

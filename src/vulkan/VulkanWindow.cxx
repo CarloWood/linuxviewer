@@ -86,7 +86,8 @@ void VulkanWindow::multiplex_impl(state_type run_state)
     case VulkanWindow_create:
       // Create a new xcb window using the established connection.
       linuxviewer::OS::Window::set_xcb_connection(m_xcb_connection_task->connection());
-      m_presentation_surface = create(m_application->vh_instance(), m_title, m_extent.width, m_extent.height);
+      // We can't set a debug name for the surface yet, because there might not be logical device yet.
+      m_presentation_surface = create(m_application->vh_instance(), m_title, get_extent());
       // Trigger the "window created" event.
       m_window_created_event.trigger();
       // If a logical device was passed then we need to copy its index as soon as that becomes available.
@@ -115,6 +116,8 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       // Cache the pointer to the vulkan::LogicalDevice.
       m_logical_device = get_logical_device();
       // From this moment on we can use the accessor logical_device().
+      // Delayed from VulkanWindow_create; set the debug name of the surface.
+      DebugSetName(m_presentation_surface.vh_surface(), debug_name_prefix("m_presentation_surface.m_surface"));
       // Next get on with the real work.
       acquire_queues();
       if (m_logical_device_task)
@@ -150,25 +153,40 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       Debug(mSMDebug = false);
       [[fallthrough]];
     case VulkanWindow_render_loop:
-      if (AI_LIKELY(!m_must_close && m_swapchain.can_render()))
+    {
+      for (;;)  // So that we can use continue.
       {
-        m_frame_rate_limiter.start(m_frame_rate_interval);
-        draw_frame();
-        yield(m_application->m_medium_priority_queue);
-        wait(frame_timer);
-        break;
-      }
-      if (!m_must_close)
-      {
-        // We can't render, drop frame rate to 7.8 FPS (because slow_down already uses 128 ms anyway).
-        static threadpool::Timer::Interval s_no_render_frame_rate_interval{threadpool::Interval<128, std::chrono::milliseconds>()};
-        m_frame_rate_limiter.start(s_no_render_frame_rate_interval);
-        yield(m_application->m_low_priority_queue);
-        wait(frame_timer);
-        break;
+        int special_circumstances = atomic_flags();
+        if (AI_LIKELY(!special_circumstances))
+        {
+          // Render the next frame.
+          m_frame_rate_limiter.start(m_frame_rate_interval);
+          draw_frame();
+          yield(m_application->m_medium_priority_queue);
+          wait(frame_timer);
+          return;
+        }
+        // Handle special circumstances.
+        if (must_close(special_circumstances))
+          break;
+        if (!can_render(special_circumstances))
+        {
+          // We can't render, drop frame rate to 7.8 FPS (because slow_down already uses 128 ms anyway).
+          static threadpool::Timer::Interval s_no_render_frame_rate_interval{threadpool::Interval<128, std::chrono::milliseconds>()};
+          m_frame_rate_limiter.start(s_no_render_frame_rate_interval);
+          yield(m_application->m_low_priority_queue);
+          wait(frame_timer);
+        }
+        else if (extent_changed(special_circumstances))
+        {
+          handle_window_size_changed();
+          continue;
+        }
+        return;
       }
       set_state(VulkanWindow_close);
       [[fallthrough]];
+    }
     case VulkanWindow_close:
       // Turn on debug output again.
       Debug(mSMDebug = mVWDebug);
@@ -194,7 +212,8 @@ void VulkanWindow::acquire_queues()
   else
     vh_presentation_queue = vh_graphics_queue;
 
-  m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue);
+  m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_presentation_surface")));
 }
 
 void VulkanWindow::create_swapchain()
@@ -203,22 +222,23 @@ void VulkanWindow::create_swapchain()
   m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo);
 }
 
-void VulkanWindow::OnWindowSizeChanged(uint32_t width, uint32_t height)
+void VulkanWindow::on_window_size_changed(uint32_t width, uint32_t height)
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged(" << width << ", " << height << ")");
+  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed(" << width << ", " << height << ")");
 
   // Update m_extent so that extent() will return the new value.
-  m_extent.setWidth(width).setHeight(height);
+  set_extent({width, height});  // This call will cause a call to handle_window_size_changed() from the render loop.
+}
 
-  int logical_device_index = m_logical_device_index.load(std::memory_order::relaxed);
-  if (logical_device_index == -1)
-    return;
-  vulkan::LogicalDevice* logical_device = m_application->get_logical_device(logical_device_index);
-  logical_device->wait_idle();
-  OnWindowSizeChanged_Pre();
-  m_swapchain.recreate(this, extent());
-  if (m_swapchain.can_render())
-    OnWindowSizeChanged_Post();
+void VulkanWindow::handle_window_size_changed()
+{
+  DoutEntering(dc::vulkan, "VulkanWindow::handle_window_size_changed()");
+
+  m_logical_device->wait_idle();
+  on_window_size_changed_pre();
+  m_swapchain.recreate(this, get_extent());
+  if (can_render(atomic_flags()))
+    on_window_size_changed_post();
 }
 
 void VulkanWindow::set_image_memory_barrier(
@@ -647,10 +667,8 @@ void VulkanWindow::start_frame()
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
-  if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_fence }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");
-
-  m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_fence });
 }
 
 void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
@@ -692,12 +710,7 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
       case vk::Result::eSuboptimalKHR:
       case vk::Result::eErrorOutOfDateKHR:
       {
-        // Same as the tail of OnWindowSizeChanged.
-        m_logical_device->wait_idle();
-        OnWindowSizeChanged_Pre();
-        m_swapchain.recreate(this, extent());
-        if (m_swapchain.can_render())
-          OnWindowSizeChanged_Post();
+        m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
         break;
       }
       default:
@@ -741,12 +754,7 @@ void VulkanWindow::acquire_image(vk::RenderPass render_pass)
     case vk::Result::eSuboptimalKHR:
       break;
     case vk::Result::eErrorOutOfDateKHR:
-      // Same as the tail of OnWindowSizeChanged.
-      m_logical_device->wait_idle();
-      OnWindowSizeChanged_Pre();
-      m_swapchain.recreate(this, extent());
-      if (m_swapchain.can_render())
-        OnWindowSizeChanged_Post();
+      m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
       break;
     default:
       throw std::runtime_error("Could not acquire swapchain image!");
@@ -778,19 +786,19 @@ threadpool::Timer::Interval VulkanWindow::get_frame_rate_interval() const
   return threadpool::Interval<10, std::chrono::milliseconds>{};
 }
 
-void VulkanWindow::OnWindowSizeChanged_Pre()
+void VulkanWindow::on_window_size_changed_pre()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged_Pre()");
+  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed_pre()");
 }
 
-void VulkanWindow::OnWindowSizeChanged_Post()
+void VulkanWindow::on_window_size_changed_post()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::OnWindowSizeChanged_Post()");
+  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed_post()");
 
   // Should already be set.
   ASSERT(swapchain().extent().width > 0);
 
-//FIXME, add m_gui    m_gui.OnWindowSizeChanged();
+//FIXME, add m_gui    m_gui.on_window_size_changed();
 
   vk::ImageSubresourceRange image_subresource_range;
   image_subresource_range
@@ -857,7 +865,7 @@ void VulkanWindow::create_frame_resources()
 
     frame_resources->m_image_available_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
     frame_resources->m_finished_rendering_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
-    frame_resources->m_fence = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_fence")));
+    frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_command_buffers_completed")));
 
     {
       // Lock command pool.
@@ -881,7 +889,7 @@ void VulkanWindow::create_frame_resources()
     .m_swapchain_image_index = {}
   };
 
-  OnWindowSizeChanged_Post();
+  on_window_size_changed_post();
 }
 
 #ifdef CWDEBUG

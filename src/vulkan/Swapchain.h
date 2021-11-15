@@ -28,21 +28,15 @@ class Swapchain
   SwapchainIndex                m_swapchain_end;        // The actual number of swap chain images.
   vk::PresentModeKHR            m_present_mode;
   vk::ImageUsageFlags           m_usage_flags;
-  bool                          m_can_render;
 
  public:
-  Swapchain() : m_can_render(false) { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
+  Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
   ~Swapchain() { DoutEntering(dc::vulkan, "Swapchain::~Swapchain() [" << this << "]"); }
 
   void prepare(task::VulkanWindow const* owning_window,
       vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode);
 
   void recreate(task::VulkanWindow const* owning_window, vk::Extent2D window_extent);
-
-  bool can_render() const
-  {
-    return m_can_render;
-  }
 
   vk::Format format() const
   {
