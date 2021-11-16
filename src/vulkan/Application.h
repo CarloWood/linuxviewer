@@ -92,7 +92,7 @@ class Application
                                                         // automatically destroys it.
 #ifdef CWDEBUG
   // In order to get the order of destruction correct,
-  // this must be defined below m_vh_instance,
+  // this must be defined below m_instance
   // and preferably before m_logical_device_list.
   DebugUtilsMessenger m_debug_utils_messenger;          // Debug message utility extension. Print vulkan layer debug output to dc::vulkan.
 #endif

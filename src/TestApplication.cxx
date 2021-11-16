@@ -388,7 +388,7 @@ class Window : public task::VulkanWindow
         .location = 1,
         .binding = vertex_binding_description[0].binding,
         .format = vk::Format::eR32G32Sfloat,
-        .offset = offsetof(vulkan::VertexData, Texcoords)
+        .offset = offsetof(vulkan::VertexData, m_texture_coordinates)
       },
       {
         .location = 2,

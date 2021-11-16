@@ -20,11 +20,11 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
 {
   DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(\"" << title << "\", " << extent << ") [" << this << "]");
 
-  m_parameters.Handle = m_parameters.m_xcb_connection->generate_id();
-  Dout(dc::vulkan, "Generated window handle: " << m_parameters.Handle);
+  m_parameters.m_handle = m_parameters.m_xcb_connection->generate_id();
+  Dout(dc::vulkan, "Generated window handle: " << m_parameters.m_handle);
 
   // Add this handle to the handle->window lookup map of the connection.
-  m_parameters.m_xcb_connection->add(m_parameters.Handle, this);
+  m_parameters.m_xcb_connection->add(m_parameters.m_handle, this);
 
   std::vector<uint32_t> const value_list = {
     m_parameters.m_xcb_connection->white_pixel(),
@@ -32,9 +32,9 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
   };
 
   m_parameters.m_xcb_connection->create_main_window(
-//    XCB_COPY_FROM_PARENT,                       // depth
-    m_parameters.Handle,                        // window handle
-//    screen->root,                               // parent window
+//    XCB_COPY_FROM_PARENT,                     // depth
+    m_parameters.m_handle,                      // window handle
+//    screen->root,                             // parent window
     20,                                         // x offset
     20,                                         // y offset
     extent.width,                               // width
@@ -42,7 +42,7 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
     title,
     0,                                          // border_width
     XCB_WINDOW_CLASS_INPUT_OUTPUT,              // window class
-//    screen->root_visual,                        // visual
+//  screen->root_visual,                        // visual
     XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,      // value mask
     value_list);                                // value list
 
@@ -57,7 +57,7 @@ void Window::destroy()
 
   if (m_parameters.m_xcb_connection)
   {
-    m_parameters.m_xcb_connection->destroy_window(m_parameters.Handle);
+    m_parameters.m_xcb_connection->destroy_window(m_parameters.m_handle);
     m_parameters.m_xcb_connection.reset();
   }
 }

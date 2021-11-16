@@ -8,12 +8,15 @@ struct VertexData
   struct PositionData
   {
     float x, y, z, w;
-  } Position;
+  };
 
-  struct TexcoordData
+  struct TextureCoordinates
   {
     float u, v;
-  } Texcoords;
+  };
+
+  PositionData m_position;
+  TextureCoordinates m_texture_coordinates;
 };
 
 } // namespace vulkan

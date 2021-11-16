@@ -32,15 +32,15 @@ struct WindowParameters
 {
 #if defined(VK_USE_PLATFORM_XCB_KHR)
   boost::intrusive_ptr<xcb::Connection> m_xcb_connection;
-  xcb_window_t          Handle;
+  xcb_window_t          m_handle;
 
   vk::XcbSurfaceCreateInfoKHR get_surface_create_info() const
   {
-    return vk::XcbSurfaceCreateInfoKHR{}.setConnection(*m_xcb_connection).setWindow(Handle);
+    return vk::XcbSurfaceCreateInfoKHR{}.setConnection(*m_xcb_connection).setWindow(m_handle);
   }
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
-  Display*              DisplayPtr;
-  Window                Handle;
+  Display*              m_display;
+  Window                m_handle;
 #endif
 };
 

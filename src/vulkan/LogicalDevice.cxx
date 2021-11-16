@@ -40,7 +40,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
   QueueRequestIndex queue_request_index(0);    // index into queue_families_by_request.
   for (auto&& queue_request : queue_requests)
   {
-    uint32_t maxQueueCount = 0;
+    uint32_t max_queue_count = 0;
     // Run over all supported queue families.
     QueueFamilyPropertiesIndex queue_family(0);
     for (auto const& queue_family_properties : m_queue_families)
@@ -51,8 +51,8 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
         // We found a match between a request and a family.
         Dout(dc::vulkan, "QueueFamilyIndex " << queue_family << " supports request " << queue_request.queue_flags << ".");
         queue_families_by_request[queue_request_index].push_back(queue_family);
-        if (queue_family_properties.queueCount > maxQueueCount)
-          maxQueueCount = queue_family_properties.queueCount;
+        if (queue_family_properties.queueCount > max_queue_count)
+          max_queue_count = queue_family_properties.queueCount;
       }
       ++queue_family;
     }
@@ -62,7 +62,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
       return false;
     }
     if (queue_request.max_number_of_queues == 0)      // A value of 0 means: as many as possible, so set R equal to the number of queues that this family supports.
-      queue_request.max_number_of_queues = maxQueueCount;
+      queue_request.max_number_of_queues = max_queue_count;
     ++queue_request_index;
   }
 
@@ -528,28 +528,28 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
   std::vector<vk::AttachmentDescription> attachments;
   for (auto const& attachment : attachment_descriptions)
     attachments.emplace_back(vk::AttachmentDescription{
-        .flags          = {},                                      // VkAttachmentDescriptionFlags
-        .format         = attachment.m_format,                     // VkFormat
-        .samples        = vk::SampleCountFlagBits::e1,             // VkSampleCountFlagBits
-        .loadOp         = attachment.m_load_op,                    // VkAttachmentLoadOp
-        .storeOp        = attachment.m_store_op,                   // VkAttachmentStoreOp
-        .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,         // VkAttachmentLoadOp
-        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,        // VkAttachmentStoreOp
-        .initialLayout  = attachment.m_initial_layout,             // VkImageLayout
-        .finalLayout    = attachment.m_final_layout                 // VkImageLayout
+        .flags          = {},
+        .format         = attachment.m_format,
+        .samples        = vk::SampleCountFlagBits::e1,
+        .loadOp         = attachment.m_load_op,
+        .storeOp        = attachment.m_store_op,
+        .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,
+        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
+        .initialLayout  = attachment.m_initial_layout,
+        .finalLayout    = attachment.m_final_layout
       });
 
   std::vector<vk::SubpassDescription> subpasses;
   for (auto const& subpass : subpass_descriptions)
     subpasses.emplace_back(vk::SubpassDescription{
-        .flags = {},                                               // VkSubpassDescriptionFlags
-        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,     // VkPipelineBindPoint
-        .inputAttachmentCount = static_cast<uint32_t>(subpass.InputAttachments.size()),
-        .pInputAttachments = subpass.InputAttachments.data(),      // VkAttachmentReference const*
-        .colorAttachmentCount = static_cast<uint32_t>(subpass.ColorAttachments.size()),
-        .pColorAttachments = subpass.ColorAttachments.data(),      // VkAttachmentReference const*
-        .pResolveAttachments = nullptr,                            // VkAttachmentReference const*
-        .pDepthStencilAttachment = &subpass.DepthStencilAttachment // VkAttachmentReference const*
+        .flags = {},
+        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+        .inputAttachmentCount = static_cast<uint32_t>(subpass.m_input_attachments.size()),
+        .pInputAttachments = subpass.m_input_attachments.data(),
+        .colorAttachmentCount = static_cast<uint32_t>(subpass.m_color_attachments.size()),
+        .pColorAttachments = subpass.m_color_attachments.data(),
+        .pResolveAttachments = nullptr,
+        .pDepthStencilAttachment = &subpass.m_depth_stencil_attachment
       });
 
   vk::RenderPassCreateInfo render_pass_create_info;
