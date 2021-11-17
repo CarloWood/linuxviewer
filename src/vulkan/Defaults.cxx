@@ -339,6 +339,7 @@ void ImageSubresourceRange::print_members(std::ostream& os, char const* prefix) 
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 channel_ct vulkan("VULKAN");
+channel_ct vkframe("VKFRAME");
 channel_ct vkverbose("VKVERBOSE");
 channel_ct vkinfo("VKINFO");
 channel_ct vkwarning("VKWARNING");

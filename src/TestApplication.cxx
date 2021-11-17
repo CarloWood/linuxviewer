@@ -79,14 +79,14 @@ class Window : public task::VulkanWindow
 
   void draw_frame() override
   {
-    DoutEntering(dc::notice, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
 
     // Skip the first frame.
     if (++m_frame_count == 1)
       return;
 
     m_current_frame.m_resource_count = Parameters.FrameResourcesCount;  // Slider value.
-    Dout(dc::notice, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
+    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 
     // Start frame - calculate times and prepare GUI.
@@ -120,12 +120,12 @@ class Window : public task::VulkanWindow
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
     Parameters.TotalFrameTime = Parameters.TotalFrameTime * 0.99f + float_frame_time * 0.01f;
 
-    Dout(dc::vulkan, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
   }
 
   void DrawSample()
   {
-    DoutEntering(dc::vulkan, "Window::DrawSample() [" << this << "]");
+    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     auto frame_resources = m_current_frame.m_frame_resources;
 
     std::vector<vk::ClearValue> clear_values = {
@@ -170,7 +170,7 @@ class Window : public task::VulkanWindow
       // Get access to the command buffer.
       auto command_buffer_w = frame_resources->m_pre_command_buffer(command_pool_w);
 
-      Dout(dc::vulkan, "Start recording command buffer.");
+      Dout(dc::vkframe, "Start recording command buffer.");
       command_buffer_w->begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
       command_buffer_w->beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
       command_buffer_w->bindPipeline( vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline );
@@ -182,7 +182,7 @@ class Window : public task::VulkanWindow
       command_buffer_w->draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
-      Dout(dc::vulkan, "End recording command buffer.");
+      Dout(dc::vkframe, "End recording command buffer.");
 
       vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
       vk::SubmitInfo submit_info{
@@ -195,11 +195,11 @@ class Window : public task::VulkanWindow
         .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
       };
 
-      Dout(dc::vulkan, "Submitting command buffer.");
+      Dout(dc::vkframe, "Submitting command buffer.");
       presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
     } // Unlock command pool.
 
-    Dout(dc::vulkan, "Leaving Window::DrawSample.");
+    Dout(dc::vkframe, "Leaving Window::DrawSample.");
   }
 
   void create_vertex_buffers() override

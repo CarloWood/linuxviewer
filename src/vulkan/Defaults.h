@@ -44,6 +44,7 @@
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct vulkan;
+extern channel_ct vkframe;
 extern channel_ct vkverbose;
 extern channel_ct vkinfo;
 extern channel_ct vkwarning;

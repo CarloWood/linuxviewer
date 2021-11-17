@@ -658,7 +658,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
 
 void VulkanWindow::start_frame()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::start_frame(...)");
+  DoutEntering(dc::vkframe, "VulkanWindow::start_frame(...)");
 #if 0
   Timer.Update();
   Gui.StartFrame( Timer, MouseState );
@@ -673,7 +673,7 @@ void VulkanWindow::start_frame()
 
 void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::finish_frame(...)");
+  DoutEntering(dc::vkframe, "VulkanWindow::finish_frame(...)");
 
 #if 0
   // Draw GUI
@@ -744,7 +744,7 @@ vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView
 
 void VulkanWindow::acquire_image(vk::RenderPass render_pass)
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::acquire_image(...) [" << this << "]");
+  DoutEntering(dc::vkframe, "VulkanWindow::acquire_image(...) [" << this << "]");
 
   // Acquire swapchain image.
   switch (m_logical_device->acquire_next_image(
