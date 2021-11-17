@@ -674,22 +674,26 @@ void VulkanWindow::start_frame()
 void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
 {
   DoutEntering(dc::vulkan, "VulkanWindow::finish_frame(...)");
+
+#if 0
   // Draw GUI
   {
-//    Gui.Draw(m_current_frame.ResourceIndex, command_buffer, render_pass, *m_current_frame.FrameResources->Framebuffer);
+    Gui.Draw(m_current_frame.ResourceIndex, command_buffer, render_pass, *m_current_frame.FrameResources->Framebuffer);
 
     vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = &wait_dst_stage_mask,
-//      .commandBufferCount = 1,
-//      .pCommandBuffers = &command_buffer,
+      .commandBufferCount = 1,
+      .pCommandBuffers = &command_buffer,
       .signalSemaphoreCount = 1,
       .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
     };
     m_presentation_surface.vh_presentation_queue().submit({ submit_info }, VK_NULL_HANDLE);
   }
+#endif
+
   // Present frame
   {
     vk::Result result = vk::Result::eSuccess;

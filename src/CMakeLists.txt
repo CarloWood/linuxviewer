@@ -20,9 +20,6 @@ find_package(magic_enum REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
-# See https://github.com/KhronosGroup/Vulkan-Hpp#configuration-options
-#add_definitions(
-#)
 
 #==============================================================================
 # RESOURCES
@@ -105,29 +102,6 @@ target_link_libraries(linuxviewer
     farmhash::farmhash
     blaze::blaze
     Boost::serialization
-)
-
-add_executable(hellotriangle
-  HelloTriangleVulkanApplication.cxx
-  HelloTriangleVulkanApplication.h
-  ApplicationCreateInfo.cxx
-  ApplicationCreateInfo.h
-  Application.cxx
-  Application.h
-  Window.cxx
-  Window.h
-  DebugUtilsMessengerCreateInfoEXT.cxx
-  DebugUtilsMessengerCreateInfoEXT.h
-)
-
-target_link_libraries(hellotriangle
-  PRIVATE
-    LinuxViewer::glfw3gui
-    LinuxViewer::vulkan_old
-    AICxx::resolver-task
-    dns::dns
-    ${AICXX_OBJECTS_LIST}
-    farmhash::farmhash
 )
 
 #add_subdirectory(GUI_gtkmm3)

@@ -190,7 +190,9 @@ class Window : public task::VulkanWindow
         .pWaitSemaphores = &(*m_current_frame.m_frame_resources->m_image_available_semaphore),
         .pWaitDstStageMask = &wait_dst_stage_mask,
         .commandBufferCount = 1,
-        .pCommandBuffers = command_buffer_w
+        .pCommandBuffers = command_buffer_w,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
       };
 
       Dout(dc::vulkan, "Submitting command buffer.");
