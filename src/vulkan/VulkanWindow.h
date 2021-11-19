@@ -89,7 +89,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   // UNSORTED REMAINING OBJECTS.
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;
-  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0, {} };
+  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
   vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
@@ -188,6 +188,11 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   vulkan::Swapchain const& swapchain() const
   {
     return m_swapchain;
+  }
+
+  vulkan::CurrentFrameData const& current_frame() const
+  {
+    return m_current_frame;
   }
 
   void on_window_size_changed(uint32_t width, uint32_t height) override final;

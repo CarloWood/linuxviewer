@@ -234,8 +234,8 @@ void VulkanWindow::on_window_size_changed(uint32_t width, uint32_t height)
 {
   DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed(" << width << ", " << height << ")");
 
-  // Update m_extent so that extent() will return the new value.
-  set_extent({width, height});  // This call will cause a call to handle_window_size_changed() from the render loop.
+  // Update m_extent so that get_extent() (see handle_window_size_changed() below) will return the new value.
+  set_extent({width, height});  // This call will cause a call to handle_window_size_changed() from the render loop if the extent really changed.
 }
 
 void VulkanWindow::handle_window_size_changed()
@@ -708,10 +708,10 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
   {
     vk::Result result = vk::Result::eSuccess;
     vk::SwapchainKHR vh_swapchain = *m_swapchain;
-    uint32_t swapchain_image_index = m_current_frame.m_swapchain_image_index.get_value();
+    uint32_t swapchain_image_index = m_swapchain.current_index().get_value();
     vk::PresentInfoKHR present_info{
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore),
+      .pWaitSemaphores = m_swapchain.vhp_current_rendering_finished_semaphore(),
       .swapchainCount = 1,
       .pSwapchains = &vh_swapchain,
       .pImageIndices = &swapchain_image_index
@@ -785,22 +785,27 @@ void VulkanWindow::acquire_image()
   DoutEntering(dc::vkframe, "VulkanWindow::acquire_image() [" << this << "]");
 
   // Acquire swapchain image.
+  vulkan::SwapchainIndex new_swapchain_index;
   switch (m_logical_device->acquire_next_image(
         *m_swapchain,
         3000000000,
-        *m_current_frame.m_frame_resources->m_image_available_semaphore,
+        m_swapchain.vh_acquire_semaphore(),
         vk::Fence(),
-        m_current_frame.m_swapchain_image_index))
+        new_swapchain_index))
   {
     case vk::Result::eSuccess:
+      break;
     case vk::Result::eSuboptimalKHR:
+      Dout(dc::warning, "acquire_next_image() returned eSuboptimalKHR!");
       break;
     case vk::Result::eErrorOutOfDateKHR:
       m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
-      break;
+      return;
     default:
       throw std::runtime_error("Could not acquire swapchain image!");
   }
+
+  m_swapchain.update_current_index(new_swapchain_index);
 }
 
 void VulkanWindow::finish_impl()
@@ -899,8 +904,6 @@ void VulkanWindow::create_frame_resources()
 
     auto& frame_resources = m_frame_resources_list[i];
 
-    frame_resources->m_image_available_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_image_available_semaphore")));
-    frame_resources->m_finished_rendering_semaphore = m_logical_device->create_semaphore(CWDEBUG_ONLY(ambifix("->m_finished_rendering_semaphore")));
     frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_command_buffers_completed")));
 
     {
@@ -921,8 +924,7 @@ void VulkanWindow::create_frame_resources()
   m_current_frame = vulkan::CurrentFrameData{
     .m_frame_resources = m_frame_resources_list[0].get(),
     .m_resource_count = static_cast<uint32_t>(m_frame_resources_list.size()),
-    .m_resource_index = 0,
-    .m_swapchain_image_index = {}
+    .m_resource_index = 0
   };
 
   on_window_size_changed_post();

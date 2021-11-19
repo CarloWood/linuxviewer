@@ -104,7 +104,12 @@ class Window : public xcb::WindowBase
   {
     // Take the lock on m_extent.
     WindowExtent::wat extent_w(m_extent);
-    // Change it to the new value (might be the same value).
+
+    // Do nothing if it wasn't really a change.
+    if (extent_w->m_extent == extent)
+      return;
+
+    // Change it to the new value.
     extent_w->m_extent = extent;
     // Set the extent_changed_bit in m_flags.
     m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);

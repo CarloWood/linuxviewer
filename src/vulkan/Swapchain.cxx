@@ -3,6 +3,7 @@
 #include "Swapchain.h"
 #include "PresentationSurface.h"
 #include "LogicalDevice.h"
+#include "FrameResourcesData.h"
 #include "debug.h"
 #include "vk_utils/print_flags.h"
 #ifdef CWDEBUG
@@ -170,6 +171,9 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
       ;
   }
 
+  m_acquire_semaphore = owning_window->logical_device().create_semaphore(
+        CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
+
   recreate_swapchain_images(owning_window, desired_extent
       COMMA_CWDEBUG_ONLY(ambifix));
 }
@@ -188,18 +192,24 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
     return;
   }
 
-  vk::Device vh_logical_device = owning_window->logical_device().handle();
+  LogicalDevice const& logical_device = owning_window->logical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Wait until the old stuff isn't used anymore.
+#if 1
   //FIXME replace this with something that only waits for all resources of this swapchain to no longer be in use.
   // Otherwise we can get a validation error here when resizing one window while another window is still running
   // and using queues of the same logical device.
-  vh_logical_device.waitIdle();
+  logical_device.wait_idle();
+#else
+  FrameResourcesData* current_frame_resources = owning_window->current_frame().m_frame_resources;
+  if (current_frame_resources && logical_device.wait_for_fences({ *current_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+    throw std::runtime_error("Waiting for a fence takes too long!");
+#endif
 
   // Delete the old images and views, if any.
   m_vhv_images.clear();
-  m_image_views.clear();
+  m_resources.clear();
 
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
@@ -209,8 +219,8 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
     ;
 
   Dout(dc::vulkan, "Calling Device::createSwapchainKHRUnique(" << m_create_info << ")");
-  m_swapchain = vh_logical_device.createSwapchainKHRUnique(m_create_info);
-  m_vhv_images = vh_logical_device.getSwapchainImagesKHR(*m_swapchain);
+  m_swapchain = logical_device.handle().createSwapchainKHRUnique(m_create_info);
+  m_vhv_images = logical_device.handle().getSwapchainImagesKHR(*m_swapchain);
   m_swapchain_end = m_vhv_images.iend();
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_swapchain_end);
 
@@ -225,6 +235,8 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
 
   for (SwapchainIndex i{0}; i != m_swapchain_end; ++i)
   {
+    DebugSetName(m_vhv_images[i], ambifix(".m_vhv_images[" + to_string(i.get_value()) + "]"));
+
     vk::ImageViewCreateInfo image_view_create_info;
     image_view_create_info
       .setImage(m_vhv_images[i])
@@ -232,10 +244,15 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
       .setFormat(m_create_info.imageFormat)
       .setSubresourceRange(image_subresource_range)
       ;
+    vk::UniqueImageView image_view = logical_device.handle().createImageViewUnique(image_view_create_info);
+    DebugSetName(image_view, ambifix(".m_resources[" + to_string(i.get_value()) + "].m_image_view"));
 
-    m_image_views.emplace_back(vh_logical_device.createImageViewUnique(image_view_create_info));
-    DebugSetName(*m_image_views.back(), ambifix(".m_image_views[" + to_string(i.get_value()) + "]"));
-    DebugSetName(m_vhv_images[i], ambifix(".m_vhv_images[" + to_string(i.get_value()) + "]"));
+    vk::UniqueSemaphore image_available_semaphore = logical_device.create_semaphore(
+        CWDEBUG_ONLY(ambifix(".m_resources[" + std::to_string(i.get_value()) + "].m_vh_image_available_semaphore")));
+    vk::UniqueSemaphore rendering_finished_semaphore = logical_device.create_semaphore(
+        CWDEBUG_ONLY(ambifix(".m_resources[" + std::to_string(i.get_value()) + "].m_rendering_finished_semaphore")));
+
+    m_resources.emplace_back(std::move(image_view), std::move(image_available_semaphore), std::move(rendering_finished_semaphore));
   }
 }
 

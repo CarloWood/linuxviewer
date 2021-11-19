@@ -136,13 +136,13 @@ class Window : public task::VulkanWindow
     auto swapchain_extent = swapchain().extent();
 
     std::array<vk::ImageView, 2> attachments = {
-      *swapchain().image_views()[m_current_frame.m_swapchain_image_index],
+      swapchain().vh_current_image_view(),
       *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view
     };
 #ifdef CWDEBUG
-    Dout(dc::vkframe, "m_current_frame.m_swapchain_image_index = " << m_current_frame.m_swapchain_image_index);
+    Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
     std::array<vk::Image, 2> attachment_images = {
-      swapchain().images()[m_current_frame.m_swapchain_image_index],
+      swapchain().images()[swapchain().current_index()],
       *m_current_frame.m_frame_resources->m_depth_attachment.m_image
     };
     Dout(dc::vkframe, "Attachments: ");
@@ -210,12 +210,12 @@ class Window : public task::VulkanWindow
       vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
       vk::SubmitInfo submit_info{
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &(*m_current_frame.m_frame_resources->m_image_available_semaphore),
+        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
         .pWaitDstStageMask = &wait_dst_stage_mask,
         .commandBufferCount = 1,
         .pCommandBuffers = command_buffer_w,
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
+        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
       };
 
       Dout(dc::vkframe, "Submitting command buffer.");
@@ -624,7 +624,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+//    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

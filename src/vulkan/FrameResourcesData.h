@@ -10,14 +10,12 @@ namespace vulkan {
 struct FrameResourcesData
 {
   ImageParameters         m_depth_attachment;
-  vk::UniqueSemaphore     m_image_available_semaphore;
-  vk::UniqueSemaphore     m_finished_rendering_semaphore;
 
   // Too specialized?
   using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
   command_pool_type       m_command_pool;
   handle::CommandBuffer   m_pre_command_buffer;                 // Freed when the command pool is destructed.
-  vk::UniqueFence         m_command_buffers_completed;
+  vk::UniqueFence         m_command_buffers_completed;          // This fence should be signaled when the last command buffer used for this frame completed.
 //  handle::CommandBuffer   m_post_command_buffer;              // Idem.
 
   FrameResourcesData(
