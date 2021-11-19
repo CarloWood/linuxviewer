@@ -114,7 +114,8 @@ vk::SurfaceTransformFlagBitsKHR get_transform(vk::SurfaceCapabilitiesKHR const& 
 namespace vulkan {
 
 void Swapchain::prepare(task::VulkanWindow const* owning_window,
-    vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode)
+    vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "Swapchain::prepare(" << owning_window << ", " << ", " << selected_usage << ", " << selected_present_mode << ")");
 
@@ -169,13 +170,14 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
       ;
   }
 
-  // Create for the first time, or recreate if prepare has been called before on this object.
-  recreate(owning_window, desired_extent);
+  recreate_swapchain_images(owning_window, desired_extent
+      COMMA_CWDEBUG_ONLY(ambifix));
 }
 
-void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D surface_extent)
+void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_window, vk::Extent2D surface_extent
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
-  DoutEntering(dc::vulkan, "Swapchain::recreate(" << owning_window << ", " << surface_extent << ")");
+  DoutEntering(dc::vulkan, "Swapchain::recreate_swapchain_images(" << owning_window << ", " << surface_extent << ")");
 
   owning_window->no_can_render();
 
@@ -190,6 +192,9 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Wait until the old stuff isn't used anymore.
+  //FIXME replace this with something that only waits for all resources of this swapchain to no longer be in use.
+  // Otherwise we can get a validation error here when resizing one window while another window is still running
+  // and using queues of the same logical device.
   vh_logical_device.waitIdle();
 
   // Delete the old images and views, if any.
@@ -229,7 +234,18 @@ void Swapchain::recreate(task::VulkanWindow const* owning_window, vk::Extent2D s
       ;
 
     m_image_views.emplace_back(vh_logical_device.createImageViewUnique(image_view_create_info));
+    DebugSetName(*m_image_views.back(), ambifix(".m_image_views[" + to_string(i.get_value()) + "]"));
+    DebugSetName(m_vhv_images[i], ambifix(".m_vhv_images[" + to_string(i.get_value()) + "]"));
   }
+}
+
+void Swapchain::recreate_swapchain_framebuffer(task::VulkanWindow const* owning_window
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
+{
+  // (Re)create the imageless framebuffer, because it depends on the swapchain size.
+  // Did you call set_swapchain_render_pass from the overridden create_render_passes?
+  ASSERT(m_render_pass);
+  m_framebuffer = owning_window->create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(ambifix(".m_framebuffer")));
 
   owning_window->can_render_again();
 }

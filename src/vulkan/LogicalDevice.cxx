@@ -329,8 +329,13 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
   prepare_physical_device_features(physical_device_features);
   Dout(dc::vulkan, "Requested PhysicalDeviceFeatures: " << physical_device_features << " [" << this << "]");
 
-  // Get the queue family requirements from the user, using the virtual function prepare_logical_device.
-  DeviceCreateInfo device_create_info(physical_device_features);
+  // Get the queue family requirements from the user, using the virtual function prepare_logical_device
+  // and enable the imagelessFramebuffer feature.
+  vk::StructureChain<DeviceCreateInfo, vk::PhysicalDeviceVulkan12Features> device_create_info_chain(
+    physical_device_features,
+    { .imagelessFramebuffer = true }
+  );
+  DeviceCreateInfo& device_create_info = device_create_info_chain.get<DeviceCreateInfo>();
   prepare_logical_device(device_create_info);
 
   Dout(dc::vulkan, "Requested QueueRequest's: " << device_create_info.get_queue_requests() << " [" << this << "]");
@@ -747,7 +752,7 @@ void LogicalDevice::allocate_descriptor_sets(
 
 void LogicalDevice::allocate_command_buffers(
     vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name, bool is_array)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::allocate_command_buffers(" << pool << ", " << level << ", " << count << ", " << command_buffers_out << ") [" << this << "]");
 
@@ -762,8 +767,11 @@ void LogicalDevice::allocate_command_buffers(
     THROW_ALERTC(result, "[DEVICE]->allocateCommandBuffers", AIArgs("[DEVICE]", this->debug_name()));
 
 #ifdef CWDEBUG
-  for (int i = 0; i < count; ++i)
-    DebugSetName(command_buffers_out[i], debug_name("[" + std::to_string(i) + "]"));
+  if (!is_array)
+    DebugSetName(*command_buffers_out, debug_name);
+  else
+    for (int i = 0; i < count; ++i)
+      DebugSetName(command_buffers_out[i], debug_name("[" + std::to_string(i) + "]"));
 #endif
 }
 

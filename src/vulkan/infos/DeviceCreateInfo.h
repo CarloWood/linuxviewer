@@ -9,11 +9,31 @@
 #endif
 
 namespace vulkan {
+class DeviceCreateInfo;
+} // namespace vulkan
+
+namespace vk {
+
+template <>
+struct StructExtends<PhysicalDeviceVulkan12Features, vulkan::DeviceCreateInfo>
+{
+  enum
+  {
+    value = true
+  };
+};
+
+} // namespace vk
+
+namespace vulkan {
 
 class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
 {
   // Needs access to vk_defaults::DeviceCreateInfo::setQueueCreateInfos.
   friend void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr);
+  // Needs access to vk_defaults::DeviceCreateInfo::pNext.
+  template <typename... ChainElements>
+  friend class vk::StructureChain;
 
  private:
   utils::Vector<QueueRequest> m_queue_requests = {};    // Required queue flags. The default is used when this is empty.

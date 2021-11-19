@@ -23,11 +23,11 @@ class Window : public task::VulkanWindow
   ~Window()
   {
     DoutEntering(dc::vulkan, "Window::~Window()");
+    //FIXME: instead, wait until all command buffers have completed and all swapchain related fences and semaphores have been signaled.
     m_logical_device->wait_idle();
   }
 
  private:
-  vk::UniqueRenderPass m_render_pass;
   vk::UniqueRenderPass m_post_render_pass;
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
@@ -92,8 +92,8 @@ class Window : public task::VulkanWindow
     // Start frame - calculate times and prepare GUI.
     start_frame();
 
-    // Acquire swapchain image and create a framebuffer.
-    acquire_image(*m_render_pass);
+    // Acquire swapchain image.
+    acquire_image();
 
     // Draw scene/prepare scene's command buffers.
     {
@@ -135,16 +135,39 @@ class Window : public task::VulkanWindow
 
     auto swapchain_extent = swapchain().extent();
 
-    vk::RenderPassBeginInfo render_pass_begin_info{
-      .renderPass = *m_render_pass,
-      .framebuffer = *frame_resources->m_framebuffer,
-      .renderArea = {
-        vk::Offset2D(),                                 // VkOffset2D                               offset
-        swapchain_extent,                               // VkExtent2D                               extent
-      },
-      .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-      .pClearValues = clear_values.data()
+    std::array<vk::ImageView, 2> attachments = {
+      *swapchain().image_views()[m_current_frame.m_swapchain_image_index],
+      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view
     };
+#ifdef CWDEBUG
+    Dout(dc::vkframe, "m_current_frame.m_swapchain_image_index = " << m_current_frame.m_swapchain_image_index);
+    std::array<vk::Image, 2> attachment_images = {
+      swapchain().images()[m_current_frame.m_swapchain_image_index],
+      *m_current_frame.m_frame_resources->m_depth_attachment.m_image
+    };
+    Dout(dc::vkframe, "Attachments: ");
+    for (int i = 0; i < 2; ++i)
+    {
+      Dout(dc::vkframe, "  image_view: " << attachments[i] << ", image: " << attachment_images[i]);
+    }
+#endif
+    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
+      {
+        .renderPass = swapchain().vh_render_pass(),
+        .framebuffer = swapchain().vh_framebuffer(),
+        .renderArea = {
+          vk::Offset2D{},                                 // VkOffset2D                               offset
+          swapchain_extent,                               // VkExtent2D                               extent
+        },
+        .clearValueCount = static_cast<uint32_t>(clear_values.size()),
+        .pClearValues = clear_values.data()
+      },
+      {
+        .attachmentCount = attachments.size(),
+        .pAttachments = attachments.data()
+      }
+    );
+    vk::RenderPassBeginInfo& render_pass_begin_info = render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
 
     vk::Viewport viewport{
       .x = 0,
@@ -314,8 +337,9 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
-      m_render_pass = logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_render_pass")));
+      // Create the swapchain render pass.
+      set_swapchain_render_pass(logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
     }
 
     // Post-render pass - from color_attachment to present_src.
@@ -496,7 +520,7 @@ class Window : public task::VulkanWindow
       .pColorBlendState = &color_blend_state_create_info,
       .pDynamicState = &dynamic_state_create_info,
       .layout = *m_pipeline_layout,
-      .renderPass = *m_render_pass,
+      .renderPass = swapchain().vh_render_pass(),
       .subpass = 0,
       .basePipelineHandle = vk::Pipeline{},
       .basePipelineIndex = -1

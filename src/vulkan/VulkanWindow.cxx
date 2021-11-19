@@ -44,8 +44,8 @@ char const* VulkanWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(VulkanWindow_create);
     AI_CASE_RETURN(VulkanWindow_logical_device_index_available);
     AI_CASE_RETURN(VulkanWindow_acquire_queues);
-    AI_CASE_RETURN(VulkanWindow_create_swapchain);
-    AI_CASE_RETURN(VulkanWindow_create_remaining_objects);
+    AI_CASE_RETURN(VulkanWindow_prepare_swapchain);
+    AI_CASE_RETURN(VulkanWindow_create_render_objects);
     AI_CASE_RETURN(VulkanWindow_render_loop);
     AI_CASE_RETURN(VulkanWindow_close);
   }
@@ -133,16 +133,17 @@ void VulkanWindow::multiplex_impl(state_type run_state)
           break;
         }
       }
-      set_state(VulkanWindow_create_swapchain);
+      set_state(VulkanWindow_prepare_swapchain);
       [[fallthrough]];
-    case VulkanWindow_create_swapchain:
-      create_swapchain();
-      set_state(VulkanWindow_create_remaining_objects);
+    case VulkanWindow_prepare_swapchain:
+      prepare_swapchain();
+      set_state(VulkanWindow_create_render_objects);
       [[fallthrough]];
-    case VulkanWindow_create_remaining_objects:
+    case VulkanWindow_create_render_objects:
       m_frame_resources_list.resize(5);   // FIXME: belongs in derived class.
       create_frame_resources();
       create_render_passes();
+      create_swapchain_framebuffer();
       create_descriptor_set();
       create_textures();
       create_pipeline_layout();
@@ -216,10 +217,17 @@ void VulkanWindow::acquire_queues()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_presentation_surface")));
 }
 
-void VulkanWindow::create_swapchain()
+void VulkanWindow::prepare_swapchain()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_swapchain()");
-  m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo);
+  DoutEntering(dc::vulkan, "VulkanWindow::prepare_swapchain()");
+  m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
+}
+
+void VulkanWindow::create_swapchain_framebuffer()
+{
+  m_swapchain.recreate_swapchain_framebuffer(this
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
 void VulkanWindow::on_window_size_changed(uint32_t width, uint32_t height)
@@ -234,9 +242,11 @@ void VulkanWindow::handle_window_size_changed()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::handle_window_size_changed()");
 
-  m_logical_device->wait_idle();
+  // No reason to call wait_idle: handle_window_size_changed is called from the render loop.
+  // Besides, we can't call wait_idle because another window can still be using queues on the logical device.
   on_window_size_changed_pre();
-  m_swapchain.recreate(this, get_extent());
+  m_swapchain.recreate(this, get_extent()
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
   if (can_render(atomic_flags()))
     on_window_size_changed_post();
 }
@@ -723,28 +733,56 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
   }
 }
 
-vk::UniqueFramebuffer VulkanWindow::create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
+vk::UniqueFramebuffer VulkanWindow::create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_framebuffer(...)" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
-  vk::FramebufferCreateInfo framebuffer_create_info{
-    .flags = vk::FramebufferCreateFlags(0),
-    .renderPass = render_pass,
-    .attachmentCount = static_cast<uint32_t>(image_views.size()),
-    .pAttachments = image_views.data(),
-    .width = extent.width,
-    .height = extent.height,
-    .layers = 1
+  DoutEntering(dc::vulkan, "VulkanWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
+
+  vk::Extent2D const& extent = m_swapchain.extent();
+  vk::Format format = m_swapchain.format();
+
+  // FIXME: this should be dynamic (depends on configuration that was used to create the renderpass).
+  std::array<vk::FramebufferAttachmentImageInfo, 2> attachments_image_infos = {
+    vk::FramebufferAttachmentImageInfo{
+      .usage = m_swapchain.usage(),
+      .width = extent.width,
+      .height = extent.height,
+      .layerCount = 1,
+      .viewFormatCount = 1,
+      .pViewFormats = &format
+    },
+    vk::FramebufferAttachmentImageInfo{
+      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+      .width = extent.width,
+      .height = extent.height,
+      .layerCount = 1,
+      .viewFormatCount = 1,
+      .pViewFormats = &s_default_depth_format
+    }
   };
 
-  vk::UniqueFramebuffer framebuffer = m_logical_device->handle().createFramebufferUnique(framebuffer_create_info);
+  vk::StructureChain<vk::FramebufferCreateInfo, vk::FramebufferAttachmentsCreateInfo> framebuffer_create_info_chain(
+    {
+      .flags = vk::FramebufferCreateFlagBits::eImageless,
+      .renderPass = m_swapchain.vh_render_pass(),
+      .attachmentCount = attachments_image_infos.size(),
+      .width = extent.width,
+      .height = extent.height,
+      .layers = 1
+    },
+    {
+      .attachmentImageInfoCount = attachments_image_infos.size(),
+      .pAttachmentImageInfos = attachments_image_infos.data()
+    }
+  );
+
+  vk::UniqueFramebuffer framebuffer = m_logical_device->handle().createFramebufferUnique(framebuffer_create_info_chain.get<vk::FramebufferCreateInfo>());
   DebugSetName(framebuffer, debug_name);
   return framebuffer;
 }
 
-void VulkanWindow::acquire_image(vk::RenderPass render_pass)
+void VulkanWindow::acquire_image()
 {
-  DoutEntering(dc::vkframe, "VulkanWindow::acquire_image(...) [" << this << "]");
+  DoutEntering(dc::vkframe, "VulkanWindow::acquire_image() [" << this << "]");
 
   // Acquire swapchain image.
   switch (m_logical_device->acquire_next_image(
@@ -763,12 +801,6 @@ void VulkanWindow::acquire_image(vk::RenderPass render_pass)
     default:
       throw std::runtime_error("Could not acquire swapchain image!");
   }
-  // Create a framebuffer for current frame.
-  m_current_frame.m_frame_resources->m_framebuffer = create_framebuffer(
-      { *m_swapchain.image_views()[m_current_frame.m_swapchain_image_index],
-        *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view },
-      m_swapchain.extent(), render_pass
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_current_frame.m_frame_resources->m_framebuffer")));
 }
 
 void VulkanWindow::finish_impl()

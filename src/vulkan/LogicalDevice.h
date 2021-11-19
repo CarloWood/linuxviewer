@@ -134,7 +134,7 @@ class LogicalDevice
   void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix, bool is_array = true)) const;
   void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;

@@ -101,7 +101,7 @@ handle::CommandBuffer UnlockedCommandPool<pool_type>::allocate_buffer(
 {
   handle::CommandBuffer command_buffer{CWDEBUG_ONLY(m_id)};
   m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, 1, &command_buffer.m_handle
-      COMMA_CWDEBUG_ONLY(debug_name));
+      COMMA_CWDEBUG_ONLY(debug_name, false));
   return command_buffer;
 }
 

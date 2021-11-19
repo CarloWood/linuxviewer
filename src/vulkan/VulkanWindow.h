@@ -26,6 +26,7 @@ namespace vulkan {
 class Application;
 class LogicalDevice;
 class AmbifixOwner;
+class Swapchain;
 } // namespace vulkan
 
 namespace linuxviewer::OS {
@@ -104,8 +105,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
     VulkanWindow_create,
     VulkanWindow_logical_device_index_available,
     VulkanWindow_acquire_queues,
-    VulkanWindow_create_swapchain,
-    VulkanWindow_create_remaining_objects,
+    VulkanWindow_prepare_swapchain,
+    VulkanWindow_create_render_objects,
     VulkanWindow_render_loop,
     VulkanWindow_close
   };
@@ -213,7 +214,10 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 
  private:
   void acquire_queues();
-  void create_swapchain();
+  void prepare_swapchain();
+  void create_swapchain_framebuffer();
+  friend class vulkan::Swapchain;
+  vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
  public:
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
@@ -234,11 +238,14 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   virtual void on_window_size_changed_post();
 
  protected:
+  void set_swapchain_render_pass(vk::UniqueRenderPass&& render_pass)
+  {
+    m_swapchain.set_render_pass(std::move(render_pass));
+  }
+
   void start_frame();
   void finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass);
-  vk::UniqueFramebuffer create_framebuffer(std::vector<vk::ImageView> const& image_views, vk::Extent2D const& extent, vk::RenderPass render_pass
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
-  void acquire_image(vk::RenderPass render_pass);
+  void acquire_image();
 
 #ifdef CWDEBUG
   vulkan::AmbifixOwner debug_name_prefix(std::string prefix) const;
