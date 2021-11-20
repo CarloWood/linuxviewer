@@ -60,7 +60,6 @@ class Swapchain
   vk::UniqueSwapchainKHR        m_swapchain;
   images_type                   m_vhv_images;           // A vector of swapchain images.
   resources_type                m_resources;            // A vector of corresponding image views and semaphores.
-  SwapchainIndex                m_swapchain_end;        // The actual number of swap chain images.
   SwapchainIndex                m_current_index;        // The index of the current image and resources.
   vk::UniqueSemaphore           m_acquire_semaphore;    // Semaphore used to acquire the next image.
   vk::PresentModeKHR            m_present_mode;

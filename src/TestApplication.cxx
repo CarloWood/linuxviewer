@@ -526,8 +526,8 @@ class Window : public task::VulkanWindow
       .basePipelineIndex = -1
     };
 
-    m_graphics_pipeline = logical_device().handle().createGraphicsPipelineUnique(vk::PipelineCache{}, pipeline_create_info).value;
-    DebugSetName(m_graphics_pipeline, debug_name_prefix("m_graphics_pipeline"));
+    m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
   }
 };
 

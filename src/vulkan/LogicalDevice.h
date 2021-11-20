@@ -64,7 +64,6 @@ class LogicalDevice
 
   // Accessor for underlaying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
-  vk::Device handle() const { return *m_device; }
 
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
 
@@ -104,7 +103,8 @@ class LogicalDevice
   {
     m_device->resetFences(fences);
   }
-  inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
+  inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
   inline void destroy_command_pool(vk::CommandPool command_pool) const;
   vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
   {
@@ -113,9 +113,9 @@ class LogicalDevice
     image_index_out = SwapchainIndex(new_image_index);
     return result;
   }
-  void create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view
+  vk::UniqueImageView create_image_view(vk::ImageViewCreateInfo const& image_view_create_info
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image
+  vk::UniqueImage create_image(vk::ImageCreateInfo const& image_create_info
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   ImageParameters create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
@@ -123,15 +123,17 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+  vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool
+  vk::UniqueFramebuffer create_framebuffer(vk::FramebufferCreateInfo const& framebuffer_create_info
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout
+  vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets
+  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix, bool is_array = true)) const;
@@ -140,12 +142,21 @@ class LogicalDevice
       std::vector<vk::BufferView> const& buffer_views = {}) const;
   vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer& buffer
+  vk::UniqueBuffer create_buffer(uint32_t size, vk::BufferUsageFlags usage
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  void allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+  vk::UniqueDeviceMemory allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueSwapchainKHR create_swapchain(vk::SwapchainCreateInfoKHR const& swapchain_create_info
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniquePipeline create_graphics_pipeline(vk::PipelineCache vh_pipeline_cache, vk::GraphicsPipelineCreateInfo const& graphics_pipeline_create_info
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  Swapchain::images_type get_swapchain_images(vk::SwapchainKHR vh_swapchain
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  void* map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const;
+  void flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const;
+  void unmap_memory(vk::DeviceMemory vh_memory) const;
 
  private:
   // Override this function to change the default physical device features.

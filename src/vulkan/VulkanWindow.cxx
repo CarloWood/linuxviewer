@@ -467,7 +467,7 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   {
     staging_buffer.m_buffer = m_logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = m_logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
+    staging_buffer.m_pointer = m_logical_device->map_memory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
 
@@ -476,9 +476,9 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .offset = 0,
       .size = VK_WHOLE_SIZE
     };
-    m_logical_device->handle().flushMappedMemoryRanges({ memory_range });
+    m_logical_device->flush_mapped_memory_ranges({ memory_range });
 
-    m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
+    m_logical_device->unmap_memory(*staging_buffer.m_buffer.m_memory);
   }
 
   // We use a temporary command pool here.
@@ -563,7 +563,7 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   {
     staging_buffer.m_buffer = m_logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = m_logical_device->handle().mapMemory(*staging_buffer.m_buffer.m_memory, 0, data_size);
+    staging_buffer.m_pointer = m_logical_device->map_memory(*staging_buffer.m_buffer.m_memory, 0, data_size);
 
     std::memcpy(staging_buffer.m_pointer, data, data_size);
 
@@ -572,9 +572,9 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
         .offset = 0,
         .size = VK_WHOLE_SIZE
     };
-    m_logical_device->handle().flushMappedMemoryRanges({ memory_range });
+    m_logical_device->flush_mapped_memory_ranges({ memory_range });
 
-    m_logical_device->handle().unmapMemory(*staging_buffer.m_buffer.m_memory);
+    m_logical_device->unmap_memory(*staging_buffer.m_buffer.m_memory);
   }
 
   // We use a temporary command pool here.
@@ -775,8 +775,9 @@ vk::UniqueFramebuffer VulkanWindow::create_imageless_swapchain_framebuffer(CWDEB
     }
   );
 
-  vk::UniqueFramebuffer framebuffer = m_logical_device->handle().createFramebufferUnique(framebuffer_create_info_chain.get<vk::FramebufferCreateInfo>());
-  DebugSetName(framebuffer, debug_name);
+  vk::UniqueFramebuffer framebuffer = m_logical_device->create_framebuffer(framebuffer_create_info_chain.get<vk::FramebufferCreateInfo>()
+      COMMA_CWDEBUG_ONLY(debug_name));
+
   return framebuffer;
 }
 

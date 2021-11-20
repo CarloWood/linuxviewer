@@ -213,44 +213,29 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
 
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
+  // Update the swapchain create info with the new surface extent. Also set the old swapchain handle.
   m_create_info
     .setImageExtent(surface_extent)
     .setOldSwapchain(*old_handle)
     ;
 
-  Dout(dc::vulkan, "Calling Device::createSwapchainKHRUnique(" << m_create_info << ")");
-  m_swapchain = logical_device.handle().createSwapchainKHRUnique(m_create_info);
-  m_vhv_images = logical_device.handle().getSwapchainImagesKHR(*m_swapchain);
-  m_swapchain_end = m_vhv_images.iend();
-  Dout(dc::vulkan, "Actual number of swap chain images: " << m_swapchain_end);
+  m_swapchain = logical_device.create_swapchain(m_create_info
+      COMMA_CWDEBUG_ONLY(ambifix(".m_swapchain")));
+  m_vhv_images = logical_device.get_swapchain_images(*m_swapchain
+      COMMA_CWDEBUG_ONLY(ambifix(".m_vhv_images")));
 
-  vk::ImageSubresourceRange image_subresource_range;
-  image_subresource_range
-    .setAspectMask(vk::ImageAspectFlagBits::eColor)
-    .setBaseMipLevel(0)
-    .setLevelCount(1)
-    .setBaseArrayLayer(0)
-    .setLayerCount(1)
-    ;
+  Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
-  for (SwapchainIndex i{0}; i != m_swapchain_end; ++i)
+  // Create the corresponding resources: image view and semaphores.
+  for (SwapchainIndex i = m_vhv_images.ibegin(); i != m_vhv_images.iend(); ++i)
   {
-    DebugSetName(m_vhv_images[i], ambifix(".m_vhv_images[" + to_string(i.get_value()) + "]"));
-
-    vk::ImageViewCreateInfo image_view_create_info;
-    image_view_create_info
-      .setImage(m_vhv_images[i])
-      .setViewType(vk::ImageViewType::e2D)
-      .setFormat(m_create_info.imageFormat)
-      .setSubresourceRange(image_subresource_range)
-      ;
-    vk::UniqueImageView image_view = logical_device.handle().createImageViewUnique(image_view_create_info);
-    DebugSetName(image_view, ambifix(".m_resources[" + to_string(i.get_value()) + "].m_image_view"));
-
+    vk_defaults::ImageViewCreateInfo image_view_create_info(m_vhv_images[i], m_create_info.imageFormat);
+    vk::UniqueImageView image_view = logical_device.create_image_view(image_view_create_info
+        COMMA_CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_image_view")));
     vk::UniqueSemaphore image_available_semaphore = logical_device.create_semaphore(
-        CWDEBUG_ONLY(ambifix(".m_resources[" + std::to_string(i.get_value()) + "].m_vh_image_available_semaphore")));
+        CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore")));
     vk::UniqueSemaphore rendering_finished_semaphore = logical_device.create_semaphore(
-        CWDEBUG_ONLY(ambifix(".m_resources[" + std::to_string(i.get_value()) + "].m_rendering_finished_semaphore")));
+        CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_rendering_finished_semaphore")));
 
     m_resources.emplace_back(std::move(image_view), std::move(image_available_semaphore), std::move(rendering_finished_semaphore));
   }

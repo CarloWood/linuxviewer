@@ -320,7 +320,10 @@ bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface cons
   return presentation_support;
 }
 
-void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr)
+void LogicalDevice::prepare(
+    vk::Instance vulkan_instance,
+    DispatchLoader& dispatch_loader,
+    task::VulkanWindow const* window_task_ptr)
 {
   DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vulkan_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
 
@@ -445,7 +448,9 @@ void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispat
 #endif
 }
 
-Queue LogicalDevice::acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie) const
+Queue LogicalDevice::acquire_queue(
+    QueueFlags flags,
+    task::VulkanWindow::window_cookie_type window_cookie) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
   // window_cookie is a bit mask and must represent a single window.
@@ -569,45 +574,24 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
   return render_pass;
 }
 
-void LogicalDevice::create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::UniqueImage& image
+vk::UniqueImage LogicalDevice::create_image(
+    vk::ImageCreateInfo const& image_create_info
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  vk::ImageCreateInfo image_create_info{
-    .imageType = vk::ImageType::e2D,
-    .format = format,
-    .extent = {
-      .width = width,
-      .height = height,
-      .depth = 1
-    },
-    .mipLevels = 1,
-    .arrayLayers = 1,
-    .samples = vk::SampleCountFlagBits::e1,
-    .tiling = vk::ImageTiling::eOptimal,
-    .usage = usage
-  };
-  image = m_device->createImageUnique(image_create_info);
+  DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << image_create_info << ")");
+  vk::UniqueImage image = m_device->createImageUnique(image_create_info);
   DebugSetName(image, debug_name);
+  return image;
 }
 
-void LogicalDevice::create_image_view(vk::Image& image, vk::Format format, vk::ImageAspectFlags aspect, vk::UniqueImageView& image_view
+vk::UniqueImageView LogicalDevice::create_image_view(
+    vk::ImageViewCreateInfo const& image_view_create_info
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  vk::ImageViewCreateInfo image_view_create_info{
-    .image = image,
-    .viewType = vk::ImageViewType::e2D,
-    .format = format,
-    .components = vk::ComponentMapping(),
-    .subresourceRange = {
-      .aspectMask = aspect,
-      .baseMipLevel = 0,
-      .levelCount = 1,
-      .baseArrayLayer = 0,
-      .layerCount  = 1
-    }
-  };
-  image_view = m_device->createImageViewUnique(image_view_create_info);
+  DoutEntering(dc::vulkan, "LogicalDevice::create_image_view(" << image_view_create_info << ")");
+  vk::UniqueImageView image_view = m_device->createImageViewUnique(image_view_create_info);
   DebugSetName(image_view, debug_name);
+  return image_view;
 }
 
 ImageParameters LogicalDevice::create_image(
@@ -619,29 +603,26 @@ ImageParameters LogicalDevice::create_image(
     vk::ImageAspectFlags aspect
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
-  vk::UniqueImage tmp_image;
-  create_image(width, height, format, usage, tmp_image
+  vk::UniqueImage tmp_image = create_image(vk_defaults::ImageCreateInfo({ width, height }, format, usage)
       COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
 
-  vk::UniqueDeviceMemory tmp_memory;
-  allocate_image_memory(*tmp_image, property, tmp_memory
+  vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
       COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
 
   m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
 
-  vk::UniqueImageView tmp_view;
-  create_image_view(*tmp_image, format, aspect, tmp_view
+  vk::UniqueImageView tmp_view = create_image_view(vk_defaults::ImageViewCreateInfo(*tmp_image, format, aspect)
       COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")));
 
-  ImageParameters image;
-  image.m_image = std::move(tmp_image);
-  image.m_memory = std::move(tmp_memory);
-  image.m_image_view = std::move(tmp_view);
-
-  return std::move(image);
+  return {
+   .m_image = std::move(tmp_image),
+   .m_image_view = std::move(tmp_view),
+   .m_memory = std::move(tmp_memory)
+  };
 }
 
-vk::UniqueShaderModule LogicalDevice::create_shader_module(std::filesystem::path const& filename
+vk::UniqueShaderModule LogicalDevice::create_shader_module(
+    std::filesystem::path const& filename
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   std::vector<char> const code = vk_utils::get_binary_file_contents(filename);
@@ -657,7 +638,10 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(std::filesystem::path
   return shader_module;
 }
 
-vk::UniqueSampler LogicalDevice::create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords
+vk::UniqueSampler LogicalDevice::create_sampler(
+    vk::SamplerMipmapMode mipmap_mode,
+    vk::SamplerAddressMode address_mode,
+    vk::Bool32 unnormalized_coords
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << mipmap_mode << ", " << address_mode << ", " << unnormalized_coords << ")");
@@ -685,7 +669,9 @@ vk::UniqueSampler LogicalDevice::create_sampler(vk::SamplerMipmapMode mipmap_mod
   return sampler;
 }
 
-void LogicalDevice::allocate_image_memory(vk::Image& image, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(
+    vk::Image image,
+    vk::MemoryPropertyFlagBits property
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::MemoryRequirements image_memory_requirements = m_device->getImageMemoryRequirements(image);
@@ -698,9 +684,9 @@ void LogicalDevice::allocate_image_memory(vk::Image& image, vk::MemoryPropertyFl
     {
       try
       {
-        memory = m_device->allocateMemoryUnique({.allocationSize = image_memory_requirements.size, .memoryTypeIndex = i});
+        vk::UniqueDeviceMemory memory = m_device->allocateMemoryUnique({.allocationSize = image_memory_requirements.size, .memoryTypeIndex = i});
         DebugSetName(memory, debug_name);
-        return;
+        return memory;
       }
       catch (...)
       {
@@ -711,7 +697,19 @@ void LogicalDevice::allocate_image_memory(vk::Image& image, vk::MemoryPropertyFl
   throw std::runtime_error("Could not allocate a memory for an image!");
 }
 
-void LogicalDevice::create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets, vk::UniqueDescriptorPool& descriptor_pool
+vk::UniqueFramebuffer LogicalDevice::create_framebuffer(
+    vk::FramebufferCreateInfo const& framebuffer_create_info
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::create_framebuffer(" << framebuffer_create_info << ")");
+  vk::UniqueFramebuffer framebuffer = m_device->createFramebufferUnique(framebuffer_create_info);
+  DebugSetName(framebuffer, debug_name);
+  return framebuffer;
+}
+
+vk::UniqueDescriptorPool LogicalDevice::create_descriptor_pool(
+    std::vector<vk::DescriptorPoolSize> const& pool_sizes,
+    uint32_t max_sets
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::DescriptorPoolCreateInfo descriptor_pool_create_info{
@@ -720,24 +718,27 @@ void LogicalDevice::create_descriptor_pool(std::vector<vk::DescriptorPoolSize> c
     .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
     .pPoolSizes = pool_sizes.data()
   };
-  descriptor_pool = m_device->createDescriptorPoolUnique(descriptor_pool_create_info);
+  vk::UniqueDescriptorPool descriptor_pool = m_device->createDescriptorPoolUnique(descriptor_pool_create_info);
   DebugSetName(descriptor_pool, debug_name);
+  return descriptor_pool;
 }
 
-void LogicalDevice::create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, vk::UniqueDescriptorSetLayout& set_layout
+vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
+    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{
-    .flags = vk::DescriptorSetLayoutCreateFlags(0),
     .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
     .pBindings = layout_bindings.data()
   };
-  set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info);
+  vk::UniqueDescriptorSetLayout set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info);
   DebugSetName(set_layout, debug_name);
+  return set_layout;
 }
 
-void LogicalDevice::allocate_descriptor_sets(
-    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool, std::vector<vk::UniqueDescriptorSet>& descriptor_sets
+std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets(
+    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout,
+    vk::DescriptorPool descriptor_pool
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
@@ -745,13 +746,19 @@ void LogicalDevice::allocate_descriptor_sets(
     .descriptorSetCount = static_cast<uint32_t>(descriptor_set_layout.size()),
     .pSetLayouts = descriptor_set_layout.data()
   };
-  descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
+  std::vector<vk::UniqueDescriptorSet> descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
+#ifdef CWDEBUG
   for (int i = 0; i < descriptor_sets.size(); ++i)
     DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"));
+#endif
+  return descriptor_sets;
 }
 
 void LogicalDevice::allocate_command_buffers(
-    vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
+    vk::CommandPool const& pool,
+    vk::CommandBufferLevel level,
+    uint32_t count,
+    vk::CommandBuffer* command_buffers_out
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name, bool is_array)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::allocate_command_buffers(" << pool << ", " << level << ", " << count << ", " << command_buffers_out << ") [" << this << "]");
@@ -776,31 +783,34 @@ void LogicalDevice::allocate_command_buffers(
 }
 
 DescriptorSetParameters LogicalDevice::create_descriptor_resources(
-    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes
+    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings,
+    std::vector<vk::DescriptorPoolSize> const& pool_sizes
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
-  vk::UniqueDescriptorSetLayout tmp_layout;
-  create_descriptor_set_layout(layout_bindings, tmp_layout
+  vk::UniqueDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(layout_bindings
       COMMA_CWDEBUG_ONLY(ambifix(".m_layout")));
 
-  vk::UniqueDescriptorPool tmp_pool;
-  create_descriptor_pool(pool_sizes, 1, tmp_pool
+  vk::UniqueDescriptorPool descriptor_pool = create_descriptor_pool(pool_sizes, 1
       COMMA_CWDEBUG_ONLY(ambifix(".m_pool")));
 
-  std::vector<vk::UniqueDescriptorSet> tmp_sets;
-  allocate_descriptor_sets({ *tmp_layout }, *tmp_pool, tmp_sets
+  std::vector<vk::UniqueDescriptorSet> descriptor_sets = allocate_descriptor_sets({ *descriptor_set_layout }, *descriptor_pool
       COMMA_CWDEBUG_ONLY(ambifix(".m_handle")));
 
-  DescriptorSetParameters descriptor_set;
-  descriptor_set.m_layout = std::move(tmp_layout);
-  descriptor_set.m_pool = std::move(tmp_pool);
-  descriptor_set.m_handle = std::move(tmp_sets[0]);
-
-  return std::move(descriptor_set);
+  return {
+   .m_pool = std::move(descriptor_pool),
+   .m_layout = std::move(descriptor_set_layout),
+   .m_handle = std::move(descriptor_sets[0])
+  };
 }
 
-void LogicalDevice::update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
-    std::vector<vk::DescriptorImageInfo> const& image_infos, std::vector<vk::DescriptorBufferInfo> const& buffer_infos, std::vector<vk::BufferView> const& buffer_views) const
+void LogicalDevice::update_descriptor_set(
+    vk::DescriptorSet descriptor_set,
+    vk::DescriptorType descriptor_type,
+    uint32_t binding,
+    uint32_t array_element,
+    std::vector<vk::DescriptorImageInfo> const& image_infos,
+    std::vector<vk::DescriptorBufferInfo> const& buffer_infos,
+    std::vector<vk::BufferView> const& buffer_views) const
 {
   vk::WriteDescriptorSet descriptor_writes{
     .dstSet = descriptor_set,
@@ -817,7 +827,8 @@ void LogicalDevice::update_descriptor_set(vk::DescriptorSet descriptor_set, vk::
 }
 
 vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
-    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
+    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts,
+    std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::PipelineLayoutCreateInfo layout_create_info{
@@ -833,7 +844,9 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
   return pipline_layout;
 }
 
-void LogicalDevice::create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::UniqueBuffer& buffer
+vk::UniqueBuffer LogicalDevice::create_buffer(
+    uint32_t size,
+    vk::BufferUsageFlags usage
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::BufferCreateInfo buffer_create_info{
@@ -841,11 +854,14 @@ void LogicalDevice::create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk:
     .size = size,
     .usage = usage
   };
-  buffer = m_device->createBufferUnique(buffer_create_info);
+  vk::UniqueBuffer buffer = m_device->createBufferUnique(buffer_create_info);
   DebugSetName(buffer, debug_name);
+  return buffer;
 }
 
-void LogicalDevice::allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property, vk::UniqueDeviceMemory& memory
+vk::UniqueDeviceMemory LogicalDevice::allocate_buffer_memory(
+    vk::Buffer buffer,
+    vk::MemoryPropertyFlagBits property
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::MemoryRequirements buffer_memory_requirements = m_device->getBufferMemoryRequirements(buffer);
@@ -857,9 +873,9 @@ void LogicalDevice::allocate_buffer_memory(vk::Buffer buffer, vk::MemoryProperty
         ((memory_properties.memoryTypes[i].propertyFlags & property) == property) ) {
       try
       {
-        memory = m_device->allocateMemoryUnique({ .allocationSize = buffer_memory_requirements.size, .memoryTypeIndex = i });
+        vk::UniqueDeviceMemory memory = m_device->allocateMemoryUnique({ .allocationSize = buffer_memory_requirements.size, .memoryTypeIndex = i });
         DebugSetName(memory, debug_name);
-        return;
+        return memory;
       }
       catch( ... )
       {
@@ -871,23 +887,78 @@ void LogicalDevice::allocate_buffer_memory(vk::Buffer buffer, vk::MemoryProperty
   throw std::runtime_error( "Could not allocate a memory for a buffer!" );
 }
 
-BufferParameters LogicalDevice::create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
+BufferParameters LogicalDevice::create_buffer(
+    uint32_t size,
+    vk::BufferUsageFlags usage,
+    vk::MemoryPropertyFlagBits memory_property
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
-  vk::UniqueBuffer tmp_buffer;
-  create_buffer(size, usage, tmp_buffer COMMA_CWDEBUG_ONLY(ambifix(".m_buffer")));
+  vk::UniqueBuffer buffer = create_buffer(size, usage
+      COMMA_CWDEBUG_ONLY(ambifix(".m_buffer")));
 
-  vk::UniqueDeviceMemory tmp_memory;
-  allocate_buffer_memory(*tmp_buffer, memoryProperty, tmp_memory COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
+  vk::UniqueDeviceMemory buffer_memory = allocate_buffer_memory(*buffer, memory_property
+      COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
 
-  m_device->bindBufferMemory(*tmp_buffer, *tmp_memory, vk::DeviceSize(0));
+  m_device->bindBufferMemory(*buffer, *buffer_memory, vk::DeviceSize(0));
 
-  BufferParameters buffer;
-  buffer.m_size = size;
-  buffer.m_buffer = std::move(tmp_buffer);
-  buffer.m_memory = std::move(tmp_memory);
+  return {
+    .m_buffer = std::move(buffer),
+    .m_memory = std::move(buffer_memory),
+    .m_size = size
+  };
+}
 
-  return std::move(buffer);
+vk::UniqueSwapchainKHR LogicalDevice::create_swapchain(
+    vk::SwapchainCreateInfoKHR const& swapchain_create_info
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  Dout(dc::vulkan, "LogicalDevice::create_swapchain(" << swapchain_create_info << ")");
+  vk::UniqueSwapchainKHR swapchain = m_device->createSwapchainKHRUnique(swapchain_create_info);
+  DebugSetName(swapchain, debug_name);
+  return swapchain;
+}
+
+vk::UniquePipeline LogicalDevice::create_graphics_pipeline(
+    vk::PipelineCache vh_pipeline_cache,
+    vk::GraphicsPipelineCreateInfo const& graphics_pipeline_create_info
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::create_graphics_pipeline(" << vh_pipeline_cache << ", " << graphics_pipeline_create_info << ")");
+  vk::UniquePipeline pipeline = m_device->createGraphicsPipelineUnique(vh_pipeline_cache, graphics_pipeline_create_info).value;
+  DebugSetName(pipeline, debug_name);
+  return pipeline;
+}
+
+Swapchain::images_type LogicalDevice::get_swapchain_images(
+    vk::SwapchainKHR vh_swapchain
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::get_swapchain_images(" << vh_swapchain << ")");
+  Swapchain::images_type swapchain_images;
+  swapchain_images = m_device->getSwapchainImagesKHR(vh_swapchain);
+#ifdef CWDEBUG
+  for (SwapchainIndex i = swapchain_images.ibegin(); i != swapchain_images.iend(); ++i)
+    DebugSetName(swapchain_images[i], ambifix("[" + to_string(i) + "]"));
+#endif
+  return swapchain_images;
+}
+
+void* LogicalDevice::map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::map_memory(" << vh_memory << ", " << offset << ", " << size << ")");
+  return m_device->mapMemory(vh_memory, offset, size);
+}
+
+void LogicalDevice::flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::flush_mapped_memory_ranges(" << mapped_memory_ranges << ")");
+  m_device->flushMappedMemoryRanges(mapped_memory_ranges);
+}
+
+void LogicalDevice::unmap_memory(vk::DeviceMemory vh_memory) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::unmap_memory(" << vh_memory << ")");
+  m_device->unmapMemory(vh_memory);
 }
 
 #ifdef CWDEBUG

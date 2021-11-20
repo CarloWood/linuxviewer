@@ -174,6 +174,42 @@ VK_DEFAULTS_DECLARE(DeviceCreateInfo)
   VK_DEFAULTS_PRINT_ON_MEMBERS
 };
 
+VK_DEFAULTS_DECLARE(ImageCreateInfo)
+{
+  ImageCreateInfo(vk::Extent2D const& extent, vk::Format format, vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment)
+  {
+    setImageType(vk::ImageType::e2D);
+    setFormat(format);
+    setExtent({extent.width, extent.height, 1});
+    setMipLevels(1);
+    setArrayLayers(1);
+    setSamples(vk::SampleCountFlagBits::e1);
+    setTiling(vk::ImageTiling::eOptimal);
+    setUsage(usage);
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
+VK_DEFAULTS_DECLARE(ImageViewCreateInfo)
+{
+  ImageViewCreateInfo(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
+  {
+    setImage(image);
+    setViewType(vk::ImageViewType::e2D);
+    setFormat(format);
+    setSubresourceRange({
+      .aspectMask = aspect,
+      .baseMipLevel = 0,
+      .levelCount = 1,
+      .baseArrayLayer = 0,
+      .layerCount  = 1
+    });
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
 #ifdef CWDEBUG
 DECLARE_PRINT_MEMBERS_CLASS(Extent2D)
 DECLARE_PRINT_MEMBERS_CLASS(Extent3D)
@@ -185,6 +221,29 @@ DECLARE_PRINT_MEMBERS_CLASS(SurfaceCapabilitiesKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SurfaceFormatKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SwapchainCreateInfoKHR)
 DECLARE_PRINT_MEMBERS_CLASS(ImageSubresourceRange)
+DECLARE_PRINT_MEMBERS_CLASS(FramebufferCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(GraphicsPipelineCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineShaderStageCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineVertexInputStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineInputAssemblyStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineTessellationStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineViewportStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineRasterizationStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineMultisampleStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineDepthStencilStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineColorBlendStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineDynamicStateCreateInfo)
+DECLARE_PRINT_MEMBERS_CLASS(StencilOpState)
+DECLARE_PRINT_MEMBERS_CLASS(VertexInputBindingDescription)
+DECLARE_PRINT_MEMBERS_CLASS(VertexInputAttributeDescription)
+DECLARE_PRINT_MEMBERS_CLASS(Viewport)
+DECLARE_PRINT_MEMBERS_CLASS(Rect2D)
+DECLARE_PRINT_MEMBERS_CLASS(PipelineColorBlendAttachmentState)
+DECLARE_PRINT_MEMBERS_CLASS(Offset2D)
+DECLARE_PRINT_MEMBERS_CLASS(SpecializationInfo)
+DECLARE_PRINT_MEMBERS_CLASS(SpecializationMapEntry)
+DECLARE_PRINT_MEMBERS_CLASS(ComponentMapping)
+DECLARE_PRINT_MEMBERS_CLASS(MappedMemoryRange)
 #endif
 DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
 

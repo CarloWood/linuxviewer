@@ -1,6 +1,30 @@
 #include "sys.h"
 #include "Defaults.h"
 #include "Application.h"
+#include "utils/iomanip.h"
+
+namespace vk_iomanip {
+
+// Used to set and remember a vk::PipelineDynamicStateCreateInfo* on an ostream.
+class SetDynamicState : public utils::iomanip::Sticky
+{
+ private:
+  static utils::iomanip::Index s_index;
+
+ public:
+  SetDynamicState(vk::PipelineDynamicStateCreateInfo const* pword_value) :
+    Sticky(s_index, const_cast<vk::PipelineDynamicStateCreateInfo*>(pword_value)) { }
+
+  static vk::PipelineDynamicStateCreateInfo const* get_pword_value(std::ostream& os)
+  {
+    return static_cast<vk::PipelineDynamicStateCreateInfo const*>(get_pword_from(os, s_index));
+  }
+};
+
+//static
+utils::iomanip::Index SetDynamicState::s_index;
+
+} // namespace vk_iomanip
 
 namespace vulkan {
 
@@ -28,6 +52,7 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 
 #ifdef CWDEBUG
 #include "vk_utils/PrintList.h"
+#include "vk_utils/PrintPointer.h"
 #include "vk_utils/print_version.h"
 #include "debug.h"
 #include <iomanip>
@@ -40,6 +65,7 @@ namespace vk_defaults {
 using vk_utils::print_version;
 using vk_utils::print_api_version;
 using vk_utils::print_list;
+using vk_utils::print_pointer;
 using NAMESPACE_DEBUG::print_string;
 
 void ApplicationInfo::print_members(std::ostream& os, char const* prefix) const
@@ -210,43 +236,67 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
 
 void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) const
 {
+  os << prefix;
+
   if (pNext)
     os << "pNext:" << pNext << ", ";
   os << "queueFamilyIndex:" << queueFamilyIndex <<
-      ", queueCount: " << queueCount <<
-      ", pQueuePriorities:<";
-  for (int i = 0; i < queueCount; ++i)
-  {
-    if (i > 0)
-      os << ',';
-    os << pQueuePriorities[i];
-  }
-  os << '>';
+//      ", queueCount: " << queueCount <<
+      ", pQueuePriorities:" << print_list(pQueuePriorities, queueCount);
 }
 
 #ifdef CWDEBUG
+void ImageCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "flags:" << flags <<
+      ", imageType:" << imageType <<
+      ", format:" << format <<
+      ", extent:" << extent <<
+      ", mipLevels:" << mipLevels <<
+      ", arrayLayers:" << arrayLayers <<
+      ", samples:" << samples <<
+      ", tiling:" << tiling <<
+      ", usage:" << usage <<
+      ", sharingMode:" << sharingMode;
+    if (sharingMode == vk::SharingMode::eConcurrent)
+    {
+//    os << ", queueFamilyIndexCount:" << queueFamilyIndexCount;
+      os << ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount);
+    }
+  os << ", initialLayout:" << initialLayout;
+}
+
+void ImageViewCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "flags:" << flags <<
+      ", image:" << image <<
+      ", viewType:" << viewType <<
+      ", format:" << format <<
+      ", components:" << components <<
+      ", subresourceRange:" << subresourceRange;
+}
 
 void Extent2D::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "width:" << width <<
+  os << prefix << "width:" << width <<
       ", height:" << height;
 }
 
 void Extent3D::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "width:" << width <<
+  os << prefix << "width:" << width <<
       ", height:" << height <<
       ", depth:" << depth;
 }
 
 void Instance::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "m_instance: " << this->operator VkInstance();
+  os << prefix << "m_instance: " << this->operator VkInstance();
 }
 
 void QueueFamilyProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "queueFlags:" << queueFlags <<
+  os << prefix << "queueFlags:" << queueFlags <<
       ", queueCount:" << queueCount <<
       ", timestampValidBits:" << timestampValidBits <<
       ", minImageTransferGranularity:" << minImageTransferGranularity;
@@ -254,13 +304,13 @@ void QueueFamilyProperties::print_members(std::ostream& os, char const* prefix) 
 
 void ExtensionProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "extensionName:" << print_string(extensionName) <<
+  os << prefix << "extensionName:" << print_string(extensionName) <<
       ", specVersion:" << specVersion;
 }
 
 void PhysicalDeviceProperties::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "apiVersion:" << print_api_version(apiVersion) <<
+  os << prefix << "apiVersion:" << print_api_version(apiVersion) <<
       ", driverVersion:" << print_api_version(driverVersion) <<
       ", vendorID:0x" << std::hex << vendorID <<
       ", deviceID:0x" << std::hex << deviceID <<
@@ -273,7 +323,7 @@ void PhysicalDeviceProperties::print_members(std::ostream& os, char const* prefi
 
 void SurfaceCapabilitiesKHR::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "minImageCount:" << minImageCount <<
+  os << prefix << "minImageCount:" << minImageCount <<
       ", maxImageCount:" << maxImageCount <<
       ", currentExtent:" << currentExtent <<
       ", minImageExtent:" << minImageExtent <<
@@ -287,12 +337,14 @@ void SurfaceCapabilitiesKHR::print_members(std::ostream& os, char const* prefix)
 
 void SurfaceFormatKHR::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "format:" << format <<
+  os << prefix << "format:" << format <<
       ", colorSpace:" << colorSpace;
 }
 
 void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix) const
 {
+  os << prefix;
+
   if (pNext)
     os << "pNext:" << pNext << ", ";
 
@@ -305,15 +357,8 @@ void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix)
       ", imageArrayLayers:" << imageArrayLayers <<
       ", imageUsage:" << imageUsage <<
       ", imageSharingMode:" << imageSharingMode <<
-      ", queueFamilyIndexCount:" << queueFamilyIndexCount <<
-      ", pQueueFamilyIndices:<";
-  for (int i = 0; i < queueFamilyIndexCount; ++i)
-  {
-    if (i > 0)
-      os << ',';
-    os << pQueueFamilyIndices[i];
-  }
-  os << ">"
+//      ", queueFamilyIndexCount:" << queueFamilyIndexCount <<
+      ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount) <<
       ", preTransform:" << preTransform <<
       ", compositeAlpha:" << compositeAlpha <<
       ", presentMode:" << presentMode <<
@@ -323,11 +368,318 @@ void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix)
 
 void ImageSubresourceRange::print_members(std::ostream& os, char const* prefix) const
 {
-  os << "aspectMask:" << aspectMask <<
+  os << prefix << "aspectMask:" << aspectMask <<
       ", baseMipLevel:" << baseMipLevel <<
       ", levelCount:" << levelCount <<
       ", baseArrayLayer:" << baseArrayLayer <<
       ", layerCount:" << layerCount;
+}
+
+void GraphicsPipelineCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", stageCount:" << stageCount <<
+      ", pStages:" << print_list(pStages, stageCount) <<
+      vk_iomanip::SetDynamicState(pDynamicState) <<                     // Need to remember the dynamic state in order to print these members correctly.
+      ", pVertexInputState:" << print_pointer(pVertexInputState) <<
+      ", pInputAssemblyState:" << print_pointer(pInputAssemblyState) <<
+      ", pTessellationState:" << print_pointer(pTessellationState) <<
+      ", pViewportState:" << print_pointer(pViewportState) <<
+      ", pRasterizationState:" << print_pointer(pRasterizationState) <<
+      ", pMultisampleState:" << print_pointer(pMultisampleState) <<
+      ", pDepthStencilState:" << print_pointer(pDepthStencilState) <<
+      ", pColorBlendState:" << print_pointer(pColorBlendState) <<
+      ", pDynamicState:" << print_pointer(pDynamicState) <<
+      ", layout:" << layout <<
+      ", renderPass:" << renderPass <<
+      ", subpass:" << subpass <<
+      ", basePipelineHandle:" << basePipelineHandle <<
+      ", basePipelineIndex:" << basePipelineIndex;
+}
+
+void PipelineShaderStageCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", stage:" << stage <<
+      ", module:" << module <<
+      ", pName:" << print_string(pName) <<
+      ", pSpecializationInfo:" << print_pointer(pSpecializationInfo);
+}
+
+void PipelineVertexInputStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+//      ", vertexBindingDescriptionCount:" << vertexBindingDescriptionCount <<
+      ", pVertexBindingDescriptions:" << print_list(pVertexBindingDescriptions, vertexBindingDescriptionCount) <<
+//      ", vertexAttributeDescriptionCount:" << vertexAttributeDescriptionCount <<
+      ", pVertexAttributeDescriptions:" << print_list(pVertexAttributeDescriptions, vertexAttributeDescriptionCount);
+}
+
+void PipelineInputAssemblyStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", topology:" << topology <<
+      ", primitiveRestartEnable:" << primitiveRestartEnable;
+}
+
+void PipelineTessellationStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", patchControlPoints:" << patchControlPoints;
+}
+
+void PipelineViewportStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  vk::PipelineDynamicStateCreateInfo const* pipeline_dynamic_state_create_info = vk_iomanip::SetDynamicState::get_pword_value(os);
+  // You must use vk_iomanip::SetDynamicState(pDynamicState) before printing a PipelineViewportStateCreateInfo object.
+  ASSERT(pipeline_dynamic_state_create_info);
+  bool has_dynamic_viewports = false;
+  bool has_dynamic_scissors = false;
+  for (int i = 0; i < pipeline_dynamic_state_create_info->dynamicStateCount; ++i)
+  {
+    if (pipeline_dynamic_state_create_info->pDynamicStates[i] == vk::DynamicState::eViewport)
+      has_dynamic_viewports = true;
+    if (pipeline_dynamic_state_create_info->pDynamicStates[i] == vk::DynamicState::eScissor)
+      has_dynamic_scissors = true;
+  }
+
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags;
+
+  if (has_dynamic_viewports)
+    os << ", viewportCount:" << viewportCount;
+  else
+    os << ", pViewports:" << print_list(pViewports, viewportCount);
+
+  if (has_dynamic_scissors)
+    os << ", scissorCount:" << scissorCount;
+  else
+    os << ", pScissors:" << print_list(pScissors, scissorCount);
+}
+
+void PipelineRasterizationStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", depthClampEnable:" << depthClampEnable <<
+      ", rasterizerDiscardEnable:" << rasterizerDiscardEnable <<
+      ", polygonMode:" << polygonMode <<
+      ", cullMode:" << cullMode <<
+      ", frontFace:" << frontFace <<
+      ", depthBiasEnable:" << depthBiasEnable <<
+      ", depthBiasConstantFactor:" << depthBiasConstantFactor <<
+      ", depthBiasClamp:" << depthBiasClamp <<
+      ", depthBiasSlopeFactor:" << depthBiasSlopeFactor <<
+      ", lineWidth:" << lineWidth;
+}
+
+void PipelineMultisampleStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", rasterizationSamples:" << rasterizationSamples <<
+      ", sampleShadingEnable:" << sampleShadingEnable <<
+      ", minSampleShading:" << minSampleShading <<
+      ", pSampleMask:" << print_pointer(pSampleMask) <<
+      ", alphaToCoverageEnable:" << alphaToCoverageEnable <<
+      ", alphaToOneEnable:" << alphaToOneEnable;
+}
+
+void PipelineDepthStencilStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", depthTestEnable:" << depthTestEnable <<
+      ", depthWriteEnable:" << depthWriteEnable <<
+      ", depthCompareOp:" << depthCompareOp <<
+      ", depthBoundsTestEnable:" << depthBoundsTestEnable <<
+      ", stencilTestEnable:" << stencilTestEnable <<
+      ", front:" << front <<
+      ", back:" << back <<
+      ", minDepthBounds:" << minDepthBounds <<
+      ", maxDepthBounds:" << maxDepthBounds;
+}
+
+void PipelineColorBlendStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", logicOpEnable:" << logicOpEnable <<
+      ", logicOp:" << logicOp <<
+//      ", attachmentCount:" << attachmentCount <<
+      ", pAttachments:" << print_list(pAttachments, attachmentCount) <<
+      ", blendConstants:" << blendConstants;
+}
+
+void PipelineDynamicStateCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+//      ", dynamicStateCount:" << dynamicStateCount <<
+      ", pDynamicStates:" << print_list(pDynamicStates, dynamicStateCount);
+}
+
+void PipelineColorBlendAttachmentState::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "blendEnable:" << blendEnable <<
+      ", srcColorBlendFactor:" << srcColorBlendFactor <<
+      ", dstColorBlendFactor:" << dstColorBlendFactor <<
+      ", colorBlendOp:" << colorBlendOp <<
+      ", srcAlphaBlendFactor:" << srcAlphaBlendFactor <<
+      ", dstAlphaBlendFactor:" << dstAlphaBlendFactor <<
+      ", alphaBlendOp:" << alphaBlendOp <<
+      ", colorWriteMask:" << colorWriteMask;
+}
+
+void StencilOpState::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "failOp:" << failOp <<
+      ", passOp:" << passOp <<
+      ", depthFailOp:" << depthFailOp <<
+      ", compareOp:" << compareOp <<
+      ", compareMask:" << compareMask <<
+      ", writeMask:" << writeMask <<
+      ", reference:" << reference;
+}
+
+void VertexInputBindingDescription::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "binding:" << binding <<
+      ", stride:" << stride <<
+      ", inputRate:" << inputRate;
+}
+
+void VertexInputAttributeDescription::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "location:" << location <<
+      ", binding:" << binding <<
+      ", format:" << format <<
+      ", offset:" << offset;
+}
+
+void Viewport::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "x:" << x <<
+      ", y:" << y <<
+      ", width:" << width <<
+      ", height:" << height <<
+      ", minDepth:" << minDepth <<
+      ", maxDepth:" << maxDepth;
+}
+
+void Rect2D::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "offset:" << offset <<
+      ", extent:" << extent;
+}
+
+void Offset2D::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "x:" << x <<
+      ", y:" << y;
+}
+
+void SpecializationInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os <<
+//        "mapEntryCount:" << mapEntryCount << ", "
+        "pMapEntries:" << print_list(pMapEntries, mapEntryCount) <<
+     ", dataSize:" << dataSize <<
+      ", pData:" << pData;
+}
+
+void SpecializationMapEntry::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "constantID:" << constantID <<
+      ", offset:" << offset <<
+      ", size:" << size;
+}
+
+void ComponentMapping::print_members(std::ostream& os, char const* prefix) const
+{
+  os << "r:" << r <<
+      ", g:" << g <<
+      ", b:" << b <<
+      ", a:" << a;
+}
+
+void FramebufferCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "flags:" << flags <<
+      ", renderPass:" << renderPass;
+  if ((flags & vk::FramebufferCreateFlagBits::eImageless))
+    os << ", attachmentCount:" << attachmentCount;
+  else
+    os << ", pAttachments:" << print_list(pAttachments, attachmentCount);
+  os << ", width:" << width <<
+      ", height:" << height <<
+      ", layers:" << layers;
+}
+
+void MappedMemoryRange::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "memory:" << memory <<
+      ", offset:" << offset <<
+      ", size:" << size;
 }
 
 #endif // CWDEBUG
