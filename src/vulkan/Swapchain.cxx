@@ -23,25 +23,33 @@ vk::Extent2D choose_extent(vk::SurfaceCapabilitiesKHR const& surface_capabilitie
   return surface_capabilities.currentExtent;
 }
 
-vk::SurfaceFormatKHR choose_surface_format(std::vector<vk::SurfaceFormatKHR> const& surface_formats)
+vk::SurfaceFormatKHR choose_surface_format(std::vector<vk::SurfaceFormatKHR> const& available_formats)
 {
-  // FIXME: shouldn't we prefer B8G8R8A8Srgb ?
+  DoutEntering(dc::vulkan, "choose_surface_format(" << available_formats << ")");
 
-  // If the list contains only one entry with undefined format
-  // it means that there are no preferred surface formats and any can be chosen
-  if (surface_formats.size() == 1 && surface_formats[0].format == vk::Format::eUndefined)
-    return { vk::Format::eB8G8R8A8Unorm, vk::ColorSpaceKHR::eSrgbNonlinear };
+  static std::array<vk::SurfaceFormatKHR, 3> desired_formats = {{
+    { vk::Format::eB8G8R8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear },
+    { vk::Format::eR8G8B8A8Srgb, vk::ColorSpaceKHR::eSrgbNonlinear },
+    { vk::Format::eA8B8G8R8SrgbPack32, vk::ColorSpaceKHR::eSrgbNonlinear }
+  }};
 
-  for (auto const& surface_format : surface_formats)
-  {
-    if (surface_format.format == vk::Format::eB8G8R8A8Unorm && surface_format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
-      return surface_format;
-  }
+  // If the list contains only one entry with undefined format it means that there are no preferred surface formats and any can be chosen.
+  if (available_formats.size() == 1 && available_formats[0].format == vk::Format::eUndefined)
+    return desired_formats[0];
+
+  for (auto const& desired_format : desired_formats)
+    for (auto const& available_format : available_formats)
+      if (available_format == desired_format)
+      {
+        Dout(dc::vulkan, "Picked desired format: " << desired_format);
+        return available_format;
+      }
 
   // This should have thrown an exception before we got here.
-  ASSERT(!surface_formats.empty());
+  ASSERT(!available_formats.empty());
 
-  return surface_formats[0];
+  Dout(dc::vulkan, "Returning format: " << available_formats[0]);
+  return available_formats[0];
 }
 
 vk::ImageUsageFlags choose_usage_flags(vk::SurfaceCapabilitiesKHR const& surface_capabilities, vk::ImageUsageFlags const selected_usage)
