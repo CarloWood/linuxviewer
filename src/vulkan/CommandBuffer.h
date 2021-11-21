@@ -107,11 +107,11 @@ class CommandBuffer
 
   // Constructor to initialize the pool ID.
   CommandBuffer(details::UniquePoolID pool_id) : m_pool_id(pool_id) { }
+#endif
 
   // Needed to allocate new buffers.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>
   friend class vulkan::UnlockedCommandPool;
-#endif
 
   // Needs access to m_handle.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>

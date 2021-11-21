@@ -771,7 +771,11 @@ void LogicalDevice::allocate_command_buffers(
 
   vk::Result result = m_device->allocateCommandBuffers(&command_buffer_allocate_info, command_buffers_out);
   if (AI_UNLIKELY(result != vk::Result::eSuccess))
+#ifdef CWDEBUG
     THROW_ALERTC(result, "[DEVICE]->allocateCommandBuffers", AIArgs("[DEVICE]", this->debug_name()));
+#else
+    THROW_ALERTC(result, "LogicalDevice::allocateCommandBuffers");
+#endif
 
 #ifdef CWDEBUG
   if (!is_array)

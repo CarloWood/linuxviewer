@@ -1,7 +1,10 @@
 #include "sys.h"
+#ifdef CWDEBUG
 #include "CommandPool.h"
 #include <atomic>
+#endif
 
+#ifdef CWDEBUG
 namespace vulkan {
 namespace details {
 
@@ -14,3 +17,4 @@ UniquePoolID get_unique_pool_id()
 
 } // namespace details
 } // namespace vulkan
+#endif

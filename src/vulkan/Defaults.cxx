@@ -242,7 +242,14 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
     os << "pNext:" << pNext << ", ";
   os << "queueFamilyIndex:" << queueFamilyIndex <<
 //      ", queueCount: " << queueCount <<
-      ", pQueuePriorities:" << print_list(pQueuePriorities, queueCount);
+      ", pQueuePriorities:";
+  // Can't use print_list here, because this function is also used in Release mode.
+  for (int i = 0; i < queueCount; ++i)
+  {
+    if (i > 0)
+      os << ", ";
+    os << pQueuePriorities[i];
+  }
 }
 
 #ifdef CWDEBUG
