@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "VulkanWindow.h"
 #include "OperatingSystem.h"
-#include "FrameResourcesData.h" // FIXME: might not be needed anymore
 #include "LogicalDevice.h"
 #include "debug.h"
 #include <thread>
