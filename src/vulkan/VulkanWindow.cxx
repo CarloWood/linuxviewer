@@ -252,16 +252,12 @@ void VulkanWindow::handle_window_size_changed()
 }
 
 void VulkanWindow::set_image_memory_barrier(
+    vulkan::ResourceState const& source,
+    vulkan::ResourceState const& destination,
     vk::Image vh_image,
-    vk::ImageSubresourceRange const& image_subresource_range,
-    vk::ImageLayout current_image_layout,
-    vk::AccessFlags current_image_access,
-    vk::PipelineStageFlags generating_stages,
-    vk::ImageLayout new_image_layout,
-    vk::AccessFlags new_image_access,
-    vk::PipelineStageFlags consuming_stages) const
+    vk::ImageSubresourceRange const& image_subresource_range) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(...)");
+  DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(" << source << ", " << destination << ", " << vh_image << ", " << image_subresource_range << ")");
 
   // We use a temporary command pool here.
   using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
@@ -285,16 +281,16 @@ void VulkanWindow::set_image_memory_barrier(
     tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier image_memory_barrier{
-      .srcAccessMask = current_image_access,
-      .dstAccessMask = new_image_access,
-      .oldLayout = current_image_layout,
-      .newLayout = new_image_layout,
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .srcAccessMask = source.access_mask,
+      .dstAccessMask = destination.access_mask,
+      .oldLayout = source.layout,
+      .newLayout = destination.layout,
+      .srcQueueFamilyIndex = source.queue_family_index,
+      .dstQueueFamilyIndex = destination.queue_family_index,
       .image = vh_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer_w->pipelineBarrier(generating_stages, consuming_stages, {}, {}, {}, { image_memory_barrier });
+    tmp_command_buffer_w->pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
 
     tmp_command_buffer_w->end();
   }
@@ -842,21 +838,25 @@ void VulkanWindow::on_window_size_changed_post()
 
 //FIXME, add m_gui    m_gui.on_window_size_changed();
 
-  vk::ImageSubresourceRange image_subresource_range;
-  image_subresource_range
-    .setBaseMipLevel(0)
-    .setLevelCount(1)
-    .setBaseArrayLayer(0)
-    .setLayerCount(1)
-    ;
+  // For all depth attachments.
 
-  // Create depth attachment and transition it away from an undefined layout.
-  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eDepth);
+  vk::ImageSubresourceRange const depth_subresource_range =
+    vk::ImageSubresourceRange{vulkan::Swapchain::s_default_subresource_range}
+      .setAspectMask(vk::ImageAspectFlagBits::eDepth);
+
+  vulkan::ResourceState const new_image_resource_state;
+  vulkan::ResourceState const initial_depth_resource_state = {
+    .pipeline_stage_mask        = vk::PipelineStageFlagBits::eEarlyFragmentTests,
+    .access_mask                = vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+    .layout                     = vk::ImageLayout::eDepthStencilAttachmentOptimal
+  };
+
 #ifdef CWDEBUG
-  int i = 0;
+  int frame_resource_index = 0;
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
+    // Create depth attachment.
     frame_resources_data->m_depth_attachment = m_logical_device->create_image(
         swapchain().extent().width,
         swapchain().extent().height,
@@ -864,29 +864,27 @@ void VulkanWindow::on_window_size_changed_post()
         vk::ImageUsageFlagBits::eDepthStencilAttachment,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vk::ImageAspectFlagBits::eDepth
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(i++) + "]->m_depth_attachment")));
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));
+
+    // Transition it away from an undefined layout.
     set_image_memory_barrier(
+        new_image_resource_state,
+        initial_depth_resource_state,
         *frame_resources_data->m_depth_attachment.m_image,
-        image_subresource_range,
-        vk::ImageLayout::eUndefined,
-        vk::AccessFlags(0),
-        vk::PipelineStageFlagBits::eTopOfPipe,
-        vk::ImageLayout::eDepthStencilAttachmentOptimal,
-        vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-        vk::PipelineStageFlagBits::eEarlyFragmentTests);
+        depth_subresource_range);
   }
 
+  vulkan::ResourceState const initial_present_resource_state = {
+    .pipeline_stage_mask        = vk::PipelineStageFlagBits::eBottomOfPipe,
+    .access_mask                = vk::AccessFlagBits::eMemoryRead,
+    .layout                     = vk::ImageLayout::ePresentSrcKHR
+  };
+
   // Pre-transition all swapchain images away from an undefined layout.
-  image_subresource_range.setAspectMask(vk::ImageAspectFlagBits::eColor);
   swapchain().set_image_memory_barriers(
       this,
-      image_subresource_range,
-      vk::ImageLayout::eUndefined,
-      vk::AccessFlagBits::eNoneKHR,
-      vk::PipelineStageFlagBits::eTopOfPipe,
-      vk::ImageLayout::ePresentSrcKHR,
-      vk::AccessFlagBits::eMemoryRead,
-      vk::PipelineStageFlagBits::eBottomOfPipe);
+      new_image_resource_state,
+      initial_present_resource_state);
 }
 
 void VulkanWindow::create_frame_resources()

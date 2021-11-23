@@ -199,14 +199,10 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   void handle_window_size_changed();
 
   void set_image_memory_barrier(
+    vulkan::ResourceState const& source,
+    vulkan::ResourceState const& destination,
     vk::Image vh_image,
-    vk::ImageSubresourceRange const& image_subresource_range,
-    vk::ImageLayout current_image_layout,
-    vk::AccessFlags current_image_access,
-    vk::PipelineStageFlags generating_stages,
-    vk::ImageLayout new_image_layout,
-    vk::AccessFlags new_image_access,
-    vk::PipelineStageFlags consuming_stages) const;
+    vk::ImageSubresourceRange const& image_subresource_range) const;
 
   void copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
     uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,

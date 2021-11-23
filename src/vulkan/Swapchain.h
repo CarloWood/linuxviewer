@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ResourceState.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 
@@ -52,6 +53,12 @@ class Swapchain
  public:
   using images_type = utils::Vector<vk::Image, SwapchainIndex>;
   using resources_type = utils::Vector<SwapchainResources, SwapchainIndex>;
+
+  // The subresource range of swapchain images is always just having one mipmap level.
+  // Define a default with an aspectMask of eColor.
+  static constexpr vk::ImageSubresourceRange s_default_subresource_range = {
+    .aspectMask = vk::ImageAspectFlagBits::eColor, .levelCount = 1, .layerCount = VK_REMAINING_ARRAY_LAYERS
+  };
 
  private:
   std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_create_info.
@@ -162,14 +169,10 @@ class Swapchain
     m_current_index = new_swapchain_index;
   }
 
-  void set_image_memory_barriers(task::VulkanWindow const* owning_window,
-      vk::ImageSubresourceRange const& image_subresource_range,
-      vk::ImageLayout current_image_layout,
-      vk::AccessFlags current_image_access,
-      vk::PipelineStageFlags generating_stages,
-      vk::ImageLayout new_image_layout,
-      vk::AccessFlags new_image_access,
-      vk::PipelineStageFlags consuming_stages) const; // FIXME: use a struct
+  void set_image_memory_barriers(
+      task::VulkanWindow const* owning_window,
+      ResourceState const& source,
+      ResourceState const& destination) const;
 };
 
 } // namespace vulkan

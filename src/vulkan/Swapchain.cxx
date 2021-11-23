@@ -262,24 +262,15 @@ void Swapchain::recreate_swapchain_framebuffer(task::VulkanWindow const* owning_
 
 void Swapchain::set_image_memory_barriers(
     task::VulkanWindow const* owning_window,
-    vk::ImageSubresourceRange const& image_subresource_range,
-    vk::ImageLayout current_image_layout,
-    vk::AccessFlags current_image_access,
-    vk::PipelineStageFlags generating_stages,
-    vk::ImageLayout new_image_layout,
-    vk::AccessFlags new_image_access,
-    vk::PipelineStageFlags consuming_stages) const
+    ResourceState const& source,
+    ResourceState const& destination) const
 {
   for (auto const& swapchain_image : m_vhv_images)
     owning_window->set_image_memory_barrier(
+      source,
+      destination,
       swapchain_image,
-      image_subresource_range,
-      current_image_layout,
-      current_image_access,
-      generating_stages,
-      new_image_layout,
-      new_image_access,
-      consuming_stages);
+      Swapchain::s_default_subresource_range);
 }
 
 } // namespace vulkan
