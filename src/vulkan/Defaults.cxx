@@ -689,6 +689,19 @@ void MappedMemoryRange::print_members(std::ostream& os, char const* prefix) cons
       ", size:" << size;
 }
 
+void SubmitInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << pNext << ", ";
+
+  os << "pWaitSemaphores:" << print_list(pWaitSemaphores, waitSemaphoreCount) <<
+      ", pWaitDstStageMask:" << print_pointer(pWaitDstStageMask) <<
+      ", pCommandBuffers:" << print_list(pCommandBuffers, commandBufferCount) <<
+      ", pSignalSemaphores:" << print_list(pSignalSemaphores, signalSemaphoreCount);
+}
+
 #endif // CWDEBUG
 
 } // namespace vk_defaults

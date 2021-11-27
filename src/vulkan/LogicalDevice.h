@@ -94,13 +94,15 @@ class LogicalDevice
 
   // Unsorted additional functions.
   inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, AmbifixOwner const& ambifix)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
+    DoutEntering(dc::vulkan, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
     return m_device->waitForFences(fences, wait_all, timeout);
   }
   void reset_fences(vk::ArrayProxy<vk::Fence const> const& fences) const
   {
+    DoutEntering(dc::vulkan, "LogicalDevice::reset_fences(" << fences << ")");
     m_device->resetFences(fences);
   }
   inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags
@@ -108,6 +110,8 @@ class LogicalDevice
   inline void destroy_command_pool(vk::CommandPool command_pool) const;
   vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
   {
+    DoutEntering(dc::vulkan, "LogicalDevice::acquire_next_image(" << swapchain << ", " << timeout << ", " << semaphore << ", " << fence << ", ...)");
+
     uint32_t new_image_index;
     auto result = m_device->acquireNextImageKHR(swapchain, timeout, semaphore, fence, &new_image_index);
     image_index_out = SwapchainIndex(new_image_index);
@@ -237,10 +241,12 @@ vk::UniqueSemaphore LogicalDevice::create_semaphore(CWDEBUG_ONLY(AmbifixOwner co
   return semaphore;
 }
 
-vk::UniqueFence LogicalDevice::create_fence(bool signaled COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+vk::UniqueFence LogicalDevice::create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, AmbifixOwner const& debug_name)) const
 {
-  vk::UniqueFence fence = m_device->createFenceUnique({ .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlags(0u) });
+  DoutEntering(dc::vulkan(debug_output)|continued_cf, "LogicalDevice::create_fence(" << signaled << ") = ");
+  vk::UniqueFence fence = m_device->createFenceUnique({ .flags = signaled ? vk::FenceCreateFlagBits::eSignaled : vk::FenceCreateFlagBits(0u) });
   DebugSetName(fence, debug_name);
+  Dout(dc::finish, *fence);
   return fence;
 }
 

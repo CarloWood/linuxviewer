@@ -3,6 +3,8 @@
 #include "ResourceState.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
+#include <thread>
+#include <deque>
 
 namespace task {
 class VulkanWindow;
@@ -46,6 +48,21 @@ class SwapchainResources
   {
     m_image_available_semaphore.swap(acquire_semaphore);
   }
+
+  vk::UniqueImageView rescue_image_view()
+  {
+    return std::move(m_image_view);
+  }
+
+  vk::UniqueSemaphore rescue_image_available_semaphore()
+  {
+    return std::move(m_image_available_semaphore);
+  }
+
+  vk::UniqueSemaphore rescue_rendering_finished_semaphore()
+  {
+    return std::move(m_rendering_finished_semaphore);
+  }
 };
 
 class Swapchain
@@ -66,6 +83,7 @@ class Swapchain
                                                         // Contains a copy of the last (non-zero) extent of the owning_window that was passed to recreate.
   vk::UniqueSwapchainKHR        m_swapchain;
   images_type                   m_vhv_images;           // A vector of swapchain images.
+  std::deque<images_type> m_vhv_images_dump;
   resources_type                m_resources;            // A vector of corresponding image views and semaphores.
   SwapchainIndex                m_current_index;        // The index of the current image and resources.
   vk::UniqueSemaphore           m_acquire_semaphore;    // Semaphore used to acquire the next image.
@@ -77,7 +95,7 @@ class Swapchain
   Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
   ~Swapchain() { DoutEntering(dc::vulkan, "Swapchain::~Swapchain() [" << this << "]"); }
 
-  void prepare(task::VulkanWindow const* owning_window,
+  void prepare(task::VulkanWindow* owning_window,
       vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
@@ -88,11 +106,11 @@ class Swapchain
     m_render_pass = std::move(render_pass);
   }
 
-  void recreate_swapchain_images(task::VulkanWindow const* owning_window, vk::Extent2D window_extent
+  void recreate_swapchain_images(task::VulkanWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
   void recreate_swapchain_framebuffer(task::VulkanWindow const* owning_window
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
-  void recreate(task::VulkanWindow const* owning_window, vk::Extent2D window_extent
+  void recreate(task::VulkanWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
   {
     recreate_swapchain_images(owning_window, window_extent

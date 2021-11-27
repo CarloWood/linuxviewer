@@ -8,10 +8,12 @@
 #include "ImageParameters.h"
 #include "BufferParameters.h"
 #include "OperatingSystem.h"
+#include "SynchronousEngine.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
 #include "threadpool/Timer.h"
+#include "statefultask/AIEngine.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -36,12 +38,13 @@ class Window;
 namespace task {
 
 class LogicalDevice;
+class SynchronousTask;
 
 /**
  * The VulkanWindow task.
  *
  */
-class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
+class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, protected vulkan::SynchronousEngine
 {
  public:
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
@@ -60,7 +63,6 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
   vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
                                                                           // VulkanWindow_logical_device_index_available.
-
  private:
   // set_title
   std::string m_title;
@@ -84,6 +86,9 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
+
+  // Needs access to the protected SynchronousEngine base class.
+  friend class SynchronousTask;
 
  protected:
   // UNSORTED REMAINING OBJECTS.
@@ -195,6 +200,60 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
     return m_current_frame;
   }
 
+  // Called when the close button is clicked.
+  void On_WM_DELETE_WINDOW(uint32_t timestamp) override
+  {
+    DoutEntering(dc::notice, "VulkanWindow::On_WM_DELETE_WINDOW(" << timestamp << ")");
+    // Set the must_close_bit.
+    set_must_close();
+    // We should have one boost::intrusive_ptr's left: the one in Application::m_window_list.
+    // This will be removed from the running task (finish_impl), which prevents the
+    // immediate destruction until the task fully finished. At that point this Window
+    // will be destructed causing a call to Window::destroy.
+  }
+
+  // Used to set the initial (desired) extent.
+  // Also used by on_window_size_changed to set the new extent.
+  void set_extent(vk::Extent2D const& extent)
+  {
+    // Take the lock on m_extent.
+    linuxviewer::OS::WindowExtent::wat extent_w(m_extent);
+
+    // Do nothing if it wasn't really a change.
+    if (extent_w->m_extent == extent)
+      return;
+
+    // Change it to the new value.
+    extent_w->m_extent = extent;
+    // Set the extent_changed_bit in m_flags.
+    set_extent_changed();
+    // The change of m_flags will (eventually) be picked up by a call to atomic_flags() (in combination with extent_changed()).
+    // That thread then calls get_extent() to read the value that was *last* written to m_extent.
+    //
+    // Unlock m_extent.
+  }
+
+  // Call this from the render loop every time that extent_changed(atomic_flags()) returns true.
+  // Call only synchronously.
+  vk::Extent2D get_extent() const
+  {
+    // Take the lock on m_extent.
+    linuxviewer::OS::WindowExtent::crat extent_r(m_extent);
+    // Read the value that was last written.
+    vk::Extent2D extent = extent_r->m_extent;
+    // Reset the extent_changed_bit in m_flags.
+    reset_extent_changed();
+    // Return the new extent and unlock m_extent.
+    return extent;
+    // Because atomic_flags() is called without taking the lock on m_extent
+    // it is theorectically possible (this will NEVER happen in practise)
+    // that even after returning here, atomic_flags() will again return
+    // extent_changed_bit (even though we just reset it); that then would
+    // cause another call to this function reading the same value of the extent.
+  }
+
+  void wait_for_all_fences() const;
+
   void on_window_size_changed(uint32_t width, uint32_t height) override final;
   void handle_window_size_changed();
 
@@ -212,6 +271,8 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window
   void copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
+
+  void handle_synchronous_task();
 
  private:
   void acquire_queues();

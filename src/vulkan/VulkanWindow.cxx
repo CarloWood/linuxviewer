@@ -6,18 +6,22 @@
 #include "FrameResourcesData.h"
 #include "VertexData.h"
 #include "StagingBufferParameters.h"
+#include "Exceptions.h"
 #include "vk_utils/get_image_data.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
+#include "utils/at_scope_end.h"
 #endif
 
 namespace task {
 
 VulkanWindow::VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
-  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }) COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
+  AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
+  m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); })
+  COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ") [" << (void*)this << "]");
 }
@@ -71,6 +75,21 @@ void VulkanWindow::initialize_impl()
   m_frame_rate_interval = get_frame_rate_interval();
   set_state(VulkanWindow_xcb_connection);
 }
+
+#ifdef CWDEBUG
+struct RenderLoopEntered
+{
+  debug::Mark m_mark;
+  RenderLoopEntered() : m_mark("renderloop ")
+  {
+    Dout(dc::always, "ENTERING RENDERLOOP");
+  }
+  ~RenderLoopEntered()
+  {
+    Dout(dc::always, "LEAVING RENDERLOOP");
+  }
+};
+#endif
 
 void VulkanWindow::multiplex_impl(state_type run_state)
 {
@@ -155,21 +174,41 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       [[fallthrough]];
     case VulkanWindow_render_loop:
     {
+#if CW_DEBUG
+      RenderLoopEntered scoped;
+#endif
+      int special_circumstances = atomic_flags();
       for (;;)  // So that we can use continue.
       {
-        int special_circumstances = atomic_flags();
         if (AI_LIKELY(!special_circumstances))
         {
-          // Render the next frame.
-          m_frame_rate_limiter.start(m_frame_rate_interval);
-          draw_frame();
-          yield(m_application->m_medium_priority_queue);
-          wait(frame_timer);
-          return;
+          try
+          {
+            // Render the next frame.
+            m_frame_rate_limiter.start(m_frame_rate_interval);
+            draw_frame();
+            yield(m_application->m_medium_priority_queue);
+            wait(frame_timer);
+            return;
+          }
+          catch (vulkan::OutOfDateKHR_Exception const& error)
+          {
+            Dout(dc::warning, "Rendering aborted due to: " << error.what());
+            special_circumstances = atomic_flags();
+            // No other thread can be running this render loop. A flag must be set before throwing.
+            ASSERT(special_circumstances);
+          }
         }
         // Handle special circumstances.
+        bool need_draw_frame = false;
         if (must_close(special_circumstances))
           break;
+        if (have_synchronous_task(special_circumstances))
+        {
+          handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
+          special_circumstances &= ~have_synchronous_task_bit;
+          need_draw_frame = true;
+        }
         if (!can_render(special_circumstances))
         {
           // We can't render, drop frame rate to 7.8 FPS (because slow_down already uses 128 ms anyway).
@@ -177,13 +216,20 @@ void VulkanWindow::multiplex_impl(state_type run_state)
           m_frame_rate_limiter.start(s_no_render_frame_rate_interval);
           yield(m_application->m_low_priority_queue);
           wait(frame_timer);
+          need_draw_frame = false;
         }
         else if (extent_changed(special_circumstances))
         {
           handle_window_size_changed();
-          continue;
+          special_circumstances = atomic_flags();
+          if (need_draw_frame)                                          // Did we already call handle_synchronous_tasks()?
+            special_circumstances &= ~have_synchronous_task_bit;        // Don't do that again this frame.
+          // Don't call handle_window_size_changed() again either this frame.
+          special_circumstances &= ~extent_changed_bit;
+          need_draw_frame = true;
         }
-        return;
+        if (!need_draw_frame)
+          return;
       }
       set_state(VulkanWindow_close);
       [[fallthrough]];
@@ -238,6 +284,17 @@ void VulkanWindow::on_window_size_changed(uint32_t width, uint32_t height)
   set_extent({width, height});  // This call will cause a call to handle_window_size_changed() from the render loop if the extent really changed.
 }
 
+void VulkanWindow::wait_for_all_fences() const
+{
+  std::vector<vk::Fence> all_fences;
+  for (auto&& resources : m_frame_resources_list)
+    all_fences.push_back(*resources->m_command_buffers_completed);
+
+  vk::Result res = m_logical_device->wait_for_fences(all_fences, VK_TRUE, 1000000000);
+  if (res != vk::Result::eSuccess)
+    THROW_FALERTC(res, "wait_for_fences");
+}
+
 void VulkanWindow::handle_window_size_changed()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::handle_window_size_changed()");
@@ -245,6 +302,9 @@ void VulkanWindow::handle_window_size_changed()
   // No reason to call wait_idle: handle_window_size_changed is called from the render loop.
   // Besides, we can't call wait_idle because another window can still be using queues on the logical device.
   on_window_size_changed_pre();
+  // We must wait here until all fences are signalled.
+  wait_for_all_fences();
+  // Now it is safe to recreate the swapchain.
   m_swapchain.recreate(this, get_extent()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
   if (can_render(atomic_flags()))
@@ -276,29 +336,28 @@ void VulkanWindow::set_image_memory_barrier(
   // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
   auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
+  vk::ImageMemoryBarrier const image_memory_barrier{
+    .srcAccessMask = source.access_mask,
+    .dstAccessMask = destination.access_mask,
+    .oldLayout = source.layout,
+    .newLayout = destination.layout,
+    .srcQueueFamilyIndex = source.queue_family_index,
+    .dstQueueFamilyIndex = destination.queue_family_index,
+    .image = vh_image,
+    .subresourceRange = image_subresource_range
+  };
+
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
     tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-
-    vk::ImageMemoryBarrier image_memory_barrier{
-      .srcAccessMask = source.access_mask,
-      .dstAccessMask = destination.access_mask,
-      .oldLayout = source.layout,
-      .newLayout = destination.layout,
-      .srcQueueFamilyIndex = source.queue_family_index,
-      .dstQueueFamilyIndex = destination.queue_family_index,
-      .image = vh_image,
-      .subresourceRange = image_subresource_range
-    };
     tmp_command_buffer_w->pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
-
     tmp_command_buffer_w->end();
   }
 
   // Submit
   {
     auto fence = logical_device().create_fence(false
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::fence")));
+        COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("set_image_memory_barrier()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -310,8 +369,23 @@ void VulkanWindow::set_image_memory_barrier(
       .pSignalSemaphores = nullptr
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
-    if (logical_device().wait_for_fences( { *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
-      throw std::runtime_error("waitForFences");
+
+    int count = 10;
+    vk::Result res;
+    do
+    {
+      res = logical_device().wait_for_fences({ *fence }, VK_TRUE, 300000000);
+      if (res != vk::Result::eTimeout)
+        break;
+      Dout(dc::notice, "wait_for_fences timed out " << count);
+    }
+    while (--count > 0);
+    if (res != vk::Result::eSuccess)
+    {
+      Dout(dc::warning, "wait_for_fences returned " << res);
+      logical_device().reset_fences({ *fence });
+      THROW_ALERTC(res, "waitForFences");
+    }
   }
 }
 
@@ -530,7 +604,8 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   }
   // Submit
   {
-    vk::UniqueFence fence = m_logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_buffer()::fence")));
+    vk::UniqueFence fence = m_logical_device->create_fence(false
+        COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("copy_data_to_buffer()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -540,8 +615,10 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
       .pCommandBuffers = tmp_command_buffer_w
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
-    if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000) != vk::Result::eSuccess)
-      throw std::runtime_error("waitForFences");
+
+    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 3000000000);
+    if (res != vk::Result::eSuccess)
+      THROW_ALERTC(res, "waitForFences");
   }
 }
 
@@ -647,7 +724,8 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
 
   // Submit
   {
-    vk::UniqueFence fence = m_logical_device->create_fence(false COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::fence")));
+    vk::UniqueFence fence = m_logical_device->create_fence(false
+        COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("copy_data_to_image()::fence")));
 
     vk::SubmitInfo submit_info{
       .waitSemaphoreCount = 0,
@@ -657,8 +735,10 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
       .pCommandBuffers = tmp_command_buffer_w
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
-    if (m_logical_device->wait_for_fences({ *fence }, VK_FALSE, 3000000000 ) != vk::Result::eSuccess)
-      throw std::runtime_error("waitForFences");
+
+    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 3000000000);
+    if (res != vk::Result::eSuccess)
+      THROW_ALERTC(res, "waitForFences");
   }
 }
 
@@ -783,12 +863,13 @@ void VulkanWindow::acquire_image()
 
   // Acquire swapchain image.
   vulkan::SwapchainIndex new_swapchain_index;
-  switch (m_logical_device->acquire_next_image(
-        *m_swapchain,
-        3000000000,
-        m_swapchain.vh_acquire_semaphore(),
-        vk::Fence(),
-        new_swapchain_index))
+  vk::Result res = m_logical_device->acquire_next_image(
+      *m_swapchain,
+      3000000000,
+      m_swapchain.vh_acquire_semaphore(),
+      vk::Fence(),
+      new_swapchain_index);
+  switch (res)
   {
     case vk::Result::eSuccess:
       break;
@@ -797,9 +878,9 @@ void VulkanWindow::acquire_image()
       break;
     case vk::Result::eErrorOutOfDateKHR:
       m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
-      return;
+      throw vulkan::OutOfDateKHR_Exception();
     default:
-      throw std::runtime_error("Could not acquire swapchain image!");
+      THROW_ALERTC(res, "Could not acquire swapchain image!");
   }
 
   m_swapchain.update_current_index(new_swapchain_index);
@@ -903,7 +984,7 @@ void VulkanWindow::create_frame_resources()
 
     auto& frame_resources = m_frame_resources_list[i];
 
-    frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(ambifix("->m_command_buffers_completed")));
+    frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, ambifix("->m_command_buffers_completed")));
 
     {
       // Lock command pool.

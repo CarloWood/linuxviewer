@@ -93,7 +93,7 @@ class Window : public task::VulkanWindow
     start_frame();
 
     // Acquire swapchain image.
-    acquire_image();
+    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
 
     // Draw scene/prepare scene's command buffers.
     {
@@ -218,7 +218,7 @@ class Window : public task::VulkanWindow
         .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
       };
 
-      Dout(dc::vkframe, "Submitting command buffer.");
+      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
       presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
     } // Unlock command pool.
 

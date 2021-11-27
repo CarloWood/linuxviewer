@@ -1,0 +1,19 @@
+Actions.
+* acquire swapchain index (using free_semaphore (previous available_semaphore) (signal))
+* swap available_semaphore (free_semaphore <--> indexed available_semaphore (current))
+* wait for command_buffers_finished fence
+* reset command_buffers_finished fence
+* record command buffers
+* submit command buffers (using (current) available_semaphore (wait for),
+                          (current) finished_rendering_semaphore (signal)
+                          and command_buffers_finished fence (signal))
+* present (using (current) finished_rendering_semaphore (wait for))
+
+Semaphore events.
+* swapchain index (image) becomes available (this guarantees that the finished_rendering_semaphore used for presenting it is available for reuse),
+  now the index might be returned when acquiring a new swapchain index.
+* acquired swapchain index (image) becomes really available (available_semaphore is signaled)
+* rendering to submitted image finished. The image can now be presented (finished_rendering_semaphore is signaled)
+
+Fence events.
+* The submitted command buffer(s) are ready for reuse (this signals the command_buffers_finished fence)

@@ -4,6 +4,7 @@
 #include "PresentationSurface.h"
 #include "LogicalDevice.h"
 #include "FrameResourcesData.h"
+#include "DelayedDestroyer.h"
 #include "debug.h"
 #include "vk_utils/print_flags.h"
 #ifdef CWDEBUG
@@ -122,7 +123,7 @@ vk::SurfaceTransformFlagBitsKHR get_transform(vk::SurfaceCapabilitiesKHR const& 
 
 namespace vulkan {
 
-void Swapchain::prepare(task::VulkanWindow const* owning_window,
+void Swapchain::prepare(task::VulkanWindow* owning_window,
     vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
@@ -186,7 +187,7 @@ void Swapchain::prepare(task::VulkanWindow const* owning_window,
       COMMA_CWDEBUG_ONLY(ambifix));
 }
 
-void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_window, vk::Extent2D surface_extent
+void Swapchain::recreate_swapchain_images(task::VulkanWindow* owning_window, vk::Extent2D surface_extent
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "Swapchain::recreate_swapchain_images(" << owning_window << ", " << surface_extent << ")");
@@ -203,19 +204,19 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow const* owning_windo
   LogicalDevice const& logical_device = owning_window->logical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
-  // Wait until the old stuff isn't used anymore.
-#if 1
-  //FIXME replace this with something that only waits for all resources of this swapchain to no longer be in use.
-  // Otherwise we can get a validation error here when resizing one window while another window is still running
-  // and using queues of the same logical device.
-  logical_device.wait_idle();
-#else
-  FrameResourcesData* current_frame_resources = owning_window->current_frame().m_frame_resources;
-  if (current_frame_resources && logical_device.wait_for_fences({ *current_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
-    throw std::runtime_error("Waiting for a fence takes too long!");
-#endif
-
-  // Delete the old images and views, if any.
+  // Keep a copy of the rendering_finished_semaphore's for 1 frame.
+  constexpr int keep_frames = 1;
+  for (auto&& resources : m_resources)
+  {
+    auto delayed_destroyer = statefultask::create<task::DelayedDestroyer>(
+        resources.rescue_rendering_finished_semaphore(),
+        owning_window,
+        keep_frames - 1
+        COMMA_CWDEBUG_ONLY(true));
+    delayed_destroyer->run();
+  }
+  owning_window->set_have_synchronous_task();
+  // Delete the old images, views and semaphores.
   m_vhv_images.clear();
   m_resources.clear();
 

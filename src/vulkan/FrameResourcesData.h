@@ -24,6 +24,11 @@ struct FrameResourcesData
       QueueFamilyPropertiesIndex queue_family
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& command_pool_debug_name)) :
     m_command_pool(logical_device, queue_family COMMA_CWDEBUG_ONLY(command_pool_debug_name)) { }
+
+  ~FrameResourcesData()
+  {
+    Dout(dc::vulkan, "Destroying m_command_buffers_completed " << *m_command_buffers_completed);
+  }
 };
 
 } // namespace vulkan
