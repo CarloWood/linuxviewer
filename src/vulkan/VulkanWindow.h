@@ -91,10 +91,12 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   friend class SynchronousTask;
 
  protected:
-  // UNSORTED REMAINING OBJECTS.
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;
+  static constexpr size_t s_default_number_of_frame_resources = 2;                      // Default size of m_frame_resources_list.
+  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
+
+  // UNSORTED REMAINING OBJECTS.
   vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
@@ -195,11 +197,6 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
     return m_swapchain;
   }
 
-  vulkan::CurrentFrameData const& current_frame() const
-  {
-    return m_current_frame;
-  }
-
   // Called when the close button is clicked.
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
@@ -294,6 +291,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   virtual void create_vertex_buffers() = 0;
 
  protected:
+  virtual size_t number_of_frame_resources() const;
   virtual void draw_frame() = 0;
 
   virtual void on_window_size_changed_pre();

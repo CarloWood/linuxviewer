@@ -43,6 +43,11 @@ class Window : public task::VulkanWindow
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
+  size_t number_of_frame_resources() const override
+  {
+    return 5;
+  }
+
   void MouseMove(int x, int y) override
   {
     DoutEntering(dc::notice, "Window::MouseMove(" << x << ", " << y << ")");
@@ -330,7 +335,7 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
         },
         {
-          .m_format = task::VulkanWindow::s_default_depth_format,
+          .m_format = s_default_depth_format,
           .m_load_op = vk::AttachmentLoadOp::eClear,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
@@ -353,7 +358,7 @@ class Window : public task::VulkanWindow
           .m_final_layout = vk::ImageLayout::ePresentSrcKHR
         },
         {
-          .m_format = task::VulkanWindow::s_default_depth_format,
+          .m_format = s_default_depth_format,
           .m_load_op = vk::AttachmentLoadOp::eDontCare,
           .m_store_op = vk::AttachmentStoreOp::eDontCare,
           .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,

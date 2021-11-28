@@ -159,7 +159,6 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       set_state(VulkanWindow_create_render_objects);
       [[fallthrough]];
     case VulkanWindow_create_render_objects:
-      m_frame_resources_list.resize(5);   // FIXME: belongs in derived class.
       create_frame_resources();
       create_render_passes();
       create_swapchain_framebuffer();
@@ -968,10 +967,19 @@ void VulkanWindow::on_window_size_changed_post()
       initial_present_resource_state);
 }
 
+//virtual
+// Override this function to change this value.
+size_t VulkanWindow::number_of_frame_resources() const
+{
+  return s_default_number_of_frame_resources;
+}
+
 void VulkanWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
 
+  m_frame_resources_list.resize(number_of_frame_resources());
+  Dout(dc::vulkan, "Creating " << m_frame_resources_list.size() << " frame resources.");
   for (size_t i = 0; i < m_frame_resources_list.size(); ++i)
   {
 #ifdef CWDEBUG
@@ -1001,6 +1009,7 @@ void VulkanWindow::create_frame_resources()
     } // Unlock command pool.
   }
 
+  // Initialize m_current_frame to point to frame resources index 0.
   m_current_frame = vulkan::CurrentFrameData{
     .m_frame_resources = m_frame_resources_list[0].get(),
     .m_resource_count = static_cast<uint32_t>(m_frame_resources_list.size()),
