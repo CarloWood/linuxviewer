@@ -1,0 +1,26 @@
+                          A-sync|Sync
+  xcb::WindowBase               |        vulkan::SpecialCircumstances          AIEngine
+  Async-virtual functions       |        thead-safe atomic flags     \         mainloop()
+            |                   |                     ^    ^          \            |
+            V                   |                     |    |           V           V
+  linuxviewer::OS::Window       |                     |    |          vulkan::SynchronousEngine   AIStatefulTask
+  Async-updated variables       |                     |    |                       |   .------------/
+            |                   |                     |    |                       V  V
+            V                   |                     |    |              SynchronousWindow  (sync)                       
+  Async-setters of variables <---set_extent_changed()-'    |             .------------------------------------.
+  Async-getters of variables  \ .                          |             |  Initialization code               |
+            |              set_extent()                    |             |  sync-virtual functions            |
+            V                 | .                          |             |     |                              |
+  Implementation of           | .                          |             |     |       Render loop            |
+  on_window_size_changed -----' .                          |             |     |       sync-virtual functions |
+  On_WM_DELETE_WINDOW    --------set_must_close()----------'             `-----+-----------------+------------'
+            |                   .                                              |                 |
+------------+-------------------+----------------------------------------------+-----------------+--------------
+            |                   |                                              |                 |
+            V                   |                                              V                 V
+  Implementation of             |                                   Implementation of          Implementation of
+  MouseMove                     |                                   get_frame_rate_interval    draw_frame
+  MoveClick                     |                                   number_of_frame_resources
+  ResetMouse                    |                                   create_vertex_buffers    
+                                |                                   create_render_passes     
+                                |                                   create_graphics_pipeline 

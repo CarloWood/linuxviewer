@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "DebugSetName.h"
-#include "VulkanWindow.h"
+#include "SynchronousWindow.h"
 #include "utils/ulong_to_base.h"
 
 namespace vulkan {
@@ -13,7 +13,7 @@ std::string as_postfix(AIStatefulTask const* task)
   return result;
 }
 
-AmbifixOwner::AmbifixOwner(task::VulkanWindow const* owning_window, std::string prefix) :
+AmbifixOwner::AmbifixOwner(task::SynchronousWindow const* owning_window, std::string prefix) :
   Ambifix(std::move(prefix), as_postfix(owning_window)),
   m_owning_window(owning_window),
   m_logical_device(owning_window->get_logical_device()) { }

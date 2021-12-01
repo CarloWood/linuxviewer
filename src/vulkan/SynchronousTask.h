@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanWindow.h"
+#include "SynchronousWindow.h"
 #include "statefultask/AIStatefulTask.h"
 
 namespace task {
@@ -13,14 +13,14 @@ class SynchronousTask : public AIStatefulTask
   using AIStatefulTask::target;
 
  private:
-  VulkanWindow* m_owner;                // The VulkanWindow that this object is a member of.
+  SynchronousWindow* m_owner;                // The SynchronousWindow that this object is a member of.
 
  protected:
   /// The base class of this task.
   using direct_base_type = AIStatefulTask;
 
   // Constructor.
-  SynchronousTask(VulkanWindow* owner COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owner(owner) { }
+  SynchronousTask(SynchronousWindow* owner COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owner(owner) { }
 
   // Allow only yielding to the same engine.
   void yield() { AIStatefulTask::yield(); }
@@ -40,19 +40,19 @@ class SynchronousTask : public AIStatefulTask
   void run()
   {
     AIStatefulTask::run(m_owner);
-    m_owner->set_have_synchronous_task();
+    m_owner->set_have_synchronous_task({});
   }
 
   void run(std::function<void (bool)> cb_function)
   {
     AIStatefulTask::run(m_owner, cb_function);
-    m_owner->set_have_synchronous_task();
+    m_owner->set_have_synchronous_task({});
   }
 
   void run(AIStatefulTask* parent, condition_type condition, on_abort_st on_abort = abort_parent)
   {
     AIStatefulTask::run(m_owner, parent, condition, on_abort);
-    m_owner->set_have_synchronous_task();
+    m_owner->set_have_synchronous_task({});
   }
 
  protected:

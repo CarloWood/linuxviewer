@@ -26,7 +26,7 @@ class DelayedDestroyer : public SynchronousTask
   int m_frames;                                 // Delay in frames.
 
  public:
-  DelayedDestroyer(vk::UniqueSemaphore&& semaphore, VulkanWindow* owning_window, int delay COMMA_CWDEBUG_ONLY(bool debug)) :
+  DelayedDestroyer(vk::UniqueSemaphore&& semaphore, SynchronousWindow* owning_window, int delay COMMA_CWDEBUG_ONLY(bool debug)) :
     SynchronousTask(owning_window COMMA_CWDEBUG_ONLY(debug)), m_kept_semaphore(std::move(semaphore)), m_frames(delay)
   {
     DoutEntering(dc::vulkan, "DelayedDestroyer::DelayedDestroyer(" << *semaphore << ", " << owning_window << ", " << delay << ") [" << this << "]")

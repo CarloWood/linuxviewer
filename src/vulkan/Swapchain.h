@@ -7,7 +7,7 @@
 #include <deque>
 
 namespace task {
-class VulkanWindow;
+class SynchronousWindow;
 } // namespace task
 
 namespace vulkan {
@@ -95,8 +95,7 @@ class Swapchain
   Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
   ~Swapchain() { DoutEntering(dc::vulkan, "Swapchain::~Swapchain() [" << this << "]"); }
 
-  void prepare(task::VulkanWindow* owning_window,
-      vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
+  void prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
   void set_render_pass(vk::UniqueRenderPass&& render_pass)
@@ -106,18 +105,12 @@ class Swapchain
     m_render_pass = std::move(render_pass);
   }
 
-  void recreate_swapchain_images(task::VulkanWindow* owning_window, vk::Extent2D window_extent
+  void recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
-  void recreate_swapchain_framebuffer(task::VulkanWindow const* owning_window
+  void recreate_swapchain_framebuffer(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
-  void recreate(task::VulkanWindow* owning_window, vk::Extent2D window_extent
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
-  {
-    recreate_swapchain_images(owning_window, window_extent
-        COMMA_CWDEBUG_ONLY(ambifix));
-    recreate_swapchain_framebuffer(owning_window
-        COMMA_CWDEBUG_ONLY(ambifix));
-  }
+  void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
   vk::Format format() const
   {
@@ -188,7 +181,7 @@ class Swapchain
   }
 
   void set_image_memory_barriers(
-      task::VulkanWindow const* owning_window,
+      task::SynchronousWindow const* owning_window,
       ResourceState const& source,
       ResourceState const& destination) const;
 };

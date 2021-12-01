@@ -10,7 +10,7 @@
 class AIStatefulTask;
 
 namespace task {
-class VulkanWindow;
+class SynchronousWindow;
 } // namespace task
 
 namespace vulkan {
@@ -58,11 +58,11 @@ std::string as_postfix(AIStatefulTask const* task);
 
 class AmbifixOwner : public Ambifix
 {
-  task::VulkanWindow const* m_owning_window;
+  task::SynchronousWindow const* m_owning_window;
   LogicalDevice const* m_logical_device;
 
  public:
-  AmbifixOwner(task::VulkanWindow const* owning_window, std::string prefix);
+  AmbifixOwner(task::SynchronousWindow const* owning_window, std::string prefix);
 
   // Accessors.
   LogicalDevice const* logical_device() const { return m_logical_device; }

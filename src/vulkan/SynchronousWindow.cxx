@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "VulkanWindow.h"
+#include "SynchronousWindow.h"
 #include "OperatingSystem.h"
 #include "LogicalDevice.h"
 #include "Application.h"
@@ -18,48 +18,58 @@
 
 namespace task {
 
-VulkanWindow::VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
+SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); })
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::VulkanWindow(" << application << ") [" << (void*)this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
 }
 
-VulkanWindow::~VulkanWindow()
+void SynchronousWindow::predestruction_wait_idle()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "task::VulkanWindow::~VulkanWindow() [" << (void*)this << "]");
+  Debug(predestruction_wait_idle_called = true);
+  //FIXME: instead, wait until all command buffers have completed and all swapchain related fences and semaphores have been signaled.
+  if (m_logical_device)
+    m_logical_device->wait_idle();
+}
+
+SynchronousWindow::~SynchronousWindow()
+{
+  DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::~SynchronousWindow() [" << (void*)this << "]");
+  // Call predestruction_wait_idle() from the destructor of the most derived class.
+  ASSERT(predestruction_wait_idle_called);
   m_frame_rate_limiter.stop();
 }
 
-vulkan::LogicalDevice* VulkanWindow::get_logical_device() const
+vulkan::LogicalDevice* SynchronousWindow::get_logical_device() const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::get_logical_device() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::get_logical_device() [" << this << "]");
   // This is a reasonable expensive call: it locks a mutex to access a vector.
-  // Therefore VulkanWindow stores a copy that can be used from the render loop.
+  // Therefore SynchronousWindow stores a copy that can be used from the render loop.
   return m_application->get_logical_device(get_logical_device_index());
 }
 
-char const* VulkanWindow::state_str_impl(state_type run_state) const
+char const* SynchronousWindow::state_str_impl(state_type run_state) const
 {
   switch (run_state)
   {
-    AI_CASE_RETURN(VulkanWindow_xcb_connection);
-    AI_CASE_RETURN(VulkanWindow_create);
-    AI_CASE_RETURN(VulkanWindow_logical_device_index_available);
-    AI_CASE_RETURN(VulkanWindow_acquire_queues);
-    AI_CASE_RETURN(VulkanWindow_prepare_swapchain);
-    AI_CASE_RETURN(VulkanWindow_create_render_objects);
-    AI_CASE_RETURN(VulkanWindow_render_loop);
-    AI_CASE_RETURN(VulkanWindow_close);
+    AI_CASE_RETURN(SynchronousWindow_xcb_connection);
+    AI_CASE_RETURN(SynchronousWindow_create);
+    AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
+    AI_CASE_RETURN(SynchronousWindow_acquire_queues);
+    AI_CASE_RETURN(SynchronousWindow_prepare_swapchain);
+    AI_CASE_RETURN(SynchronousWindow_create_render_objects);
+    AI_CASE_RETURN(SynchronousWindow_render_loop);
+    AI_CASE_RETURN(SynchronousWindow_close);
   }
   ASSERT(false);
   return "UNKNOWN STATE";
 }
 
-void VulkanWindow::initialize_impl()
+void SynchronousWindow::initialize_impl()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::initialize_impl() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::initialize_impl() [" << this << "]");
 
   try
   {
@@ -73,7 +83,7 @@ void VulkanWindow::initialize_impl()
   }
 
   m_frame_rate_interval = get_frame_rate_interval();
-  set_state(VulkanWindow_xcb_connection);
+  set_state(SynchronousWindow_xcb_connection);
 }
 
 #ifdef CWDEBUG
@@ -91,22 +101,22 @@ struct RenderLoopEntered
 };
 #endif
 
-void VulkanWindow::multiplex_impl(state_type run_state)
+void SynchronousWindow::multiplex_impl(state_type run_state)
 {
   switch (run_state)
   {
-    case VulkanWindow_xcb_connection:
+    case SynchronousWindow_xcb_connection:
       // Get the- or create a task::XcbConnection object that is associated with m_broker_key (ie DISPLAY).
       m_xcb_connection_task = m_broker->run(*m_broker_key, [this](bool success){ Dout(dc::notice, "xcb_connection finished!"); signal(connection_set_up); });
-      // Wait until the connection with the X server is established, then continue with VulkanWindow_create.
-      set_state(VulkanWindow_create);
+      // Wait until the connection with the X server is established, then continue with SynchronousWindow_create.
+      set_state(SynchronousWindow_create);
       wait(connection_set_up);
       break;
-    case VulkanWindow_create:
+    case SynchronousWindow_create:
       // Create a new xcb window using the established connection.
-      linuxviewer::OS::Window::set_xcb_connection(m_xcb_connection_task->connection());
+      m_window_events->set_xcb_connection(m_xcb_connection_task->connection());
       // We can't set a debug name for the surface yet, because there might not be logical device yet.
-      m_presentation_surface = create(m_application->vh_instance(), m_title, get_extent());
+      m_presentation_surface = m_window_events->create(m_application->vh_instance(), m_title, get_extent());
       // Trigger the "window created" event.
       m_window_created_event.trigger();
       // If a logical device was passed then we need to copy its index as soon as that becomes available.
@@ -114,28 +124,28 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       {
         // Wait until the logical device index becomes available on m_logical_device.
         m_logical_device_task->m_logical_device_index_available_event.register_task(this, logical_device_index_available);
-        set_state(VulkanWindow_logical_device_index_available);
+        set_state(SynchronousWindow_logical_device_index_available);
         wait(logical_device_index_available);
         break;
       }
       // Otherwise we can continue with acquiring the swapchain queues.
-      set_state(VulkanWindow_acquire_queues);
+      set_state(SynchronousWindow_acquire_queues);
       // But wait until the logical_device_index is set, if it wasn't already.
       if (m_logical_device_index.load(std::memory_order::relaxed) == -1)
         wait(logical_device_index_available);
       break;
-    case VulkanWindow_logical_device_index_available:
+    case SynchronousWindow_logical_device_index_available:
       // The logical device index is available. Copy it.
       set_logical_device_index(m_logical_device_task->get_index());
       // Create the swapchain.
-      set_state(VulkanWindow_acquire_queues);
+      set_state(SynchronousWindow_acquire_queues);
       [[fallthrough]];
-    case VulkanWindow_acquire_queues:
+    case SynchronousWindow_acquire_queues:
       // At this point the logical_device_index is available, which means we can call get_logical_device().
       // Cache the pointer to the vulkan::LogicalDevice.
       m_logical_device = get_logical_device();
       // From this moment on we can use the accessor logical_device().
-      // Delayed from VulkanWindow_create; set the debug name of the surface.
+      // Delayed from SynchronousWindow_create; set the debug name of the surface.
       DebugSetName(m_presentation_surface.vh_surface(), debug_name_prefix("m_presentation_surface.m_surface"));
       // Next get on with the real work.
       acquire_queues();
@@ -152,13 +162,13 @@ void VulkanWindow::multiplex_impl(state_type run_state)
           break;
         }
       }
-      set_state(VulkanWindow_prepare_swapchain);
+      set_state(SynchronousWindow_prepare_swapchain);
       [[fallthrough]];
-    case VulkanWindow_prepare_swapchain:
+    case SynchronousWindow_prepare_swapchain:
       prepare_swapchain();
-      set_state(VulkanWindow_create_render_objects);
+      set_state(SynchronousWindow_create_render_objects);
       [[fallthrough]];
-    case VulkanWindow_create_render_objects:
+    case SynchronousWindow_create_render_objects:
       create_frame_resources();
       create_render_passes();
       create_swapchain_framebuffer();
@@ -167,11 +177,12 @@ void VulkanWindow::multiplex_impl(state_type run_state)
       create_pipeline_layout();
       create_graphics_pipeline();
       create_vertex_buffers();
-      set_state(VulkanWindow_render_loop);
+      set_state(SynchronousWindow_render_loop);
+      can_render_again();
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);
       [[fallthrough]];
-    case VulkanWindow_render_loop:
+    case SynchronousWindow_render_loop:
     {
 #if CW_DEBUG
       RenderLoopEntered scoped;
@@ -193,6 +204,7 @@ void VulkanWindow::multiplex_impl(state_type run_state)
           catch (vulkan::OutOfDateKHR_Exception const& error)
           {
             Dout(dc::warning, "Rendering aborted due to: " << error.what());
+            m_frame_rate_limiter.stop();
             special_circumstances = atomic_flags();
             // No other thread can be running this render loop. A flag must be set before throwing.
             ASSERT(special_circumstances);
@@ -230,10 +242,10 @@ void VulkanWindow::multiplex_impl(state_type run_state)
         if (!need_draw_frame)
           return;
       }
-      set_state(VulkanWindow_close);
+      set_state(SynchronousWindow_close);
       [[fallthrough]];
     }
-    case VulkanWindow_close:
+    case SynchronousWindow_close:
       // Turn on debug output again.
       Debug(mSMDebug = mVWDebug);
       finish();
@@ -241,9 +253,9 @@ void VulkanWindow::multiplex_impl(state_type run_state)
   }
 }
 
-void VulkanWindow::acquire_queues()
+void SynchronousWindow::acquire_queues()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::acquire_queues()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::acquire_queues()");
   using vulkan::QueueFlagBits;
 
   vulkan::Queue vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
@@ -262,28 +274,20 @@ void VulkanWindow::acquire_queues()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_presentation_surface")));
 }
 
-void VulkanWindow::prepare_swapchain()
+void SynchronousWindow::prepare_swapchain()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::prepare_swapchain()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::prepare_swapchain()");
   m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
-void VulkanWindow::create_swapchain_framebuffer()
+void SynchronousWindow::create_swapchain_framebuffer()
 {
   m_swapchain.recreate_swapchain_framebuffer(this
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
-void VulkanWindow::on_window_size_changed(uint32_t width, uint32_t height)
-{
-  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed(" << width << ", " << height << ")");
-
-  // Update m_extent so that get_extent() (see handle_window_size_changed() below) will return the new value.
-  set_extent({width, height});  // This call will cause a call to handle_window_size_changed() from the render loop if the extent really changed.
-}
-
-void VulkanWindow::wait_for_all_fences() const
+void SynchronousWindow::wait_for_all_fences() const
 {
   std::vector<vk::Fence> all_fences;
   for (auto&& resources : m_frame_resources_list)
@@ -294,9 +298,9 @@ void VulkanWindow::wait_for_all_fences() const
     THROW_FALERTC(res, "wait_for_fences");
 }
 
-void VulkanWindow::handle_window_size_changed()
+void SynchronousWindow::handle_window_size_changed()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::handle_window_size_changed()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::handle_window_size_changed()");
 
   // No reason to call wait_idle: handle_window_size_changed is called from the render loop.
   // Besides, we can't call wait_idle because another window can still be using queues on the logical device.
@@ -310,13 +314,13 @@ void VulkanWindow::handle_window_size_changed()
     on_window_size_changed_post();
 }
 
-void VulkanWindow::set_image_memory_barrier(
+void SynchronousWindow::set_image_memory_barrier(
     vulkan::ResourceState const& source,
     vulkan::ResourceState const& destination,
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::set_image_memory_barrier(" << source << ", " << destination << ", " << vh_image << ", " << image_subresource_range << ")");
+  DoutEntering(dc::vulkan, "SynchronousWindow::set_image_memory_barrier(" << source << ", " << destination << ", " << vh_image << ", " << image_subresource_range << ")");
 
   // We use a temporary command pool here.
   using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
@@ -388,9 +392,9 @@ void VulkanWindow::set_image_memory_barrier(
   }
 }
 
-void VulkanWindow::create_descriptor_set()
+void SynchronousWindow::create_descriptor_set()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_descriptor_set() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_descriptor_set() [" << this << "]");
 
   std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
     {
@@ -418,9 +422,9 @@ void VulkanWindow::create_descriptor_set()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
 }
 
-void VulkanWindow::create_textures()
+void SynchronousWindow::create_textures()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_textures() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_textures() [" << this << "]");
 
   // Background texture.
   {
@@ -510,9 +514,9 @@ void VulkanWindow::create_textures()
   }
 }
 
-void VulkanWindow::create_pipeline_layout()
+void SynchronousWindow::create_pipeline_layout()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_pipeline_layout() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_pipeline_layout() [" << this << "]");
 
   vk::PushConstantRange push_constant_ranges{
     .stageFlags = vk::ShaderStageFlagBits::eVertex,
@@ -523,11 +527,11 @@ void VulkanWindow::create_pipeline_layout()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 }
 
-void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
+void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::copy_data_to_buffer(" << data_size << ", " << data << ", " << target_buffer << ", " <<
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_buffer(" << data_size << ", " << data << ", " << target_buffer << ", " <<
     buffer_offset << ", " << current_buffer_access << ", " << generating_stages << ", " <<
     new_buffer_access << ", " << consuming_stages << ") [" << this << "]");
 
@@ -621,12 +625,12 @@ void VulkanWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk:
   }
 }
 
-void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
+void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
     uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::copy_data_to_image(" << data_size << ", " << data << ", " << target_image << ", " << width << ", " << height << ", " <<
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << target_image << ", " << width << ", " << height << ", " <<
       image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " << generating_stages << ", " <<
       new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
 
@@ -741,9 +745,9 @@ void VulkanWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::
   }
 }
 
-void VulkanWindow::start_frame()
+void SynchronousWindow::start_frame()
 {
-  DoutEntering(dc::vkframe, "VulkanWindow::start_frame(...)");
+  DoutEntering(dc::vkframe, "SynchronousWindow::start_frame(...)");
 #if 0
   Timer.Update();
   Gui.StartFrame( Timer, MouseState );
@@ -756,9 +760,9 @@ void VulkanWindow::start_frame()
     throw std::runtime_error("Waiting for a fence takes too long!");
 }
 
-void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
+void SynchronousWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
 {
-  DoutEntering(dc::vkframe, "VulkanWindow::finish_frame(...)");
+  DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
 
 #if 0
   // Draw GUI
@@ -792,25 +796,27 @@ void VulkanWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,
       .pImageIndices = &swapchain_image_index
     };
 
-    switch (m_presentation_surface.vh_presentation_queue().presentKHR(&present_info))
+    vk::Result res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
+    switch (res)
     {
       case vk::Result::eSuccess:
         break;
       case vk::Result::eSuboptimalKHR:
-      case vk::Result::eErrorOutOfDateKHR:
-      {
-        m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
+        Dout(dc::warning, "presentKHR() returned eSuboptimalKHR!");
         break;
-      }
+      case vk::Result::eErrorOutOfDateKHR:
+        // Force regeneration of the swapchain.
+        set_extent_changed();
+        throw vulkan::OutOfDateKHR_Exception();
       default:
-        throw std::runtime_error("Could not present swapchain image!");
+        THROW_ALERTC(res, "Could not acquire swapchain image!");
     }
   }
 }
 
-vk::UniqueFramebuffer VulkanWindow::create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
+vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
 
   vk::Extent2D const& extent = m_swapchain.extent();
   vk::Format format = m_swapchain.format();
@@ -856,9 +862,9 @@ vk::UniqueFramebuffer VulkanWindow::create_imageless_swapchain_framebuffer(CWDEB
   return framebuffer;
 }
 
-void VulkanWindow::acquire_image()
+void SynchronousWindow::acquire_image()
 {
-  DoutEntering(dc::vkframe, "VulkanWindow::acquire_image() [" << this << "]");
+  DoutEntering(dc::vkframe, "SynchronousWindow::acquire_image() [" << this << "]");
 
   // Acquire swapchain image.
   vulkan::SwapchainIndex new_swapchain_index;
@@ -876,7 +882,8 @@ void VulkanWindow::acquire_image()
       Dout(dc::warning, "acquire_next_image() returned eSuboptimalKHR!");
       break;
     case vk::Result::eErrorOutOfDateKHR:
-      m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed);
+      // Force regeneration of the swapchain.
+      set_extent_changed();
       throw vulkan::OutOfDateKHR_Exception();
     default:
       THROW_ALERTC(res, "Could not acquire swapchain image!");
@@ -885,33 +892,33 @@ void VulkanWindow::acquire_image()
   m_swapchain.update_current_index(new_swapchain_index);
 }
 
-void VulkanWindow::finish_impl()
+void SynchronousWindow::finish_impl()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::finish_impl() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::finish_impl() [" << this << "]");
   // Not doing anything here, finishing the task causes us to leave the run()
   // function and then leave the scope of the boost::intrusive_ptr that keeps
   // this task alive. When it gets destructed, also Window will be destructed
   // and it's destructor does the work required to close the window.
   //
-  // However, remove us from Application::window_list_t, or else this VulkanWindow
-  // won't be destructed as the list stores boost::intrusive_ptr<task::VulkanWindow>'s.
+  // However, remove us from Application::window_list_t, or else this SynchronousWindow
+  // won't be destructed as the list stores boost::intrusive_ptr<task::SynchronousWindow>'s.
   m_application->remove(this);
 }
 
 //virtual
-threadpool::Timer::Interval VulkanWindow::get_frame_rate_interval() const
+threadpool::Timer::Interval SynchronousWindow::get_frame_rate_interval() const
 {
   return threadpool::Interval<10, std::chrono::milliseconds>{};
 }
 
-void VulkanWindow::on_window_size_changed_pre()
+void SynchronousWindow::on_window_size_changed_pre()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed_pre()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::on_window_size_changed_pre()");
 }
 
-void VulkanWindow::on_window_size_changed_post()
+void SynchronousWindow::on_window_size_changed_post()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::on_window_size_changed_post()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::on_window_size_changed_post()");
 
   // Should already be set.
   ASSERT(swapchain().extent().width > 0);
@@ -969,14 +976,14 @@ void VulkanWindow::on_window_size_changed_post()
 
 //virtual
 // Override this function to change this value.
-size_t VulkanWindow::number_of_frame_resources() const
+size_t SynchronousWindow::number_of_frame_resources() const
 {
   return s_default_number_of_frame_resources;
 }
 
-void VulkanWindow::create_frame_resources()
+void SynchronousWindow::create_frame_resources()
 {
-  DoutEntering(dc::vulkan, "VulkanWindow::create_frame_resources() [" << this << "]");
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
   m_frame_resources_list.resize(number_of_frame_resources());
   Dout(dc::vulkan, "Creating " << m_frame_resources_list.size() << " frame resources.");
@@ -1020,7 +1027,7 @@ void VulkanWindow::create_frame_resources()
 }
 
 #ifdef CWDEBUG
-vulkan::AmbifixOwner VulkanWindow::debug_name_prefix(std::string prefix) const
+vulkan::AmbifixOwner SynchronousWindow::debug_name_prefix(std::string prefix) const
 {
   return { this, std::move(prefix) };
 }

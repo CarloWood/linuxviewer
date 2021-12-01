@@ -123,8 +123,7 @@ vk::SurfaceTransformFlagBitsKHR get_transform(vk::SurfaceCapabilitiesKHR const& 
 
 namespace vulkan {
 
-void Swapchain::prepare(task::VulkanWindow* owning_window,
-    vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
+void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "Swapchain::prepare(" << owning_window << ", " << ", " << selected_usage << ", " << selected_present_mode << ")");
@@ -140,9 +139,6 @@ void Swapchain::prepare(task::VulkanWindow* owning_window,
   Dout(dc::vulkan, "Surface capabilities: " << surface_capabilities);
   Dout(dc::vulkan, "Supported surface formats: " << surface_formats);
   Dout(dc::vulkan, "Available present modes: " << available_present_modes);
-
-  // In case of re-use, cant_render_bit might be reset.
-  owning_window->no_can_render();
 
   vk::Extent2D                    desired_extent = choose_extent(surface_capabilities, owning_window->get_extent());
   vk::SurfaceFormatKHR            desired_image_format = choose_surface_format(surface_formats);
@@ -183,23 +179,37 @@ void Swapchain::prepare(task::VulkanWindow* owning_window,
   m_acquire_semaphore = owning_window->logical_device().create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
 
+  // In case of re-use, cant_render_bit might be reset.
+  owning_window->no_can_render();
+
   recreate_swapchain_images(owning_window, desired_extent
       COMMA_CWDEBUG_ONLY(ambifix));
 }
 
-void Swapchain::recreate_swapchain_images(task::VulkanWindow* owning_window, vk::Extent2D surface_extent
+void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
-  DoutEntering(dc::vulkan, "Swapchain::recreate_swapchain_images(" << owning_window << ", " << surface_extent << ")");
-
   owning_window->no_can_render();
 
-  if ((surface_extent.width == 0) || (surface_extent.height == 0))
+  if (window_extent.width == 0 || window_extent.height == 0)
   {
-    // Current surface size is (0, 0) so we can't create a swapchain or render anything (cant_render_bit is set).
+    // Current surface size is (0, 0) so we can't create a swapchain or render anything (cant_render_bit stays set!)
     // But we don't want to kill the application as this situation may occur i.e. when window gets minimized.
     return;
   }
+
+  recreate_swapchain_images(owning_window, window_extent
+      COMMA_CWDEBUG_ONLY(ambifix));
+  recreate_swapchain_framebuffer(owning_window
+      COMMA_CWDEBUG_ONLY(ambifix));
+
+  owning_window->can_render_again();
+}
+
+void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D surface_extent
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
+{
+  DoutEntering(dc::vulkan, "Swapchain::recreate_swapchain_images(" << owning_window << ", " << surface_extent << ")");
 
   LogicalDevice const& logical_device = owning_window->logical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
@@ -215,7 +225,6 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow* owning_window, vk:
         COMMA_CWDEBUG_ONLY(true));
     delayed_destroyer->run();
   }
-  owning_window->set_have_synchronous_task();
   // Delete the old images, views and semaphores.
   m_vhv_images.clear();
   m_resources.clear();
@@ -250,19 +259,17 @@ void Swapchain::recreate_swapchain_images(task::VulkanWindow* owning_window, vk:
   }
 }
 
-void Swapchain::recreate_swapchain_framebuffer(task::VulkanWindow const* owning_window
+void Swapchain::recreate_swapchain_framebuffer(task::SynchronousWindow const* owning_window
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
   // (Re)create the imageless framebuffer, because it depends on the swapchain size.
   // Did you call set_swapchain_render_pass from the overridden create_render_passes?
   ASSERT(m_render_pass);
   m_framebuffer = owning_window->create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(ambifix(".m_framebuffer")));
-
-  owning_window->can_render_again();
 }
 
 void Swapchain::set_image_memory_barriers(
-    task::VulkanWindow const* owning_window,
+    task::SynchronousWindow const* owning_window,
     ResourceState const& source,
     ResourceState const& destination) const
 {

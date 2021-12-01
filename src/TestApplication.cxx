@@ -3,7 +3,6 @@
 #include "SampleParameters.h"
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/VertexData.h"
-#include "vulkan/VulkanWindow.h"
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
@@ -15,16 +14,15 @@
 
 using namespace linuxviewer;
 
-class Window : public task::VulkanWindow
+class RenderLoop : public task::SynchronousWindow
 {
  public:
-  using task::VulkanWindow::VulkanWindow;
+  using task::SynchronousWindow::SynchronousWindow;
 
-  ~Window()
+ protected:
+  ~RenderLoop()
   {
-    DoutEntering(dc::vulkan, "Window::~Window()");
-    //FIXME: instead, wait until all command buffers have completed and all swapchain related fences and semaphores have been signaled.
-    m_logical_device->wait_idle();
+    predestruction_wait_idle();
   }
 
  private:
@@ -46,21 +44,6 @@ class Window : public task::VulkanWindow
   size_t number_of_frame_resources() const override
   {
     return 5;
-  }
-
-  void MouseMove(int x, int y) override
-  {
-    DoutEntering(dc::notice, "Window::MouseMove(" << x << ", " << y << ")");
-  }
-
-  void MouseClick(size_t button, bool pressed) override
-  {
-    DoutEntering(dc::notice, "Window::MouseClick(" << button << ", " << pressed << ")");
-  }
-
-  void ResetMouse() override
-  {
-    DoutEntering(dc::notice, "Window::ResetMouse()");
   }
 
   void PerformHardcoreCalculations(int duration) const
@@ -131,7 +114,7 @@ class Window : public task::VulkanWindow
   void DrawSample()
   {
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
-    auto frame_resources = m_current_frame.m_frame_resources;
+    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
     std::vector<vk::ClearValue> clear_values = {
       { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } },
@@ -536,11 +519,31 @@ class Window : public task::VulkanWindow
   }
 };
 
-class SlowWindow : public Window
+class WindowEvents : public vulkan::WindowEvents
+{
+ private:
+  void MouseMove(int x, int y) override
+  {
+    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ")");
+  }
+
+  void MouseClick(size_t button, bool pressed) override
+  {
+    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ")");
+  }
+
+  void ResetMouse() override
+  {
+    DoutEntering(dc::notice, "WindowEvents::ResetMouse()");
+  }
+};
+
+class SlowRenderLoop : public RenderLoop
 {
  public:
-  using Window::Window;
+  using RenderLoop::RenderLoop;
 
+ private:
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 1 frames per second.
@@ -623,13 +626,13 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window<Window>({1000, 800}, LogicalDevice::root_window_cookie1);
+    auto root_window1 = application.create_root_window<WindowEvents, RenderLoop>({1000, 800}, LogicalDevice::root_window_cookie1);
 
     // Create a logical device that supports presenting to root_window1.
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-//    auto root_window2 = application.create_root_window<Window>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    application.create_root_window<WindowEvents, SlowRenderLoop>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
 
     // Run the application.
     application.run();

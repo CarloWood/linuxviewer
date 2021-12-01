@@ -5,13 +5,20 @@
 #include <concepts>
 
 namespace task {
-class VulkanWindow;
+class SynchronousWindow;
 } // namespace task
+
+namespace linuxviewer::OS {
+class Window;
+} // namespace linuxviewer::OS
 
 namespace vulkan {
 
 template<typename T>
-concept ConceptVulkanWindow = std::derived_from<T, task::VulkanWindow>;
+concept ConceptWindowEvents = std::is_base_of_v<linuxviewer::OS::Window, T>;
+
+template<typename T>
+concept ConceptSynchronousWindow = std::is_base_of_v<task::SynchronousWindow, T>;
 
 template<typename T>
 concept ConceptVulkanHandle = vk::isVulkanHandleType<T>::value;

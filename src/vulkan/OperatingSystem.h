@@ -14,11 +14,16 @@
 #endif
 
 #include "threadpool/Timer.h"
+#include <vulkan/vulkan.hpp>
 #include <cstring>
 #include <iostream>
 
 namespace task {
-class VulkanWindow;
+class SynchronousWindow;
+} // namespace vulkan
+
+namespace vulkan {
+class SpecialCircumstances;
 } // namespace vulkan
 
 namespace linuxviewer::OS {
@@ -62,22 +67,26 @@ class Window : public xcb::WindowBase
   WindowParameters m_parameters;                // Window system dependent parameters, like window handle and the connection to the X server.
   WindowExtent m_extent;                        // The size of the window.
                                                 // Must be updated with set_extent({ width, height}); from overridden on_window_size_changed(uint32_t width, uint32_t height).
-
  public:
-  Window() = default;
   ~Window();
 
-  // Called from task state VulkanWindow_create.
+  // Called from task state SynchronousWindow_create (initialization).
   void set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
 
   // Create an X Window on the screen and return a vulkan surface handle for it.
-  // Called from task state VulkanWindow_create.
+  // Called from task state SynchronousWindow_create (initialization).
   [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent);
+
   // Close the X Window on the screen and decrease the reference count of the xcb connection.
   void destroy();
 
   // Accessors.
-  WindowParameters get_parameters() const { return m_parameters; }
+//  WindowParameters const& get_parameters() const { return m_parameters; }
+
+  WindowExtent const& locked_extent() const
+  {
+    return m_extent;
+  }
 };
 
 } // namespace linuxviewer::OS

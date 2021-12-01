@@ -323,7 +323,7 @@ bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface cons
 void LogicalDevice::prepare(
     vk::Instance vulkan_instance,
     DispatchLoader& dispatch_loader,
-    task::VulkanWindow const* window_task_ptr)
+    task::SynchronousWindow const* window_task_ptr)
 {
   DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vulkan_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
 
@@ -450,7 +450,7 @@ void LogicalDevice::prepare(
 
 Queue LogicalDevice::acquire_queue(
     QueueFlags flags,
-    task::VulkanWindow::window_cookie_type window_cookie) const
+    task::SynchronousWindow::window_cookie_type window_cookie) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
   // window_cookie is a bit mask and must represent a single window.

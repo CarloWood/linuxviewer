@@ -30,7 +30,7 @@ namespace vulkan {
 class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
 {
   // Needs access to vk_defaults::DeviceCreateInfo::setQueueCreateInfos.
-  friend void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr);
+  friend void LogicalDevice::prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
   // Needs access to vk_defaults::DeviceCreateInfo::pNext.
   template <typename... ChainElements>
   friend class vk::StructureChain;

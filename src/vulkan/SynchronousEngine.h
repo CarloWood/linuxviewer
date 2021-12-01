@@ -38,12 +38,12 @@ class SynchronousEngine : public AIEngine, protected SpecialCircumstances
     //                  `--<Reset flag>
     //                     [Nothing to execute]
     //
-    reset_have_synchronous_task();
+    reset_have_synchronous_task({});
     Dout(dc::notice(debug_output)|continued_cf, "Calling mainloop() = ");
     if (mainloop().is_momentary_true())
     {
       Dout(dc::finish, "true");
-      set_have_synchronous_task();                // Task were remaining-- call handle_synchronous_task() again next frame.
+      set_have_synchronous_task({});            // Task were remaining-- call handle_synchronous_task() again next frame.
     }
     else
       Dout(dc::finish, "false");

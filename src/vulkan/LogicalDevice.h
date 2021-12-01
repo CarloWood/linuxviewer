@@ -2,7 +2,7 @@
 #define LOGICAL_DEVICE_DECLARATION_H
 
 #include "DispatchLoader.h"
-#include "VulkanWindow.h"
+#include "SynchronousWindow.h"
 #include "QueueReply.h"
 #include "RenderPassAttachmentData.h"
 #include "RenderPassSubpassData.h"
@@ -60,7 +60,7 @@ class LogicalDevice
  public:
   virtual ~LogicalDevice() = default;
 
-  void prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::VulkanWindow const* window_task_ptr);
+  void prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
 
   // Accessor for underlaying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
@@ -79,7 +79,7 @@ class LogicalDevice
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  Queue acquire_queue(QueueFlags flags, task::VulkanWindow::window_cookie_type window_cookie) const;
+  Queue acquire_queue(QueueFlags flags, task::SynchronousWindow::window_cookie_type window_cookie) const;
 
   // Create a RenderPass.
   vk::UniqueRenderPass create_render_pass(
@@ -179,7 +179,7 @@ class LogicalDevice : public AIStatefulTask
  protected:
   vulkan::Application* m_application;
  private:
-  boost::intrusive_ptr<task::VulkanWindow> m_root_window;               // The root window that we have to support presentation to (if any).
+  boost::intrusive_ptr<task::SynchronousWindow> m_root_window;          // The root window that we have to support presentation to (if any). Only used during initialization.
                                                                         // This is reset as soon as we added ourselves to m_application; so don't use it.
   std::unique_ptr<vulkan::LogicalDevice> m_logical_device;              // Temporary storage of a pointer to the logical device object.
                                                                         // This is moved away to the Application and becomes nullptr; so don't use it.
@@ -208,7 +208,11 @@ class LogicalDevice : public AIStatefulTask
   LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application) { }
 
   void set_logical_device(std::unique_ptr<vulkan::LogicalDevice>&& logical_device) { m_logical_device = std::move(logical_device); }
-  void set_root_window(boost::intrusive_ptr<task::VulkanWindow>&& root_window) { m_root_window = std::move(root_window); }
+  void set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)
+  {
+    // The const_pointer_cast is OK because m_root_window is only used during initialization - aka, synchronous.
+    m_root_window = boost::const_pointer_cast<task::SynchronousWindow>(std::move(root_window));
+  }
 
   int get_index() const { ASSERT(m_index != -1); return m_index; }
 

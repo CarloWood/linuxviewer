@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "Application.h"
-#include "VulkanWindow.h"
+#include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"
@@ -135,7 +135,7 @@ void Application::initialize(int argc, char** argv)
   m_resolver_scope = std::make_unique<resolver::Scope>(m_low_priority_queue, false);
 
   // Start the connection broker.
-  m_xcb_connection_broker = statefultask::create<task::VulkanWindow::xcb_connection_broker_type>(CWDEBUG_ONLY(false));
+  m_xcb_connection_broker = statefultask::create<task::SynchronousWindow::xcb_connection_broker_type>(CWDEBUG_ONLY(false));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
 
   ApplicationInfo application_info;
@@ -162,9 +162,10 @@ void Application::initialize(int argc, char** argv)
 #endif
 }
 
-boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::VulkanWindow>&& root_window)
+boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(
+    std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void*)root_window.get() << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void const*)root_window.get() << ")");
 
   auto logical_device_task = statefultask::create<task::LogicalDevice>(this COMMA_CWDEBUG_ONLY(true));
   logical_device_task->set_logical_device(std::move(logical_device));
@@ -175,7 +176,7 @@ boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(std
   return logical_device_task;
 }
 
-int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::VulkanWindow* root_window)
+int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::SynchronousWindow* root_window)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_device(" << (void*)logical_device.get() << ", [" << root_window << "])");
 
@@ -191,11 +192,10 @@ int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, 
 
   root_window->set_logical_device_index(logical_device_index);
 
-  // The boost::intrusive_ptr<task::VulkanWindow> pointing to root_window is destroyed here, decrementing the reference count as intended.
   return logical_device_index;
 }
 
-void Application::add(task::VulkanWindow* window_task)
+void Application::add(task::SynchronousWindow* window_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::add(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);
@@ -209,7 +209,7 @@ void Application::add(task::VulkanWindow* window_task)
   window_list_w->emplace_back(window_task);
 }
 
-void Application::remove(task::VulkanWindow* window_task)
+void Application::remove(task::SynchronousWindow* window_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::remove(" << window_task << ")");
   window_list_t::wat window_list_w(m_window_list);

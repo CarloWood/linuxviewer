@@ -14,6 +14,8 @@
 #include "xcb-task/XcbConnection.h"
 #include "threadpool/Timer.h"
 #include "statefultask/AIEngine.h"
+#include "WindowEvents.h"
+#include "Concepts.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -41,14 +43,14 @@ class LogicalDevice;
 class SynchronousTask;
 
 /**
- * The VulkanWindow task.
+ * The SynchronousWindow task.
  *
  */
-class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, protected vulkan::SynchronousEngine
+class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEngine
 {
  public:
-  using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
+  using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
@@ -62,7 +64,10 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   // Constructor
   boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
   vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
-                                                                          // VulkanWindow_logical_device_index_available.
+                                                                          // SynchronousWindow_logical_device_index_available.
+  // This must be called from the destructor of the most derived class.
+  void predestruction_wait_idle();
+
  private:
   // set_title
   std::string m_title;
@@ -71,10 +76,12 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   // set_xcb_connection_broker_and_key                                    // Application::create_root_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
+  // create_window_events
+  std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Point to the asynchronous object `WindowEvents`.
 
   // run
   window_cookie_type m_window_cookie = {};                                // Unique bit for the creation event of this window (as determined by the user).
-  boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in VulkanWindow_start.
+  boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in SynchronousWindow_start.
   std::atomic_int m_logical_device_index = -1;                            // Index into Application::m_logical_device_list.
                                                                           // Initialized in LogicalDevice_create by call to Application::create_device.
   vulkan::PresentationSurface m_presentation_surface;                     // The presentation surface information (surface-, graphics- and presentation queue handles).
@@ -85,6 +92,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
+  bool predestruction_wait_idle_called = false;
 #endif
 
   // Needs access to the protected SynchronousEngine base class.
@@ -108,24 +116,25 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
 
   /// The different states of the stateful task.
   enum vulkan_window_state_type {
-    VulkanWindow_xcb_connection = direct_base_type::state_end,
-    VulkanWindow_create,
-    VulkanWindow_logical_device_index_available,
-    VulkanWindow_acquire_queues,
-    VulkanWindow_prepare_swapchain,
-    VulkanWindow_create_render_objects,
-    VulkanWindow_render_loop,
-    VulkanWindow_close
+    SynchronousWindow_xcb_connection = direct_base_type::state_end,
+    SynchronousWindow_create,
+    SynchronousWindow_logical_device_index_available,
+    SynchronousWindow_acquire_queues,
+    SynchronousWindow_prepare_swapchain,
+    SynchronousWindow_create_render_objects,
+    SynchronousWindow_render_loop,
+    SynchronousWindow_close
   };
 
- public:
   /// One beyond the largest state of this task.
-  static constexpr state_type state_end = VulkanWindow_close + 1;
+  static constexpr state_type state_end = SynchronousWindow_close + 1;
 
-  /// Construct a VulkanWindow object.
-  VulkanWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
+ public:
+  /// Construct a synchronous SynchronousWindow task.
+  SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
   // Called from Application::create_root_window.
+  template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
   void set_title(std::string&& title) { m_title = std::move(title); }
   void set_window_cookie(window_cookie_type window_cookie) { m_window_cookie = window_cookie; }
   void set_logical_device_task(LogicalDevice const* logical_device_task) { m_logical_device_task = logical_device_task; }
@@ -133,7 +142,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
     // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
     { m_broker = std::move(broker); m_broker_key = broker_key; }
 
-  // Called by Application::create_device or VulkanWindow_logical_device_index_available.
+  // Called by Application::create_device or SynchronousWindow_logical_device_index_available.
   void set_logical_device_index(int index)
   {
     // Do not pass a root_window to Application::create_logical_device that was already associated with a logical device
@@ -197,45 +206,14 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
     return m_swapchain;
   }
 
-  // Called when the close button is clicked.
-  void On_WM_DELETE_WINDOW(uint32_t timestamp) override
-  {
-    DoutEntering(dc::notice, "VulkanWindow::On_WM_DELETE_WINDOW(" << timestamp << ")");
-    // Set the must_close_bit.
-    set_must_close();
-    // We should have one boost::intrusive_ptr's left: the one in Application::m_window_list.
-    // This will be removed from the running task (finish_impl), which prevents the
-    // immediate destruction until the task fully finished. At that point this Window
-    // will be destructed causing a call to Window::destroy.
-  }
-
-  // Used to set the initial (desired) extent.
-  // Also used by on_window_size_changed to set the new extent.
-  void set_extent(vk::Extent2D const& extent)
-  {
-    // Take the lock on m_extent.
-    linuxviewer::OS::WindowExtent::wat extent_w(m_extent);
-
-    // Do nothing if it wasn't really a change.
-    if (extent_w->m_extent == extent)
-      return;
-
-    // Change it to the new value.
-    extent_w->m_extent = extent;
-    // Set the extent_changed_bit in m_flags.
-    set_extent_changed();
-    // The change of m_flags will (eventually) be picked up by a call to atomic_flags() (in combination with extent_changed()).
-    // That thread then calls get_extent() to read the value that was *last* written to m_extent.
-    //
-    // Unlock m_extent.
-  }
+  void wait_for_all_fences() const;
 
   // Call this from the render loop every time that extent_changed(atomic_flags()) returns true.
   // Call only synchronously.
   vk::Extent2D get_extent() const
   {
     // Take the lock on m_extent.
-    linuxviewer::OS::WindowExtent::crat extent_r(m_extent);
+    linuxviewer::OS::WindowExtent::crat extent_r(m_window_events->locked_extent());
     // Read the value that was last written.
     vk::Extent2D extent = extent_r->m_extent;
     // Reset the extent_changed_bit in m_flags.
@@ -249,9 +227,6 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
     // cause another call to this function reading the same value of the extent.
   }
 
-  void wait_for_all_fences() const;
-
-  void on_window_size_changed(uint32_t width, uint32_t height) override final;
   void handle_window_size_changed();
 
   void set_image_memory_barrier(
@@ -278,7 +253,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   friend class vulkan::Swapchain;
   vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
- public:
+ protected:
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
 
   // Called from Application::*same name*.
@@ -291,6 +266,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   virtual void create_vertex_buffers() = 0;
 
  protected:
+  // Implemented by most derived class.
   virtual size_t number_of_frame_resources() const;
   virtual void draw_frame() = 0;
 
@@ -313,7 +289,7 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
 
  protected:
   /// Call finish() (or abort()), not delete.
-  ~VulkanWindow() override;
+  ~SynchronousWindow() override;
 
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override final;
@@ -333,8 +309,12 @@ class VulkanWindow : public AIStatefulTask, public linuxviewer::OS::Window, prot
   }
 };
 
-} // namespace task
+template<vulkan::ConceptWindowEvents WINDOW_EVENTS>
+void SynchronousWindow::create_window_events(vk::Extent2D extent)
+{
+  m_window_events = std::make_unique<WINDOW_EVENTS>();
+  m_window_events->set_special_circumstances(this);
+  m_window_events->set_extent(extent);
+}
 
-#ifdef CWDEBUG
-//DECLARE_TRACKED_BOOST_INTRUSIVE_PTR(task::VulkanWindow)
-#endif
+} // namespace task
