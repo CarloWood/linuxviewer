@@ -16,6 +16,7 @@
 #include "statefultask/AIEngine.h"
 #include "WindowEvents.h"
 #include "Concepts.h"
+#include "vk_utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -26,11 +27,41 @@ namespace xcb {
 class ConnectionBrokerKey;
 } // namespace xcb
 
+namespace task {
+class LogicalDevice;
+class SynchronousTask;
+class SynchronousWindow;
+} // namespace task
+
 namespace vulkan {
 class Application;
 class LogicalDevice;
 class AmbifixOwner;
 class Swapchain;
+
+namespace detail {
+
+class DelaySemaphoreDestruction
+{
+ private:
+  int pos = 0;
+  std::array<std::vector<vk::UniqueSemaphore>, 16> m_queue;
+
+ public:
+  void add(vk_utils::Badge<Swapchain>, vk::UniqueSemaphore&& semaphore, int delay)
+  {
+    m_queue[(pos + delay) % m_queue.size()].emplace_back(std::move(semaphore));
+  }
+
+  void step(vk_utils::Badge<task::SynchronousWindow>)
+  {
+    pos = (pos + 1) % m_queue.size();
+    if (!m_queue[pos].empty())
+      m_queue[pos].clear();
+  }
+};
+
+} // namespace detail
 } // namespace vulkan
 
 namespace linuxviewer::OS {
@@ -38,9 +69,6 @@ class Window;
 } // namespace linuxviewer::OS
 
 namespace task {
-
-class LogicalDevice;
-class SynchronousTask;
 
 /**
  * The SynchronousWindow task.
@@ -65,9 +93,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
   vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
                                                                           // SynchronousWindow_logical_device_index_available.
-  // This must be called from the destructor of the most derived class.
-  void predestruction_wait_idle();
-
  private:
   // set_title
   std::string m_title;
@@ -92,11 +117,14 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
-  bool predestruction_wait_idle_called = false;
 #endif
 
   // Needs access to the protected SynchronousEngine base class.
   friend class SynchronousTask;
+
+ public:
+  // Accessed by Swapchain.
+  vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;

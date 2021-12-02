@@ -214,17 +214,11 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
   LogicalDevice const& logical_device = owning_window->logical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
-  // Keep a copy of the rendering_finished_semaphore's for 1 frame.
-  constexpr int keep_frames = 1;
+  // Keep a copy of the rendering_finished_semaphore's for number-of-swapchain-semaphores calls to acquire_image.
+  int const frames_to_keep_rendering_finished_semaphore = m_resources.size();
   for (auto&& resources : m_resources)
-  {
-    auto delayed_destroyer = statefultask::create<task::DelayedDestroyer>(
-        resources.rescue_rendering_finished_semaphore(),
-        owning_window,
-        keep_frames - 1
-        COMMA_CWDEBUG_ONLY(true));
-    delayed_destroyer->run();
-  }
+    owning_window->m_delay_by_completed_draw_frames.add({}, resources.rescue_rendering_finished_semaphore(), frames_to_keep_rendering_finished_semaphore);
+
   // Delete the old images, views and semaphores.
   m_vhv_images.clear();
   m_resources.clear();

@@ -19,12 +19,6 @@ class RenderLoop : public task::SynchronousWindow
  public:
   using task::SynchronousWindow::SynchronousWindow;
 
- protected:
-  ~RenderLoop()
-  {
-    predestruction_wait_idle();
-  }
-
  private:
   vk::UniqueRenderPass m_post_render_pass;
   vk::UniquePipeline m_graphics_pipeline;
@@ -38,7 +32,7 @@ class RenderLoop : public task::SynchronousWindow
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 10 frames per second.
-    return threadpool::Interval<100, std::chrono::milliseconds>{};
+    return threadpool::Interval<50, std::chrono::milliseconds>{};
   }
 
   size_t number_of_frame_resources() const override
@@ -590,13 +584,13 @@ class LogicalDevice : public vulkan::LogicalDevice
     // {0}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::eGraphics,
-//        .max_number_of_queues = 13,
+        .max_number_of_queues = 13,
         .priority = 1.0})
     // {1}
-    .combineQueueRequest({
-//    .addQueueRequest({
+//    .combineQueueRequest({
+    .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
-        .max_number_of_queues = 4,                      // Only used when it can not be combined.
+        .max_number_of_queues = 8,                      // Only used when it can not be combined.
         .priority = 0.8,                                // Only used when it can not be combined.
         .windows = root_window_cookie1})                // This may only be used for window1.
     // {2}
@@ -632,7 +626,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    application.create_root_window<WindowEvents, SlowRenderLoop>({400, 400}, LogicalDevice::root_window_cookie2, *logical_device, "Second window");
+    application.create_root_window<WindowEvents, SlowRenderLoop>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
 
     // Run the application.
     application.run();

@@ -26,19 +26,9 @@ SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDE
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
 }
 
-void SynchronousWindow::predestruction_wait_idle()
-{
-  Debug(predestruction_wait_idle_called = true);
-  //FIXME: instead, wait until all command buffers have completed and all swapchain related fences and semaphores have been signaled.
-  if (m_logical_device)
-    m_logical_device->wait_idle();
-}
-
 SynchronousWindow::~SynchronousWindow()
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::~SynchronousWindow() [" << (void*)this << "]");
-  // Call predestruction_wait_idle() from the destructor of the most derived class.
-  ASSERT(predestruction_wait_idle_called);
   m_frame_rate_limiter.stop();
 }
 
@@ -197,6 +187,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
             draw_frame();
+            m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
             wait(frame_timer);
             return;
@@ -204,7 +195,16 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           catch (vulkan::OutOfDateKHR_Exception const& error)
           {
             Dout(dc::warning, "Rendering aborted due to: " << error.what());
-            m_frame_rate_limiter.stop();
+            if (!m_frame_rate_limiter.stop())
+            {
+              // We could not stop the timer from firing. Perhaps because it already
+              // fired, or because it is already calling expire(). Wait until it
+              // returned from expire().
+              m_frame_rate_limiter.wait_for_possible_expire_to_finish();
+              // Now we are sure that signal(frame_timer) was already called.
+              // To nullify that, call wait(frame_timer) here.
+              wait(frame_timer);
+            }
             special_circumstances = atomic_flags();
             // No other thread can be running this render loop. A flag must be set before throwing.
             ASSERT(special_circumstances);
@@ -248,6 +248,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
     case SynchronousWindow_close:
       // Turn on debug output again.
       Debug(mSMDebug = mVWDebug);
+      wait_for_all_fences();
       finish();
       break;
   }
@@ -619,7 +620,7 @@ void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
 
-    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 3000000000);
+    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 1000000000);
     if (res != vk::Result::eSuccess)
       THROW_ALERTC(res, "waitForFences");
   }
@@ -739,7 +740,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
 
-    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 3000000000);
+    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 1000000000);
     if (res != vk::Result::eSuccess)
       THROW_ALERTC(res, "waitForFences");
   }
@@ -870,7 +871,7 @@ void SynchronousWindow::acquire_image()
   vulkan::SwapchainIndex new_swapchain_index;
   vk::Result res = m_logical_device->acquire_next_image(
       *m_swapchain,
-      3000000000,
+      1000000000,
       m_swapchain.vh_acquire_semaphore(),
       vk::Fence(),
       new_swapchain_index);
