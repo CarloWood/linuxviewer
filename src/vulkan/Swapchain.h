@@ -83,7 +83,6 @@ class Swapchain
                                                         // Contains a copy of the last (non-zero) extent of the owning_window that was passed to recreate.
   vk::UniqueSwapchainKHR        m_swapchain;
   images_type                   m_vhv_images;           // A vector of swapchain images.
-  std::deque<images_type> m_vhv_images_dump;
   resources_type                m_resources;            // A vector of corresponding image views and semaphores.
   SwapchainIndex                m_current_index;        // The index of the current image and resources.
   vk::UniqueSemaphore           m_acquire_semaphore;    // Semaphore used to acquire the next image.

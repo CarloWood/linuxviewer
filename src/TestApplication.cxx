@@ -138,8 +138,8 @@ class RenderLoop : public task::SynchronousWindow
         .renderPass = swapchain().vh_render_pass(),
         .framebuffer = swapchain().vh_framebuffer(),
         .renderArea = {
-          vk::Offset2D{},                                 // VkOffset2D                               offset
-          swapchain_extent,                               // VkExtent2D                               extent
+          .offset = {},
+          .extent = swapchain_extent
         },
         .clearValueCount = static_cast<uint32_t>(clear_values.size()),
         .pClearValues = clear_values.data()
@@ -176,15 +176,15 @@ class RenderLoop : public task::SynchronousWindow
       auto command_buffer_w = frame_resources->m_pre_command_buffer(command_pool_w);
 
       Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin( { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit } );
-      command_buffer_w->beginRenderPass( render_pass_begin_info, vk::SubpassContents::eInline );
-      command_buffer_w->bindPipeline( vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline );
-      command_buffer_w->setViewport( 0, { viewport } );
-      command_buffer_w->setScissor( 0, { scissor } );
-      command_buffer_w->bindVertexBuffers( 0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 } );
-      command_buffer_w->bindDescriptorSets( vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {} );
-      command_buffer_w->pushConstants( *m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor );
-      command_buffer_w->draw( 6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0 );
+      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+      command_buffer_w->beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer_w->setViewport(0, { viewport });
+      command_buffer_w->setScissor(0, { scissor });
+      command_buffer_w->bindVertexBuffers( 0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
+      command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+      command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
