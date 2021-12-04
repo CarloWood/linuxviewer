@@ -174,6 +174,25 @@ VK_DEFAULTS_DECLARE(DeviceCreateInfo)
   VK_DEFAULTS_PRINT_ON_MEMBERS
 };
 
+VK_DEFAULTS_DECLARE(ImageSubresourceRange)
+{
+  // For an xcb window (or any window on a monitor), maxImageArrayLayers of its surface capabilities will be 1.
+  // This constant is also used for Swapchain::number_of_array_layers.
+  static constexpr uint32_t default_layer_count = 1;
+
+  ImageSubresourceRange(vk::ImageAspectFlags aspect_mask = vk::ImageAspectFlagBits::eColor,
+      uint32_t base_mip_level = 0, uint32_t level_count = 1, uint32_t base_array_layer = 0, uint32_t layer_count = default_layer_count)
+  {
+    setAspectMask(aspect_mask);
+    setBaseMipLevel(base_mip_level);
+    setLevelCount(level_count);
+    setBaseArrayLayer(base_array_layer);
+    setLayerCount(layer_count);
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
 VK_DEFAULTS_DECLARE(ImageCreateInfo)
 {
   ImageCreateInfo(vk::Extent2D const& extent, vk::Format format, vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment)
@@ -181,8 +200,8 @@ VK_DEFAULTS_DECLARE(ImageCreateInfo)
     setImageType(vk::ImageType::e2D);
     setFormat(format);
     setExtent({extent.width, extent.height, 1});
-    setMipLevels(1);
-    setArrayLayers(1);
+    setMipLevels(1);    // The default matches that of swapchain images.
+    setArrayLayers(ImageSubresourceRange::default_layer_count);
     setSamples(vk::SampleCountFlagBits::e1);
     setTiling(vk::ImageTiling::eOptimal);
     setUsage(usage);
@@ -198,13 +217,7 @@ VK_DEFAULTS_DECLARE(ImageViewCreateInfo)
     setImage(image);
     setViewType(vk::ImageViewType::e2D);
     setFormat(format);
-    setSubresourceRange({
-      .aspectMask = aspect,
-      .baseMipLevel = 0,
-      .levelCount = 1,
-      .baseArrayLayer = 0,
-      .layerCount  = 1
-    });
+    setSubresourceRange(ImageSubresourceRange{aspect});
   }
 
   VK_DEFAULTS_DEBUG_MEMBERS
@@ -220,7 +233,6 @@ DECLARE_PRINT_MEMBERS_CLASS(PhysicalDeviceProperties)
 DECLARE_PRINT_MEMBERS_CLASS(SurfaceCapabilitiesKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SurfaceFormatKHR)
 DECLARE_PRINT_MEMBERS_CLASS(SwapchainCreateInfoKHR)
-DECLARE_PRINT_MEMBERS_CLASS(ImageSubresourceRange)
 DECLARE_PRINT_MEMBERS_CLASS(FramebufferCreateInfo)
 DECLARE_PRINT_MEMBERS_CLASS(GraphicsPipelineCreateInfo)
 DECLARE_PRINT_MEMBERS_CLASS(PipelineShaderStageCreateInfo)

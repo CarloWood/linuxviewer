@@ -74,8 +74,11 @@ class Swapchain
   // The subresource range of swapchain images is always just having one mipmap level.
   // Define a default with an aspectMask of eColor.
   static constexpr vk::ImageSubresourceRange s_default_subresource_range = {
-    .aspectMask = vk::ImageAspectFlagBits::eColor, .levelCount = 1, .layerCount = VK_REMAINING_ARRAY_LAYERS
+    .aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = VK_REMAINING_ARRAY_LAYERS
   };
+
+  // For now, lets just hardcode the number of array layers.
+  static constexpr uint32_t s_number_of_array_layers = vk_defaults::ImageSubresourceRange::default_layer_count;
 
  private:
   std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_create_info.
@@ -110,6 +113,11 @@ class Swapchain
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
+
+  static constexpr uint32_t layer_count()
+  {
+    return s_number_of_array_layers;
+  }
 
   vk::Format format() const
   {

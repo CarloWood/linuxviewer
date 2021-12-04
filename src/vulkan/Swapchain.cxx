@@ -159,7 +159,7 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
     .setImageFormat(desired_image_format.format)
     .setImageColorSpace(desired_image_format.colorSpace)
     .setImageExtent(desired_extent)
-    .setImageArrayLayers(1)
+    .setImageArrayLayers(s_number_of_array_layers)
     .setImageUsage(desired_image_usage_flags)
     .setPreTransform(desired_transform)
     .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)

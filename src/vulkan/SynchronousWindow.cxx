@@ -451,14 +451,7 @@ void SynchronousWindow::create_textures()
     }
     // Copy data.
     {
-      vk::ImageSubresourceRange image_subresource_range{
-        .aspectMask = vk::ImageAspectFlagBits::eColor,
-        .baseMipLevel = 0,
-        .levelCount = 1,
-        .baseArrayLayer = 0,
-        .layerCount = 1
-      };
-
+      vk_defaults::ImageSubresourceRange const image_subresource_range;
       copy_data_to_image(data_size, texture_data.data(), *m_background_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
           vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
           vk::PipelineStageFlagBits::eFragmentShader);
@@ -490,13 +483,7 @@ void SynchronousWindow::create_textures()
     }
     // Copy data.
     {
-      vk::ImageSubresourceRange image_subresource_range{
-        .aspectMask = vk::ImageAspectFlagBits::eColor,
-        .baseMipLevel = 0,
-        .levelCount = 1,
-        .baseArrayLayer = 0,
-        .layerCount = 1
-      };
+      vk_defaults::ImageSubresourceRange const image_subresource_range;
       copy_data_to_image(data_size, texture_data.data(), *m_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
           vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
           vk::PipelineStageFlagBits::eFragmentShader);
@@ -828,7 +815,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .usage = m_swapchain.usage(),
       .width = extent.width,
       .height = extent.height,
-      .layerCount = 1,
+      .layerCount = vulkan::Swapchain::s_number_of_array_layers,
       .viewFormatCount = 1,
       .pViewFormats = &format
     },
@@ -836,7 +823,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
       .width = extent.width,
       .height = extent.height,
-      .layerCount = 1,
+      .layerCount = vulkan::Swapchain::s_number_of_array_layers,
       .viewFormatCount = 1,
       .pViewFormats = &s_default_depth_format
     }
@@ -849,7 +836,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .attachmentCount = attachments_image_infos.size(),
       .width = extent.width,
       .height = extent.height,
-      .layers = 1
+      .layers = vulkan::Swapchain::s_number_of_array_layers
     },
     {
       .attachmentImageInfoCount = attachments_image_infos.size(),
