@@ -416,13 +416,11 @@ void LogicalDevice::prepare(
   // Include each queue family with any of the requested features - in the pQueueCreateInfos of device_create_info.
   std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
   for (auto iter = priorities_per_family.begin(); iter != priorities_per_family.end(); ++iter)
-  {
-    vk::DeviceQueueCreateInfo queue_create_info;
-    queue_create_info
-      .setQueueFamilyIndex(iter->first.get_value())
-      .setQueuePriorities(iter->second);
-    queue_create_infos.push_back(queue_create_info);
-  }
+    queue_create_infos.push_back({
+      .queueFamilyIndex = static_cast<uint32_t>(iter->first.get_value()),
+      .queueCount = static_cast<uint32_t>(iter->second.size()),
+      .pQueuePriorities = iter->second.data()
+    });
   device_create_info.setQueueCreateInfos(queue_create_infos);
 
 #ifdef CWDEBUG
@@ -537,7 +535,7 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
 {
   std::vector<vk::AttachmentDescription> attachments;
   for (auto const& attachment : attachment_descriptions)
-    attachments.emplace_back(vk::AttachmentDescription{
+    attachments.push_back({
         .flags          = {},
         .format         = attachment.m_format,
         .samples        = vk::SampleCountFlagBits::e1,
@@ -551,7 +549,7 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
 
   std::vector<vk::SubpassDescription> subpasses;
   for (auto const& subpass : subpass_descriptions)
-    subpasses.emplace_back(vk::SubpassDescription{
+    subpasses.push_back({
         .flags = {},
         .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
         .inputAttachmentCount = static_cast<uint32_t>(subpass.m_input_attachments.size()),
@@ -562,12 +560,14 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
         .pDepthStencilAttachment = &subpass.m_depth_stencil_attachment
       });
 
-  vk::RenderPassCreateInfo render_pass_create_info;
-  render_pass_create_info
-    .setAttachments(attachments)
-    .setSubpasses(subpasses)
-    .setDependencies(dependencies)
-    ;
+  vk::RenderPassCreateInfo render_pass_create_info{
+    .attachmentCount = static_cast<uint32_t>(attachments.size()),
+    .pAttachments = attachments.data(),
+    .subpassCount = static_cast<uint32_t>(subpasses.size()),
+    .pSubpasses = subpasses.data(),
+    .dependencyCount = static_cast<uint32_t>(dependencies.size()),
+    .pDependencies = dependencies.data()
+  };
 
   vk::UniqueRenderPass render_pass = m_device->createRenderPassUnique(render_pass_create_info);
   DebugSetName(render_pass, debug_name);
