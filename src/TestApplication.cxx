@@ -14,7 +14,7 @@
 
 using namespace linuxviewer;
 
-class RenderLoop : public task::SynchronousWindow
+class Window : public task::SynchronousWindow
 {
  public:
   using task::SynchronousWindow::SynchronousWindow;
@@ -532,10 +532,10 @@ class WindowEvents : public vulkan::WindowEvents
   }
 };
 
-class SlowRenderLoop : public RenderLoop
+class SlowWindow : public Window
 {
  public:
-  using RenderLoop::RenderLoop;
+  using Window::Window;
 
  private:
   threadpool::Timer::Interval get_frame_rate_interval() const override
@@ -620,13 +620,13 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window<WindowEvents, RenderLoop>({1000, 800}, LogicalDevice::root_window_cookie1);
+    auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_cookie1);
 
     // Create a logical device that supports presenting to root_window1.
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    application.create_root_window<WindowEvents, SlowRenderLoop>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
+//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
 
     // Run the application.
     application.run();

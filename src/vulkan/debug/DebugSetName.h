@@ -110,6 +110,7 @@ void debug_set_object_name(ObjectType const& object, std::string const& name, Lo
     .pObjectName = name.c_str()
   };
   device->set_debug_name(name_info);
+  Dout(dc::vulkan, "Created object \"" << name << "\" with handle 0x" << std::hex << name_info.objectHandle << " and type " << libcwd::type_info_of<ObjectType>().demangled_name());
 }
 
 template<ConceptVulkanHandle ObjectType>
