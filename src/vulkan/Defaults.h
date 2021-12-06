@@ -193,19 +193,6 @@ VK_DEFAULTS_DECLARE(ImageSubresourceRange)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
-VK_DEFAULTS_DECLARE(ImageViewCreateInfo)
-{
-  ImageViewCreateInfo(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
-  {
-    setImage(image);
-    setViewType(vk::ImageViewType::e2D);
-    setFormat(format);
-    setSubresourceRange(ImageSubresourceRange{aspect});
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
 #ifdef CWDEBUG
 DECLARE_PRINT_MEMBERS_CLASS(Extent2D)
 DECLARE_PRINT_MEMBERS_CLASS(Extent3D)

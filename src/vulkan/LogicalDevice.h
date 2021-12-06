@@ -118,11 +118,11 @@ class LogicalDevice
     image_index_out = SwapchainIndex(new_image_index);
     return result;
   }
-  vk::UniqueImageView create_image_view(vk::ImageViewCreateInfo const& image_view_create_info
+  vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageKind const& image_kind, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect
+  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageKind const& image_kind, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
@@ -153,7 +153,8 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueSwapchainKHR create_swapchain(vk::SwapchainCreateInfoKHR const& swapchain_create_info
+  vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
+      SwapchainKind const& swapchain_kind, vk::SwapchainKHR vh_old_swapchain
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniquePipeline create_graphics_pipeline(vk::PipelineCache vh_pipeline_cache, vk::GraphicsPipelineCreateInfo const& graphics_pipeline_create_info
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;

@@ -253,16 +253,6 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
 }
 
 #ifdef CWDEBUG
-void ImageViewCreateInfo::print_members(std::ostream& os, char const* prefix) const
-{
-  os << prefix << "flags:" << flags <<
-      ", image:" << image <<
-      ", viewType:" << viewType <<
-      ", format:" << format <<
-      ", components:" << components <<
-      ", subresourceRange:" << subresourceRange;
-}
-
 void Extent2D::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix << "width:" << width <<

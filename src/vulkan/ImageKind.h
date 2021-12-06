@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defaults.h"
+#include "vk_utils/format.h"
 
 #define VULKAN_KIND_PRINT_ON_MEMBERS \
   void print_on(std::ostream& os) const \
@@ -19,21 +20,145 @@
 
 namespace vulkan {
 
+class PresentationSurface;
+
+// Contains all members ImageCreateInfo except imageType and extent.
+struct ImageKindPOD
+{
+  vk::ImageCreateFlags    flags = {};
+  vk::Format              format = vk::Format::eB8G8R8A8Srgb;                     // Also most prefered format in Swapchain.cxx:choose_surface_format
+  uint32_t                mip_levels = 1;                                         // Also vk_defaults::ImageSubresourceRange
+  uint32_t                array_layers = 1;                                       // Also vk_defaults::ImageSubresourceRange
+  vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
+  vk::ImageTiling         tiling = vk::ImageTiling::eOptimal;
+  vk::ImageUsageFlags     usage = vk::ImageUsageFlagBits::eColorAttachment;
+  vk::SharingMode         sharing_mode = vk::SharingMode::eExclusive;
+  uint32_t                m_queue_family_index_count = {};
+  uint32_t const*         m_queue_family_indices = {};
+  vk::ImageLayout         initial_layout = vk::ImageLayout::eColorAttachmentOptimal;
+};
+
 class ImageKind
 {
- public:
-  vk::ImageType const image_type = vk::ImageType::e2D;
-  vk::Format const format = vk::Format::eB8G8R8A8Srgb;                                  // Also most prefered format in Swapchain.cxx:choose_surface_format
-  uint32_t const mip_levels = 1;                                                        // Also vk_defaults::ImageSubresourceRange
-  uint32_t const array_layers = 1;                                                      // Also vk_defaults::ImageSubresourceRange
-  vk::SampleCountFlagBits const samples = vk::SampleCountFlagBits::e1;
-  vk::ImageTiling const tiling = vk::ImageTiling::eOptimal;
-  vk::ImageUsageFlags const usage = vk::ImageUsageFlagBits::eColorAttachment;
-  vk::SharingMode const sharing_mode = vk::SharingMode::eExclusive;
-  uint32_t m_queue_family_index_count = {};
-  uint32_t const* m_queue_family_indices = {};
-  vk::ImageLayout const initial_layout = vk::ImageLayout::eColorAttachmentOptimal;
+ private:
+  ImageKindPOD m_data;
 
+ public:
+  ImageKind(ImageKindPOD data) : m_data(data) { }
+
+  // Convert into an ImageCreateInfo.
+  vk::ImageCreateInfo operator()(vk::Extent2D extent) const;
+
+  // Accessor.
+  ImageKindPOD const* operator->() const { return &m_data; }
+
+  VULKAN_KIND_DEBUG_MEMBERS
+};
+
+// Contains all members of SwapchainCreateInfoKHR that are not already in ImageKindPOD,
+// except surface, minImageCount, oldSwapchain.
+struct SwapchainKindPOD
+{
+  vk::SwapchainCreateFlagsKHR flags = {};
+  vk::ColorSpaceKHR image_color_space = {};                                                     // Overwritten in Swapchain::prepare.
+  vk::SurfaceTransformFlagBitsKHR pre_transform = {};                                           // Overwritten in Swapchain::prepare.
+  vk::CompositeAlphaFlagBitsKHR composite_alpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+  vk::PresentModeKHR present_mode = {};                                                         // Overwritten in Swapchain::prepare.
+  vk::Bool32 clipped = VK_TRUE;
+};
+
+class SwapchainKind
+{
+ private:
+  SwapchainKindPOD m_data;
+  ImageKind m_image_kind;
+
+ public:
+  // Initialized in Swapchain::prepare using the set* functions below, not by constructor.
+  SwapchainKind() : m_image_kind({}) { }
+
+  // Convert into a SwapchainCreateInfoKHR.
+  vk::SwapchainCreateInfoKHR operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const;
+
+  SwapchainKind& set(SwapchainKindPOD data) { m_data = data; return *this; }
+  SwapchainKind& set_image_kind(ImageKind image_kind) { m_image_kind = image_kind; return *this; }
+
+  // Accessors.
+  SwapchainKindPOD const* operator->() const { return &m_data; }
+  ImageKind const& image() const { return m_image_kind; }
+
+  VULKAN_KIND_DEBUG_MEMBERS
+};
+
+// Contains all members of ImageViewCreateInfo except image.
+struct ImageViewKindPOD
+{
+  vk::ImageViewCreateFlags  flags             = {};
+  vk::ImageViewType         view_type         = VULKAN_HPP_NAMESPACE::ImageViewType::e2D;
+  vk::Format                format            = VULKAN_HPP_NAMESPACE::Format::eUndefined;        // Overwritten with ImageKind::format by default.
+  vk::ComponentMapping      components        = {};
+  vk::ImageSubresourceRange subresource_range = vk_defaults::ImageSubresourceRange{};
+};
+
+class ImageViewKind
+{
+ private:
+  ImageViewKindPOD m_data;
+
+ public:
+  ImageViewKind(ImageKind const& image_kind, ImageViewKindPOD data) : m_data(data)
+  {
+    // Overwrite vk::Format::eUndefined with the format from image_kind.
+    m_data.format = choose_format(data.format, image_kind);
+    // Overwrite default subresource_range for depth/stencil image.
+    switch (image_kind->format)
+    {
+      case vk::Format::eD16Unorm:
+      case vk::Format::eD32Sfloat:
+      case vk::Format::eX8D24UnormPack32:
+        m_data.subresource_range.aspectMask = vk::ImageAspectFlagBits::eDepth;
+        break;
+      case vk::Format::eD16UnormS8Uint:
+      case vk::Format::eD24UnormS8Uint:
+      case vk::Format::eD32SfloatS8Uint:
+        m_data.subresource_range.aspectMask = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+        break;
+      case vk::Format::eS8Uint:
+        m_data.subresource_range.aspectMask = vk::ImageAspectFlagBits::eStencil;
+        break;
+      default:
+        m_data.subresource_range.aspectMask = vk::ImageAspectFlagBits::eColor;
+        break;
+    }
+  }
+
+  // Convert into a ImageViewCreateInfo.
+  vk::ImageViewCreateInfo operator()(vk::Image vh_image) const;
+
+  // Accessor.
+  ImageViewKindPOD const* operator->() const { return &m_data; }
+
+ private:
+  vk::Format choose_format(vk::Format format_in, ImageKind const& image_kind) const
+  {
+    if (format_in == vk::Format::eUndefined)
+      return image_kind->format;
+    // The spec about VkImageViewCreateInfo::format:
+    //
+    //   If image was created with the VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT flag, and if the format
+    //   of the image is not multi-planar, format can be different from the image’s format, but
+    //   if image was created without the VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT flag
+    //   and they are not equal they must be compatible. Image format compatibility is defined
+    //   in the Format Compatibility Classes section. Views of compatible formats will have the
+    //   same mapping between texel coordinates and memory locations irrespective of the format,
+    //   with only the interpretation of the bit pattern changing.
+    ASSERT((image_kind->flags & vk::ImageCreateFlagBits::eMutableFormat) && !vk_utils::format_is_multiplane(image_kind->format));
+    ASSERT((image_kind->flags & vk::ImageCreateFlagBits::eBlockTexelViewCompatible|vk::ImageCreateFlagBits::eBlockTexelViewCompatibleKHR) ||
+        vk_utils::format_is_compatible(image_kind->format, format_in));
+    return format_in;
+  }
+
+ public:
   VULKAN_KIND_DEBUG_MEMBERS
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ResourceState.h"
+#include "ImageKind.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <thread>
@@ -77,13 +78,11 @@ class Swapchain
     .aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = VK_REMAINING_ARRAY_LAYERS
   };
 
-  // For now, lets just hardcode the number of array layers.
-  static constexpr uint32_t s_number_of_array_layers = vk_defaults::ImageSubresourceRange::default_layer_count;
-
  private:
-  std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_create_info.
-  vk::SwapchainCreateInfoKHR    m_create_info;          // A cached copy of the create info object, initialized in prepare and reused in recreate.
-                                                        // Contains a copy of the last (non-zero) extent of the owning_window that was passed to recreate.
+  std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_kind.
+  vk::Extent2D                  m_extent;               // Copy of the last (non-zero) extent of the owning_window that was passed to recreate.
+  SwapchainKind                 m_kind;                 // Static data (initialized during prepare) that describe the swapchain.
+  uint32_t                      m_min_image_count;      // The minimum number of swapchain images that we (will) request(ed).
   vk::UniqueSwapchainKHR        m_swapchain;
   images_type                   m_vhv_images;           // A vector of swapchain images.
   resources_type                m_resources;            // A vector of corresponding image views and semaphores.
@@ -114,24 +113,14 @@ class Swapchain
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
-  static constexpr uint32_t layer_count()
+  SwapchainKind const& kind() const
   {
-    return s_number_of_array_layers;
-  }
-
-  vk::Format format() const
-  {
-    return m_create_info.imageFormat;
-  }
-
-  vk::ImageUsageFlags usage() const
-  {
-    return m_create_info.imageUsage;
+    return m_kind;
   }
 
   vk::Extent2D const& extent() const
   {
-    return m_create_info.imageExtent;
+    return m_extent;
   }
 
   vk::ImageView vh_current_image_view() const

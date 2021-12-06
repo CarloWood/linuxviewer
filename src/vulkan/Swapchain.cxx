@@ -153,28 +153,36 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
   Dout(dc::vulkan, "Chosen present mode: " << desired_present_mode);
   Dout(dc::vulkan, "Used transform: " << desired_transform);
 
-  m_create_info
-    .setSurface(presentation_surface.vh_surface())
-    .setMinImageCount(desired_image_count)
-    .setImageFormat(desired_image_format.format)
-    .setImageColorSpace(desired_image_format.colorSpace)
-    .setImageExtent(desired_extent)
-    .setImageArrayLayers(s_number_of_array_layers)
-    .setImageUsage(desired_image_usage_flags)
-    .setPreTransform(desired_transform)
-    .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
-    .setPresentMode(desired_present_mode)
-    .setClipped(true)
-    ;
+  vk::SharingMode                 desired_sharing_mode = vk::SharingMode::eExclusive;
+  uint32_t                        desired_queue_family_index_count = 0;
+  uint32_t const*                 desired_queue_family_indices = nullptr;
 
   if (presentation_surface.uses_multiple_queue_families())
   {
     m_queue_family_indices = presentation_surface.queue_family_indices();
-    m_create_info
-      .setQueueFamilyIndices(m_queue_family_indices)
-      .setImageSharingMode(vk::SharingMode::eConcurrent)
-      ;
+    desired_queue_family_index_count = m_queue_family_indices.size();
+    desired_queue_family_indices = m_queue_family_indices.data();
+    desired_sharing_mode = vk::SharingMode::eConcurrent;
   }
+
+  m_kind.set(
+    {
+      .image_color_space = desired_image_format.colorSpace,
+      .pre_transform = desired_transform,
+      .present_mode = desired_present_mode
+    }
+  ).set_image_kind({
+    {
+      .format = desired_image_format.format,
+      .mip_levels = 1,
+      .usage = desired_image_usage_flags,
+      .sharing_mode = desired_sharing_mode,
+      .m_queue_family_index_count = desired_queue_family_index_count,
+      .m_queue_family_indices = desired_queue_family_indices
+    }
+  });
+
+  m_min_image_count = desired_image_count;
 
   m_acquire_semaphore = owning_window->logical_device().create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
@@ -225,24 +233,20 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
 
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
-  // Update the swapchain create info with the new surface extent. Also set the old swapchain handle.
-  m_create_info
-    .setImageExtent(surface_extent)
-    .setOldSwapchain(*old_handle)
-    ;
-
-  m_swapchain = logical_device.create_swapchain(m_create_info
+  m_extent = surface_extent;
+  m_swapchain = logical_device.create_swapchain(surface_extent, m_min_image_count, owning_window->presentation_surface(), m_kind, *old_handle
       COMMA_CWDEBUG_ONLY(ambifix(".m_swapchain")));
   m_vhv_images = logical_device.get_swapchain_images(*m_swapchain
       COMMA_CWDEBUG_ONLY(ambifix(".m_vhv_images")));
 
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
+  static ImageViewKind const swapchain_image_view_kind(m_kind.image(), {});
+
   // Create the corresponding resources: image view and semaphores.
   for (SwapchainIndex i = m_vhv_images.ibegin(); i != m_vhv_images.iend(); ++i)
   {
-    vk_defaults::ImageViewCreateInfo image_view_create_info(m_vhv_images[i], m_create_info.imageFormat);
-    vk::UniqueImageView image_view = logical_device.create_image_view(image_view_create_info
+    vk::UniqueImageView image_view = logical_device.create_image_view(m_vhv_images[i], swapchain_image_view_kind
         COMMA_CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_image_view")));
     vk::UniqueSemaphore image_available_semaphore = logical_device.create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore")));

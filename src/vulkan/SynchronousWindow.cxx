@@ -433,17 +433,15 @@ void SynchronousWindow::create_textures()
     std::vector<char> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/background.png", 4, &width, &height, nullptr, &data_size);
     // Create descriptor resources.
     {
-      static vulkan::ImageKind const background_image_kind{
+      static vulkan::ImageKind const background_image_kind({
         .format = vk::Format::eR8G8B8A8Unorm,
         .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-      };
+      });
+
+      static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
       m_background_texture =
-        m_logical_device->create_image(
-            width, height,
-            background_image_kind,
-            vk::MemoryPropertyFlagBits::eDeviceLocal,
-            vk::ImageAspectFlagBits::eColor
+        m_logical_device->create_image(width, height, background_image_kind, background_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
 
       m_background_texture.m_sampler =
@@ -479,13 +477,14 @@ void SynchronousWindow::create_textures()
     std::vector<char> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
     // Create descriptor resources.
     {
-      static vulkan::ImageKind const sample_image_kind{
+      static vulkan::ImageKind const sample_image_kind({
         .format = vk::Format::eR8G8B8A8Unorm,
         .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-      };
+      });
 
-      m_texture = m_logical_device->create_image(width, height, sample_image_kind,
-          vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor
+      static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
+
+      m_texture = m_logical_device->create_image(width, height, sample_image_kind, sample_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
       m_texture.m_sampler = m_logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
@@ -816,23 +815,22 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
 
   vk::Extent2D const& extent = m_swapchain.extent();
-  vk::Format format = m_swapchain.format();
 
   // FIXME: this should be dynamic (depends on configuration that was used to create the renderpass).
   std::array<vk::FramebufferAttachmentImageInfo, 2> attachments_image_infos = {
     vk::FramebufferAttachmentImageInfo{
-      .usage = m_swapchain.usage(),
+      .usage = m_swapchain.kind().image()->usage,
       .width = extent.width,
       .height = extent.height,
-      .layerCount = vulkan::Swapchain::s_number_of_array_layers,
+      .layerCount = m_swapchain.kind().image()->array_layers,
       .viewFormatCount = 1,
-      .pViewFormats = &format
+      .pViewFormats = &m_swapchain.kind().image()->format
     },
     vk::FramebufferAttachmentImageInfo{
       .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
       .width = extent.width,
       .height = extent.height,
-      .layerCount = vulkan::Swapchain::s_number_of_array_layers,
+      .layerCount = m_swapchain.kind().image()->array_layers,
       .viewFormatCount = 1,
       .pViewFormats = &s_default_depth_format
     }
@@ -845,7 +843,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .attachmentCount = attachments_image_infos.size(),
       .width = extent.width,
       .height = extent.height,
-      .layers = vulkan::Swapchain::s_number_of_array_layers
+      .layers = m_swapchain.kind().image()->array_layers
     },
     {
       .attachmentImageInfoCount = attachments_image_infos.size(),
@@ -940,18 +938,20 @@ void SynchronousWindow::on_window_size_changed_post()
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
-    static vulkan::ImageKind const depth_image_kind{
+    static vulkan::ImageKind const depth_image_kind({
       .format = s_default_depth_format,
       .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
-    };
+    });
+
+    static vulkan::ImageViewKind const depth_image_view_kind(depth_image_kind, {});
 
     // Create depth attachment.
     frame_resources_data->m_depth_attachment = m_logical_device->create_image(
         swapchain().extent().width,
         swapchain().extent().height,
         depth_image_kind,
-        vk::MemoryPropertyFlagBits::eDeviceLocal,
-        vk::ImageAspectFlagBits::eDepth
+        depth_image_view_kind,
+        vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));
 
     // Transition it away from an undefined layout.

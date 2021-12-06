@@ -305,7 +305,7 @@ class Window : public task::SynchronousWindow
     {
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
         {
-          .m_format = swapchain().format(),
+          .m_format = swapchain().kind().image()->format,
           .m_load_op = vk::AttachmentLoadOp::eClear,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
@@ -328,7 +328,7 @@ class Window : public task::SynchronousWindow
     {
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
         {
-          .m_format = swapchain().format(),
+          .m_format = swapchain().kind().image()->format,
           .m_load_op = vk::AttachmentLoadOp::eLoad,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::eColorAttachmentOptimal,
