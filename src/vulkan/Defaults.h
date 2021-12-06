@@ -193,23 +193,6 @@ VK_DEFAULTS_DECLARE(ImageSubresourceRange)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
-VK_DEFAULTS_DECLARE(ImageCreateInfo)
-{
-  ImageCreateInfo(vk::Extent2D const& extent, vk::Format format, vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment)
-  {
-    setImageType(vk::ImageType::e2D);
-    setFormat(format);
-    setExtent({extent.width, extent.height, 1});
-    setMipLevels(1);    // The default matches that of swapchain images.
-    setArrayLayers(ImageSubresourceRange::default_layer_count);
-    setSamples(vk::SampleCountFlagBits::e1);
-    setTiling(vk::ImageTiling::eOptimal);
-    setUsage(usage);
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
 VK_DEFAULTS_DECLARE(ImageViewCreateInfo)
 {
   ImageViewCreateInfo(vk::Image image, vk::Format format, vk::ImageAspectFlags aspect = vk::ImageAspectFlagBits::eColor)
@@ -261,5 +244,10 @@ DECLARE_PRINT_MEMBERS_CLASS(SubmitInfo)
 DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
 
 } // namespace vk_defaults
+
+#undef VK_DEFAULTS_DECLARE
+#undef VK_DEFAULTS_DEBUG_MEMBERS
+#undef VK_DEFAULTS_PRINT_ON_MEMBERS
+#undef DECLARE_PRINT_MEMBERS_CLASS
 
 #endif // VULKAN_DEFAULTS_H

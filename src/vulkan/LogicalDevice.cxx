@@ -575,10 +575,30 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
 }
 
 vk::UniqueImage LogicalDevice::create_image(
-    vk::ImageCreateInfo const& image_create_info
+    vk::Extent2D extent,
+    vulkan::ImageKind const& image_kind
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << image_create_info << ")");
+  DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << extent << ", " << image_kind << ")");
+  // Unless sharing mode is eConcurrent, it makes no sense to assign a queue family array (it would be ignored).
+  // Either you forgot to set .sharing_mode for this ImageKind or set queue families that won't be used.
+  ASSERT(image_kind.sharing_mode == vk::SharingMode::eConcurrent ||
+      (image_kind.m_queue_family_index_count == 0 && image_kind.m_queue_family_indices == nullptr));
+  vk::ImageCreateInfo const image_create_info{
+    .flags                 = {},
+    .imageType             = image_kind.image_type,
+    .format                = image_kind.format,
+    .extent                = { extent.width, extent.height, 1 },
+    .mipLevels             = image_kind.mip_levels,
+    .arrayLayers           = image_kind.array_layers,
+    .samples               = image_kind.samples,
+    .tiling                = image_kind.tiling,
+    .usage                 = image_kind.usage,
+    .sharingMode           = image_kind.sharing_mode,
+    .queueFamilyIndexCount = image_kind.m_queue_family_index_count,
+    .pQueueFamilyIndices   = image_kind.m_queue_family_indices,
+    .initialLayout         = image_kind.initial_layout
+  };
   vk::UniqueImage image = m_device->createImageUnique(image_create_info);
   DebugSetName(image, debug_name);
   return image;
@@ -597,13 +617,12 @@ vk::UniqueImageView LogicalDevice::create_image_view(
 ImageParameters LogicalDevice::create_image(
     uint32_t width,
     uint32_t height,
-    vk::Format format,
-    vk::ImageUsageFlags usage,
+    vulkan::ImageKind const& image_kind,
     vk::MemoryPropertyFlagBits property,
     vk::ImageAspectFlags aspect
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
-  vk::UniqueImage tmp_image = create_image(vk_defaults::ImageCreateInfo({ width, height }, format, usage)
+  vk::UniqueImage tmp_image = create_image({ width, height }, image_kind
       COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
 
   vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
@@ -611,7 +630,7 @@ ImageParameters LogicalDevice::create_image(
 
   m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
 
-  vk::UniqueImageView tmp_view = create_image_view(vk_defaults::ImageViewCreateInfo(*tmp_image, format, aspect)
+  vk::UniqueImageView tmp_view = create_image_view(vk_defaults::ImageViewCreateInfo(*tmp_image, image_kind.format, aspect)
       COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")));
 
   return {

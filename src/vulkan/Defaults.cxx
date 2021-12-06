@@ -253,26 +253,6 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
 }
 
 #ifdef CWDEBUG
-void ImageCreateInfo::print_members(std::ostream& os, char const* prefix) const
-{
-  os << prefix << "flags:" << flags <<
-      ", imageType:" << imageType <<
-      ", format:" << format <<
-      ", extent:" << extent <<
-      ", mipLevels:" << mipLevels <<
-      ", arrayLayers:" << arrayLayers <<
-      ", samples:" << samples <<
-      ", tiling:" << tiling <<
-      ", usage:" << usage <<
-      ", sharingMode:" << sharingMode;
-    if (sharingMode == vk::SharingMode::eConcurrent)
-    {
-//    os << ", queueFamilyIndexCount:" << queueFamilyIndexCount;
-      os << ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount);
-    }
-  os << ", initialLayout:" << initialLayout;
-}
-
 void ImageViewCreateInfo::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix << "flags:" << flags <<

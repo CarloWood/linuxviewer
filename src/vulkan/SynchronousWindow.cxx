@@ -433,11 +433,15 @@ void SynchronousWindow::create_textures()
     std::vector<char> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/background.png", 4, &width, &height, nullptr, &data_size);
     // Create descriptor resources.
     {
+      static vulkan::ImageKind const background_image_kind{
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+      };
+
       m_background_texture =
         m_logical_device->create_image(
             width, height,
-            vk::Format::eR8G8B8A8Unorm,
-            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+            background_image_kind,
             vk::MemoryPropertyFlagBits::eDeviceLocal,
             vk::ImageAspectFlagBits::eColor
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
@@ -475,7 +479,12 @@ void SynchronousWindow::create_textures()
     std::vector<char> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
     // Create descriptor resources.
     {
-      m_texture = m_logical_device->create_image(width, height, vk::Format::eR8G8B8A8Unorm, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+      static vulkan::ImageKind const sample_image_kind{
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+      };
+
+      m_texture = m_logical_device->create_image(width, height, sample_image_kind,
           vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageAspectFlagBits::eColor
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
       m_texture.m_sampler = m_logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
@@ -931,12 +940,16 @@ void SynchronousWindow::on_window_size_changed_post()
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
+    static vulkan::ImageKind const depth_image_kind{
+      .format = s_default_depth_format,
+      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+    };
+
     // Create depth attachment.
     frame_resources_data->m_depth_attachment = m_logical_device->create_image(
         swapchain().extent().width,
         swapchain().extent().height,
-        s_default_depth_format,
-        vk::ImageUsageFlagBits::eDepthStencilAttachment,
+        depth_image_kind,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         vk::ImageAspectFlagBits::eDepth
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));

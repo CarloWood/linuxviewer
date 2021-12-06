@@ -9,6 +9,7 @@
 #include "Queue.h"
 #include "ImageParameters.h"
 #include "DescriptorSetParameters.h"
+#include "ImageKind.h"
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
 
@@ -119,9 +120,9 @@ class LogicalDevice
   }
   vk::UniqueImageView create_image_view(vk::ImageViewCreateInfo const& image_view_create_info
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueImage create_image(vk::ImageCreateInfo const& image_create_info
+  vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  ImageParameters create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageUsageFlags usage, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect
+  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageKind const& image_kind, vk::MemoryPropertyFlagBits property, vk::ImageAspectFlags aspect
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
