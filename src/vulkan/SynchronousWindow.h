@@ -16,6 +16,7 @@
 #include "statefultask/AIEngine.h"
 #include "WindowEvents.h"
 #include "Concepts.h"
+#include "ImageKind.h"
 #include "vk_utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
@@ -82,6 +83,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
+
+  static vulkan::ImageKind const s_depth_image_kind;
+  static vulkan::ImageViewKind const s_depth_image_view_kind;
 
  private:
   static constexpr condition_type connection_set_up = 1;

@@ -18,6 +18,15 @@
 
 namespace task {
 
+//static
+vulkan::ImageKind const SynchronousWindow::s_depth_image_kind({
+  .format = s_default_depth_format,
+  .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+});
+
+//static
+vulkan::ImageViewKind const SynchronousWindow::s_depth_image_view_kind(s_depth_image_kind, {});
+
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); })
@@ -827,12 +836,12 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .pViewFormats = &m_swapchain.kind().image()->format
     },
     vk::FramebufferAttachmentImageInfo{
-      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+      .usage = s_depth_image_kind->usage,
       .width = extent.width,
       .height = extent.height,
-      .layerCount = m_swapchain.kind().image()->array_layers,
+      .layerCount = s_depth_image_kind->array_layers,
       .viewFormatCount = 1,
-      .pViewFormats = &s_default_depth_format
+      .pViewFormats = &s_depth_image_kind->format
     }
   };
 
@@ -938,19 +947,12 @@ void SynchronousWindow::on_window_size_changed_post()
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
-    static vulkan::ImageKind const depth_image_kind({
-      .format = s_default_depth_format,
-      .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
-    });
-
-    static vulkan::ImageViewKind const depth_image_view_kind(depth_image_kind, {});
-
     // Create depth attachment.
     frame_resources_data->m_depth_attachment = m_logical_device->create_image(
         swapchain().extent().width,
         swapchain().extent().height,
-        depth_image_kind,
-        depth_image_view_kind,
+        s_depth_image_kind,
+        s_depth_image_view_kind,
         vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));
 
