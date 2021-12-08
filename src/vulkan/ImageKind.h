@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defaults.h"
+#include "vk_utils/Badge.h"
 #include "vk_utils/format.h"
 
 #define VULKAN_KIND_PRINT_ON_MEMBERS \
@@ -18,17 +19,30 @@
 #define VULKAN_KIND_DEBUG_MEMBERS VULKAN_KIND_PRINT_ON_MEMBERS
 #endif
 
+// The *KindPOD structs are intended to be temporary constructed using C++20 designated initializers.
+// For example,
+//
+//   static vulkan::ImageKind const sample_image_kind({
+//     .format = vk::Format::eR8G8B8A8Unorm,
+//     .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+//   });
+//
+// Therefore the *Kind constructors take *KindPOD parameters by value.
+// Other *Kind objects are passed as const&.
+
 namespace vulkan {
 
 class PresentationSurface;
+class Swapchain;
 
-// Contains all members ImageCreateInfo except imageType and extent.
+// Contains all members ImageCreateInfo except extent.
 struct ImageKindPOD
 {
   vk::ImageCreateFlags    flags = {};
-  vk::Format              format = vk::Format::eB8G8R8A8Srgb;                     // Also most prefered format in Swapchain.cxx:choose_surface_format
-  uint32_t                mip_levels = 1;                                         // Also vk_defaults::ImageSubresourceRange
-  uint32_t                array_layers = 1;                                       // Also vk_defaults::ImageSubresourceRange
+  vk::ImageType           image_type = vk::ImageType::e2D;                      // Default matches vk::Extend2D.
+  vk::Format              format = vk::Format::eB8G8R8A8Srgb;                   // Also most prefered format in Swapchain.cxx:choose_surface_format.
+  uint32_t                mip_levels = 1;                                       // Also vk_defaults::ImageSubresourceRange.
+  uint32_t                array_layers = 1;                                     // Also vk_defaults::ImageSubresourceRange.
   vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
   vk::ImageTiling         tiling = vk::ImageTiling::eOptimal;
   vk::ImageUsageFlags     usage = vk::ImageUsageFlagBits::eColorAttachment;
@@ -47,11 +61,36 @@ class ImageKind
   ImageKind(ImageKindPOD data) : m_data(data) { }
 
   // Convert into an ImageCreateInfo.
-  vk::ImageCreateInfo operator()(vk::Extent2D extent) const;
+  vk::ImageCreateInfo operator()(uint32_t extent) const
+  {
+    // Only use uint32_t together with an ImageKind that has image_type set to vk::ImageType::e1D.
+    ASSERT(m_data.image_type == vk::ImageType::e1D);
+    return get_create_info({ extent, 1, 1 });
+  }
+
+  // Convert into an ImageCreateInfo.
+  vk::ImageCreateInfo operator()(vk::Extent2D extent) const
+  {
+    // Only use vk::Extent2D together with an ImageKind that has image_type set to vk::ImageType::e2D.
+    ASSERT(m_data.image_type == vk::ImageType::e2D);
+    return get_create_info({ extent.width, extent.height, 1 });
+  }
+
+  // Convert into an ImageCreateInfo.
+  vk::ImageCreateInfo operator()(vk::Extent3D const& extent) const
+  {
+    // Only use vk::Extent3D together with an ImageKind that has image_type set to vk::ImageType::e3D.
+    ASSERT(m_data.image_type == vk::ImageType::e3D);
+    return get_create_info(extent);
+  }
 
   // Accessor.
   ImageKindPOD const* operator->() const { return &m_data; }
 
+ private:
+  vk::ImageCreateInfo get_create_info(vk::Extent3D const& extent) const;
+
+ public:
   VULKAN_KIND_DEBUG_MEMBERS
 };
 
@@ -77,11 +116,12 @@ class SwapchainKind
   // Initialized in Swapchain::prepare using the set* functions below, not by constructor.
   SwapchainKind() : m_image_kind({}) { }
 
+  // Accessed from Swapchain::prepare.
+  SwapchainKind& set(vk_utils::Badge<Swapchain>, SwapchainKindPOD data) { m_data = data; return *this; }
+  void set_image_kind(vk_utils::Badge<Swapchain>, ImageKindPOD image_kind);
+
   // Convert into a SwapchainCreateInfoKHR.
   vk::SwapchainCreateInfoKHR operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const;
-
-  SwapchainKind& set(SwapchainKindPOD data) { m_data = data; return *this; }
-  SwapchainKind& set_image_kind(ImageKind image_kind) { m_image_kind = image_kind; return *this; }
 
   // Accessors.
   SwapchainKindPOD const* operator->() const { return &m_data; }

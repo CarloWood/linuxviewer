@@ -8,7 +8,7 @@
 
 namespace vulkan {
 
-vk::ImageCreateInfo ImageKind::operator()(vk::Extent2D extent) const
+vk::ImageCreateInfo ImageKind::get_create_info(vk::Extent3D const& extent) const
 {
   // Unless sharing mode is eConcurrent, it makes no sense to assign a queue family array (it would be ignored).
   // Either you forgot to set .sharing_mode for this ImageKind or set queue families that won't be used.
@@ -17,9 +17,9 @@ vk::ImageCreateInfo ImageKind::operator()(vk::Extent2D extent) const
 
   return {
     .flags                 = m_data.flags,
-    .imageType             = vk::ImageType::e2D,
+    .imageType             = m_data.image_type,
     .format                = m_data.format,
-    .extent                = { extent.width, extent.height, 1 },
+    .extent                = { extent.width, extent.height, extent.depth },
     .mipLevels             = m_data.mip_levels,
     .arrayLayers           = m_data.array_layers,
     .samples               = m_data.samples,
@@ -35,6 +35,7 @@ vk::ImageCreateInfo ImageKind::operator()(vk::Extent2D extent) const
 void ImageKind::print_members(std::ostream& os) const
 {
   os << "flags:" << m_data.flags <<
+      ", image_type:" << m_data.image_type <<
       ", format:" << m_data.format <<
       ", mip_levels:" << m_data.mip_levels <<
       ", array_layers:" << m_data.array_layers <<
@@ -45,6 +46,29 @@ void ImageKind::print_members(std::ostream& os) const
   if (m_data.sharing_mode == vk::SharingMode::eConcurrent)
     os << vk_utils::print_list(m_data.m_queue_family_indices, m_data.m_queue_family_index_count);
   os << ", initial_layout:" << m_data.initial_layout;
+}
+
+void SwapchainKind::set_image_kind(vk_utils::Badge<Swapchain>, ImageKindPOD image_kind)
+{
+  // This is what will be used, no matter whatever ImageKind is being passed here,
+  // as described by https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#_wsi_swapchain
+  // (look for "A presentable image is equivalent to a non-presentable image created with the following").
+  vk::ImageCreateFlags image_create_flags{};
+  if ((m_data.flags & vk::SwapchainCreateFlagBitsKHR::eSplitInstanceBindRegions))
+    image_create_flags |= vk::ImageCreateFlagBits::eSplitInstanceBindRegions;
+  if ((m_data.flags & vk::SwapchainCreateFlagBitsKHR::eProtected))
+    image_create_flags |= vk::ImageCreateFlagBits::eProtected;
+  if ((m_data.flags & vk::SwapchainCreateFlagBitsKHR::eMutableFormat))
+    image_create_flags |= vk::ImageCreateFlagBits::eMutableFormat | vk::ImageCreateFlagBits::eExtendedUsageKHR;
+
+  image_kind.flags = image_create_flags;
+  image_kind.image_type = vk::ImageType::e2D;
+  image_kind.mip_levels = 1;
+  image_kind.samples = vk::SampleCountFlagBits::e1;
+  image_kind.tiling = vk::ImageTiling::eOptimal;
+  image_kind.initial_layout = vk::ImageLayout::eColorAttachmentOptimal;
+
+  m_image_kind = image_kind;
 }
 
 vk::SwapchainCreateInfoKHR SwapchainKind::operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const

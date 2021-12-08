@@ -165,21 +165,19 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
     desired_sharing_mode = vk::SharingMode::eConcurrent;
   }
 
-  m_kind.set(
+  // Note: set() must be called before set_image_kind() because of flags propagation.
+  m_kind.set({},
     {
       .image_color_space = desired_image_format.colorSpace,
       .pre_transform = desired_transform,
       .present_mode = desired_present_mode
     }
-  ).set_image_kind({
-    {
+  ).set_image_kind({}, {
       .format = desired_image_format.format,
-      .mip_levels = 1,
       .usage = desired_image_usage_flags,
       .sharing_mode = desired_sharing_mode,
       .m_queue_family_index_count = desired_queue_family_index_count,
       .m_queue_family_indices = desired_queue_family_indices
-    }
   });
 
   m_min_image_count = desired_image_count;
