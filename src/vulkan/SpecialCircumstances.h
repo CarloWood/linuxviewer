@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_utils/Badge.h"
+#include "utils/Badge.h"
 
 namespace task {
 class SynchronousTask;
@@ -52,8 +52,8 @@ class SpecialCircumstances
   void can_render_again() const { m_flags.fetch_and(~cant_render_bit, std::memory_order::relaxed); }
 
   // Control the have_synchronous_task_bit.
-  void reset_have_synchronous_task(vk_utils::Badge<SynchronousEngine>) const { m_flags.fetch_and(~have_synchronous_task_bit, std::memory_order::relaxed); }
-  void set_have_synchronous_task(vk_utils::Badge<
+  void reset_have_synchronous_task(utils::Badge<SynchronousEngine>) const { m_flags.fetch_and(~have_synchronous_task_bit, std::memory_order::relaxed); }
+  void set_have_synchronous_task(utils::Badge<
       task::SynchronousTask,    // When running a SynchronousTask (calling SynchronousTask::run).
       SynchronousEngine         // When active tasks remained after the mainloop returned.
       >) const { m_flags.fetch_or(have_synchronous_task_bit, std::memory_order::relaxed); }

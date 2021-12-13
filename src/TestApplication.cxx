@@ -6,6 +6,7 @@
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
+#include "vulkan/RenderGraph.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -260,9 +261,37 @@ class Window : public task::SynchronousWindow
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
   }
 
+  // FIXME remove these two
+  vulkan::ImageKind const k1{{}};
+  vulkan::ImageViewKind const v1{k1, {}};
+
+  // Create attachment objects.
+  vulkan::Attachment const depth{s_depth_image_view_kind, "depth"};
+  vulkan::Attachment const normal_specular{v1, "normal_specular"};
+  vulkan::Attachment const diffuse{v1, "diffuse"};
+  vulkan::Attachment const specular{v1, "specular"};
+  vulkan::Attachment const output{swapchain().image_view_kind(), "output"};
+
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+
+    // Create Renderpass objects.
+    vulkan::RenderPass geometry("geometry");
+    vulkan::RenderPass finalpass("finalpass");
+
+    // Define the render passes.
+    // Render Pass  |  Output attachments
+    // [add]        |  ~ = clear
+    // [!remove]    |
+
+//    render_graph = render_pass[~depth]->write_to(output);
+
+//      geometry       ->write_to(normal_specular, ~depth) >>
+//      lighting       ->write_to(~diffuse, ~specular)     >>
+//      finalpass[+depth]->write_to(output);
+
+    vulkan::RenderGraph::testsuite();
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
       {
@@ -305,7 +334,7 @@ class Window : public task::SynchronousWindow
     {
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
         {
-          .m_format = swapchain().kind().image()->format,
+          .m_format = swapchain().image_kind()->format,
           .m_load_op = vk::AttachmentLoadOp::eClear,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
@@ -328,7 +357,7 @@ class Window : public task::SynchronousWindow
     {
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
         {
-          .m_format = swapchain().kind().image()->format,
+          .m_format = swapchain().image_kind()->format,
           .m_load_op = vk::AttachmentLoadOp::eLoad,
           .m_store_op = vk::AttachmentStoreOp::eStore,
           .m_initial_layout = vk::ImageLayout::eColorAttachmentOptimal,

@@ -48,7 +48,7 @@ void ImageKind::print_members(std::ostream& os) const
   os << ", initial_layout:" << m_data.initial_layout;
 }
 
-void SwapchainKind::set_image_kind(vk_utils::Badge<Swapchain>, ImageKindPOD image_kind)
+void SwapchainKind::set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_kind)
 {
   // This is what will be used, no matter whatever ImageKind is being passed here,
   // as described by https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/vkspec.html#_wsi_swapchain
@@ -121,7 +121,8 @@ void ImageViewKind::print_members(std::ostream& os) const
       ", view_type:" << m_data.view_type <<
       ", format:" << m_data.format <<
       ", components:" << m_data.components <<
-      ", subresource_range:" << m_data.subresource_range;
+      ", subresource_range:" << m_data.subresource_range <<
+      ", m_image_kind:" << m_image_kind;
 }
 
 } // namespace vukan

@@ -17,7 +17,7 @@
 #include "WindowEvents.h"
 #include "Concepts.h"
 #include "ImageKind.h"
-#include "vk_utils/Badge.h"
+#include "utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -49,12 +49,12 @@ class DelaySemaphoreDestruction
   std::array<std::vector<vk::UniqueSemaphore>, 16> m_queue;
 
  public:
-  void add(vk_utils::Badge<Swapchain>, vk::UniqueSemaphore&& semaphore, int delay)
+  void add(utils::Badge<Swapchain>, vk::UniqueSemaphore&& semaphore, int delay)
   {
     m_queue[(pos + delay) % m_queue.size()].emplace_back(std::move(semaphore));
   }
 
-  void step(vk_utils::Badge<task::SynchronousWindow>)
+  void step(utils::Badge<task::SynchronousWindow>)
   {
     pos = (pos + 1) % m_queue.size();
     if (!m_queue[pos].empty())

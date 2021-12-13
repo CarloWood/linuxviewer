@@ -118,6 +118,16 @@ class Swapchain
     return m_kind;
   }
 
+  ImageKind const& image_kind() const
+  {
+    return m_kind.image();
+  }
+
+  ImageViewKind image_view_kind() const
+  {
+    return { m_kind.image(), {} };
+  }
+
   vk::Extent2D const& extent() const
   {
     return m_extent;

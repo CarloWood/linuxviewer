@@ -239,12 +239,10 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
 
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
-  static ImageViewKind const swapchain_image_view_kind(m_kind.image(), {});
-
   // Create the corresponding resources: image view and semaphores.
   for (SwapchainIndex i = m_vhv_images.ibegin(); i != m_vhv_images.iend(); ++i)
   {
-    vk::UniqueImageView image_view = logical_device.create_image_view(m_vhv_images[i], swapchain_image_view_kind
+    vk::UniqueImageView image_view = logical_device.create_image_view(m_vhv_images[i], image_view_kind()
         COMMA_CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_image_view")));
     vk::UniqueSemaphore image_available_semaphore = logical_device.create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore")));

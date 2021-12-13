@@ -825,15 +825,15 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
 
   vk::Extent2D const& extent = m_swapchain.extent();
 
-  // FIXME: this should be dynamic (depends on configuration that was used to create the renderpass).
+  // FIXME: this should be dynamic (depends on configuration that was used to create the render pass).
   std::array<vk::FramebufferAttachmentImageInfo, 2> attachments_image_infos = {
     vk::FramebufferAttachmentImageInfo{
-      .usage = m_swapchain.kind().image()->usage,
+      .usage = m_swapchain.image_kind()->usage,
       .width = extent.width,
       .height = extent.height,
-      .layerCount = m_swapchain.kind().image()->array_layers,
+      .layerCount = m_swapchain.image_kind()->array_layers,
       .viewFormatCount = 1,
-      .pViewFormats = &m_swapchain.kind().image()->format
+      .pViewFormats = &m_swapchain.image_kind()->format
     },
     vk::FramebufferAttachmentImageInfo{
       .usage = s_depth_image_kind->usage,
@@ -852,7 +852,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
       .attachmentCount = attachments_image_infos.size(),
       .width = extent.width,
       .height = extent.height,
-      .layers = m_swapchain.kind().image()->array_layers
+      .layers = m_swapchain.image_kind()->array_layers
     },
     {
       .attachmentImageInfoCount = attachments_image_infos.size(),

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Defaults.h"
-#include "vk_utils/Badge.h"
 #include "vk_utils/format.h"
+#include "utils/Badge.h"
 
 #define VULKAN_KIND_PRINT_ON_MEMBERS \
   void print_on(std::ostream& os) const \
@@ -117,8 +117,8 @@ class SwapchainKind
   SwapchainKind() : m_image_kind({}) { }
 
   // Accessed from Swapchain::prepare.
-  SwapchainKind& set(vk_utils::Badge<Swapchain>, SwapchainKindPOD data) { m_data = data; return *this; }
-  void set_image_kind(vk_utils::Badge<Swapchain>, ImageKindPOD image_kind);
+  SwapchainKind& set(utils::Badge<Swapchain>, SwapchainKindPOD data) { m_data = data; return *this; }
+  void set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_kind);
 
   // Convert into a SwapchainCreateInfoKHR.
   vk::SwapchainCreateInfoKHR operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const;
@@ -144,9 +144,10 @@ class ImageViewKind
 {
  private:
   ImageViewKindPOD m_data;
+  ImageKind const& m_image_kind;
 
  public:
-  ImageViewKind(ImageKind const& image_kind, ImageViewKindPOD data) : m_data(data)
+  ImageViewKind(ImageKind const& image_kind, ImageViewKindPOD data) : m_data(data), m_image_kind(image_kind)
   {
     // Overwrite vk::Format::eUndefined with the format from image_kind.
     m_data.format = choose_format(data.format, image_kind);
@@ -177,6 +178,7 @@ class ImageViewKind
 
   // Accessor.
   ImageViewKindPOD const* operator->() const { return &m_data; }
+  ImageKind const& image() const { return m_image_kind; }
 
  private:
   vk::Format choose_format(vk::Format format_in, ImageKind const& image_kind) const
