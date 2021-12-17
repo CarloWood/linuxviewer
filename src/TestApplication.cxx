@@ -6,7 +6,9 @@
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/RenderGraph.h"
+#include "vulkan/rendergraph/Attachment.h"
+#include "vulkan/rendergraph/RenderPass.h"
+#include "vulkan/rendergraph/RenderGraph.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -265,33 +267,45 @@ class Window : public task::SynchronousWindow
   vulkan::ImageKind const k1{{}};
   vulkan::ImageViewKind const v1{k1, {}};
 
+  using Attachment = vulkan::rendergraph::Attachment;
+
   // Create attachment objects.
-  vulkan::Attachment const depth{s_depth_image_view_kind, "depth"};
-  vulkan::Attachment const normal_specular{v1, "normal_specular"};
-  vulkan::Attachment const diffuse{v1, "diffuse"};
-  vulkan::Attachment const specular{v1, "specular"};
-  vulkan::Attachment const output{swapchain().image_view_kind(), "output"};
+  utils::UniqueIDContext<int>& window_context{m_attachment_id_context};
+  Attachment const depth{window_context, s_depth_image_view_kind, "depth"};
+  Attachment const normal_specular{window_context, v1, "normal_specular"};
+  Attachment const diffuse{window_context, v1, "diffuse"};
+  Attachment const specular{window_context, v1, "specular"};
+  Attachment const output{window_context, swapchain().image_view_kind(), "output"};
 
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
 
+    using vulkan::rendergraph::RenderPass;
+    using vulkan::rendergraph::RenderGraph;
+
+    RenderGraph::testsuite();
+
     // Create Renderpass objects.
-    vulkan::RenderPass geometry("geometry");
-    vulkan::RenderPass finalpass("finalpass");
+    RenderPass geometry("geometry");
+    RenderPass lighting("lighting");
+    RenderPass final_pass("final_pass");
+
+    RenderGraph render_graph;
 
     // Define the render passes.
     // Render Pass  |  Output attachments
     // [add]        |  ~ = clear
     // [!remove]    |
+    render_graph =
+      geometry          ->stores(normal_specular, ~depth) >>
+      lighting          ->stores(~diffuse, ~specular)     >>
+      final_pass[+depth]->stores(output);
+
+//    render_graph.create();
+    DoutFatal(dc::fatal, "The End");
 
 //    render_graph = render_pass[~depth]->write_to(output);
-
-//      geometry       ->write_to(normal_specular, ~depth) >>
-//      lighting       ->write_to(~diffuse, ~specular)     >>
-//      finalpass[+depth]->write_to(output);
-
-    vulkan::RenderGraph::testsuite();
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
       {

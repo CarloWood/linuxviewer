@@ -672,6 +672,21 @@ void SubmitInfo::print_members(std::ostream& os, char const* prefix) const
       ", pSignalSemaphores:" << print_list(pSignalSemaphores, signalSemaphoreCount);
 }
 
+void AttachmentDescription::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  os << "flags:" << flags <<
+      ", format:" << format <<
+      ", samples:" << samples <<
+      ", loadOp:" << loadOp <<
+      ", storeOp:" << storeOp <<
+      ", stencilLoadOp:" << stencilLoadOp <<
+      ", stencilStoreOp:" << stencilStoreOp <<
+      ", initialLayout:" << initialLayout <<
+      ", finalLayout:" << finalLayout;
+}
+
 #endif // CWDEBUG
 
 } // namespace vk_defaults

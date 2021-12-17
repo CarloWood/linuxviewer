@@ -178,7 +178,7 @@ class ImageViewKind
 
   // Accessor.
   ImageViewKindPOD const* operator->() const { return &m_data; }
-  ImageKind const& image() const { return m_image_kind; }
+  ImageKind const& image_kind() const { return m_image_kind; }
 
  private:
   vk::Format choose_format(vk::Format format_in, ImageKind const& image_kind) const

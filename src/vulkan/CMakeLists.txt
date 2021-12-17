@@ -68,12 +68,14 @@ set_property(
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
 )
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
 )

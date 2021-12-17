@@ -1,0 +1,275 @@
+RENDER GRAPH
+------------
+
+The render graph is a directed a-cyclic graph.
+
+For example,
+
+  PASS1-->PASS2-->\
+                   }PASS9----------->\
+  PASS3-->PASS4-->/                   \
+      \\------------------------------>}PASS12
+       `----------------->\           /
+                           }PASS10-->/
+  PASS5-->PASS6-->PASS7-->/
+               \
+                `-->\
+                     }PASS11
+             PASS8->/
+
+There can be multiple source leaves (here PASS1, PASS3, PASS5 and PASS8),
+and multiple sink leaves (here PASS11 and PASS12).
+
+Each PASS writes to one or more output images (an image view, denoted with
+something called an "Attachment").
+
+Each PASS reads from zero or more input images, also from the same set of
+"Attachment"s.
+
+Each PASS only (needs to) know(s) about the Attachments it "uses".
+A PASS "uses" an attachment if at least one of the following is true:
+
+  1) it writes to the attachment.
+  2) it CLEARs the attachment (this implies 1, obviously).
+  3) it LOADs the attachment (this also implies 1).
+
+2) and 3) are mutually exclusive. If neither is the case lets
+denote that with D.
+1) can be further distinguished between,
+  1a) it STOREs the attachment (S)
+  1b) it doesn't STORE the attachment (D).
+
+Per known attachment each PASS therefore can treat that attachment in one
+of the following ways:
+
+  DS    1a)
+  DD    1b)
+  CS    1a), 2)
+  CD    1b), 2)
+  LS    1a), 3)
+  LD    1b), 3)
+
+We can complement this list for unknown attachments with
+
+  --    none of the above
+
+Most notably, this is the only case were the PASS doesn't (potentially)
+write to the attachment; the attachment (if it was already written to)
+is preserved.
+
+By considering only those nodes (PASSes) that know about a given
+attachment, plus any node in between them that need to preserve
+the attachment, one gets a graph per attachment. Those graphs are
+necessary to determine which nodes need to preserve attachments.
+More on that below.
+
+SYNTAX
+------
+
+Each PASS gets a name, for example 'pass1':
+
+  vulkan::RenderPass pass1("pass1");
+  vulkan::RenderPass pass2("pass2");
+  etc.
+
+The render pass that writes to the swapchain image is usually called
+"final_pass", but that distinction won't be made here.
+
+All attachments involved with the render graph also
+get a name:
+
+  vulkan::Attachment const a1(image_view_kind1, "a1");
+  vulkan::Attachment const b1(image_view_kind2, "b1");
+  etc.
+
+where `image_view_kind` describes the underlaying image (view)
+that is used for that attachment (see class ImageViewKind).
+
+Each PASS writes to one or more attachments, for example
+
+  pass1->stores(a1, a4, a5)
+
+This notation implies S for the listed attachments.
+
+If there is a vertex in the graph of attachment a1 from passx
+to passy then this is denoted with an overloaded operator>>:
+
+  passx->stores(a1) >> passy->stores(...)
+
+Of course, this is a very limited notation as it implies that
+for every attachment that passx stores to there is such a vertex
+and it is not possible to use this notation for more than one
+target node at the time (here passy). This is solved by extra
+notation at the attachment level: if passx also stores to a2 but
+there is no vertex in the graph of a2 to passy then that vertex
+can be removed with:
+
+  passx->stores(a1, a2) >> passy[-a2]->stores(...)
+
+and if in the graph of a1 there is also a vertex from passx to
+passz then this is denoted by adding a [+a1] to passz:
+
+  passz[+a1]->stores(...)
+
+for this to uniquely specify passx, there may only be one
+pass that stores to a1 that preceeds passz. Here "preceeds"
+means that in the total graph there is only one node that stores
+to a1 which has vertices to passz.
+
+That a given PASS (say pass2) reads (L) from an attachment (say a1)
+can be denoted in two ways:
+
+1) The PASS immediately preceding the pass2 stores to a1:
+
+  pass1->stores(a1) >> pass2->stores(...)
+
+2) pass2 explicitly states it loads a1:
+
+  pass1->stores(a2) >> pass2[+a1]->stores(...)
+
+If pass1 stores a1, pass2 knows about a1, but doesn't
+store to it or clears it (in other words, it must load it)
+and pass3 that follows pass2 loads a1, then pass2 must
+preserve a1. For example,
+
+  pass1->stores(a1) >> pass2->stores(a2) >> pass3[+a1]->stores(...)
+
+This is also the case when there are multiple routes from
+pass1 to pass3. For example,
+
+  pass1->stores(a1) >> pass2->stores(a2) >> pass3[+a1][+a5]->stores(a3)
+  pass4[+a1]->stores(a4) >> pass5->stores(a5);
+
+Here pass4 must preserve a1 because it known about it and sits between
+pass1 and pass3. Pass5 automatically preserves it because it doesn't
+know about a1 (--).
+
+This means that pass4 must Store (LS) a1, even though it is not
+explicitly stated that it does so. Lets instead denote this with
+LP instead of LS to clarify that pass4 doesn't alter a1.
+
+The complete list then becomes
+
+  --            Unknown attachment
+  DS    1a)     Completely overwrites attachment without using the original contents. Stores the result for subsequent passes.
+  DD    1b)     Completely overwrites attachment without using the original contents and then discards the results.
+  CS    1a), 2) Clears the attachment and then (partially) writes to it. Stores the result for subsequent passes.
+  CD    1b), 2) Clears the attachment, uses it (writes to it) and then discards the results.
+  LS    1a), 3) Loads the attachment and (partially) overwrites it. Stores the result for subsequent passes.
+  LD    1b), 3) Loads the attachment and (partially) overwrites it and then discards the results.
+  LP    3)      Loads the attachment; preserves the attachment for subsequent passes.
+
+Since the last one requires the full graph to be determined, it will
+initially be set to LD (as if no subsequent pass requires a1).
+
+The following legal notations exist (solely with regard to a1):
+
+                                        Initially | If followed by a pass that LOADS a1
+  [stores() >>] pass1[]->stores()       --
+  [stores() >>] pass1[]->stores(a1)     DS
+  [stores() >>] pass1[]->stores(~a1)    CS
+  [stores() >>] pass1[+a1]->stores()    LD          LS
+  [stores() >>] pass1[+a1]->stores(a1)  LS
+  [stores() >>] pass1[-a1]->stores()    DD          Error: Probably not intended
+  [stores() >>] pass1[~a1]->stores()    CD          Error: use CS explicitly 
+  stores(a1) >> pass1[]->stores()       LD          LS
+  stores(a1) >> pass1[]->stores(a1)     LS
+  stores(a1) >> pass1[-a1]->stores()    --
+
+CLASSES
+-------
+
+All classes are defined in namespace vulkan::rendergraph.
+
+// Attachment.
+//
+// An Attachment is a unique object (within the specified context) with non-mutable data describing the attachment.
+// The `context` passed to the constructor must be a member of the associated task::SynchronousWindow.
+//
+class Attachment
+{
+  ImageViewKind const& m_image_view_kind;       // Static description of the image view related to this attachment.
+  utils::UniqueID<int> const m_id;              // Unique in the context of a given task::SynchronousWindow.
+  std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "output".
+
+  ...
+};
+
+// AttachmentIndex.
+//
+// A wrapper around a size_t that can be used into a vector of attachments known by given render pass.
+//
+using AttachmentIndex = utils::VectorIndex<AttachmentNode>;
+
+class LoadStoreOps
+{
+  uint32_t m_mask;
+
+  ...
+};
+
+// AttachmentNode.
+//
+// A node of of the subgraph for a specific a attachment.
+//
+class AttachmentNode
+{
+  RenderPass const* m_render_pass;                                      // The render pass this node falls under.
+  Attachment const* m_attachment;                                       // A pointer to the associated Attachment description.
+  AttachmentIndex m_index;                                              // The render pass specific index (index into pAttachments).
+  LoadStoreOps m_ops;                                                   // Encodes the [DCL][DS] code for this attachment/render_pass.
+  // The attachment graph.
+  std::vector<AttachmentNode*> m_preceding_nodes;
+  std::vector<AttachmentNode*> m_subsequent_nodes;
+
+  ...
+};
+
+// RenderPassStream
+//
+// Helper class to ease the use of operator-> (which just looks better).
+// In other words, to be able to write
+//
+//   pass1[a2]->stores(a1)
+//
+// rather than
+//
+//   pass1[a2].stores(a1)
+//
+// It also enforces the usage of `stores` before operator>> can be used.
+//   
+struct RenderPassStream
+{
+  RenderPass* m_owner;                                                  // The RenderPass that contains this RenderPassStream object.
+  RenderPassStream* m_prev_render_pass = nullptr;                       // A pointer to an optional render pass whose stores must be loaded.
+                                                                        // Aka, with pass1->stores(a1) >> pass2->stores(...) then pass2 points to pass1.
+  ...
+};
+
+// RenderPass.
+//
+// A RenderPass is a unique object (within the construction of a given RenderGraph).
+//
+class RenderPass
+{
+  std::string m_name;                                                   // Human readable name of this render pass.
+  utils::Vector<AttachmentNode> m_known_attachments;                    // Vector with all known attachments of this render pass.
+  AttachmentIndex m_next_index{0};                                      // The next attachment index to use for a new attachment node.
+  std::vector<Attachment const*> m_remove_or_dontcare_attachments;      // Temporary storage for attachments listed with `[-attachment]`.
+  RenderPassStream m_stream;                                            // Helper object that operator-> points to.
+
+  ...
+};
+
+// RenderGraph
+//
+// Object representing a whole render graph.
+// Has pointers to both, source and sink leaves.
+//
+class RenderGraph
+{
+  std::vector<RenderPass*> m_sources;
+  std::vector<RenderPass*> m_sinks;
+
+  ...
+};

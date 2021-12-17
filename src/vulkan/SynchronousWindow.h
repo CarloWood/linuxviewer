@@ -18,6 +18,7 @@
 #include "Concepts.h"
 #include "ImageKind.h"
 #include "utils/Badge.h"
+#include "utils/UniqueID.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -135,6 +136,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr size_t s_default_number_of_frame_resources = 2;                      // Default size of m_frame_resources_list.
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
+  utils::UniqueIDContext<int> m_attachment_id_context;                                  // Provides an unique ID for attachments.
 
   // UNSORTED REMAINING OBJECTS.
   vulkan::DescriptorSetParameters m_descriptor_set;

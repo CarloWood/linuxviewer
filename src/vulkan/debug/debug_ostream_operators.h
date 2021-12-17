@@ -51,6 +51,7 @@ DECLARE_OSTREAM_INSERTER(ComponentMapping)
 DECLARE_OSTREAM_INSERTER(FramebufferCreateInfo)
 DECLARE_OSTREAM_INSERTER(MappedMemoryRange)
 DECLARE_OSTREAM_INSERTER(SubmitInfo)
+DECLARE_OSTREAM_INSERTER(AttachmentDescription)
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)

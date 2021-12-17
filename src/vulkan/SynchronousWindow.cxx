@@ -21,7 +21,8 @@ namespace task {
 //static
 vulkan::ImageKind const SynchronousWindow::s_depth_image_kind({
   .format = s_default_depth_format,
-  .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment
+  .usage = vk::ImageUsageFlagBits::eDepthStencilAttachment,
+  .initial_layout = vk::ImageLayout::eUndefined
 });
 
 //static
