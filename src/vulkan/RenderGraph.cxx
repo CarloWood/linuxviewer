@@ -4,6 +4,7 @@
 #include "utils/AIAlert.h"
 #include "debug/vulkan_print_on.h"
 #ifdef CWDEBUG
+#include "debug/debug_ostream_operators.h"
 #include "utils/debug_ostream_operators.h"
 #endif
 
@@ -114,18 +115,11 @@ namespace vulkan {
 RenderPassStream& RenderPassStream::operator>>(RenderPassStream& rhs)
 {
   Dout(dc::renderpass, m_render_pass << " >> " << rhs.m_render_pass);
-  struct Compare
-  {
-    RenderPassAttachment const& m_attachment;
-    Compare(RenderPassAttachment const& attachment) : m_attachment(attachment) { }
-    bool operator()(RenderPassAttachment const& attachment) { return m_attachment.m_attachment->m_kind_and_id.get() == attachment.m_attachment->m_kind_and_id.get(); }
-  };
-
   Dout(dc::renderpass, "Running over all output attachments of " << m_render_pass);
   for (RenderPassAttachment const& attachment : m_render_pass->m_added_output_attachments)
   {
     Dout(dc::renderpass, "Trying output attachment \"" << attachment << "\".");
-    auto barred = std::find_if(rhs.m_render_pass->m_barred_input_attachments.begin(), rhs.m_render_pass->m_barred_input_attachments.end(), Compare{attachment});
+    auto barred = RenderPass::find_by_ID(rhs.m_render_pass->m_barred_input_attachments, attachment);
     if (barred != rhs.m_render_pass->m_barred_input_attachments.end())
     {
       Dout(dc::renderpass, "Erasing " << *barred << " from m_barred_input_attachments of " << rhs.m_render_pass);
@@ -134,12 +128,13 @@ RenderPassStream& RenderPassStream::operator>>(RenderPassStream& rhs)
     }
     rhs.m_render_pass->add_input_attachment(*attachment.m_attachment);
 #if CW_DEBUG
-    auto output = std::find_if(rhs.m_render_pass->m_added_output_attachments.begin(), rhs.m_render_pass->m_added_output_attachments.end(), Compare{attachment});
+    auto output = RenderPass::find_by_ID(rhs.m_render_pass->m_added_output_attachments, attachment);
     if (output != rhs.m_render_pass->m_added_output_attachments.end() && output->m_clear)
       THROW_ALERT("CLEAR-ing output attachment \"[OUTPUT]\" of render pass \"[RENDERPASS]\" would overwrite \"[OUTPUT1]\" of render pass \"[PASS1]\" without reading it.",
           AIArgs("[OUTPUT]", *output)("[RENDERPASS]", rhs.m_render_pass)("[OUTPUT1]", attachment)("[PASS1]", m_render_pass));
 #endif
   }
+  m_next_render_pass = &rhs;
   rhs.m_prev_render_pass = this;
   return rhs;
 }
@@ -209,7 +204,7 @@ RenderPassStream* RenderPass::operator->()
 
 RenderPass& RenderPass::operator[](Attachment::OpRemove a)
 {
-  Dout(dc::renderpass, this << "[-" << a << "]");
+  Dout(dc::renderpass, this << "[" << a << "]");
   // Stop attachment a from being added as input attachment.
   bar_input_attachment(*a.m_attachment);
   return *this;
@@ -224,7 +219,7 @@ RenderPass& RenderPass::operator[](Attachment::OpAdd const& a)
 
 RenderPass& RenderPass::operator[](Attachment::OpClear const& a)
 {
-  Dout(dc::renderpass, this << "[~" << a << "]");
+  Dout(dc::renderpass, this << "[" << a << "]");
   Dout(dc::renderpass, "Need to use LOAD_OP_CLEAR for " << a);
   add_input_attachment(*a.m_attachment).m_clear = true;
   return *this;
@@ -232,48 +227,172 @@ RenderPass& RenderPass::operator[](Attachment::OpClear const& a)
 
 void RenderGraph::operator=(RenderPassStream const& render_passes)
 {
-  DoutEntering(dc::vulkan, "RenderGraph::operator=()");
+  DoutEntering(dc::renderpass, "RenderGraph::operator=()");
 
   // Construct a vector with all RenderPassStream's.
   for (RenderPassStream const* render_pass_stream = &render_passes; render_pass_stream; render_pass_stream = render_pass_stream->m_prev_render_pass)
+  {
     m_graph.push_front(render_pass_stream->m_render_pass);
+    // Remember the last pointer; this will be the first (left-most) render pass in the stream.
+    m_render_pass_list = render_pass_stream;
+  }
+}
+
+void RenderGraph::create()
+{
+  DoutEntering(dc::renderpass, "RenderGraph::create()");
 
   // Run over all render passes.
   for (RenderPass const* render_pass : m_graph)
   {
-    Dout(dc::vulkan, "RenderPass: " << render_pass);
+    // Collect all attachments and the value of m_clear per attachment.
+    std::set<RenderPassAttachment, RenderPassAttachment::CompareIndex> render_pass_attachments;
+
+    Dout(dc::renderpass, "RenderPass: " << render_pass);
     NAMESPACE_DEBUG::Indent indent1(2);
     {
-      Dout(dc::vulkan, "Input attachments:");
+      Dout(dc::renderpass, "Input attachments:");
       NAMESPACE_DEBUG::Indent indent2(2);
       for (RenderPassAttachment const& input_attachment : render_pass->m_added_input_attachments)
       {
-        Dout(dc::vulkan, render_pass << '/' << input_attachment.m_index << " - \"" << input_attachment << "\" - " <<
+        Dout(dc::renderpass, render_pass << '/' << input_attachment.m_index << " - \"" << input_attachment << "\" - " <<
             *input_attachment.m_attachment->m_kind_and_id << " - " << (input_attachment.m_clear ? "LOAD_OP_CLEAR" : ""));
+        auto input = render_pass_attachments.insert(input_attachment);
+        if (input_attachment.m_clear)
+          input.first->m_clear = true;
       }
     }
     {
-      Dout(dc::vulkan, "Output attachments:");
+      Dout(dc::renderpass, "Output attachments:");
       NAMESPACE_DEBUG::Indent indent2(2);
       for (RenderPassAttachment const& output_attachment : render_pass->m_added_output_attachments)
       {
-        Dout(dc::vulkan, render_pass << '/' << output_attachment.m_index << " - \"" << output_attachment << "\" - " <<
+        Dout(dc::renderpass, render_pass << '/' << output_attachment.m_index << " - \"" << output_attachment << "\" - " <<
             *output_attachment.m_attachment->m_kind_and_id << " - " << (output_attachment.m_clear ? "LOAD_OP_CLEAR" : ""));
+        auto output = render_pass_attachments.insert(output_attachment);
+        if (output_attachment.m_clear)
+          output.first->m_clear = true;
       }
     }
     {
-      Dout(dc::vulkan(!render_pass->m_barred_input_attachments.empty()), "Internal attachments:");
+      Dout(dc::renderpass(!render_pass->m_barred_input_attachments.empty()), "Internal attachments:");
       NAMESPACE_DEBUG::Indent indent2(2);
       for (RenderPassAttachment const& barred_input_attachment : render_pass->m_barred_input_attachments)
       {
-        Dout(dc::vulkan, render_pass << '/' << barred_input_attachment.m_index << " - \"" << barred_input_attachment << "\" - " <<
+        Dout(dc::renderpass, render_pass << '/' << barred_input_attachment.m_index << " - \"" << barred_input_attachment << "\" - " <<
             *barred_input_attachment.m_attachment->m_kind_and_id << " - " << (barred_input_attachment.m_clear ? "LOAD_OP_CLEAR" : ""));
+
+        // This happens for the case:
+        // render_pass[-A]->write_to(B)
+        //
+        // Making A an "internal" attachment: neither loaded nor stored (note that A is also not the output of the previous render pass,
+        // otherwise it would just be unused (not an attachment of this render pass at all)).
+
         // An attachment may only be in barred at this point if it is neither in input nor in output.
         ASSERT(render_pass->m_added_input_attachments.find(barred_input_attachment) == render_pass->m_added_input_attachments.end() &&
             render_pass->m_added_output_attachments.find(barred_input_attachment) == render_pass->m_added_output_attachments.end());
+
+        auto internal = render_pass_attachments.insert(barred_input_attachment);
+        if (barred_input_attachment.m_clear)
+          internal.first->m_clear = true;
       }
     }
+
+    Dout(dc::renderpass, "Render pass \"" << render_pass << "\" has " << render_pass_attachments.size() << " attachments.");
+
+    // Generate the attachment descriptions.
+    std::vector<vk::AttachmentDescription> attachment_descriptions;
+
+    // Run over all attachments of this render pass.
+    for (auto& render_pass_attachment : render_pass_attachments)
+    {
+      Attachment const& attachment{*render_pass_attachment.m_attachment};
+      vk::Format const format = attachment.image_view_kind()->format;                   // The ImageViewKind format.
+      vk::ImageAspectFlags const aspect_flags = attachment.image_view_kind()->subresource_range.aspectMask;
+      bool const is_color{aspect_flags == vk::ImageAspectFlagBits::eColor};
+      bool const is_depth{aspect_flags & vk::ImageAspectFlagBits::eDepth};
+      bool const is_stencil{aspect_flags & vk::ImageAspectFlagBits::eStencil};
+
+      vk::AttachmentDescription description{
+        .flags = {},    // Only other option is vk::AttachmentDescriptionFlagBits::eMayAlias
+                        // Spec: VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT specifies that the attachment aliases the same device memory as other attachments.
+                        // If flags includes VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT, then the attachment is treated as if it shares physical memory with another attachment
+                        // in the same render pass. This information limits the ability of the implementation to reorder certain operations (like layout transitions and the loadOp)
+                        // such that it is not improperly reordered against other uses of the same physical memory via a different attachment.
+                        // If a render pass uses multiple attachments that alias the same device memory, those attachments must each include the VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT
+                        // bit in their attachment description flags. Attachments aliasing the same memory occurs in multiple ways:
+                        // * Multiple attachments being assigned the same image view as part of framebuffer creation.
+                        // * Attachments using distinct image views that correspond to the same image subresource of an image.
+                        // * Attachments using views of distinct image subresources which are bound to overlapping memory ranges.
+                        // If a set of attachments alias each other, then all except the first to be used in the render pass must use an initialLayout of VK_IMAGE_LAYOUT_UNDEFINED,
+                        // since the earlier uses of the other aliases make their contents undefined. Once an alias has been used and a different alias has been used after it,
+                        // the first alias must not be used in any later subpasses. However, an application can assign the same image view to multiple aliasing attachment indices,
+                        // which allows that image view to be used multiple times even if other aliases are used in between.
+        .format = format,
+        .samples = attachment.image_kind()->samples,       // The ImageKind samples.
+        .loadOp = render_pass->get_load_op(attachment),
+        .storeOp = render_pass->get_store_op(attachment),
+        .initialLayout = render_pass->get_initial_layout(attachment),
+        .finalLayout = render_pass->get_final_layout(attachment)
+      };
+      // If the attachment uses a color format, then loadOp and storeOp are used, and stencilLoadOp and stencilStoreOp are ignored.
+      // If the format has depth and/or stencil components, loadOp and storeOp apply only to the depth data, while stencilLoadOp and stencilStoreOp define how the stencil data is handled.
+      if (is_stencil)
+      {
+        //FIXME: Not implemented yet.
+        ASSERT(false);
+        //description.setStencilLoadOp();
+        //description.setStencilStoreOp();
+      }
+
+      attachment_descriptions.push_back(description);
+    }
+
+    for (auto& desc : attachment_descriptions)
+    {
+      Dout(dc::renderpass, desc);
+    }
   }
+}
+
+vk::AttachmentLoadOp RenderPass::get_load_op(Attachment const& a) const
+{
+  auto input = RenderPass::find_by_ID(m_added_input_attachments, a);
+  bool has_input = input != m_added_input_attachments.end();
+  auto output = RenderPass::find_by_ID(m_added_output_attachments, a);
+  bool has_output = output != m_added_output_attachments.end();
+  bool need_clear = (has_input && input->m_clear) || (has_output && output->m_clear);
+
+  if (need_clear)
+    return vk::AttachmentLoadOp::eClear;
+
+  if (has_input)
+    return vk::AttachmentLoadOp::eLoad;
+
+  return vk::AttachmentLoadOp::eDontCare;
+}
+
+vk::AttachmentStoreOp RenderPass::get_store_op(Attachment const& a) const
+{
+  auto output = RenderPass::find_by_ID(m_added_output_attachments, a);
+  bool has_output = output != m_added_output_attachments.end();
+
+  if (has_output)
+    return vk::AttachmentStoreOp::eStore;
+
+  return vk::AttachmentStoreOp::eDontCare;
+}
+
+vk::ImageLayout RenderPass::get_initial_layout(Attachment const& a) const
+{
+  //FIXME: implement
+  return vk::ImageLayout::eUndefined;
+}
+
+vk::ImageLayout RenderPass::get_final_layout(Attachment const& a) const
+{
+  //FIXME: implement
+  return vk::ImageLayout::eUndefined;
 }
 
 #ifdef CWDEBUG
@@ -286,9 +405,16 @@ std::ostream& operator<<(std::ostream& os, Attachment::OpAdd const& a) { return 
 #define DECLARATION \
     [[maybe_unused]] bool illegal = false; \
     [[maybe_unused]] vulkan::RenderPass lighting("lighting"); \
+    [[maybe_unused]] vulkan::RenderPass shadow("shadow"); \
     vulkan::RenderPass render_pass("render_pass"); \
     vulkan::RenderGraph render_graph; \
-    Dout(dc::renderpass, "====================== Next Test ===========================");
+    Dout(dc::renderpass, "====================== Next Test ===========================")
+
+#define TEST(test) \
+    DECLARATION; \
+    Dout(dc::renderpass, "Running test: " << #test); \
+    render_graph = test; \
+    render_graph.create();
 
 // From the spec.
 //
@@ -353,41 +479,35 @@ void RenderGraph::testsuite()
   //
 
   {
-    DECLARATION
-    render_graph = render_pass->write_to(output);               // attachment not used.
+    TEST(render_pass->write_to(output));                        // attachment not used.
     render_graph.has_with(none, specular);
   }
   {
-    DECLARATION
     // Special notation for { DONT_CARE, DONT_CARE }.
-    render_graph = render_pass[-specular]->write_to(output);    // { DONT_CARE, DONT_CARE }
+    TEST(render_pass[-specular]->write_to(output));             // { DONT_CARE, DONT_CARE }
     render_graph.has_with(internal, specular, DONT_CARE, DONT_CARE);
   }
   // Equivalent to:
   {
-    DECLARATION
-    render_graph = lighting->write_to(output) >> render_pass[-specular]->write_to(output);    // { DONT_CARE, DONT_CARE }
+    TEST(lighting->write_to(output) >> render_pass[-specular]->write_to(output));       // { DONT_CARE, DONT_CARE }
     render_graph.has_with(internal, specular, DONT_CARE, DONT_CARE);
   }
   {
-    DECLARATION
-    render_graph = render_pass[+specular]->write_to(output);    // { LOAD, DONT_CARE }
+    TEST(render_pass[+specular]->write_to(output));             // { LOAD, DONT_CARE }
     render_graph.has_with(in, specular, LOAD, DONT_CARE);
   }
   {
-    DECLARATION
-    render_graph = render_pass[~specular]->write_to(output);    // { CLEAR, DONT_CARE }
+    TEST(render_pass[~specular]->write_to(output));             // { CLEAR, DONT_CARE }
     render_graph.has_with(internal, specular, CLEAR, DONT_CARE);
   }
   {
-    DECLARATION
-    render_graph = render_pass->write_to(specular);             // { DONT_CARE, STORE }
+    TEST(render_pass->write_to(specular));                      // { DONT_CARE, STORE }
     render_graph.has_with(out, specular, DONT_CARE, STORE);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = render_pass[-specular]->write_to(specular);  // AIAlert: Output attachment "specular" is barred. illegal; Can't bar an attachment that wasn't just written.
+      TEST(render_pass[-specular]->write_to(specular));         // AIAlert: Output attachment "specular" is barred. illegal; Can't bar an attachment that wasn't just written.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -395,14 +515,13 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
-    render_graph = render_pass[+specular]->write_to(specular);  // { LOAD, STORE }
+    TEST(render_pass[+specular]->write_to(specular));           // { LOAD, STORE }
     render_graph.has_with(in|out, specular, LOAD, STORE);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = render_pass[~specular]->write_to(specular);  // { CLEAR, STORE } or shorter:
+      TEST(render_pass[~specular]->write_to(specular));         // { CLEAR, STORE } or shorter:
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -410,14 +529,13 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
-    render_graph = render_pass->write_to(~specular);            // { CLEAR, STORE }
+    TEST(render_pass->write_to(~specular));                     // { CLEAR, STORE }
     render_graph.has_with(out, specular, CLEAR, STORE);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = render_pass[-specular]->write_to(~specular); // AIAlert: Output attachment "specular" is barred. { CLEAR, STORE }  warning?
+      TEST(render_pass[-specular]->write_to(~specular));        // AIAlert: Output attachment "specular" is barred. { CLEAR, STORE }  warning?
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -425,9 +543,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = render_pass[+specular]->write_to(~specular); // illegal (can't have + and ~ at the same time).
+      TEST(render_pass[+specular]->write_to(~specular));        // illegal (can't have + and ~ at the same time).
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -435,9 +553,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = render_pass[~specular]->write_to(~specular); // { CLEAR, STORE }  warning?
+      TEST(render_pass[~specular]->write_to(~specular));        // { CLEAR, STORE }  warning?
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -445,19 +563,17 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
-    render_graph = lighting->write_to(~specular) >> render_pass->write_to(output);                 // { LOAD, DONT_CARE }
+    TEST(lighting->write_to(~specular) >> render_pass->write_to(output));               // { LOAD, DONT_CARE }
     render_graph.has_with(in, specular, LOAD, DONT_CARE);
   }
   {
-    DECLARATION
-    render_graph = lighting->write_to(~specular) >> render_pass[-specular]->write_to(output);      // attachment not used.
+    TEST(lighting->write_to(~specular) >> render_pass[-specular]->write_to(output));    // attachment not used.
     render_graph.has_with(none, specular);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[+specular]->write_to(output);    // { LOAD, DONT_CARE } - but over specified. Lets not accept this.
+      TEST(lighting->write_to(~specular) >> render_pass[+specular]->write_to(output));  // { LOAD, DONT_CARE } - but over specified. Lets not accept this.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -465,9 +581,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[~specular]->write_to(output);    // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[~specular]->write_to(output));  // illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -475,14 +591,13 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
-    render_graph = lighting->write_to(~specular) >> render_pass->write_to(specular);               // { LOAD, STORE }
+    TEST(lighting->write_to(~specular) >> render_pass->write_to(specular));             // { LOAD, STORE }
     render_graph.has_with(in|out, specular, LOAD, STORE);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[-specular]->write_to(specular);  // illegal; makes no sense to write to an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[-specular]->write_to(specular));// illegal; makes no sense to write to an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -490,9 +605,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[+specular]->write_to(specular);  // { LOAD, STORE } - but over specified. Lets not accept this.
+      TEST(lighting->write_to(~specular) >> render_pass[+specular]->write_to(specular));// { LOAD, STORE } - but over specified. Lets not accept this.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -500,9 +615,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[~specular]->write_to(specular);  // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[~specular]->write_to(specular));// illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -510,9 +625,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass->write_to(~specular);            // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass->write_to(~specular));          // illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -520,9 +635,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[-specular]->write_to(~specular); // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[-specular]->write_to(~specular));// illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -530,9 +645,9 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[+specular]->write_to(~specular); // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[+specular]->write_to(~specular));// illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
@@ -540,14 +655,18 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    DECLARATION
+    bool illegal = false;
     try {
-      render_graph = lighting->write_to(~specular) >> render_pass[~specular]->write_to(~specular); // illegal; makes no sense to clear an attachment that was just written to.
+      TEST(lighting->write_to(~specular) >> render_pass[~specular]->write_to(~specular));// illegal; makes no sense to clear an attachment that was just written to.
     } catch (AIAlert::Error const& error) {
       Dout(dc::renderpass, "Illegal: " << error);
       illegal = true;
     }
     ASSERT(illegal);
+  }
+  {
+    TEST(lighting->write_to(~specular) >> render_pass->write_to(output) >> shadow[+specular]->write_to(output));
+    render_graph.has_with(in, specular, LOAD, STORE);
   }
 
   DoutFatal(dc::fatal, "RenderGraph::testuite successful!");
@@ -572,17 +691,44 @@ void RenderGraph::has_with(char, Attachment const& a) const
   ASSERT(render_pass->m_barred_input_attachments.empty());
 }
 
-void RenderGraph::has_with(int in_out, Attachment const& a, int load_op, int store_op) const
+void RenderGraph::has_with(int in_out, Attachment const& a, int required_load_op, int required_store_op) const
 {
+  // Same as RenderGraph::testsuite.
+  constexpr int in = 1;
+  constexpr int out = 2;
+  constexpr int internal = 4;
+
+  constexpr int DONT_CARE = 0;
+  constexpr int LOAD = 1;
+  constexpr int CLEAR = 2;
+  constexpr int STORE = 3;
+
+  // The render pass under test is always the last render pass.
   RenderPass const* render_pass = *m_graph.rbegin();
+
+  // Use `none` for the zero value.
+  ASSERT(in_out);
+  // Only use `internal` on its own.
+  ASSERT(in_out == internal || !static_cast<bool>(in_out & internal));
+
+  auto input = RenderPass::find_by_ID(render_pass->m_added_input_attachments, a);
+  auto output = RenderPass::find_by_ID(render_pass->m_added_output_attachments, a);
+  bool has_input = input != render_pass->m_added_input_attachments.end() && !input->m_clear;    // An 'input' that has LOAD_OP_CLEAR isn't counted as input here.
+  bool has_output = output != render_pass->m_added_output_attachments.end();
+  ASSERT(has_input == static_cast<bool>(in_out & in));
+  ASSERT(has_output == static_cast<bool>(in_out & out));
+  ASSERT(has_input || has_output || static_cast<bool>(in_out & internal));
+
+  auto load_op = render_pass->get_load_op(a);
+  auto store_op = render_pass->get_store_op(a);
+
+  vk::AttachmentLoadOp rq_load_op = required_load_op == LOAD ? vk::AttachmentLoadOp::eLoad : required_load_op == CLEAR ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eDontCare;
+  vk::AttachmentStoreOp rq_store_op = required_store_op == STORE ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare;
+
+  ASSERT(load_op == rq_load_op);
+  ASSERT(store_op == rq_store_op);
 }
 
 #endif // CWDEBUG
 
 } //namespace vulkan
-
-#if !defined(DOXYGEN)
-NAMESPACE_DEBUG_CHANNELS_START
-channel_ct renderpass("RENDERPASS");
-NAMESPACE_DEBUG_CHANNELS_END
-#endif

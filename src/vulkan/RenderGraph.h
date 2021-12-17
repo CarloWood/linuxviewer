@@ -53,6 +53,9 @@ struct Attachment
   OpClear operator~() const { return this; }
   OpRemove operator-() const { return this; }
   OpAdd operator+() const { return this; }
+
+  ImageKind const& image_kind() const { return m_kind_and_id->image_kind(); }
+  ImageViewKind const& image_view_kind() const { return *m_kind_and_id; }
 };
 
 // The attachment index of an Attachment in the context of a given RenderPass.
@@ -61,6 +64,7 @@ struct RenderPassAttachment
   AttachmentIndex m_index;                              // The attachment index in the render pass pAttachment array that this object belongs to.
   Attachment const* m_attachment;                       // The underlaying attachment.
   mutable bool m_clear = false;                         // Set to true if the attachment is prefixed with a tilde (~).
+  mutable bool m_preserved = false;                     // Set if a later render pass loads this attachment, without that an intermediate render pass clears it or writes to it.
 
   RenderPassAttachment(AttachmentIndex index, Attachment const* attachment) : m_index(index), m_attachment(attachment) { }
 
@@ -87,7 +91,8 @@ struct RenderPassAttachment
 struct RenderPassStream
 {
   RenderPass* m_render_pass;                            // The under laying render pass.
-  RenderPassStream* m_prev_render_pass = nullptr;       // A singly linked list of all render passes.
+  RenderPassStream* m_prev_render_pass = nullptr;       // A double linked list of all render passes.
+  RenderPassStream* m_next_render_pass = nullptr;
 
   RenderPassStream(RenderPass* render_pass) : m_render_pass(render_pass) { }
 
@@ -122,6 +127,17 @@ struct RenderPass
   RenderPass& operator[](Attachment::OpRemove a);
   RenderPass& operator[](Attachment::OpAdd const& a);
   RenderPass& operator[](Attachment::OpClear const& a);
+
+  template<typename CONTAINER>
+  static /*typename CONTAINER::iterator*/ auto find_by_ID(CONTAINER& container, Attachment const& a);
+
+  template<typename CONTAINER>
+  static /*typename CONTAINER::iterator*/ auto find_by_ID(CONTAINER& container, RenderPassAttachment const& a);
+
+  vk::AttachmentLoadOp get_load_op(Attachment const& a) const;
+  vk::AttachmentStoreOp get_store_op(Attachment const& a) const;
+  vk::ImageLayout get_initial_layout(Attachment const& a) const;
+  vk::ImageLayout get_final_layout(Attachment const& a) const;
 };
 
 template<typename... Args>
@@ -135,14 +151,16 @@ RenderPassStream& RenderPassStream::write_to(Args const&... args)
 struct RenderGraph
 {
   std::list<RenderPass const*> m_graph;
+  RenderPassStream const* m_render_pass_list = nullptr;         // The first render pass in this list.
 
   void operator=(RenderPassStream const& render_passes);
+  void create();
 
 #ifdef CWDEBUG
   static void testsuite();
 
   void has_with(char, Attachment const& a) const;
-  void has_with(int in_out, Attachment const& a, int load_op, int store_op) const;
+  void has_with(int in_out, Attachment const& a, int required_load_op, int required_store_op) const;
 #endif
 };
 
@@ -155,5 +173,33 @@ inline std::ostream& operator<<(std::ostream& os, Attachment const* ap) { return
 inline std::ostream& operator<<(std::ostream& os, RenderPassAttachment const& a) { return os << *a.m_attachment; }
 inline std::ostream& operator<<(std::ostream& os, RenderPass const* render_pass) { return os << render_pass->m_name; }
 #endif // CW_DEBUG
+
+//static
+template<typename CONTAINER>
+/*typename CONTAINER::iterator*/ auto RenderPass::find_by_ID(CONTAINER& container, Attachment const& a)
+{
+  struct CompareEqualID
+  {
+    Attachment const& m_attachment;
+    CompareEqualID(Attachment const& attachment) : m_attachment(attachment) { }
+    bool operator()(RenderPassAttachment const& attachment) { return m_attachment.m_kind_and_id.get() == attachment.m_attachment->m_kind_and_id.get(); }
+  };
+
+  return std::find_if(container.begin(), container.end(), CompareEqualID{a});
+}
+
+//static
+template<typename CONTAINER>
+/*typename CONTAINER::iterator*/ auto RenderPass::find_by_ID(CONTAINER& container, RenderPassAttachment const& a)
+{
+  struct CompareEqualID
+  {
+    RenderPassAttachment const& m_attachment;
+    CompareEqualID(RenderPassAttachment const& attachment) : m_attachment(attachment) { }
+    bool operator()(RenderPassAttachment const& attachment) { return m_attachment.m_attachment->m_kind_and_id.get() == attachment.m_attachment->m_kind_and_id.get(); }
+  };
+
+  return std::find_if(container.begin(), container.end(), CompareEqualID{a});
+}
 
 } // namespace vulkan
