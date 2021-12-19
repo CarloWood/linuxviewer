@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "RenderPass.h"
 #include "utils/AIAlert.h"
+#ifdef CWDEBUG
+#include "debug_ostream_operators.h"
+#endif
 
 namespace vulkan::rendergraph {
 
@@ -93,17 +96,41 @@ AttachmentNode& RenderPass::get_node(Attachment const* attachment)
   return m_known_attachments.emplace_back(this, attachment, m_next_index++);
 }
 
-bool RenderPass::is_known(Attachment const& attachment) const
+bool RenderPass::is_known(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.id() == attachment.id())
+    if (node.id() == attachment->id())
       return true;
+  return false;
+}
+
+bool RenderPass::is_load(Attachment const* attachment) const
+{
+  for (AttachmentNode const& node : m_known_attachments)
+    if (node.id() == attachment->id())
+      return node.is_load();
+  return false;
+}
+
+bool RenderPass::is_clear(Attachment const* attachment) const
+{
+  for (AttachmentNode const& node : m_known_attachments)
+    if (node.id() == attachment->id())
+      return node.is_clear();
+  return false;
+}
+
+bool RenderPass::is_store(Attachment const* attachment) const
+{
+  for (AttachmentNode const& node : m_known_attachments)
+    if (node.id() == attachment->id())
+      return node.is_store();
   return false;
 }
 
 void RenderPass::preceding_render_pass_stores(Attachment const* attachment)
 {
-  DoutEntering(dc::renderpass, "RenderPass::preceding_render_pass_stores(" << attachment << ")");
+  DoutEntering(dc::renderpass, "RenderPass::preceding_render_pass_stores(" << attachment << ") [" << this << "]");
 
   // Search if this node should be ignored.
   auto iter = find_by_ID(m_remove_or_dontcare_attachments, attachment);
@@ -135,15 +162,116 @@ vk::AttachmentStoreOp RenderPass::get_store_op(Attachment const& attachment) con
   auto node = find_by_ID(m_known_attachments, &attachment);
   if (node == m_known_attachments.end())
     return vk::AttachmentStoreOp::eNoneEXT;
-  if (node->is_store())
+  if (node->is_store() || node->is_preserve())
     return vk::AttachmentStoreOp::eStore;
   return vk::AttachmentStoreOp::eDontCare;
+}
+
+void RenderPass::for_all_render_passes_until(
+    int traversal_id, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> const& lambda, SearchType search_type, std::vector<RenderPass*>& path, bool skip_lambda)
+{
+  DoutEntering(dc::renderpass, "RenderPass::for_all_render_passes_until(" << traversal_id <<
+      ", lambda, " << search_type << ", " << path << ", skip_lambda:" << std::boolalpha << skip_lambda << ") [" << this << "]");
+
+  // Did we reach the end?
+  if (m_traversal_id == traversal_id)
+    return;
+  m_traversal_id = traversal_id;
+
+  if (!skip_lambda)
+  {
+    // Call the callback and also stop traversing the graph if it returns true.
+    if (lambda(this, path))
+      return;
+
+    path.push_back(this);
+  }
+
+  switch (search_type)
+  {
+    case Subsequent:
+      // Just folling the '>>' upstream.
+      if (RenderPassStream* subsequent_render_pass = m_stream.subsequent_render_pass())
+        subsequent_render_pass->owner()->for_all_render_passes_until(traversal_id, lambda, Subsequent, path);
+      break;
+    case Outgoing:
+      // Traverse the graph upstream, depth first.
+      for (RenderPass* node : m_outgoing_vertices)
+        node->for_all_render_passes_until(traversal_id, lambda, Outgoing, path);
+      break;
+    case Incoming:
+      // Traverse the graph downstream, depth first.
+      for (RenderPass* node : m_incoming_vertices)
+        node->for_all_render_passes_until(traversal_id, lambda, Incoming, path);
+      break;
+  }
+
+  if (!skip_lambda)
+    path.pop_back();
+}
+
+void RenderPass::add_attachments_to(std::set<Attachment const*, Attachment::CompareIDLessThan>& attachments)
+{
+  for (AttachmentNode const& node : m_known_attachments)
+    attachments.insert(node.attachment());
+}
+
+void RenderPass::stores_called(RenderPass* render_pass)
+{
+  auto res = m_stores_called.insert(render_pass);
+  if (!res.second)
+    THROW_ALERT("Render pass \"[RENDERPASS]\" occurs more than once in the graph", AIArgs("[RENDERPASS]", render_pass));
 }
 
 #ifdef CWDEBUG
 void RenderPass::print_on(std::ostream& os) const
 {
   os << m_name;
+}
+
+int get_id(RenderPass const* render_pass, std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id)
+{
+  auto res = ids.emplace(render_pass, next_id);
+  if (res.second)
+  {
+    names.push_back(render_pass->name());
+    ++next_id;
+  }
+  return res.first->second;
+}
+
+void RenderPass::print_vertices(std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id,
+    std::vector<std::pair<int, int>>& forwards_edges, std::vector<std::pair<int, int>>& backwards_edges) const
+{
+  int id = get_id(this, ids, names, next_id);
+  Dout(dc::renderpass|continued_cf, this << ": ");
+  if (has_incoming_vertices())
+  {
+    Dout(dc::continued, "incoming: ");
+    char const* prefix = "";
+    for (RenderPass* from : m_incoming_vertices)
+    {
+      int from_id = get_id(from, ids, names, next_id);
+      backwards_edges.emplace_back(id, from_id);
+      Dout(dc::continued, prefix << from << '(' << from_id << ')');
+      prefix = ", ";
+    }
+    if (has_outgoing_vertices())
+      Dout(dc::continued, ", ");
+  }
+  if (has_outgoing_vertices())
+  {
+    Dout(dc::continued, "outgoing: ");
+    char const* prefix = "";
+    for (RenderPass* to : m_outgoing_vertices)
+    {
+      int to_id = get_id(to, ids, names, next_id);
+      forwards_edges.emplace_back(id, to_id);
+      Dout(dc::continued, prefix << to << '(' << to_id << ')');
+      prefix = ", ";
+    }
+  }
+  Dout(dc::finish, ".");
 }
 #endif
 

@@ -273,3 +273,43 @@ class RenderGraph
 
   ...
 };
+
+TEST CASE
+---------
+
+  PASS1-->PASS2---->\
+                     }PASS9------------->\
+  PASS3-->PASS4---->/                     \
+      \\---------------------------------->}PASS12
+       `--------------------->\           /
+                               }PASS10-->/
+  PASS5-->PASS6------>PASS7-->/
+               \
+                `-->\
+                     }PASS11
+          PASS8---->/
+
+graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9;
+graph += pass3->stores(a3)                                                                                         >> pass12[+a1][+a9][+a10]->stores(a12);
+graph += pass3             >> pass4[+a3]->stores(a4) >> pass9->stores(a9)                                          >> pass12;
+graph += pass3                                                                    >> pass10[+a3][+a5]->stores(a10) >> pass12;
+graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
+graph +=                      pass8->stores(a8)      >> pass11[+a6]->stores(a11);
+graph +=                      pass6                  >> pass11;
+
+Note that the vertex from PASS3 to PASS12 (from the original graph) is irrelevant
+in this case because pass3 only writes to a3, which is read by pass4 and pass10:
+those must preserve a3, as does pass9 (although it doesn't know about a3
+so it does that automatically).
+
+The above can also be written much cleaner as:
+
+graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9->stores(a9)                                          >> pass12[+a1][+a10]->stores(a12);
+graph += pass3->stores(a3) >> pass4->stores(a4)      >> pass9;
+graph += pass3                                                                    >> pass10[+a3][+a5]->stores(a10) >> pass12;
+graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
+graph +=                      pass6                  >> pass11[+a6]->stores(a11);
+graph +=                      pass8->stores(a8)      >> pass11;
+
+But as a test, we're trying the more messy first notation.
+

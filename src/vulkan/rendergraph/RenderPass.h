@@ -7,7 +7,13 @@
 #include "AttachmentNode.h"
 #include "Attachment.h"
 #include <string>
+#include <functional>
+#include <set>
 #include "debug.h"
+#ifdef CWDEBUG
+#include <map>
+#include <vector>
+#endif
 
 #if !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -29,6 +35,11 @@ class RenderPass
   AttachmentIndex m_next_index{0};                                      // The next attachment index to use for a new attachment node.
   std::vector<Attachment const*> m_remove_or_dontcare_attachments;      // Temporary storage for attachments listed with `[-attachment]`.
   RenderPassStream m_stream;                                            // Helper object that operator-> points to.
+  std::set<RenderPass*> m_stores_called;
+  // Graph generation.
+  int m_traversal_id = {};                                              // Unique ID to identify which RenderPass nodes have already visited.
+  std::set<RenderPass*> m_incoming_vertices;
+  std::set<RenderPass*> m_outgoing_vertices;
 
   friend class RenderPassStream;                                        // The m_stream object is allowed to access all members of its owner.
 
@@ -49,6 +60,16 @@ class RenderPass
   // Accessor of m_stream.
   RenderPassStream* operator->() { return &m_stream; }
 
+  // Graph generation.
+  void add_incoming_vertex(RenderPass* node) { m_incoming_vertices.insert(node); }
+  void add_outgoing_vertex(RenderPass* node) { m_outgoing_vertices.insert(node); }
+  utils::Vector<AttachmentNode> const& known_attachments() const { return m_known_attachments; }
+
+  // Allow using raw RenderPass objects to add render graph vertices between render passes.
+  friend RenderPassStream& operator>>(RenderPassStream& stream, RenderPass& render_pass) { stream.link(render_pass.m_stream); return render_pass.m_stream; }
+  friend RenderPassStream& operator>>(RenderPass& render_pass, RenderPassStream& stream) { render_pass.m_stream.link(stream); return stream; }
+  friend RenderPassStream& operator>>(RenderPass& render_pass1, RenderPass& render_pass2) { render_pass1.m_stream.link(render_pass2.m_stream); return render_pass2.m_stream; }
+
   // Results.
   vk::AttachmentLoadOp get_load_op(Attachment const& attachment) const;
   vk::AttachmentStoreOp get_store_op(Attachment const& attachment) const;
@@ -61,7 +82,14 @@ class RenderPass
   // not connect the node in the attachment subgraph.
   AttachmentNode& get_node(Attachment const* attachment);
 
-  bool is_known(Attachment const& attachment) const;
+  void stores_called(RenderPass* render_pass);
+
+  bool is_known(Attachment const* attachment) const;
+  bool is_load(Attachment const* attachment) const;
+  bool is_clear(Attachment const* attachment) const;
+  bool is_store(Attachment const* attachment) const;
+  bool has_incoming_vertices() const { return !m_incoming_vertices.empty(); }
+  bool has_outgoing_vertices() const { return !m_outgoing_vertices.empty(); }
 
   // Search for Attachment by ID in a container with AttachmentNode's.
   template<typename AttachmentNodes>
@@ -71,6 +99,11 @@ class RenderPass
   template<typename AttachmentNodes>
   static auto find_by_ID(AttachmentNodes& container, AttachmentNode const& node);
 
+  enum SearchType { Subsequent, Outgoing, Incoming };
+  void for_all_render_passes_until(int traversal_id, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> const& lambda,
+      SearchType search_type, std::vector<RenderPass*>& path, bool skip_lambda = false);
+  void add_attachments_to(std::set<Attachment const*, Attachment::CompareIDLessThan>& attachments);
+
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
 
@@ -79,6 +112,13 @@ class RenderPass
   void print_on(std::ostream& os) const;
   // Used by testsuite.
   bool remove_or_dontcare_attachments_empty() const { return m_remove_or_dontcare_attachments.empty(); }
+
+  std::string const& name() const { return m_name; }
+  void print_vertices(std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id,
+      std::vector<std::pair<int, int>>& forwards_edges, std::vector<std::pair<int, int>>& backwards_edges) const;
+
+  static std::string to_string(SearchType search_type);
+  friend std::ostream& operator<<(std::ostream& os, RenderPass::SearchType search_type) { return os << to_string(search_type); }
 #endif
 };
 

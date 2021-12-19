@@ -4,27 +4,238 @@
 #include "Attachment.h"
 #include "debug.h"
 #ifdef CWDEBUG
+#include "debug_ostream_operators.h"
 #include "utils/AIAlert.h"
 #include "utils/debug_ostream_operators.h"
+#include <boost/graph/graphviz.hpp>
 #endif
 
 namespace vulkan::rendergraph {
 
-void RenderGraph::create()
+void RenderGraph::for_each_render_pass(Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const
 {
-  // Fix AttachmentNode::m_preceding_nodes and AttachmentNode::m_subsequent_nodes
-
+  DoutEntering(dc::renderpass, "RenderGraph::for_each_render_pass(" << direction << ", lambda)");
   // As every render pass is reachable from one or more of the sources,
-  // we can run over all sources, and from there follow the
+  // we can run over all sources, and from there follow the links to subsequent render passes.
+  ++m_traversal_id;
+  RenderPass::SearchType search_type = direction == search_forwards ? m_have_incoming_outgoing ? RenderPass::Outgoing : RenderPass::Subsequent : RenderPass::Incoming;
+  std::vector<RenderPass*> path; // All in between nodes that led to the callback.
+  for (RenderPass* source : m_sources)
+  {
+    source->for_all_render_passes_until(m_traversal_id, lambda, search_type, path);
+    // Paranoia: everything should be popped.
+    ASSERT(path.empty());
+  }
+}
 
+void RenderGraph::for_each_render_pass_from(RenderPass* start, Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const
+{
+  DoutEntering(dc::renderpass, "RenderGraph::for_each_render_pass_from(" << start << ", " << direction << ", lambda)");
+  ++m_traversal_id;
+  RenderPass::SearchType search_type = direction == search_forwards ? m_have_incoming_outgoing ? RenderPass::Outgoing : RenderPass::Subsequent : RenderPass::Incoming;
+  std::vector<RenderPass*> path; // All in between nodes that led to the callback.
+  start->for_all_render_passes_until(m_traversal_id, lambda, search_type, path, true);
+}
+
+#ifdef CWDEBUG
+namespace gv {
+
+using namespace boost;
+
+enum Direction { forwards, backwards };
+
+struct VertexProperties
+{
+  std::string name;
+};
+
+struct EdgeProperties
+{
+  Direction direction;
+};
+
+using Digraph = adjacency_list<vecS, vecS, directedS, VertexProperties, EdgeProperties>;
+
+class EdgeColorWriter
+{
+ private:
+  Digraph& m_graph;
+
+ public:
+  // Constructor - needs reference to graph we are coloring.
+  EdgeColorWriter(Digraph& g) : m_graph(g) { }
+
+  // Functor that does the coloring.
+  template<class Edge>
+  void operator()(std::ostream& out, Edge const& edge) const
+  {
+    // Check if this edge is a forward (false) or backward (true) edge.
+    auto direction_map = get(&EdgeProperties::direction, m_graph);
+    Direction direction = get(direction_map, edge);
+    if (direction == backwards)
+      out << "[color=blue]";
+  }
+};
+
+} // namespace gv
+#endif
+
+void RenderGraph::generate()
+{
+  DoutEntering(dc::renderpass, "RenderGraph::generate()");
+
+  // Only call generate() once.
+  ASSERT(!m_have_incoming_outgoing);
+  // Fix m_sources and m_sinks.
+  std::vector<RenderPass*> sources;
+  std::vector<RenderPass*> sinks;
+  for_each_render_pass(search_forwards,
+      [&](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+      {
+        if (!render_pass->has_incoming_vertices())
+          sources.push_back(render_pass);
+        if (!render_pass->has_outgoing_vertices())
+          sinks.push_back(render_pass);
+        return false;
+      });
+  m_sources.swap(sources);
+  m_sinks.swap(sinks);
+  m_have_incoming_outgoing = true;
+
+  // Make a list of all attachments.
+  std::set<Attachment const*, Attachment::CompareIDLessThan> all_attachments;
+  for_each_render_pass(search_forwards,
+      [&](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+      {
+        render_pass->add_attachments_to(all_attachments);
+        return false;
+      });
+
+#ifdef CWDEBUG
+  Dout(dc::renderpass|continued_cf, "Attachments: ");
+  char const* prefix = "";
+  for (Attachment const* attachment : all_attachments)
+  {
+    Dout(dc::continued, prefix << attachment);
+    prefix = ", ";
+  }
+  Dout(dc::finish, ".");
+#endif
+
+  // Run over each attachment.
+  for (Attachment const* attachment : all_attachments)
+  {
+    // Find all render passes that LOAD this attachment.
+    std::vector<RenderPass*> loads;
+    for_each_render_pass(search_forwards,
+        [&](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+        {
+          if (render_pass->is_load(attachment))
+          {
+            Dout(dc::renderpass, "Render pass \"" << render_pass << "\" loads attachment \"" << attachment << "\".");
+            loads.push_back(render_pass);
+          }
+          return false;
+        });
+    // Run over all the render passes that load this attachment.
+    for (RenderPass* render_pass : loads)
+    {
+      // Search backwards till a render pass that stores to the attachment.
+      // Encountering a clear (that is not storing) is an error.
+      // Encountering more than one render pass that stores to the attachment is an error.
+      // Finding no render pass that stores to the attachment is an error.
+      std::vector<RenderPass*> stores;
+      for_each_render_pass_from(render_pass, search_backwards,
+        [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& path)
+        {
+          Dout(dc::renderpass|continued_cf, "Calling lambda(" << preceding_render_pass << ", " << path << ") = ");
+          if (preceding_render_pass->is_store(attachment))
+          {
+            stores.push_back(preceding_render_pass);
+
+            // Assuming we won't throw; already tell all render passes along the path that know about attachment that they have to preserve it.
+            for (RenderPass* pass : path)
+              if (pass->is_known(attachment))
+                pass->get_node(attachment).set_preserve();
+
+            Dout(dc::finish, "true (stop)");
+            return true;        // Stop searching.
+          }
+          if (preceding_render_pass->is_clear(attachment))
+            THROW_ALERT("The CLEAR of attachment \"[ATTACHMENT]\" by render pass \"[PRECEDING]\" hides any preceding store needed by render pass "
+                "\"[RENDERPASS]\". Did you mean \"[PRECEDING]\" to store \"[ATTACHMENT]\"?",
+                AIArgs("[ATTACHMENT]", attachment)("[PRECEDING]", preceding_render_pass)("[RENDERPASS]", render_pass));
+          Dout(dc::finish, "false (continue)");
+          return false;
+        });
+      if (stores.size() > 1)
+        THROW_ALERT("The load of attachment \"[ATTACHMENT]\" by render pass \"[RENDERPASS]\" is ambiguous: "
+            "both \"[PASS0]\" and \"[PASS1]\" stores are visible.",
+                AIArgs("[ATTACHMENT]", attachment)("[RENDERPASS]", render_pass)("[PASS0]", stores[0])("[PASS1]", stores[1]));
+      if (stores.empty())
+        THROW_ALERT("The load of attachment \"[ATTACHMENT]\" by render pass \"[RENDERPASS]\" has no visible stores.",
+            AIArgs("[ATTACHMENT]", attachment)("[RENDERPASS]", render_pass));
+      Dout(dc::notice, "The load of " << attachment << " by " << render_pass << " was stored by " << stores[0] << ".");
+    }
+  }
+
+#if 0 //def CWDEBUG
+  // Print out the result.
+  std::map<RenderPass const*, int> ids;
+  std::vector<std::string> names;
+  int next_id = 0;
+  std::vector<std::pair<int, int>> forwards_edges;
+  std::vector<std::pair<int, int>> backwards_edges;
+  for_each_render_pass(search_forwards,
+      [&](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path)){
+        render_pass->print_vertices(ids, names, next_id, forwards_edges, backwards_edges);
+        return false;
+      });
+
+  // Create a boost graph with ids.size() vertices.
+  gv::Digraph g(ids.size());
+
+  // Fill in the names of the vertices.
+  for (int v = 0; v < ids.size(); ++v)
+    g[v].name = names[v];
+
+  // Add the edges plus meta data.
+  ASSERT(forwards_edges.size() == backwards_edges.size());
+  for (int e = 0; e < forwards_edges.size(); ++e)
+  {
+    add_edge(forwards_edges[e].first, forwards_edges[e].second, { gv::forwards }, g);
+    add_edge(backwards_edges[e].first, backwards_edges[e].second, { gv::backwards }, g);
+  }
+
+  std::ofstream file("graph.dot");
+  boost::write_graphviz(file, g, boost::make_label_writer(get(&gv::VertexProperties::name, g)), gv::EdgeColorWriter(g));
+#endif
 }
 
 void RenderGraph::operator=(RenderPassStream& sink)
 {
+  // Only assign to each RenderGraph once.
+  ASSERT(m_sinks.empty() && m_sources.empty());
+  operator+=(sink);
+}
+
+void RenderGraph::operator+=(RenderPassStream& sink)
+{
   RenderPassStream& source = sink.get_source();
   source.do_load_dont_cares();
+  // Add *possible* sources and sinks.
   m_sinks.push_back(sink.owner());
   m_sources.push_back(source.owner());
+  // Update incoming and outgoing vertices based on the operator>>'s.
+  RenderPass* preceding_node = source.owner();
+  for_each_render_pass_from(source.owner(), search_forwards,
+      [&](RenderPass* node, std::vector<RenderPass*>& UNUSED_ARG(path))
+      {
+        node->add_incoming_vertex(preceding_node);
+        preceding_node->add_outgoing_vertex(node);
+        preceding_node = node;
+        return false;
+      });
 }
 
 #ifdef CWDEBUG
@@ -32,7 +243,8 @@ void RenderGraph::operator=(RenderPassStream& sink)
 #define DECLARATION \
     [[maybe_unused]] bool illegal = false; \
     [[maybe_unused]] RenderPass lighting("lighting"); \
-    [[maybe_unused]] RenderPass shadow("shadow"); \
+    [[maybe_unused]] RenderPass pass1("pass1"); \
+    [[maybe_unused]] RenderPass pass2("pass2"); \
     RenderPass render_pass("render_pass"); \
     RenderGraph render_graph; \
     Dout(dc::renderpass, "====================== Next Test ===========================")
@@ -41,7 +253,7 @@ void RenderGraph::operator=(RenderPassStream& sink)
     DECLARATION; \
     Dout(dc::renderpass, "Running test: " << #test); \
     render_graph = test; \
-    render_graph.create();
+    render_graph.generate();
 
 //static
 void RenderGraph::testsuite()
@@ -77,7 +289,7 @@ void RenderGraph::testsuite()
     render_graph.has_with(internal, specular, DONT_CARE, DONT_CARE);
   }
   {
-    TEST(render_pass[+specular]->stores(output));             // { LOAD, DONT_CARE }
+    TEST(pass1->stores(specular) >> pass2->stores(output) >> render_pass[+specular]->stores(output));             // { LOAD, DONT_CARE }
     render_graph.has_with(in, specular, LOAD, DONT_CARE);
   }
   {
@@ -99,7 +311,7 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    TEST(render_pass[+specular]->stores(specular));           // { LOAD, STORE }
+    TEST(pass1->stores(specular) >> pass2->stores(output) >> render_pass[+specular]->stores(specular));           // { LOAD, STORE }
     render_graph.has_with(in|out, specular, LOAD, STORE);
   }
   {
@@ -249,8 +461,45 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    TEST(lighting->stores(~specular) >> render_pass->stores(output) >> shadow[+specular]->stores(output));
-    render_graph.has_with(in, specular, LOAD, STORE);
+    Attachment const a1{context, v1, "a1"};
+    Attachment const a2{context, v1, "a2"};
+    Attachment const a3{context, v1, "a3"};
+    Attachment const a4{context, v1, "a4"};
+    Attachment const a5{context, v1, "a5"};
+    Attachment const a6{context, v1, "a6"};
+    Attachment const a7{context, v1, "a7"};
+    Attachment const a8{context, v1, "a8"};
+    Attachment const a9{context, v1, "a9"};
+    Attachment const a10{context, v1, "a10"};
+    Attachment const a11{context, v1, "a11"};
+    Attachment const a12{context, v1, "a12"};
+    RenderPass pass1("pass1");
+    RenderPass pass2("pass2");
+    RenderPass pass3("pass3");
+    RenderPass pass4("pass4");
+    RenderPass pass5("pass5");
+    RenderPass pass6("pass6");
+    RenderPass pass7("pass7");
+    RenderPass pass8("pass8");
+    RenderPass pass9("pass9");
+    RenderPass pass10("pass10");
+    RenderPass pass11("pass11");
+    RenderPass pass12("pass12");
+    RenderGraph graph;
+
+    graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9;
+    graph += pass3->stores(a3)                                                                                         >> pass12[+a1][+a9][+a10]->stores(a12);
+    graph += pass3             >> pass4[+a3]->stores(a4) >> pass9->stores(a9)                                          >> pass12;
+    graph += pass3                                                                    >> pass10[+a3][+a5]->stores(a10) >> pass12;
+    graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
+    graph +=                      pass8->stores(a8)      >> pass11[+a6]->stores(a11);
+    graph +=                      pass6                  >> pass11;
+    graph.generate();
+
+  }
+  {
+    TEST(lighting->stores(~specular) >> render_pass->stores(output) >> pass1[+specular]->stores(output));
+    render_graph.has_with(in, specular, LOAD, STORE, &render_pass);
   }
 
   DoutFatal(dc::fatal, "RenderGraph::testuite successful!");
@@ -261,16 +510,19 @@ void RenderGraph::has_with(char, Attachment const& attachment) const
   ASSERT(m_sinks.size() == 1);
   RenderPass const* render_pass = m_sinks[0];
   // Attachment not used.
-  ASSERT(!render_pass->is_known(attachment));
+  ASSERT(!render_pass->is_known(&attachment));
   // Nothing should be listen in m_remove_or_dontcare_attachments.
   ASSERT(render_pass->remove_or_dontcare_attachments_empty());
 }
 
-void RenderGraph::has_with(int in_out, Attachment const& attachment, int required_load_op, int required_store_op) const
+void RenderGraph::has_with(int in_out, Attachment const& attachment, int required_load_op, int required_store_op, RenderPass const* render_pass) const
 {
-  ASSERT(m_sinks.size() == 1);
-  // The render pass under test is always the last render pass.
-  RenderPass const* render_pass = m_sinks[0];
+  if (render_pass == nullptr)
+  {
+    ASSERT(m_sinks.size() == 1);
+    // The render pass under test is always the last render pass.
+    render_pass = m_sinks[0];
+  }
 
   // Nothing should be listen in m_remove_or_dontcare_attachments.
   ASSERT(render_pass->remove_or_dontcare_attachments_empty());

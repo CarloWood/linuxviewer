@@ -15,7 +15,6 @@ namespace vulkan::rendergraph {
 
 void LoadStoreOps::set_load()
 {
-  DoutEntering(dc::renderpass, "LoadStoreOps::set_load()");
 #ifdef CWDEBUG
   // Don't mention an attachment twice in a modifier ([]) (aka: render_pass[~A][+A] <-- A twice).
   if ((m_mask & Clear))
@@ -28,7 +27,6 @@ void LoadStoreOps::set_load()
 
 void LoadStoreOps::set_clear()
 {
-  DoutEntering(dc::renderpass, "LoadStoreOps::set_clear()");
 #ifdef CWDEBUG
   // Don't mention an attachment twice in a modifier ([]) (aka: render_pass[+A][~A] <-- A twice).
   // Don't clear an attachment twice (aka: render_pass[~A]->stores(~A) <-- cleared twice).
@@ -43,8 +41,14 @@ void LoadStoreOps::set_clear()
 
 void LoadStoreOps::set_store()
 {
-  DoutEntering(dc::renderpass, "LoadStoreOps::set_store()");
   m_mask |= Store;
+}
+
+void LoadStoreOps::set_preserve()
+{
+  // Paranoia: Preserve should only be set on LD, or we'd get something illegal.
+  ASSERT(m_mask == Load);
+  m_mask |= Preserve;
 }
 
 } // namespace vulkan::rendergraph

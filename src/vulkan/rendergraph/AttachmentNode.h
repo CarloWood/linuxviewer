@@ -4,6 +4,7 @@
 #include "LoadStoreOps.h"
 #include "utils/Vector.h"
 #include "utils/AIAlert.h"
+#include "debug.h"
 
 namespace vulkan::rendergraph {
 
@@ -36,33 +37,17 @@ class AttachmentNode
     m_render_pass(render_pass), m_attachment(attachment), m_index(index) { }
 
   utils::UniqueID<int> id() const { return m_attachment->id(); }
+  Attachment const* attachment() const { return m_attachment; }
 
-  void set_load()
-  {
-    try
-    {
-      m_ops.set_load();
-    }
-    catch (AIAlert::Error const& error)
-    {
-      THROW_ALERT("Attachment \"[ATTACHMENT]\", render pass \"[RENDERPASS]\"", AIArgs("[ATTACHMENT]", m_attachment)("[RENDERPASS]", m_render_pass), error);
-    }
-  }
-  void set_clear()
-  {
-    try
-    {
-      m_ops.set_clear();
-    }
-    catch (AIAlert::Error const& error)
-    {
-      THROW_ALERT("Attachment \"[ATTACHMENT]\", render pass \"[RENDERPASS]\"", AIArgs("[ATTACHMENT]", m_attachment)("[RENDERPASS]", m_render_pass), error);
-    }
-  }
-  void set_store() { m_ops.set_store(); }
+  void set_load();
+  void set_clear();
+  void set_store();
+  void set_preserve();
+
   bool is_load() const { return m_ops.is_load(); }
   bool is_clear() const { return m_ops.is_clear(); }
   bool is_store() const { return m_ops.is_store(); }
+  bool is_preserve() const { return m_ops.is_preserve(); }
 
   // Automatic conversion to just the Attachment.
   operator Attachment const*() const { return m_attachment; }

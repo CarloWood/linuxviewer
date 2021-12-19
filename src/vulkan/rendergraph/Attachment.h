@@ -63,6 +63,14 @@ class Attachment
 
   utils::UniqueID<int> id() const { return m_id; }
 
+  struct CompareIDLessThan
+  {
+    bool operator()(Attachment const* attachment1, Attachment const* attachment2) const
+    {
+      return attachment1->m_id < attachment2->m_id;
+    }
+  };
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
   friend std::ostream& operator<<(std::ostream& os, Attachment const& attachment) { attachment.print_on(os); return os; }
