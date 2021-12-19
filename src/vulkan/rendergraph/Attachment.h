@@ -71,15 +71,13 @@ class Attachment
     }
   };
 
-#ifdef CWDEBUG
   void print_on(std::ostream& os) const;
   friend std::ostream& operator<<(std::ostream& os, Attachment const& attachment) { attachment.print_on(os); return os; }
-#endif
 };
 
-#ifdef CWDEBUG
 // Allow printing an Attachment* as if it is an Attachment.
 inline std::ostream& operator<<(std::ostream& os, Attachment const* attachment) { attachment->print_on(os); return os; }
+#ifdef CWDEBUG
 // These print_on's aren't picked up by ADL.
 inline std::ostream& operator<<(std::ostream& os, Attachment::OpClear const& mod_attachment) { mod_attachment.print_on(os); return os; }
 inline std::ostream& operator<<(std::ostream& os, Attachment::OpLoad const& mod_attachment) { mod_attachment.print_on(os); return os; }

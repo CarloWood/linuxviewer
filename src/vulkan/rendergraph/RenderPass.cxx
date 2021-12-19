@@ -223,12 +223,12 @@ void RenderPass::stores_called(RenderPass* render_pass)
     THROW_ALERT("Render pass \"[RENDERPASS]\" occurs more than once in the graph", AIArgs("[RENDERPASS]", render_pass));
 }
 
-#ifdef CWDEBUG
 void RenderPass::print_on(std::ostream& os) const
 {
   os << m_name;
 }
 
+#ifdef CWDEBUG
 int get_id(RenderPass const* render_pass, std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id)
 {
   auto res = ids.emplace(render_pass, next_id);

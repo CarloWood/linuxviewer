@@ -263,18 +263,11 @@ class Window : public task::SynchronousWindow
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
   }
 
-  // FIXME remove these two
-  vulkan::ImageKind const k1{{}};
-  vulkan::ImageViewKind const v1{k1, {}};
-
   using Attachment = vulkan::rendergraph::Attachment;
 
   // Create attachment objects.
   utils::UniqueIDContext<int>& window_context{m_attachment_id_context};
   Attachment const depth{window_context, s_depth_image_view_kind, "depth"};
-  Attachment const normal_specular{window_context, v1, "normal_specular"};
-  Attachment const diffuse{window_context, v1, "diffuse"};
-  Attachment const specular{window_context, v1, "specular"};
   Attachment const output{window_context, swapchain().image_view_kind(), "output"};
 
   void create_render_passes() override
@@ -284,28 +277,15 @@ class Window : public task::SynchronousWindow
     using vulkan::rendergraph::RenderPass;
     using vulkan::rendergraph::RenderGraph;
 
-    RenderGraph::testsuite();
-
-    // Create Renderpass objects.
-    RenderPass geometry("geometry");
-    RenderPass lighting("lighting");
+    RenderGraph render_graph;
     RenderPass final_pass("final_pass");
 
-    RenderGraph render_graph;
+#ifdef CWDEBUG
+    RenderGraph::testsuite();
+#endif
 
-    // Define the render passes.
-    // Render Pass  |  Output attachments
-    // [add]        |  ~ = clear
-    // [!remove]    |
-    render_graph =
-      geometry          ->stores(normal_specular, ~depth) >>
-      lighting          ->stores(~diffuse, ~specular)     >>
-      final_pass[+depth]->stores(output);
-
-//    render_graph.create();
-    DoutFatal(dc::fatal, "The End");
-
-//    render_graph = render_pass[~depth]->write_to(output);
+    render_graph = final_pass[~depth]->stores(output);
+    render_graph.generate();
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
       {

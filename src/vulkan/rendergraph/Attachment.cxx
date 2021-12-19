@@ -3,12 +3,12 @@
 
 namespace vulkan::rendergraph {
 
-#ifdef CWDEBUG
 void Attachment::print_on(std::ostream& os) const
 {
   os << m_name;
 }
 
+#ifdef CWDEBUG
 void Attachment::OpClear::print_on(std::ostream& os) const
 {
   os << '~' << m_attachment->m_name;

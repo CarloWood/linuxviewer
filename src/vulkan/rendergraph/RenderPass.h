@@ -15,7 +15,7 @@
 #include <vector>
 #endif
 
-#if !defined(DOXYGEN)
+#if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct renderpass;
 NAMESPACE_DEBUG_CHANNELS_END
@@ -107,9 +107,11 @@ class RenderPass
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
 
-#ifdef CWDEBUG
  public:
   void print_on(std::ostream& os) const;
+
+#ifdef CWDEBUG
+ public:
   // Used by testsuite.
   bool remove_or_dontcare_attachments_empty() const { return m_remove_or_dontcare_attachments.empty(); }
 
@@ -151,10 +153,8 @@ auto RenderPass::find_by_ID(AttachmentNodes& container, AttachmentNode const& no
   return std::find_if(container.begin(), container.end(), CompareEqualID{node});
 }
 
-#ifdef CWDEBUG
 // Allow printing a RenderPass* as if it is a RenderPass.
 inline std::ostream& operator<<(std::ostream& os, RenderPass const* render_pass) { render_pass->print_on(os); return os; }
-#endif
 
 } // namespace vulkan::rendergraph
 

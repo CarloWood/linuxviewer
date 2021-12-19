@@ -4,7 +4,9 @@
 #include "PresentationSurface.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/PrintList.h"
+#ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
+#endif
 
 namespace vulkan {
 
@@ -32,6 +34,7 @@ vk::ImageCreateInfo ImageKind::get_create_info(vk::Extent3D const& extent) const
   };
 }
 
+#ifdef CWDEBUG
 void ImageKind::print_members(std::ostream& os) const
 {
   os << "flags:" << m_data.flags <<
@@ -47,6 +50,7 @@ void ImageKind::print_members(std::ostream& os) const
     os << vk_utils::print_list(m_data.m_queue_family_indices, m_data.m_queue_family_index_count);
   os << ", initial_layout:" << m_data.initial_layout;
 }
+#endif
 
 void SwapchainKind::set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_kind)
 {
@@ -93,6 +97,7 @@ vk::SwapchainCreateInfoKHR SwapchainKind::operator()(vk::Extent2D extent, uint32
   };
 }
 
+#ifdef CWDEBUG
 void SwapchainKind::print_members(std::ostream& os) const
 {
   os << "flags:" << m_data.flags <<
@@ -102,6 +107,7 @@ void SwapchainKind::print_members(std::ostream& os) const
       ", present_mode:" << m_data.present_mode <<
       ", clipped:" << std::boolalpha << m_data.clipped;
 }
+#endif
 
 vk::ImageViewCreateInfo ImageViewKind::operator()(vk::Image vh_image) const
 {
@@ -115,6 +121,7 @@ vk::ImageViewCreateInfo ImageViewKind::operator()(vk::Image vh_image) const
   };
 }
 
+#ifdef CWDEBUG
 void ImageViewKind::print_members(std::ostream& os) const
 {
   os << "flags:" << m_data.flags <<
@@ -124,5 +131,6 @@ void ImageViewKind::print_members(std::ostream& os) const
       ", subresource_range:" << m_data.subresource_range <<
       ", m_image_kind:" << m_image_kind;
 }
+#endif
 
 } // namespace vukan

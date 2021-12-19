@@ -556,7 +556,7 @@ void RenderGraph::has_with(int in_out, Attachment const& attachment, int require
 
 } // namespace vulkan::rendergraph
 
-#if !defined(DOXYGEN)
+#if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 channel_ct renderpass("RENDERPASS");
 NAMESPACE_DEBUG_CHANNELS_END

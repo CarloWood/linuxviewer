@@ -10,6 +10,7 @@ void AttachmentNode::print_on(std::ostream& os) const
 {
   os << m_render_pass << '/' << m_attachment << ' ' << m_index;
 }
+#endif
 
 void AttachmentNode::set_load()
 {
@@ -48,6 +49,5 @@ void AttachmentNode::set_preserve()
   DoutEntering(dc::renderpass, "AttachmentNode::set_preserve() [" << m_render_pass << "/" << m_attachment << "]");
   m_ops.set_preserve();
 }
-#endif
 
 } // namespace vulkan::rendergraph
