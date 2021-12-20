@@ -281,7 +281,7 @@ class Window : public task::SynchronousWindow
     RenderPass final_pass("final_pass");
 
 #ifdef CWDEBUG
-    RenderGraph::testsuite();
+//    RenderGraph::testsuite();
 #endif
 
     render_graph = final_pass[~depth]->stores(output);

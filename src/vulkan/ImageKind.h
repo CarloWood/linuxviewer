@@ -61,34 +61,34 @@ class ImageKind
   ImageKind(ImageKindPOD data) : m_data(data) { }
 
   // Convert into an ImageCreateInfo.
-  vk::ImageCreateInfo operator()(uint32_t extent) const
+  vk::ImageCreateInfo operator()(uint32_t extent, vk::ImageLayout initial_layout = vk::ImageLayout::eUndefined) const
   {
     // Only use uint32_t together with an ImageKind that has image_type set to vk::ImageType::e1D.
     ASSERT(m_data.image_type == vk::ImageType::e1D);
-    return get_create_info({ extent, 1, 1 });
+    return get_create_info({ extent, 1, 1 }, initial_layout);
   }
 
   // Convert into an ImageCreateInfo.
-  vk::ImageCreateInfo operator()(vk::Extent2D extent) const
+  vk::ImageCreateInfo operator()(vk::Extent2D extent, vk::ImageLayout initial_layout = vk::ImageLayout::eUndefined) const
   {
     // Only use vk::Extent2D together with an ImageKind that has image_type set to vk::ImageType::e2D.
     ASSERT(m_data.image_type == vk::ImageType::e2D);
-    return get_create_info({ extent.width, extent.height, 1 });
+    return get_create_info({ extent.width, extent.height, 1 }, initial_layout);
   }
 
   // Convert into an ImageCreateInfo.
-  vk::ImageCreateInfo operator()(vk::Extent3D const& extent) const
+  vk::ImageCreateInfo operator()(vk::Extent3D const& extent, vk::ImageLayout initial_layout = vk::ImageLayout::eUndefined) const
   {
     // Only use vk::Extent3D together with an ImageKind that has image_type set to vk::ImageType::e3D.
     ASSERT(m_data.image_type == vk::ImageType::e3D);
-    return get_create_info(extent);
+    return get_create_info(extent, initial_layout);
   }
 
   // Accessor.
   ImageKindPOD const* operator->() const { return &m_data; }
 
  private:
-  vk::ImageCreateInfo get_create_info(vk::Extent3D const& extent) const;
+  vk::ImageCreateInfo get_create_info(vk::Extent3D const& extent, vk::ImageLayout initial_layout) const;
 
  public:
   VULKAN_KIND_DEBUG_MEMBERS

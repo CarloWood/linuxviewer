@@ -10,7 +10,7 @@
 
 namespace vulkan {
 
-vk::ImageCreateInfo ImageKind::get_create_info(vk::Extent3D const& extent) const
+vk::ImageCreateInfo ImageKind::get_create_info(vk::Extent3D const& extent, vk::ImageLayout initial_layout) const
 {
   // Unless sharing mode is eConcurrent, it makes no sense to assign a queue family array (it would be ignored).
   // Either you forgot to set .sharing_mode for this ImageKind or set queue families that won't be used.
@@ -30,7 +30,7 @@ vk::ImageCreateInfo ImageKind::get_create_info(vk::Extent3D const& extent) const
     .sharingMode           = m_data.sharing_mode,
     .queueFamilyIndexCount = m_data.m_queue_family_index_count,
     .pQueueFamilyIndices   = m_data.m_queue_family_indices,
-    .initialLayout         = m_data.initial_layout
+    .initialLayout         = initial_layout
   };
 }
 
