@@ -262,12 +262,9 @@ class Window : public task::SynchronousWindow
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
   }
 
-  using Attachment = vulkan::rendergraph::Attachment;
-  using vulkan::rendergraph::RenderPass;
-
   // Create renderpass / attachment objects.
-  Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
-  RenderPass final_pass("final_pass");
+  vulkan::rendergraph::Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
+  vulkan::rendergraph::RenderPass final_pass{"final_pass"};
 
   void create_render_passes() override
   {
@@ -343,7 +340,7 @@ class Window : public task::SynchronousWindow
     // Create the swapchain render pass.
 //    set_swapchain_render_pass(logical_device().create_render_pass(render_graph COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
-    DoutFatal(dc::fatal, "The End");
+//    DoutFatal(dc::fatal, "The End");
 
     // Post-render pass - from color_attachment to present_src.
     {

@@ -369,6 +369,7 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
   }
 }
 
+#if 0
 utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
 {
   DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
@@ -387,6 +388,7 @@ utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::g
   }
   return attachments_image_infos;
 }
+#endif
 
 void RenderGraph::operator=(RenderPassStream& sink)
 {
