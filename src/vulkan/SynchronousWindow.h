@@ -9,14 +9,15 @@
 #include "BufferParameters.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
+#include "WindowEvents.h"
+#include "Concepts.h"
+#include "ImageKind.h"
+#include "rendergraph/RenderGraph.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
 #include "threadpool/Timer.h"
 #include "statefultask/AIEngine.h"
-#include "WindowEvents.h"
-#include "Concepts.h"
-#include "ImageKind.h"
 #include "utils/Badge.h"
 #include "utils/UniqueID.h"
 #include <vulkan/vulkan.hpp>
@@ -130,13 +131,16 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  public:
   // Accessed by Swapchain.
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
+  utils::UniqueIDContext<int> attachment_id_context;                                    // Provides an unique ID for attachments.
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
   static constexpr size_t s_default_number_of_frame_resources = 2;                      // Default size of m_frame_resources_list.
+
+  vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
+
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
-  utils::UniqueIDContext<int> m_attachment_id_context;                                  // Provides an unique ID for attachments.
 
   // UNSORTED REMAINING OBJECTS.
   vulkan::DescriptorSetParameters m_descriptor_set;

@@ -70,9 +70,14 @@ void SwapchainKind::set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_k
   image_kind.mip_levels = 1;
   image_kind.samples = vk::SampleCountFlagBits::e1;
   image_kind.tiling = vk::ImageTiling::eOptimal;
-  image_kind.initial_layout = vk::ImageLayout::eColorAttachmentOptimal;
+  image_kind.initial_layout = vk::ImageLayout::ePresentSrcKHR;
 
   m_image_kind = image_kind;
+}
+
+void SwapchainKind::set_image_view_kind(utils::Badge<Swapchain>, ImageViewKindPOD image_view_kind)
+{
+  m_image_view_kind.set_POD({}, image_view_kind);
 }
 
 vk::SwapchainCreateInfoKHR SwapchainKind::operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const

@@ -16,6 +16,7 @@ class Attachment
   ImageViewKind const& m_image_view_kind;       // Static description of the image view related to this attachment.
   utils::UniqueID<int> const m_id;              // Unique in the context of a given task::SynchronousWindow.
   std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "output".
+  mutable vk::ImageLayout m_final_layout = {};
 
  public:
   Attachment(utils::UniqueIDContext<int>& context, ImageViewKind const& image_view_kind, std::string const& name) :
@@ -70,6 +71,18 @@ class Attachment
       return attachment1->m_id < attachment2->m_id;
     }
   };
+
+  // Called by rendergraph::RenderGraph::create.
+  void set_final_layout(vk::ImageLayout layout) const
+  {
+    // This function should only be called once per attachment because only one sink per attachment is allowed (this is THE final layout).
+    ASSERT(m_final_layout == vk::ImageLayout::eUndefined);
+    m_final_layout = layout;
+  }
+  vk::ImageLayout get_final_layout() const
+  {
+    return m_final_layout;
+  }
 
   void print_on(std::ostream& os) const;
   friend std::ostream& operator<<(std::ostream& os, Attachment const& attachment) { attachment.print_on(os); return os; }

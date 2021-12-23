@@ -8,7 +8,6 @@
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
-#include "vulkan/rendergraph/RenderGraph.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -264,28 +263,22 @@ class Window : public task::SynchronousWindow
   }
 
   using Attachment = vulkan::rendergraph::Attachment;
+  using vulkan::rendergraph::RenderPass;
 
-  // Create attachment objects.
-  utils::UniqueIDContext<int>& window_context{m_attachment_id_context};
-  Attachment const depth{window_context, s_depth_image_view_kind, "depth"};
-  Attachment const output{window_context, swapchain().image_view_kind(), "output"};
+  // Create renderpass / attachment objects.
+  Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
+  RenderPass final_pass("final_pass");
 
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
 
-    using vulkan::rendergraph::RenderPass;
-    using vulkan::rendergraph::RenderGraph;
-
-    RenderGraph render_graph;
-    RenderPass final_pass("final_pass");
-
 #ifdef CWDEBUG
-//    RenderGraph::testsuite();
+    //RenderGraph::testsuite();
 #endif
 
-    render_graph = final_pass[~depth]->stores(output);
-    render_graph.generate();
+    m_render_graph = final_pass[~depth]->stores(swapchain().presentation_attachment());
+    m_render_graph.generate(this);
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
       {
@@ -346,6 +339,11 @@ class Window : public task::SynchronousWindow
       set_swapchain_render_pass(logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
     }
+
+    // Create the swapchain render pass.
+//    set_swapchain_render_pass(logical_device().create_render_pass(render_graph COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
+
+    DoutFatal(dc::fatal, "The End");
 
     // Post-render pass - from color_attachment to present_src.
     {

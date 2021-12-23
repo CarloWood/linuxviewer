@@ -34,6 +34,7 @@ namespace vulkan {
 
 class PresentationSurface;
 class Swapchain;
+class SwapchainKind;
 
 // Contains all members ImageCreateInfo except extent.
 struct ImageKindPOD
@@ -49,7 +50,7 @@ struct ImageKindPOD
   vk::SharingMode         sharing_mode = vk::SharingMode::eExclusive;
   uint32_t                m_queue_family_index_count = {};
   uint32_t const*         m_queue_family_indices = {};
-  vk::ImageLayout         initial_layout = vk::ImageLayout::eColorAttachmentOptimal;
+  vk::ImageLayout         initial_layout = vk::ImageLayout::eUndefined;
 };
 
 class ImageKind
@@ -106,30 +107,6 @@ struct SwapchainKindPOD
   vk::Bool32 clipped = VK_TRUE;
 };
 
-class SwapchainKind
-{
- private:
-  SwapchainKindPOD m_data;
-  ImageKind m_image_kind;
-
- public:
-  // Initialized in Swapchain::prepare using the set* functions below, not by constructor.
-  SwapchainKind() : m_image_kind({}) { }
-
-  // Accessed from Swapchain::prepare.
-  SwapchainKind& set(utils::Badge<Swapchain>, SwapchainKindPOD data) { m_data = data; return *this; }
-  void set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_kind);
-
-  // Convert into a SwapchainCreateInfoKHR.
-  vk::SwapchainCreateInfoKHR operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const;
-
-  // Accessors.
-  SwapchainKindPOD const* operator->() const { return &m_data; }
-  ImageKind const& image() const { return m_image_kind; }
-
-  VULKAN_KIND_DEBUG_MEMBERS
-};
-
 // Contains all members of ImageViewCreateInfo except image.
 struct ImageViewKindPOD
 {
@@ -173,6 +150,13 @@ class ImageViewKind
     }
   }
 
+  void set_POD(utils::Badge<SwapchainKind>, ImageViewKindPOD data) { m_data = data; }
+
+  bool is_color() const { return static_cast<bool>(m_data.subresource_range.aspectMask & vk::ImageAspectFlagBits::eColor); }
+  bool is_depth() const { return static_cast<bool>(m_data.subresource_range.aspectMask & vk::ImageAspectFlagBits::eDepth); }
+  bool is_stencil() const { return static_cast<bool>(m_data.subresource_range.aspectMask & vk::ImageAspectFlagBits::eStencil); }
+  bool is_depth_stencil() const { return is_depth() && is_stencil(); }
+
   // Convert into a ImageViewCreateInfo.
   vk::ImageViewCreateInfo operator()(vk::Image vh_image) const;
 
@@ -201,6 +185,33 @@ class ImageViewKind
   }
 
  public:
+  VULKAN_KIND_DEBUG_MEMBERS
+};
+
+class SwapchainKind
+{
+ private:
+  SwapchainKindPOD m_data;
+  ImageKind m_image_kind;               // Swapchain color attachment kinds.
+  ImageViewKind m_image_view_kind;      //
+
+ public:
+  // Initialized in Swapchain::prepare using the set* functions below, not by constructor.
+  SwapchainKind() : m_image_kind({}), m_image_view_kind(m_image_kind, {}) { }
+
+  // Accessed from Swapchain::prepare.
+  SwapchainKind& set(utils::Badge<Swapchain>, SwapchainKindPOD data) { m_data = data; return *this; }
+  void set_image_kind(utils::Badge<Swapchain>, ImageKindPOD image_kind);
+  void set_image_view_kind(utils::Badge<Swapchain>, ImageViewKindPOD image_view_kind);
+
+  // Convert into a SwapchainCreateInfoKHR.
+  vk::SwapchainCreateInfoKHR operator()(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface, vk::SwapchainKHR vh_old_swapchain) const;
+
+  // Accessors.
+  SwapchainKindPOD const* operator->() const { return &m_data; }
+  ImageKind const& image() const { return m_image_kind; }
+  ImageViewKind const& image_view() const { return m_image_view_kind; }
+
   VULKAN_KIND_DEBUG_MEMBERS
 };
 

@@ -145,9 +145,9 @@ void RenderPass::preceding_render_pass_stores(Attachment const* attachment)
   get_node(attachment).set_load();
 }
 
-vk::AttachmentLoadOp RenderPass::get_load_op(Attachment const& attachment) const
+vk::AttachmentLoadOp RenderPass::get_load_op(Attachment const* attachment) const
 {
-  auto node = find_by_ID(m_known_attachments, &attachment);
+  auto node = find_by_ID(m_known_attachments, attachment);
   if (node == m_known_attachments.end())
     return vk::AttachmentLoadOp::eNoneEXT;
   if (node->is_load())
@@ -157,9 +157,9 @@ vk::AttachmentLoadOp RenderPass::get_load_op(Attachment const& attachment) const
   return vk::AttachmentLoadOp::eDontCare;
 }
 
-vk::AttachmentStoreOp RenderPass::get_store_op(Attachment const& attachment) const
+vk::AttachmentStoreOp RenderPass::get_store_op(Attachment const* attachment) const
 {
-  auto node = find_by_ID(m_known_attachments, &attachment);
+  auto node = find_by_ID(m_known_attachments, attachment);
   if (node == m_known_attachments.end())
     return vk::AttachmentStoreOp::eNoneEXT;
   if (node->is_store() || node->is_preserve())
@@ -167,10 +167,72 @@ vk::AttachmentStoreOp RenderPass::get_store_op(Attachment const& attachment) con
   return vk::AttachmentStoreOp::eDontCare;
 }
 
+vk::AttachmentLoadOp RenderPass::get_stencil_load_op(Attachment const* attachment) const
+{
+  // Not implemented.
+  ASSERT(false);
+  return vk::AttachmentLoadOp::eDontCare;
+}
+
+vk::AttachmentStoreOp RenderPass::get_stencil_store_op(Attachment const* attachment) const
+{
+  // Not implemented.
+  ASSERT(false);
+  return vk::AttachmentStoreOp::eDontCare;
+}
+
+vk::ImageLayout RenderPass::get_optimal_layout(AttachmentNode const& node) const
+{
+  ImageViewKind const& image_view_kind = node.attachment()->image_view_kind();
+  if (image_view_kind.is_color())
+    return vk::ImageLayout::eColorAttachmentOptimal;
+  else if (image_view_kind.is_depth_stencil())
+    return node.is_readonly() ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
+                              : vk::ImageLayout::eDepthStencilAttachmentOptimal;
+  else if (image_view_kind.is_depth())
+    return node.is_readonly() ? vk::ImageLayout::eDepthReadOnlyOptimal
+                              : vk::ImageLayout::eDepthAttachmentOptimal;
+  else if (image_view_kind.is_stencil())
+    return node.is_readonly() ? vk::ImageLayout::eStencilReadOnlyOptimal
+                              : vk::ImageLayout::eStencilAttachmentOptimal;
+  // Couldn't figure out optimal layout.
+  ASSERT(false);
+  return vk::ImageLayout::eGeneral;
+}
+
+vk::ImageLayout RenderPass::get_initial_layout(Attachment const* attachment) const
+{
+  auto node = find_by_ID(m_known_attachments, attachment);
+  if (node == m_known_attachments.end())
+    return vk::ImageLayout::eUndefined;
+  if (!node->is_source())
+    return get_optimal_layout(*node);
+  vk::ImageLayout initial_layout = attachment->image_kind()->initial_layout;
+  vk::ImageLayout final_layout = attachment->get_final_layout();
+  if (final_layout != vk::ImageLayout::eUndefined && attachment->image_kind()->initial_layout != final_layout)
+    THROW_ALERT("The initial_layout of the ImageKind of attachment \"[ATTACHMENT]\" should be [FINALLAYOUT], but it is [INITIALLAYOUT].",
+        AIArgs("[ATTACHMENT]", attachment)("[FINALLAYOUT]", vk::to_string(final_layout))("[INITIALLAYOUT]", vk::to_string(initial_layout)));
+  return initial_layout;
+}
+
+vk::ImageLayout RenderPass::get_final_layout(Attachment const* attachment) const
+{
+  auto node = find_by_ID(m_known_attachments, attachment);
+  if (node == m_known_attachments.end())
+    return vk::ImageLayout::eUndefined;
+  if (!node->is_sink() || !node->is_store())
+    return get_optimal_layout(*node);
+  if (node->is_present())
+    return vk::ImageLayout::ePresentSrcKHR;
+  // Couldn't figure out the final layout.
+  ASSERT(false);
+  return vk::ImageLayout::eGeneral;
+}
+
 void RenderPass::for_all_render_passes_until(
     int traversal_id, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> const& lambda, SearchType search_type, std::vector<RenderPass*>& path, bool skip_lambda)
 {
-  DoutEntering(dc::renderpass, "RenderPass::for_all_render_passes_until(" << traversal_id <<
+  DoutEntering(dc::rpverbose, "RenderPass::for_all_render_passes_until(" << traversal_id <<
       ", lambda, " << search_type << ", " << path << ", skip_lambda:" << std::boolalpha << skip_lambda << ") [" << this << "]");
 
   // Did we reach the end?
@@ -214,6 +276,13 @@ void RenderPass::add_attachments_to(std::set<Attachment const*, Attachment::Comp
 {
   for (AttachmentNode const& node : m_known_attachments)
     attachments.insert(node.attachment());
+}
+
+void RenderPass::set_is_present_on_attachment_sink_with_id(utils::UniqueID<int> id)
+{
+  for (AttachmentNode& node : m_known_attachments)
+    if (node.is_sink() &&  node.id() == id)
+      node.set_is_present();
 }
 
 void RenderPass::stores_called(RenderPass* render_pass)

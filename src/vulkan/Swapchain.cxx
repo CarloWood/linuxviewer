@@ -180,6 +180,10 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
       .m_queue_family_indices = desired_queue_family_indices
   });
 
+  // Perform the delayed initialization of m_presentation_attachment.
+  m_presentation_attachment.emplace(owning_window->attachment_id_context, image_view_kind(), "swapchain");
+  Dout(dc::notice, "m_presentation_attachment->image_view_kind() = " << m_presentation_attachment->image_view_kind());
+
   m_min_image_count = desired_image_count;
 
   m_acquire_semaphore = owning_window->logical_device().create_semaphore(

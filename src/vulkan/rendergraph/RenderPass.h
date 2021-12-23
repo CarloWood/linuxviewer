@@ -18,8 +18,13 @@
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct renderpass;
+extern channel_ct rpverbose;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
+
+namespace task {
+class SynchronousWindow;
+} // namespace task
 
 namespace vulkan::rendergraph {
 
@@ -71,8 +76,15 @@ class RenderPass
   friend RenderPassStream& operator>>(RenderPass& render_pass1, RenderPass& render_pass2) { render_pass1.m_stream.link(render_pass2.m_stream); return render_pass2.m_stream; }
 
   // Results.
-  vk::AttachmentLoadOp get_load_op(Attachment const& attachment) const;
-  vk::AttachmentStoreOp get_store_op(Attachment const& attachment) const;
+  vk::AttachmentLoadOp get_load_op(Attachment const* attachment) const;
+  vk::AttachmentStoreOp get_store_op(Attachment const* attachment) const;
+  vk::AttachmentLoadOp get_stencil_load_op(Attachment const* attachment) const;
+  vk::AttachmentStoreOp get_stencil_store_op(Attachment const* attachment) const;
+  vk::ImageLayout get_initial_layout(Attachment const* attachment) const;
+  vk::ImageLayout get_final_layout(Attachment const* attachment) const;
+
+  // Actual creation.
+  void create(task::SynchronousWindow const* owning_window);
 
   //---------------------------------------------------------------------------
   // Utilities
@@ -103,9 +115,11 @@ class RenderPass
   void for_all_render_passes_until(int traversal_id, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> const& lambda,
       SearchType search_type, std::vector<RenderPass*>& path, bool skip_lambda = false);
   void add_attachments_to(std::set<Attachment const*, Attachment::CompareIDLessThan>& attachments);
+  void set_is_present_on_attachment_sink_with_id(utils::UniqueID<int> id);
 
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
+  vk::ImageLayout get_optimal_layout(AttachmentNode const& node) const;
 
  public:
   void print_on(std::ostream& os) const;

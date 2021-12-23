@@ -2,10 +2,12 @@
 
 #include "ResourceState.h"
 #include "ImageKind.h"
+#include "rendergraph/Attachment.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <thread>
 #include <deque>
+#include <optional>
 
 namespace task {
 class SynchronousWindow;
@@ -79,18 +81,19 @@ class Swapchain
   };
 
  private:
-  std::array<uint32_t, 2>       m_queue_family_indices; // Pointed to by m_kind.
-  vk::Extent2D                  m_extent;               // Copy of the last (non-zero) extent of the owning_window that was passed to recreate.
-  SwapchainKind                 m_kind;                 // Static data (initialized during prepare) that describe the swapchain.
-  uint32_t                      m_min_image_count;      // The minimum number of swapchain images that we (will) request(ed).
-  vk::UniqueSwapchainKHR        m_swapchain;
-  images_type                   m_vhv_images;           // A vector of swapchain images.
-  resources_type                m_resources;            // A vector of corresponding image views and semaphores.
-  SwapchainIndex                m_current_index;        // The index of the current image and resources.
-  vk::UniqueSemaphore           m_acquire_semaphore;    // Semaphore used to acquire the next image.
-  vk::PresentModeKHR            m_present_mode;
-  vk::UniqueRenderPass          m_render_pass;          // The render pass that writes to m_frame_buffer.
-  vk::UniqueFramebuffer         m_framebuffer;          // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
+  std::array<uint32_t, 2>   m_queue_family_indices;     // Pointed to by m_kind.
+  vk::Extent2D              m_extent;                   // Copy of the last (non-zero) extent of the owning_window that was passed to recreate.
+  SwapchainKind             m_kind;                     // Static data (initialized during prepare) that describe the swapchain.
+  uint32_t                  m_min_image_count;          // The minimum number of swapchain images that we (will) request(ed).
+  vk::UniqueSwapchainKHR    m_swapchain;
+  images_type               m_vhv_images;               // A vector of swapchain images.
+  resources_type            m_resources;                // A vector of corresponding image views and semaphores.
+  SwapchainIndex            m_current_index;            // The index of the current image and resources.
+  vk::UniqueSemaphore       m_acquire_semaphore;        // Semaphore used to acquire the next image.
+  vk::PresentModeKHR        m_present_mode;
+  std::optional<rendergraph::Attachment> m_presentation_attachment;     // The presentation attachment ("optional" because it is initialized during prepare).
+  vk::UniqueRenderPass      m_render_pass;              // The render pass that writes to m_frame_buffer.
+  vk::UniqueFramebuffer     m_framebuffer;              // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
 
  public:
   Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
@@ -113,6 +116,11 @@ class Swapchain
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
+  rendergraph::Attachment const& presentation_attachment() const
+  {
+    return m_presentation_attachment.value();
+  }
+
   SwapchainKind const& kind() const
   {
     return m_kind;
@@ -123,9 +131,9 @@ class Swapchain
     return m_kind.image();
   }
 
-  ImageViewKind image_view_kind() const
+  ImageViewKind const& image_view_kind() const
   {
-    return { m_kind.image(), {} };
+    return m_kind.image_view();
   }
 
   vk::Extent2D const& extent() const

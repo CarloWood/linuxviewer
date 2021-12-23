@@ -2,6 +2,7 @@
 #include "RenderGraph.h"
 #include "RenderPass.h"
 #include "Attachment.h"
+#include "../SynchronousWindow.h"
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
@@ -14,7 +15,7 @@ namespace vulkan::rendergraph {
 
 void RenderGraph::for_each_render_pass(Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const
 {
-  DoutEntering(dc::renderpass, "RenderGraph::for_each_render_pass(" << direction << ", lambda)");
+  DoutEntering(dc::rpverbose, "RenderGraph::for_each_render_pass(" << direction << ", lambda)");
   // As every render pass is reachable from one or more of the sources,
   // we can run over all sources, and from there follow the links to subsequent render passes.
   ++m_traversal_id;
@@ -30,7 +31,7 @@ void RenderGraph::for_each_render_pass(Direction direction, std::function<bool(R
 
 void RenderGraph::for_each_render_pass_from(RenderPass* start, Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const
 {
-  DoutEntering(dc::renderpass, "RenderGraph::for_each_render_pass_from(" << start << ", " << direction << ", lambda)");
+  DoutEntering(dc::rpverbose, "RenderGraph::for_each_render_pass_from(" << start << ", " << direction << ", lambda)");
   ++m_traversal_id;
   RenderPass::SearchType search_type = direction == search_forwards ? m_have_incoming_outgoing ? RenderPass::Outgoing : RenderPass::Subsequent : RenderPass::Incoming;
   std::vector<RenderPass*> path; // All in between nodes that led to the callback.
@@ -80,7 +81,7 @@ class EdgeColorWriter
 } // namespace gv
 #endif
 
-void RenderGraph::generate()
+void RenderGraph::generate(task::SynchronousWindow const* owning_window)
 {
   DoutEntering(dc::renderpass, "RenderGraph::generate()");
 
@@ -112,7 +113,7 @@ void RenderGraph::generate()
       });
 
 #ifdef CWDEBUG
-  Dout(dc::renderpass|continued_cf, "Attachments: ");
+  Dout(dc::renderpass|continued_cf, "All attachments: ");
   char const* prefix = "";
   for (Attachment const* attachment : all_attachments)
   {
@@ -125,49 +126,65 @@ void RenderGraph::generate()
   // Run over each attachment.
   for (Attachment const* attachment : all_attachments)
   {
-    // Find all render passes that LOAD this attachment.
+    Dout(dc::renderpass, "Processing attachment \"" << attachment << "\".");
+#ifdef CWDEBUG
+    NAMESPACE_DEBUG::Mark mark;
+#endif
+
+    // Find all render passes that knows about, LOADs and/or STORE this attachment.
+    std::vector<RenderPass*> knows;
     std::vector<RenderPass*> loads;
+    std::vector<RenderPass*> stores;
     for_each_render_pass(search_forwards,
         [&](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
         {
+          if (render_pass->is_known(attachment))
+            knows.push_back(render_pass);
           if (render_pass->is_load(attachment))
           {
             Dout(dc::renderpass, "Render pass \"" << render_pass << "\" loads attachment \"" << attachment << "\".");
             loads.push_back(render_pass);
           }
+          if (render_pass->is_store(attachment))
+          {
+            Dout(dc::renderpass, "Render pass \"" << render_pass << "\" stores attachment \"" << attachment << "\".");
+            stores.push_back(render_pass);
+          }
           return false;
         });
+
     // Run over all the render passes that load this attachment.
     for (RenderPass* render_pass : loads)
     {
+      DoutEntering(dc::renderpass, "Finding render pass that stores to \"" << attachment << "\" which is loaded by \"" << render_pass << "\".");
       // Search backwards till a render pass that stores to the attachment.
       // Encountering a clear (that is not storing) is an error.
       // Encountering more than one render pass that stores to the attachment is an error.
       // Finding no render pass that stores to the attachment is an error.
       std::vector<RenderPass*> stores;
       for_each_render_pass_from(render_pass, search_backwards,
-        [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& path)
-        {
-          Dout(dc::renderpass|continued_cf, "Calling lambda(" << preceding_render_pass << ", " << path << ") = ");
-          if (preceding_render_pass->is_store(attachment))
+          [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
           {
-            stores.push_back(preceding_render_pass);
+            DoutEntering(dc::rpverbose|continued_cf, "lambda(" << preceding_render_pass << ", " << path << ") = ");
+            if (preceding_render_pass->is_store(attachment))
+            {
+              stores.push_back(preceding_render_pass);
 
-            // Assuming we won't throw; already tell all render passes along the path that know about attachment that they have to preserve it.
-            for (RenderPass* pass : path)
-              if (pass->is_known(attachment))
-                pass->get_node(attachment).set_preserve();
+              // Assuming we won't throw; already tell all render passes along the path that know about attachment that they have to preserve it.
+              for (RenderPass* pass : path)
+                if (pass->is_known(attachment))
+                  pass->get_node(attachment).set_preserve();
 
-            Dout(dc::finish, "true (stop)");
-            return true;        // Stop searching.
-          }
-          if (preceding_render_pass->is_clear(attachment))
-            THROW_ALERT("The CLEAR of attachment \"[ATTACHMENT]\" by render pass \"[PRECEDING]\" hides any preceding store needed by render pass "
-                "\"[RENDERPASS]\". Did you mean \"[PRECEDING]\" to store \"[ATTACHMENT]\"?",
-                AIArgs("[ATTACHMENT]", attachment)("[PRECEDING]", preceding_render_pass)("[RENDERPASS]", render_pass));
-          Dout(dc::finish, "false (continue)");
-          return false;
-        });
+              Dout(dc::finish, "true (stop)");
+              return true;        // Stop searching.
+            }
+            if (preceding_render_pass->is_clear(attachment))
+              THROW_ALERT("The CLEAR of attachment \"[ATTACHMENT]\" by render pass \"[PRECEDING]\" hides any preceding store needed by render pass "
+                  "\"[RENDERPASS]\". Did you mean \"[PRECEDING]\" to store \"[ATTACHMENT]\"?",
+                  AIArgs("[ATTACHMENT]", attachment)("[PRECEDING]", preceding_render_pass)("[RENDERPASS]", render_pass));
+            Dout(dc::finish, "false (continue)");
+            return false;
+          });
       if (stores.size() > 1)
         THROW_ALERT("The load of attachment \"[ATTACHMENT]\" by render pass \"[RENDERPASS]\" is ambiguous: "
             "both \"[PASS0]\" and \"[PASS1]\" stores are visible.",
@@ -175,7 +192,108 @@ void RenderGraph::generate()
       if (stores.empty())
         THROW_ALERT("The load of attachment \"[ATTACHMENT]\" by render pass \"[RENDERPASS]\" has no visible stores.",
             AIArgs("[ATTACHMENT]", attachment)("[RENDERPASS]", render_pass));
-      Dout(dc::notice, "The load of " << attachment << " by " << render_pass << " was stored by " << stores[0] << ".");
+      Dout(dc::renderpass, "The load of \"" << attachment << "\" by \"" << render_pass << "\" was stored by \"" << stores[0] << "\".");
+    }
+
+    // Run over all render passes that store this attachment.
+    for (RenderPass* render_pass : stores)
+    {
+      DoutEntering(dc::renderpass, "Checking if (" << render_pass << "/" << attachment << ") is a sink.");
+      // Run over all render passes that succeed this render pass and see if there are any that load or clear this attachment.
+      // If there are none, then the render pass is a sink for this attachment (it stores to the attachment and then nothing
+      // else uses it).
+      bool is_sink = true;
+      for_each_render_pass_from(render_pass, search_forwards,
+          [&](RenderPass* succeeding_render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
+          {
+            DoutEntering(dc::rpverbose|continued_cf, "lambda(" << succeeding_render_pass << ", " << path << ") = ");
+            if (succeeding_render_pass->is_known(attachment))
+            {
+              Dout(dc::renderpass, "Not a sink because " << succeeding_render_pass << " which succeeds " << render_pass << " knows about " << attachment << ".");
+              is_sink = false;
+              Dout(dc::finish, "true (stop)");
+              return true;        // Stop searching.
+            }
+            Dout(dc::finish, "false (continue)");
+            return false;
+          });
+      if (is_sink)
+        render_pass->get_node(attachment).set_is_sink();        // Safe to call get_node, because we already know that render_pass knows about attachment (it stores to it).
+    }
+
+    // Run over all render passes that know this attachment.
+    for (RenderPass* render_pass : knows)
+    {
+      DoutEntering(dc::renderpass, "Checking if (" << render_pass << "/" << attachment << ") is a source.");
+      // Mark attachment as a source unless it is preceded by another render pass that knows about it.
+      bool is_source = true;
+      for_each_render_pass_from(render_pass, search_backwards,
+          [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
+          {
+            DoutEntering(dc::rpverbose|continued_cf, "lambda(" << preceding_render_pass << ", " << path << ") = ");
+            if (preceding_render_pass->is_known(attachment))
+            {
+              Dout(dc::renderpass, "Not a source because " << preceding_render_pass << " which preceeds " << render_pass << " knows about " << attachment << ".");
+              is_source = false;
+              Dout(dc::finish, "true (stop)");
+              return true;        // Stop searching.
+            }
+            Dout(dc::finish, "false (continue)");
+            return false;
+          });
+      if (is_source)
+        render_pass->get_node(attachment).set_is_source();      // Safe to call get_node, because we already know that render_pass knows about attachment.
+    }
+  }
+
+  // The test suite only generates the graph.
+  if (!owning_window)
+    return;
+
+  // Before we can create the render passes, we have to mark any attachment that is used for presentation.
+  // Currently we only support one such attachment: the Swapchain::m_presentation_attachment
+  // of the owning window.
+  utils::UniqueID<int> presentation_attachment_id = owning_window->swapchain().presentation_attachment().id();
+  // Run over all render passes and mark the attachment with the same id as "presentation" when it is a sink.
+  for_each_render_pass(search_forwards,
+      [presentation_attachment_id](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+      {
+        render_pass->set_is_present_on_attachment_sink_with_id(presentation_attachment_id);
+        return false;
+      });
+
+  // Now we get use get_final_attachment.
+
+  // Run again over each attachment.
+  for (Attachment const* attachment : all_attachments)
+  {
+    // Search backwards from all sink render passes and make sure that there is at most one sink for this attachment.
+    DoutEntering(dc::renderpass, "Search for sink of attachment \"" << attachment << "\".");
+    RenderPass* sink = nullptr;
+    for_each_render_pass(search_backwards,
+        [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
+        {
+          DoutEntering(dc::rpverbose|continued_cf, "lambda(" << preceding_render_pass << ", " << path << ") = ");
+          if (preceding_render_pass->is_known(attachment))
+          {
+            auto node = preceding_render_pass->get_node(attachment);
+            if (node.is_sink())
+            {
+              if (sink)
+                THROW_ALERT("Attachment \"[ATTACHMENT]\" has more than one render pass (\"[PASS1]\", \"[PASS2]\" ...) marked as sink.",
+                    AIArgs("[ATTACHMENT]", attachment)("[PASS1]", sink)("[PASS2]", preceding_render_pass));
+              sink = preceding_render_pass;
+              Dout(dc::finish, "true (stop)");
+              return true;        // Stop searching.
+            }
+          }
+          Dout(dc::finish, "false (continue)");
+          return false;
+        });
+    if (sink)
+    {
+      Dout(dc::renderpass, "Render pass \"" << sink << "\" is the sink of attachment \"" << attachment << "\".");
+      attachment->set_final_layout(sink->get_final_layout(attachment));
     }
   }
 
@@ -210,6 +328,64 @@ void RenderGraph::generate()
   std::ofstream file("graph.dot");
   boost::write_graphviz(file, g, boost::make_label_writer(get(&gv::VertexProperties::name, g)), gv::EdgeColorWriter(g));
 #endif
+
+  // Run over all render passes to create them.
+  for_each_render_pass(search_forwards,
+      [owning_window](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+      {
+        render_pass->create(owning_window);
+        return false;
+      });
+}
+
+void RenderPass::create(task::SynchronousWindow const* owning_window)
+{
+  DoutEntering(dc::renderpass, "RenderPass:create(" << owning_window << ") [" << this << "]");
+  // Create vk::AttachmentDescription objects.
+  std::vector<vk_defaults::AttachmentDescription> attachment_descriptions;
+  for (AttachmentNode const& node : m_known_attachments)
+  {
+    Attachment const* attachment = node.attachment();
+    vk::Format const format = attachment->image_view_kind()->format;
+    vk::SampleCountFlagBits const samples = attachment->image_kind()->samples;
+    vk_defaults::AttachmentDescription attachment_description;
+    attachment_description
+      .setFormat(format)
+      .setSamples(samples)
+      .setLoadOp(get_load_op(attachment))
+      .setStoreOp(get_store_op(attachment))
+      ;
+    if (attachment->image_view_kind().is_stencil())
+    {
+      attachment_description
+        .setStencilLoadOp(get_stencil_load_op(attachment))
+        .setStencilStoreOp(get_stencil_store_op(attachment))
+        ;
+    }
+    attachment_description.setInitialLayout(get_initial_layout(attachment));
+    attachment_description.setFinalLayout(get_final_layout(attachment));
+
+    Dout(dc::notice, "attachment_description " << node.index() << " = " << attachment_description);
+  }
+}
+
+utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
+{
+  DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
+  utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> attachments_image_infos;
+  for (AttachmentNode const& node : m_known_attachments)
+  {
+    ImageKind const& image_kind = node.attachment()->image_kind();
+    attachments_image_infos.push_back({
+        .usage = image_kind->usage,
+        .width = extent.width,
+        .height = extent.height,
+        .layerCount = image_kind->array_layers,
+        .viewFormatCount = 1,
+        .pViewFormats = &image_kind->format
+      });
+  }
+  return attachments_image_infos;
 }
 
 void RenderGraph::operator=(RenderPassStream& sink)
@@ -253,7 +429,7 @@ void RenderGraph::operator+=(RenderPassStream& sink)
     DECLARATION; \
     Dout(dc::renderpass, "Running test: " << #test); \
     render_graph = test; \
-    render_graph.generate();
+    render_graph.generate(nullptr);
 
 //static
 void RenderGraph::testsuite()
@@ -494,7 +670,7 @@ void RenderGraph::testsuite()
     graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
     graph +=                      pass8->stores(a8)      >> pass11[+a6]->stores(a11);
     graph +=                      pass6                  >> pass11;
-    graph.generate();
+    graph.generate(nullptr);
 
   }
   {
@@ -542,8 +718,8 @@ void RenderGraph::has_with(int in_out, Attachment const& attachment, int require
   // Only use `internal` on its own.
   ASSERT(in_out == internal || !static_cast<bool>(in_out & internal));
 
-  auto load_op = render_pass->get_load_op(attachment);
-  auto store_op = render_pass->get_store_op(attachment);
+  auto load_op = render_pass->get_load_op(&attachment);
+  auto store_op = render_pass->get_store_op(&attachment);
 
   vk::AttachmentLoadOp rq_load_op = required_load_op == LOAD ? vk::AttachmentLoadOp::eLoad : required_load_op == CLEAR ? vk::AttachmentLoadOp::eClear : vk::AttachmentLoadOp::eDontCare;
   vk::AttachmentStoreOp rq_store_op = required_store_op == STORE ? vk::AttachmentStoreOp::eStore : vk::AttachmentStoreOp::eDontCare;
@@ -559,5 +735,6 @@ void RenderGraph::has_with(int in_out, Attachment const& attachment, int require
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 channel_ct renderpass("RENDERPASS");
+channel_ct rpverbose("RPVERBOSE");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif

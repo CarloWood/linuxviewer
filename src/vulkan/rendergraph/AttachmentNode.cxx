@@ -50,4 +50,28 @@ void AttachmentNode::set_preserve()
   m_ops.set_preserve();
 }
 
+void AttachmentNode::set_is_readonly()
+{
+  DoutEntering(dc::renderpass, "AttachmentNode::set_readonly() [" << m_render_pass << "/" << m_attachment << "]");
+  m_is_readonly = true;
+}
+
+void AttachmentNode::set_is_source()
+{
+  DoutEntering(dc::renderpass, "AttachmentNode::set_source() [" << m_render_pass << "/" << m_attachment << "]");
+  m_is_source = true;
+}
+
+void AttachmentNode::set_is_sink()
+{
+  DoutEntering(dc::renderpass, "AttachmentNode::set_sink() [" << m_render_pass << "/" << m_attachment << "]");
+  m_is_sink = true;
+}
+
+void AttachmentNode::set_is_present()
+{
+  DoutEntering(dc::renderpass, "AttachmentNode::set_present() [" << m_render_pass << "/" << m_attachment << "]");
+  m_is_present = true;
+}
+
 } // namespace vulkan::rendergraph
