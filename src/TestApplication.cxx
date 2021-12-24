@@ -264,17 +264,19 @@ class Window : public task::SynchronousWindow
 
   // Create renderpass / attachment objects.
   vulkan::rendergraph::Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
-  vulkan::rendergraph::RenderPass final_pass{"final_pass"};
 
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
 
 #ifdef CWDEBUG
-    //RenderGraph::testsuite();
+//    vulkan::rendergraph::RenderGraph::testsuite();
 #endif
 
-    m_render_graph = final_pass[~depth]->stores(swapchain().presentation_attachment());
+    auto& final_pass = m_render_graph.create_render_pass("final_pass");
+    auto& output = swapchain().presentation_attachment();
+
+    m_render_graph = final_pass[~depth]->stores(output);
     m_render_graph.generate(this);
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
@@ -316,6 +318,7 @@ class Window : public task::SynchronousWindow
 
     // Render pass - from present_src to color_attachment.
     {
+#if 0
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
         {
           .m_format = swapchain().image_kind()->format,
@@ -332,16 +335,18 @@ class Window : public task::SynchronousWindow
           .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       };
+#endif
       // Create the swapchain render pass.
-      set_swapchain_render_pass(logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
+      set_swapchain_render_pass(logical_device().create_render_pass(final_pass.attachment_descriptions(), subpass_descriptions, dependencies
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
     }
 
     // Create the swapchain render pass.
 //    set_swapchain_render_pass(logical_device().create_render_pass(render_graph COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
-//    DoutFatal(dc::fatal, "The End");
+    //DoutFatal(dc::fatal, "The End");
 
+#if 0
     // Post-render pass - from color_attachment to present_src.
     {
       std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
@@ -363,6 +368,7 @@ class Window : public task::SynchronousWindow
       m_post_render_pass = logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_post_render_pass")));
     }
+#endif
   }
 
   void create_graphics_pipeline() override

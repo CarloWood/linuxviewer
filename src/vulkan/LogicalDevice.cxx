@@ -528,25 +528,11 @@ Queue LogicalDevice::acquire_queue(
 }
 
 vk::UniqueRenderPass LogicalDevice::create_render_pass(
-    std::vector<RenderPassAttachmentData> const& attachment_descriptions,
+    utils::Vector<vk_defaults::AttachmentDescription, rendergraph::AttachmentIndex> const& attachment_descriptions,
     std::vector<RenderPassSubpassData> const& subpass_descriptions,
     std::vector<vk::SubpassDependency> const& dependencies
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  std::vector<vk::AttachmentDescription> attachments;
-  for (auto const& attachment : attachment_descriptions)
-    attachments.push_back({
-        .flags          = {},
-        .format         = attachment.m_format,
-        .samples        = vk::SampleCountFlagBits::e1,
-        .loadOp         = attachment.m_load_op,
-        .storeOp        = attachment.m_store_op,
-        .stencilLoadOp  = vk::AttachmentLoadOp::eDontCare,
-        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,
-        .initialLayout  = attachment.m_initial_layout,
-        .finalLayout    = attachment.m_final_layout
-      });
-
   std::vector<vk::SubpassDescription> subpasses;
   for (auto const& subpass : subpass_descriptions)
     subpasses.push_back({
@@ -561,8 +547,8 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
       });
 
   vk::RenderPassCreateInfo render_pass_create_info{
-    .attachmentCount = static_cast<uint32_t>(attachments.size()),
-    .pAttachments = attachments.data(),
+    .attachmentCount = static_cast<uint32_t>(attachment_descriptions.size()),
+    .pAttachments = attachment_descriptions.data(),
     .subpassCount = static_cast<uint32_t>(subpasses.size()),
     .pSubpasses = subpasses.data(),
     .dependencyCount = static_cast<uint32_t>(dependencies.size()),

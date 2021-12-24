@@ -81,7 +81,7 @@ class EdgeColorWriter
 } // namespace gv
 #endif
 
-void RenderGraph::generate(task::SynchronousWindow const* owning_window)
+void RenderGraph::generate(task::SynchronousWindow* owning_window)
 {
   DoutEntering(dc::renderpass, "RenderGraph::generate()");
 
@@ -262,7 +262,7 @@ void RenderGraph::generate(task::SynchronousWindow const* owning_window)
         return false;
       });
 
-  // Now we get use get_final_attachment.
+  // Now we can use get_final_attachment.
 
   // Run again over each attachment.
   for (Attachment const* attachment : all_attachments)
@@ -295,6 +295,39 @@ void RenderGraph::generate(task::SynchronousWindow const* owning_window)
       Dout(dc::renderpass, "Render pass \"" << sink << "\" is the sink of attachment \"" << attachment << "\".");
       attachment->set_final_layout(sink->get_final_layout(attachment));
     }
+  }
+
+  // Find the swapchain attachment and the render pass that stores to it.
+  Swapchain& swapchain = owning_window->swapchain();
+  Attachment const& presentation_attachment = swapchain.presentation_attachment();
+  auto iter = std::find_if(all_attachments.begin(), all_attachments.end(),
+      [presentation_attachment](Attachment const* candidate){ return candidate->id() == presentation_attachment.id(); });
+  // Does this render graph know about the swapchain attachment?
+  if (iter != all_attachments.end())
+  {
+    Attachment const* attachment = *iter;
+    // Look for a render pass where this attachment is marked as sink.
+    RenderPass* sink = nullptr;
+    for_each_render_pass(search_forwards,
+        [&](RenderPass* render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
+        {
+          DoutEntering(dc::rpverbose|continued_cf, "lambda(" << render_pass << ", " << path << ") = ");
+          if (render_pass->is_known(attachment))
+          {
+            auto node = render_pass->get_node(attachment);
+            if (node.is_sink())
+            {
+              sink = render_pass;
+              Dout(dc::finish, "true (stop)");
+              return true;        // Stop searching.
+            }
+          }
+          Dout(dc::finish, "false (continue)");
+          return false;
+        });
+    if (!sink)
+      THROW_ALERT("The swapchain attachment is used in this render graph, but none of the render passes uses it as an output sink.");
+    swapchain.set_render_pass_output_sink(sink);
   }
 
 #if 0 //def CWDEBUG
@@ -342,7 +375,6 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
 {
   DoutEntering(dc::renderpass, "RenderPass:create(" << owning_window << ") [" << this << "]");
   // Create vk::AttachmentDescription objects.
-  std::vector<vk_defaults::AttachmentDescription> attachment_descriptions;
   for (AttachmentNode const& node : m_known_attachments)
   {
     Attachment const* attachment = node.attachment();
@@ -366,10 +398,10 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
     attachment_description.setFinalLayout(get_final_layout(attachment));
 
     Dout(dc::notice, "attachment_description " << node.index() << " = " << attachment_description);
+    m_attachment_descriptions.push_back(attachment_description);
   }
 }
 
-#if 0
 utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
 {
   DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
@@ -388,7 +420,6 @@ utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::g
   }
   return attachments_image_infos;
 }
-#endif
 
 void RenderGraph::operator=(RenderPassStream& sink)
 {
@@ -416,15 +447,23 @@ void RenderGraph::operator+=(RenderPassStream& sink)
       });
 }
 
+RenderPass& RenderGraph::create_render_pass(std::string const& name)
+{
+  auto res = m_render_passes.try_emplace(name, utils::Badge<RenderGraph>{}, name);
+  // Please use a unique name for each render pass.
+  ASSERT(res.second);
+  return res.first->second;
+}
+
 #ifdef CWDEBUG
 
 #define DECLARATION \
     [[maybe_unused]] bool illegal = false; \
-    [[maybe_unused]] RenderPass lighting("lighting"); \
-    [[maybe_unused]] RenderPass pass1("pass1"); \
-    [[maybe_unused]] RenderPass pass2("pass2"); \
-    RenderPass render_pass("render_pass"); \
     RenderGraph render_graph; \
+    [[maybe_unused]] auto& lighting = render_graph.create_render_pass("lighting"); \
+    [[maybe_unused]] auto& pass1 = render_graph.create_render_pass("pass1"); \
+    [[maybe_unused]] auto& pass2 = render_graph.create_render_pass("pass2"); \
+    auto& render_pass = render_graph.create_render_pass("render_pass"); \
     Dout(dc::renderpass, "====================== Next Test ===========================")
 
 #define TEST(test) \
@@ -651,19 +690,19 @@ void RenderGraph::testsuite()
     Attachment const a10{context, v1, "a10"};
     Attachment const a11{context, v1, "a11"};
     Attachment const a12{context, v1, "a12"};
-    RenderPass pass1("pass1");
-    RenderPass pass2("pass2");
-    RenderPass pass3("pass3");
-    RenderPass pass4("pass4");
-    RenderPass pass5("pass5");
-    RenderPass pass6("pass6");
-    RenderPass pass7("pass7");
-    RenderPass pass8("pass8");
-    RenderPass pass9("pass9");
-    RenderPass pass10("pass10");
-    RenderPass pass11("pass11");
-    RenderPass pass12("pass12");
     RenderGraph graph;
+    RenderPass& pass1 = graph.create_render_pass("pass1");
+    RenderPass& pass2 = graph.create_render_pass("pass2");
+    RenderPass& pass3 = graph.create_render_pass("pass3");
+    RenderPass& pass4 = graph.create_render_pass("pass4");
+    RenderPass& pass5 = graph.create_render_pass("pass5");
+    RenderPass& pass6 = graph.create_render_pass("pass6");
+    RenderPass& pass7 = graph.create_render_pass("pass7");
+    RenderPass& pass8 = graph.create_render_pass("pass8");
+    RenderPass& pass9 = graph.create_render_pass("pass9");
+    RenderPass& pass10 = graph.create_render_pass("pass10");
+    RenderPass& pass11 = graph.create_render_pass("pass11");
+    RenderPass& pass12 = graph.create_render_pass("pass12");
 
     graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9;
     graph += pass3->stores(a3)                                                                                         >> pass12[+a1][+a9][+a10]->stores(a12);

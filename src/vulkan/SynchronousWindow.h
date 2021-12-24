@@ -239,10 +239,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     return *m_logical_device;
   }
 
-  vulkan::Swapchain const& swapchain() const
-  {
-    return m_swapchain;
-  }
+  vulkan::Swapchain& swapchain() { return m_swapchain; }
+  vulkan::Swapchain const& swapchain() const { return m_swapchain; }
 
   void wait_for_all_fences() const;
 

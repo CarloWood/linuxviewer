@@ -15,6 +15,10 @@ class SynchronousWindow;
 
 namespace vulkan {
 
+namespace rendergraph {
+class RenderPass;
+} // namespace rendergraph
+
 class Swapchain;
 using SwapchainIndex = utils::VectorIndex<Swapchain>;
 #ifdef CWDEBUG
@@ -91,9 +95,12 @@ class Swapchain
   SwapchainIndex            m_current_index;            // The index of the current image and resources.
   vk::UniqueSemaphore       m_acquire_semaphore;        // Semaphore used to acquire the next image.
   vk::PresentModeKHR        m_present_mode;
+  // prepare:
   std::optional<rendergraph::Attachment> m_presentation_attachment;     // The presentation attachment ("optional" because it is initialized during prepare).
-  vk::UniqueRenderPass      m_render_pass;              // The render pass that writes to m_frame_buffer.
-  vk::UniqueFramebuffer     m_framebuffer;              // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
+  // RenderGraph::generate:
+  rendergraph::RenderPass*  m_render_pass_output_sink = nullptr;        // The render pass that stores to presentation attachment as a sink.
+  vk::UniqueRenderPass      m_render_pass;                              // The render pass that writes to m_frame_buffer.
+  vk::UniqueFramebuffer     m_framebuffer;                              // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
 
  public:
   Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
@@ -101,6 +108,10 @@ class Swapchain
 
   void prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFlags const selected_usage, vk::PresentModeKHR const selected_present_mode
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
+
+  // Set and get the rendergraph node that writes to the presentation attachment.
+  void set_render_pass_output_sink(rendergraph::RenderPass* sink) { m_render_pass_output_sink = sink; }
+  rendergraph::RenderPass* render_pass_output_sink() const { ASSERT(m_render_pass_output_sink); return m_render_pass_output_sink; }
 
   void set_render_pass(vk::UniqueRenderPass&& render_pass)
   {

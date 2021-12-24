@@ -28,12 +28,16 @@ class SynchronousWindow;
 
 namespace vulkan::rendergraph {
 
+class RenderGraph;
+
 // RenderPass.
 //
 // A RenderPass is a unique object (within the construction of a given RenderGraph).
 //
 class RenderPass
 {
+  friend class RenderPassStream;                                        // The m_stream object is allowed to access all members of its owner.
+
  private:
   std::string m_name;                                                   // Human readable name of this render pass.
   utils::Vector<AttachmentNode> m_known_attachments;                    // Vector with all known attachments of this render pass.
@@ -46,12 +50,18 @@ class RenderPass
   std::set<RenderPass*> m_incoming_vertices;
   std::set<RenderPass*> m_outgoing_vertices;
 
-  friend class RenderPassStream;                                        // The m_stream object is allowed to access all members of its owner.
+  // RenderPass::create:
+  utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> m_attachment_descriptions;
+                                                                        // Attachment descriptions corresponding to the attachment nodes of m_known_attachments.
 
  public:
-  // Constructor.
-  RenderPass(char const* name) : m_name(name), m_stream(this) { }
+  // Constructor (only called by RenderGraph::create_render_pass.
+  // Use:
+  //   auto& my_pass = my_render_graph.create_render_pass("my_pass"); to get a reference to a RenderPass.
+  RenderPass(utils::Badge<RenderGraph>, std::string const& name) : m_name(name), m_stream(this) { }
+  RenderPass(RenderPass const&&) = delete;      // Not allowed because m_stream contains a pointer back to this object.
 
+ public:
   // Modifiers.
   RenderPass& operator[](Attachment::OpRemoveOrDontCare mod_attachment);
   RenderPass& operator[](Attachment::OpLoad mod_attachment);
@@ -85,6 +95,10 @@ class RenderPass
 
   // Actual creation.
   void create(task::SynchronousWindow const* owning_window);
+
+  // Harvest information.
+  utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> const& attachment_descriptions() const { return m_attachment_descriptions; }
+  utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> get_framebuffer_attachment_image_infos(vk::Extent2D extent) const;
 
   //---------------------------------------------------------------------------
   // Utilities

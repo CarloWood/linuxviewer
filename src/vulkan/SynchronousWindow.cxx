@@ -825,39 +825,22 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
 
   vk::Extent2D const& extent = m_swapchain.extent();
-
-  // FIXME: this should be dynamic (depends on configuration that was used to create the render pass).
-  std::array<vk::FramebufferAttachmentImageInfo, 2> attachments_image_infos = {
-    vk::FramebufferAttachmentImageInfo{
-      .usage = m_swapchain.image_kind()->usage,
-      .width = extent.width,
-      .height = extent.height,
-      .layerCount = m_swapchain.image_kind()->array_layers,
-      .viewFormatCount = 1,
-      .pViewFormats = &m_swapchain.image_kind()->format
-    },
-    vk::FramebufferAttachmentImageInfo{
-      .usage = s_depth_image_kind->usage,
-      .width = extent.width,
-      .height = extent.height,
-      .layerCount = s_depth_image_kind->array_layers,
-      .viewFormatCount = 1,
-      .pViewFormats = &s_depth_image_kind->format
-    }
-  };
+  vulkan::rendergraph::RenderPass const* swapchain_render_pass_output_sink = m_swapchain.render_pass_output_sink();
+  utils::Vector<vk::FramebufferAttachmentImageInfo, vulkan::rendergraph::AttachmentIndex> framebuffer_attachment_image_infos =
+    swapchain_render_pass_output_sink->get_framebuffer_attachment_image_infos(extent);
 
   vk::StructureChain<vk::FramebufferCreateInfo, vk::FramebufferAttachmentsCreateInfo> framebuffer_create_info_chain(
     {
       .flags = vk::FramebufferCreateFlagBits::eImageless,
       .renderPass = m_swapchain.vh_render_pass(),
-      .attachmentCount = attachments_image_infos.size(),
+      .attachmentCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
       .width = extent.width,
       .height = extent.height,
       .layers = m_swapchain.image_kind()->array_layers
     },
     {
-      .attachmentImageInfoCount = attachments_image_infos.size(),
-      .pAttachmentImageInfos = attachments_image_infos.data()
+      .attachmentImageInfoCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
+      .pAttachmentImageInfos = framebuffer_attachment_image_infos.data()
     }
   );
 
