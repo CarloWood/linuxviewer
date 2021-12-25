@@ -113,15 +113,15 @@ class Window : public task::SynchronousWindow
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
     std::vector<vk::ClearValue> clear_values = {
-      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } },
-      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } }
+      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } },
+      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } }
     };
 
     auto swapchain_extent = swapchain().extent();
 
     std::array<vk::ImageView, 2> attachments = {
-      swapchain().vh_current_image_view(),
-      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view
+      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view,
+      swapchain().vh_current_image_view()
     };
 #ifdef CWDEBUG
     Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
@@ -276,7 +276,7 @@ class Window : public task::SynchronousWindow
     auto& final_pass = m_render_graph.create_render_pass("final_pass");
     auto& output = swapchain().presentation_attachment();
 
-    m_render_graph = final_pass[~depth]->stores(output);
+    m_render_graph = final_pass[~depth]->stores(~output);
     m_render_graph.generate(this);
 
     std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
@@ -284,12 +284,12 @@ class Window : public task::SynchronousWindow
         {},                                                         // std::vector<VkAttachmentReference> const& InputAttachments
         {                                                           // std::vector<VkAttachmentReference> const& ColorAttachments
           {
-            .attachment = 0,
+            .attachment = 1,
             .layout = vk::ImageLayout::eColorAttachmentOptimal
           }
         },
         {                                                           // VkAttachmentReference const& DepthStencilAttachment;
-          .attachment = 1,
+          .attachment = 0,
           .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         }
       }
@@ -319,20 +319,20 @@ class Window : public task::SynchronousWindow
     // Render pass - from present_src to color_attachment.
     {
 #if 0
-      std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
-        {
-          .m_format = swapchain().image_kind()->format,
-          .m_load_op = vk::AttachmentLoadOp::eClear,
-          .m_store_op = vk::AttachmentStoreOp::eStore,
-          .m_initial_layout = vk::ImageLayout::ePresentSrcKHR,
-          .m_final_layout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
+      utils::Vector<vk_defaults::AttachmentDescription, vulkan::rendergraph::AttachmentIndex> attachment_descriptions = {
+        vk::AttachmentDescription{
+          .format = s_default_depth_format,
+          .loadOp = vk::AttachmentLoadOp::eClear,
+          .storeOp = vk::AttachmentStoreOp::eStore,
+          .initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+          .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal
         },
-        {
-          .m_format = s_default_depth_format,
-          .m_load_op = vk::AttachmentLoadOp::eClear,
-          .m_store_op = vk::AttachmentStoreOp::eStore,
-          .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-          .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
+        vk::AttachmentDescription{
+          .format = swapchain().image_kind()->format,
+          .loadOp = vk::AttachmentLoadOp::eClear,
+          .storeOp = vk::AttachmentStoreOp::eStore,
+          .initialLayout = vk::ImageLayout::ePresentSrcKHR,
+          .finalLayout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
         }
       };
 #endif

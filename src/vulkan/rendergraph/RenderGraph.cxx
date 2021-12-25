@@ -400,8 +400,6 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
     Dout(dc::notice, "attachment_description " << node.index2() << " = " << attachment_description);
     m_attachment_descriptions.push_back(attachment_description);
   }
-  // FIXME: do not reverse the vector :P
-  std::swap(m_attachment_descriptions[AttachmentIndex{0}], m_attachment_descriptions[AttachmentIndex{1}]);
 }
 
 utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
@@ -420,8 +418,6 @@ utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::g
         .pViewFormats = &image_kind->format
       });
   }
-  // FIXME: do not swap!
-  std::swap(attachments_image_infos[AttachmentIndex{0}], attachments_image_infos[AttachmentIndex{1}]);
   return attachments_image_infos;
 }
 
