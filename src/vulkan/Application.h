@@ -28,7 +28,6 @@ namespace vulkan {
 
 class InstanceCreateInfo;
 class DeviceCreateInfo;
-class PhysicalDeviceFeatures;
 
 class Application
 {

@@ -54,6 +54,7 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 #include "vk_utils/PrintList.h"
 #include "vk_utils/PrintPointer.h"
 #include "vk_utils/print_version.h"
+#include "vk_utils/print_chain.h"
 #include "debug.h"
 #include <iomanip>
 #endif
@@ -66,6 +67,7 @@ using vk_utils::print_version;
 using vk_utils::print_api_version;
 using vk_utils::print_list;
 using vk_utils::print_pointer;
+using vk_utils::print_chain;
 using NAMESPACE_DEBUG::print_string;
 
 void ApplicationInfo::print_members(std::ostream& os, char const* prefix) const
@@ -100,7 +102,7 @@ void DebugUtilsMessengerCreateInfoEXT::print_members(std::ostream& os, char cons
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os <<
       "flags:"                   << flags <<
@@ -115,7 +117,7 @@ void DebugUtilsObjectNameInfoEXT::print_members(std::ostream& os, char const* pr
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   using std::hex;
   os <<
@@ -193,6 +195,115 @@ void PhysicalDeviceFeatures::print_members(std::ostream& os, char const* prefix)
 #undef SHOW_IF_TRUE
 }
 
+void PhysicalDeviceFeatures2::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << print_chain(pNext) << ", ";
+
+  os << "features:" << features;
+}
+
+void PhysicalDeviceVulkan11Features::print_members(std::ostream& os, char const* prefix) const
+{
+  // Do not print pNext if this is printed as part of a chain already.
+  if (strcmp(prefix, "⛓") != 0)
+  {
+    os << prefix;
+    if (pNext)
+      os << "pNext:" << print_chain(pNext) << ", ";
+  }
+
+  // All `var` are VkBool32.
+#define SHOW_IF_TRUE(var) \
+  do { if (var) { os << prefix << #var; prefix = ", "; } } while(0)
+
+  prefix = "<";
+  SHOW_IF_TRUE(storageBuffer16BitAccess);
+  SHOW_IF_TRUE(uniformAndStorageBuffer16BitAccess);
+  SHOW_IF_TRUE(storagePushConstant16);
+  SHOW_IF_TRUE(storageInputOutput16);
+  SHOW_IF_TRUE(multiview);
+  SHOW_IF_TRUE(multiviewGeometryShader);
+  SHOW_IF_TRUE(multiviewTessellationShader);
+  SHOW_IF_TRUE(variablePointersStorageBuffer);
+  SHOW_IF_TRUE(variablePointers);
+  SHOW_IF_TRUE(protectedMemory);
+  SHOW_IF_TRUE(samplerYcbcrConversion);
+  SHOW_IF_TRUE(shaderDrawParameters);
+  os << ">";
+
+#undef SHOW_IF_TRUE
+}
+
+void PhysicalDeviceVulkan12Features::print_members(std::ostream& os, char const* prefix) const
+{
+  // Do not print pNext if this is printed as part of a chain already.
+  if (strcmp(prefix, "⛓") != 0)
+  {
+    os << prefix;
+    if (pNext)
+      os << "pNext:" << print_chain(pNext) << ", ";
+  }
+
+  // All `var` are VkBool32.
+#define SHOW_IF_TRUE(var) \
+  do { if (var) { os << prefix << #var; prefix = ", "; } } while(0)
+
+  prefix = "<";
+  SHOW_IF_TRUE(samplerMirrorClampToEdge);
+  SHOW_IF_TRUE(drawIndirectCount);
+  SHOW_IF_TRUE(storageBuffer8BitAccess);
+  SHOW_IF_TRUE(uniformAndStorageBuffer8BitAccess);
+  SHOW_IF_TRUE(storagePushConstant8);
+  SHOW_IF_TRUE(shaderBufferInt64Atomics);
+  SHOW_IF_TRUE(shaderSharedInt64Atomics);
+  SHOW_IF_TRUE(shaderFloat16);
+  SHOW_IF_TRUE(shaderInt8);
+  SHOW_IF_TRUE(descriptorIndexing);
+  SHOW_IF_TRUE(shaderInputAttachmentArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderUniformTexelBufferArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderStorageTexelBufferArrayDynamicIndexing);
+  SHOW_IF_TRUE(shaderUniformBufferArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderSampledImageArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderStorageBufferArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderStorageImageArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderInputAttachmentArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderUniformTexelBufferArrayNonUniformIndexing);
+  SHOW_IF_TRUE(shaderStorageTexelBufferArrayNonUniformIndexing);
+  SHOW_IF_TRUE(descriptorBindingUniformBufferUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingSampledImageUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingStorageImageUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingStorageBufferUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingUniformTexelBufferUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingStorageTexelBufferUpdateAfterBind);
+  SHOW_IF_TRUE(descriptorBindingUpdateUnusedWhilePending);
+  SHOW_IF_TRUE(descriptorBindingPartiallyBound);
+  SHOW_IF_TRUE(descriptorBindingVariableDescriptorCount);
+  SHOW_IF_TRUE(runtimeDescriptorArray);
+  SHOW_IF_TRUE(samplerFilterMinmax);
+  SHOW_IF_TRUE(scalarBlockLayout);
+  SHOW_IF_TRUE(imagelessFramebuffer);
+  SHOW_IF_TRUE(uniformBufferStandardLayout);
+  SHOW_IF_TRUE(shaderSubgroupExtendedTypes);
+  SHOW_IF_TRUE(separateDepthStencilLayouts);
+  SHOW_IF_TRUE(hostQueryReset);
+  SHOW_IF_TRUE(timelineSemaphore);
+  SHOW_IF_TRUE(bufferDeviceAddress);
+  SHOW_IF_TRUE(bufferDeviceAddressCaptureReplay);
+  SHOW_IF_TRUE(bufferDeviceAddressMultiDevice);
+  SHOW_IF_TRUE(vulkanMemoryModel);
+  SHOW_IF_TRUE(vulkanMemoryModelDeviceScope);
+  SHOW_IF_TRUE(vulkanMemoryModelAvailabilityVisibilityChains);
+  SHOW_IF_TRUE(shaderOutputViewportIndex);
+  SHOW_IF_TRUE(shaderOutputLayer);
+  SHOW_IF_TRUE(subgroupBroadcastDynamicId);
+  os << ">";
+
+#undef SHOW_IF_TRUE
+}
+
 #endif // CWDEBUG
 
 void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
@@ -200,7 +311,7 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", pQueueCreateInfos:<";
@@ -225,12 +336,18 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
     os << '"' << ppEnabledExtensionNames[i] << '"';
   }
   os << ">";
+#if 0
 #ifdef CWDEBUG
   os << ", pEnabledFeatures";
   if (pEnabledFeatures)
     os << "->" << *pEnabledFeatures;
   else
     os << ":nullptr";
+#endif
+#else
+  // Isn't used when using vk::PhysicalDeviceFeatures2 instead of PhysicalDeviceFeatures.
+  // Instead the pNext chain is used.
+  ASSERT(!pEnabledFeatures);
 #endif
 }
 
@@ -239,7 +356,7 @@ void DeviceQueueCreateInfo::print_members(std::ostream& os, char const* prefix) 
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
   os << "queueFamilyIndex:" << queueFamilyIndex <<
 //      ", queueCount: " << queueCount <<
       ", pQueuePriorities:";
@@ -323,7 +440,7 @@ void SwapchainCreateInfoKHR::print_members(std::ostream& os, char const* prefix)
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", surface:" << surface <<
@@ -357,7 +474,7 @@ void GraphicsPipelineCreateInfo::print_members(std::ostream& os, char const* pre
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", stageCount:" << stageCount <<
@@ -384,7 +501,7 @@ void PipelineShaderStageCreateInfo::print_members(std::ostream& os, char const* 
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", stage:" << stage <<
@@ -398,7 +515,7 @@ void PipelineVertexInputStateCreateInfo::print_members(std::ostream& os, char co
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
 //      ", vertexBindingDescriptionCount:" << vertexBindingDescriptionCount <<
@@ -412,7 +529,7 @@ void PipelineInputAssemblyStateCreateInfo::print_members(std::ostream& os, char 
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", topology:" << topology <<
@@ -424,7 +541,7 @@ void PipelineTessellationStateCreateInfo::print_members(std::ostream& os, char c
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", patchControlPoints:" << patchControlPoints;
@@ -448,7 +565,7 @@ void PipelineViewportStateCreateInfo::print_members(std::ostream& os, char const
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags;
 
@@ -468,7 +585,7 @@ void PipelineRasterizationStateCreateInfo::print_members(std::ostream& os, char 
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", depthClampEnable:" << depthClampEnable <<
@@ -488,7 +605,7 @@ void PipelineMultisampleStateCreateInfo::print_members(std::ostream& os, char co
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", rasterizationSamples:" << rasterizationSamples <<
@@ -504,7 +621,7 @@ void PipelineDepthStencilStateCreateInfo::print_members(std::ostream& os, char c
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", depthTestEnable:" << depthTestEnable <<
@@ -523,7 +640,7 @@ void PipelineColorBlendStateCreateInfo::print_members(std::ostream& os, char con
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", logicOpEnable:" << logicOpEnable <<
@@ -538,7 +655,7 @@ void PipelineDynamicStateCreateInfo::print_members(std::ostream& os, char const*
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
 //      ", dynamicStateCount:" << dynamicStateCount <<
@@ -634,7 +751,7 @@ void FramebufferCreateInfo::print_members(std::ostream& os, char const* prefix) 
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
       ", renderPass:" << renderPass;
@@ -652,7 +769,7 @@ void MappedMemoryRange::print_members(std::ostream& os, char const* prefix) cons
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "memory:" << memory <<
       ", offset:" << offset <<
@@ -664,7 +781,7 @@ void SubmitInfo::print_members(std::ostream& os, char const* prefix) const
   os << prefix;
 
   if (pNext)
-    os << "pNext:" << pNext << ", ";
+    os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "pWaitSemaphores:" << print_list(pWaitSemaphores, waitSemaphoreCount) <<
       ", pWaitDstStageMask:" << print_pointer(pWaitDstStageMask) <<
@@ -685,6 +802,19 @@ void AttachmentDescription::print_members(std::ostream& os, char const* prefix) 
       ", stencilStoreOp:" << stencilStoreOp <<
       ", initialLayout:" << initialLayout <<
       ", finalLayout:" << finalLayout;
+}
+
+void PhysicalDeviceSeparateDepthStencilLayoutsFeatures::print_members(std::ostream& os, char const* prefix) const
+{
+  // Do not print pNext if this is printed as part of a chain already.
+  if (strcmp(prefix, "⛓") != 0)
+  {
+    os << prefix;
+    if (pNext)
+      os << "pNext:" << print_chain(pNext) << ", ";
+  }
+
+  os << "separateDepthStencilLayouts:" << separateDepthStencilLayouts;
 }
 
 #endif // CWDEBUG

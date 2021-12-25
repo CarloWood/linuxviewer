@@ -598,6 +598,7 @@ class LogicalDevice : public vulkan::LogicalDevice
   {
     // Use the setters from vk::PhysicalDeviceFeatures.
     physical_device_features.setDepthClamp(true);
+    // FIXME: Allow adding features to the pNext chain of vk::PhysicalDeviceFeatures2.
   }
 
   void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override

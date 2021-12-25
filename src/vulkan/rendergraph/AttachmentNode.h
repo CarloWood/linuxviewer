@@ -64,7 +64,7 @@ class AttachmentNode
 
   // Accessor.
   RenderPass const* render_pass() const { return m_render_pass; }
-  AttachmentIndex index() const { return m_index; }
+  AttachmentIndex index2() const { return m_index; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

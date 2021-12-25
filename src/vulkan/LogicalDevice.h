@@ -50,10 +50,11 @@ struct UnsupportedQueueFlagsException : std::exception {
 class LogicalDevice
 {
  private:
-  vk::PhysicalDevice m_vh_physical_device;      // The underlaying physical device.
-  vk::UniqueDevice m_device;                    // A handle to the logical device.
+  vk::PhysicalDevice m_vh_physical_device;              // The underlaying physical device.
+  vk::UniqueDevice m_device;                            // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
+  bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
 #ifdef CWDEBUG
   std::string m_debug_name;
 #endif
@@ -67,6 +68,7 @@ class LogicalDevice
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
 
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
+  bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;

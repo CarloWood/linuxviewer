@@ -14,12 +14,12 @@ class DeviceCreateInfo;
 
 namespace vk {
 
-template <>
-struct StructExtends<PhysicalDeviceVulkan12Features, vulkan::DeviceCreateInfo>
+template <typename T>
+struct StructExtends<T, vulkan::DeviceCreateInfo>
 {
   enum
   {
-    value = true
+    value = StructExtends<T, vk::DeviceCreateInfo>::value
   };
 };
 

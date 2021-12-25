@@ -334,9 +334,12 @@ void LogicalDevice::prepare(
 
   // Get the queue family requirements from the user, using the virtual function prepare_logical_device
   // and enable the imagelessFramebuffer feature.
-  vk::StructureChain<DeviceCreateInfo, vk::PhysicalDeviceVulkan12Features> device_create_info_chain(
-    physical_device_features,
-    { .imagelessFramebuffer = true }
+  vk::StructureChain<DeviceCreateInfo, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> device_create_info_chain({},
+      // 1.1 features.
+      { },
+      // 1.2 features.
+      { .imagelessFramebuffer = true,           // Mandatory feature.
+        .separateDepthStencilLayouts = true }   // Optional feature.
   );
   DeviceCreateInfo& device_create_info = device_create_info_chain.get<DeviceCreateInfo>();
   prepare_logical_device(device_create_info);
@@ -375,6 +378,9 @@ void LogicalDevice::prepare(
   if (!m_vh_physical_device)
     THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
 
+  // Check for optional features.
+  vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> physical_device_features_chain;
+
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Properties:");
   {
@@ -382,12 +388,18 @@ void LogicalDevice::prepare(
     auto properties = m_vh_physical_device.getProperties();
     Dout(dc::vulkan, properties);
   }
+#endif
   Dout(dc::vulkan, "Physical Device Features:");
   {
+#ifdef CWDEBUG
     debug::Mark mark;
-    auto features = m_vh_physical_device.getFeatures();
+#endif
+    vk::PhysicalDeviceFeatures2& features = physical_device_features_chain.get<vk::PhysicalDeviceFeatures2>();
+    m_vh_physical_device.getFeatures2(&features);
+    m_supports_separate_depth_stencil_layouts = physical_device_features_chain.get<vk::PhysicalDeviceVulkan12Features>().separateDepthStencilLayouts;
     Dout(dc::vulkan, features);
   }
+#ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Extension Properties:");
   {
     debug::Mark mark;
