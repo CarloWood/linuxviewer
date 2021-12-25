@@ -5,6 +5,7 @@
 
 namespace vk_utils {
 
+#ifdef CWDEBUG
 std::ostream& operator<<(std::ostream& os, PNextChain const* chain)
 {
   os << '{';
@@ -32,5 +33,6 @@ std::ostream& operator<<(std::ostream& os, PNextChain const* chain)
 
   return os;
 }
+#endif
 
 } // namespace vk_utils

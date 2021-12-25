@@ -54,20 +54,20 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 #include "vk_utils/PrintList.h"
 #include "vk_utils/PrintPointer.h"
 #include "vk_utils/print_version.h"
-#include "vk_utils/print_chain.h"
 #include "debug.h"
 #include <iomanip>
 #endif
+#include "vk_utils/print_chain.h"
 #include "vk_utils/print_flags.h"
 
 namespace vk_defaults {
 
+using vk_utils::print_chain;
 #ifdef CWDEBUG
 using vk_utils::print_version;
 using vk_utils::print_api_version;
 using vk_utils::print_list;
 using vk_utils::print_pointer;
-using vk_utils::print_chain;
 using NAMESPACE_DEBUG::print_string;
 
 void ApplicationInfo::print_members(std::ostream& os, char const* prefix) const
@@ -303,7 +303,6 @@ void PhysicalDeviceVulkan12Features::print_members(std::ostream& os, char const*
 
 #undef SHOW_IF_TRUE
 }
-
 #endif // CWDEBUG
 
 void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const

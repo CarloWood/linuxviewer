@@ -163,7 +163,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
       // Finding no render pass that stores to the attachment is an error.
       std::vector<RenderPass*> stores;
       for_each_render_pass_from(render_pass, search_backwards,
-          [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& CWDEBUG_ONLY(path))
+          [&](RenderPass* preceding_render_pass, std::vector<RenderPass*>& path)
           {
             DoutEntering(dc::rpverbose|continued_cf, "lambda(" << preceding_render_pass << ", " << path << ") = ");
             if (preceding_render_pass->is_store(attachment))
