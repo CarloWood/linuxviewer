@@ -90,8 +90,8 @@ class RenderPass
   vk::AttachmentStoreOp get_store_op(Attachment const* attachment) const;
   vk::AttachmentLoadOp get_stencil_load_op(Attachment const* attachment) const;
   vk::AttachmentStoreOp get_stencil_store_op(Attachment const* attachment) const;
-  vk::ImageLayout get_initial_layout(Attachment const* attachment) const;
-  vk::ImageLayout get_final_layout(Attachment const* attachment) const;
+  vk::ImageLayout get_initial_layout(Attachment const* attachment, bool supports_separate_depth_stencil_layouts) const;
+  vk::ImageLayout get_final_layout(Attachment const* attachment, bool supports_separate_depth_stencil_layouts) const;
 
   // Actual creation.
   void create(task::SynchronousWindow const* owning_window);
@@ -133,7 +133,7 @@ class RenderPass
 
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
-  vk::ImageLayout get_optimal_layout(AttachmentNode const& node) const;
+  vk::ImageLayout get_optimal_layout(AttachmentNode const& node, bool supports_separate_depth_stencil_layouts) const;
 
  public:
   void print_on(std::ostream& os) const;

@@ -156,6 +156,7 @@ class ImageViewKind
   bool is_depth() const { return static_cast<bool>(m_data.subresource_range.aspectMask & vk::ImageAspectFlagBits::eDepth); }
   bool is_stencil() const { return static_cast<bool>(m_data.subresource_range.aspectMask & vk::ImageAspectFlagBits::eStencil); }
   bool is_depth_stencil() const { return is_depth() && is_stencil(); }
+  bool is_depth_and_or_stencil() const { return is_depth() || is_stencil(); }
 
   // Convert into a ImageViewCreateInfo.
   vk::ImageViewCreateInfo operator()(vk::Image vh_image) const;

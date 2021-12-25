@@ -2,6 +2,7 @@
 #include "RenderGraph.h"
 #include "RenderPass.h"
 #include "Attachment.h"
+#include "../LogicalDevice.h"
 #include "../SynchronousWindow.h"
 #include "debug.h"
 #ifdef CWDEBUG
@@ -293,7 +294,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
     if (sink)
     {
       Dout(dc::renderpass, "Render pass \"" << sink << "\" is the sink of attachment \"" << attachment << "\".");
-      attachment->set_final_layout(sink->get_final_layout(attachment));
+      attachment->set_final_layout(sink->get_final_layout(attachment, owning_window->logical_device().supports_separate_depth_stencil_layouts()));
     }
   }
 
@@ -394,8 +395,9 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
         .setStencilStoreOp(get_stencil_store_op(attachment))
         ;
     }
-    attachment_description.setInitialLayout(get_initial_layout(attachment));
-    attachment_description.setFinalLayout(get_final_layout(attachment));
+    bool supports_separate_depth_stencil_layouts = owning_window->logical_device().supports_separate_depth_stencil_layouts();
+    attachment_description.setInitialLayout(get_initial_layout(attachment, supports_separate_depth_stencil_layouts));
+    attachment_description.setFinalLayout(get_final_layout(attachment, supports_separate_depth_stencil_layouts));
 
     Dout(dc::notice, "attachment_description " << node.index2() << " = " << attachment_description);
     m_attachment_descriptions.push_back(attachment_description);

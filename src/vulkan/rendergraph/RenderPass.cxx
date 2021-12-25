@@ -181,32 +181,35 @@ vk::AttachmentStoreOp RenderPass::get_stencil_store_op(Attachment const* attachm
   return vk::AttachmentStoreOp::eDontCare;
 }
 
-vk::ImageLayout RenderPass::get_optimal_layout(AttachmentNode const& node) const
+vk::ImageLayout RenderPass::get_optimal_layout(AttachmentNode const& node, bool supports_separate_depth_stencil_layouts) const
 {
   ImageViewKind const& image_view_kind = node.attachment()->image_view_kind();
   if (image_view_kind.is_color())
     return vk::ImageLayout::eColorAttachmentOptimal;
-  else if (image_view_kind.is_depth_stencil())
-    return node.is_readonly() ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
-                              : vk::ImageLayout::eDepthStencilAttachmentOptimal;
-  else if (image_view_kind.is_depth())
-    return node.is_readonly() ? vk::ImageLayout::eDepthReadOnlyOptimal
-                              : vk::ImageLayout::eDepthAttachmentOptimal;
-  else if (image_view_kind.is_stencil())
-    return node.is_readonly() ? vk::ImageLayout::eStencilReadOnlyOptimal
-                              : vk::ImageLayout::eStencilAttachmentOptimal;
+  else if (image_view_kind.is_depth_and_or_stencil())
+  {
+    if (image_view_kind.is_depth_stencil() || !supports_separate_depth_stencil_layouts)
+      return node.is_readonly() ? vk::ImageLayout::eDepthStencilReadOnlyOptimal
+                                : vk::ImageLayout::eDepthStencilAttachmentOptimal;
+    else if (image_view_kind.is_depth())
+      return node.is_readonly() ? vk::ImageLayout::eDepthReadOnlyOptimal
+                                : vk::ImageLayout::eDepthAttachmentOptimal;
+    else if (image_view_kind.is_stencil())
+      return node.is_readonly() ? vk::ImageLayout::eStencilReadOnlyOptimal
+                                : vk::ImageLayout::eStencilAttachmentOptimal;
+  }
   // Couldn't figure out optimal layout.
   ASSERT(false);
   return vk::ImageLayout::eGeneral;
 }
 
-vk::ImageLayout RenderPass::get_initial_layout(Attachment const* attachment) const
+vk::ImageLayout RenderPass::get_initial_layout(Attachment const* attachment, bool supports_separate_depth_stencil_layouts) const
 {
   auto node = find_by_ID(m_known_attachments, attachment);
   if (node == m_known_attachments.end())
     return vk::ImageLayout::eUndefined;
   if (!node->is_source())
-    return get_optimal_layout(*node);
+    return get_optimal_layout(*node, supports_separate_depth_stencil_layouts);
   vk::ImageLayout initial_layout = attachment->image_kind()->initial_layout;
   vk::ImageLayout final_layout = attachment->get_final_layout();
   if (final_layout != vk::ImageLayout::eUndefined && attachment->image_kind()->initial_layout != final_layout)
@@ -215,13 +218,13 @@ vk::ImageLayout RenderPass::get_initial_layout(Attachment const* attachment) con
   return initial_layout;
 }
 
-vk::ImageLayout RenderPass::get_final_layout(Attachment const* attachment) const
+vk::ImageLayout RenderPass::get_final_layout(Attachment const* attachment, bool supports_separate_depth_stencil_layouts) const
 {
   auto node = find_by_ID(m_known_attachments, attachment);
   if (node == m_known_attachments.end())
     return vk::ImageLayout::eUndefined;
   if (!node->is_sink() || !node->is_store())
-    return get_optimal_layout(*node);
+    return get_optimal_layout(*node, supports_separate_depth_stencil_layouts);
   if (node->is_present())
     return vk::ImageLayout::ePresentSrcKHR;
   // Couldn't figure out the final layout.
