@@ -541,28 +541,15 @@ Queue LogicalDevice::acquire_queue(
 
 vk::UniqueRenderPass LogicalDevice::create_render_pass(
     utils::Vector<vk_defaults::AttachmentDescription, rendergraph::AttachmentIndex> const& attachment_descriptions,
-    std::vector<RenderPassSubpassData> const& subpass_descriptions,
+    utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions,
     std::vector<vk::SubpassDependency> const& dependencies
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  std::vector<vk::SubpassDescription> subpasses;
-  for (auto const& subpass : subpass_descriptions)
-    subpasses.push_back({
-        .flags = {},
-        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
-        .inputAttachmentCount = static_cast<uint32_t>(subpass.m_input_attachments.size()),
-        .pInputAttachments = subpass.m_input_attachments.data(),
-        .colorAttachmentCount = static_cast<uint32_t>(subpass.m_color_attachments.size()),
-        .pColorAttachments = subpass.m_color_attachments.data(),
-        .pResolveAttachments = nullptr,
-        .pDepthStencilAttachment = &subpass.m_depth_stencil_attachment
-      });
-
   vk::RenderPassCreateInfo render_pass_create_info{
     .attachmentCount = static_cast<uint32_t>(attachment_descriptions.size()),
     .pAttachments = attachment_descriptions.data(),
-    .subpassCount = static_cast<uint32_t>(subpasses.size()),
-    .pSubpasses = subpasses.data(),
+    .subpassCount = static_cast<uint32_t>(subpass_descriptions.size()),
+    .pSubpasses = subpass_descriptions.data(),
     .dependencyCount = static_cast<uint32_t>(dependencies.size()),
     .pDependencies = dependencies.data()
   };

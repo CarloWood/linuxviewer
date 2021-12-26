@@ -273,27 +273,12 @@ class Window : public task::SynchronousWindow
 //    vulkan::rendergraph::RenderGraph::testsuite();
 #endif
 
+    // These must be references.
     auto& final_pass = m_render_graph.create_render_pass("final_pass");
     auto& output = swapchain().presentation_attachment();
 
     m_render_graph = final_pass[~depth]->stores(~output);
     m_render_graph.generate(this);
-
-    std::vector<vulkan::RenderPassSubpassData> subpass_descriptions = {
-      {
-        {},                                                         // std::vector<VkAttachmentReference> const& InputAttachments
-        {                                                           // std::vector<VkAttachmentReference> const& ColorAttachments
-          {
-            .attachment = 1,
-            .layout = vk::ImageLayout::eColorAttachmentOptimal
-          }
-        },
-        {                                                           // VkAttachmentReference const& DepthStencilAttachment;
-          .attachment = 0,
-          .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-        }
-      }
-    };
 
     std::vector<vk::SubpassDependency> dependencies = {
       {
@@ -316,9 +301,9 @@ class Window : public task::SynchronousWindow
       }
     };
 
+#if 0
     // Render pass - from present_src to color_attachment.
     {
-#if 0
       utils::Vector<vk_defaults::AttachmentDescription, vulkan::rendergraph::AttachmentIndex> attachment_descriptions = {
         vk::AttachmentDescription{
           .format = s_default_depth_format,
@@ -335,11 +320,15 @@ class Window : public task::SynchronousWindow
           .finalLayout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
         }
       };
-#endif
-      // Create the swapchain render pass.
-      set_swapchain_render_pass(logical_device().create_render_pass(final_pass.attachment_descriptions(), subpass_descriptions, dependencies
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
     }
+#endif
+
+    // Create the swapchain render pass.
+    set_swapchain_render_pass(logical_device().create_render_pass(
+          final_pass.attachment_descriptions(),
+          final_pass.subpass_descriptions(),
+          dependencies
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
     // Create the swapchain render pass.
 //    set_swapchain_render_pass(logical_device().create_render_pass(render_graph COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));

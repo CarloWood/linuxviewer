@@ -5,7 +5,6 @@
 #include "SynchronousWindow.h"
 #include "QueueReply.h"
 #include "RenderPassAttachmentData.h"
-#include "RenderPassSubpassData.h"
 #include "Queue.h"
 #include "ImageParameters.h"
 #include "DescriptorSetParameters.h"
@@ -87,7 +86,7 @@ class LogicalDevice
   // Create a RenderPass.
   vk::UniqueRenderPass create_render_pass(
       utils::Vector<vk_defaults::AttachmentDescription, rendergraph::AttachmentIndex> const& attachment_descriptions,
-      std::vector<RenderPassSubpassData> const& subpass_descriptions,
+      utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions,
       std::vector<vk::SubpassDependency> const& dependencies
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 

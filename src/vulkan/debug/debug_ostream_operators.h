@@ -55,7 +55,7 @@ DECLARE_OSTREAM_INSERTER(FramebufferCreateInfo)
 DECLARE_OSTREAM_INSERTER(MappedMemoryRange)
 DECLARE_OSTREAM_INSERTER(SubmitInfo)
 DECLARE_OSTREAM_INSERTER(AttachmentDescription)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceSeparateDepthStencilLayoutsFeatures)
+DECLARE_OSTREAM_INSERTER(SubpassDescription)
 
 template<typename T>
 std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
@@ -70,6 +70,8 @@ std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
   }
   return os << '>';
 }
+
+std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference);
 
 } // namespace vk
 

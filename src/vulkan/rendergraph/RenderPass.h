@@ -6,6 +6,7 @@
 
 #include "AttachmentNode.h"
 #include "Attachment.h"
+#include "RenderPassSubpassData.h"
 #include <string>
 #include <functional>
 #include <set>
@@ -53,6 +54,9 @@ class RenderPass
   // RenderPass::create:
   utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> m_attachment_descriptions;
                                                                         // Attachment descriptions corresponding to the attachment nodes of m_known_attachments.
+  RenderPassSubpassData m_subpass_data;                                 // Objects pointed to by m_subpass_descriptions.
+  utils::Vector<vk_defaults::SubpassDescription> m_subpass_descriptions;
+                                                                        // Subpass descriptions corresponding to subpasses of this render pass.
 
  public:
   // Constructor (only called by RenderGraph::create_render_pass.
@@ -98,6 +102,7 @@ class RenderPass
 
   // Harvest information.
   utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> const& attachment_descriptions() const { return m_attachment_descriptions; }
+  utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions() const { return m_subpass_descriptions; }
   utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> get_framebuffer_attachment_image_infos(vk::Extent2D extent) const;
 
   //---------------------------------------------------------------------------
@@ -133,7 +138,7 @@ class RenderPass
 
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
-  vk::ImageLayout get_optimal_layout(AttachmentNode const& node, bool supports_separate_depth_stencil_layouts) const;
+  vk::ImageLayout get_optimal_layout(AttachmentNode const& node, bool separate_depth_stencil_layouts) const;
 
  public:
   void print_on(std::ostream& os) const;

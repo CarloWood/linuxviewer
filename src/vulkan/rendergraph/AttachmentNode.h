@@ -28,7 +28,6 @@ class AttachmentNode
   Attachment const* m_attachment;                                       // A pointer to the associated Attachment description.
   AttachmentIndex m_index;                                              // The render pass specific index (index into pAttachments).
   LoadStoreOps m_ops;                                                   // Encodes the [DCL][DS] code for this attachment/render_pass.
-  bool m_is_readonly = false;
   bool m_is_source = false;
   bool m_is_sink = false;
   bool m_is_present = false;
@@ -45,7 +44,6 @@ class AttachmentNode
   void set_store();
   void set_preserve();
 
-  void set_is_readonly();
   void set_is_source();
   void set_is_sink();
   void set_is_present();
@@ -54,7 +52,6 @@ class AttachmentNode
   bool is_clear() const { return m_ops.is_clear(); }
   bool is_store() const { return m_ops.is_store(); }
   bool is_preserve() const { return m_ops.is_preserve(); }
-  bool is_readonly() const { return m_is_readonly; }
   bool is_source() const { return m_is_source; }
   bool is_sink() const { return m_is_sink; }
   bool is_present() const { return m_is_present; }
@@ -64,7 +61,7 @@ class AttachmentNode
 
   // Accessor.
   RenderPass const* render_pass() const { return m_render_pass; }
-  AttachmentIndex index2() const { return m_index; }
+  AttachmentIndex index() const { return m_index; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

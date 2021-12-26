@@ -644,7 +644,6 @@ void PipelineColorBlendStateCreateInfo::print_members(std::ostream& os, char con
   os << "flags:" << flags <<
       ", logicOpEnable:" << logicOpEnable <<
       ", logicOp:" << logicOp <<
-//      ", attachmentCount:" << attachmentCount <<
       ", pAttachments:" << print_list(pAttachments, attachmentCount) <<
       ", blendConstants:" << blendConstants;
 }
@@ -657,7 +656,6 @@ void PipelineDynamicStateCreateInfo::print_members(std::ostream& os, char const*
     os << "pNext:" << print_chain(pNext) << ", ";
 
   os << "flags:" << flags <<
-//      ", dynamicStateCount:" << dynamicStateCount <<
       ", pDynamicStates:" << print_list(pDynamicStates, dynamicStateCount);
 }
 
@@ -723,10 +721,8 @@ void Offset2D::print_members(std::ostream& os, char const* prefix) const
 
 void SpecializationInfo::print_members(std::ostream& os, char const* prefix) const
 {
-  os <<
-//        "mapEntryCount:" << mapEntryCount << ", "
-        "pMapEntries:" << print_list(pMapEntries, mapEntryCount) <<
-     ", dataSize:" << dataSize <<
+  os << "pMapEntries:" << print_list(pMapEntries, mapEntryCount) <<
+      ", dataSize:" << dataSize <<
       ", pData:" << pData;
 }
 
@@ -803,17 +799,25 @@ void AttachmentDescription::print_members(std::ostream& os, char const* prefix) 
       ", finalLayout:" << finalLayout;
 }
 
-void PhysicalDeviceSeparateDepthStencilLayoutsFeatures::print_members(std::ostream& os, char const* prefix) const
+void SubpassDescription::print_members(std::ostream& os, char const* prefix) const
 {
-  // Do not print pNext if this is printed as part of a chain already.
-  if (strcmp(prefix, "⛓") != 0)
-  {
-    os << prefix;
-    if (pNext)
-      os << "pNext:" << print_chain(pNext) << ", ";
-  }
+  os << prefix;
 
-  os << "separateDepthStencilLayouts:" << separateDepthStencilLayouts;
+  os << "flags:" << flags <<
+      ", pipelineBindPoint:" << pipelineBindPoint <<
+      ", pInputAttachments:" << print_list(pInputAttachments, inputAttachmentCount) <<
+      ", pColorAttachments:" << print_list(pColorAttachments, colorAttachmentCount) <<
+      ", pResolveAttachments:";
+  if (pResolveAttachments)
+    os << print_list(pResolveAttachments, colorAttachmentCount);
+  else
+    os << "nullptr";
+  os << ", pDepthStencilAttachment:";
+  if (pDepthStencilAttachment)
+    os << *pDepthStencilAttachment;
+  else
+    os << "nullptr";
+  os << ", pPreserveAttachments:" << print_list(pPreserveAttachments, preserveAttachmentCount);
 }
 
 #endif // CWDEBUG

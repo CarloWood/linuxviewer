@@ -226,6 +226,17 @@ VK_DEFAULTS_DECLARE(AttachmentDescription)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
+VK_DEFAULTS_DECLARE(SubpassDescription)
+{
+  SubpassDescription()
+  {
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
+using SubpassIndex = utils::VectorIndex<SubpassDescription>;
+
 #ifdef CWDEBUG
 DECLARE_PRINT_MEMBERS_CLASS(Extent2D)
 DECLARE_PRINT_MEMBERS_CLASS(Extent3D)
@@ -260,7 +271,6 @@ DECLARE_PRINT_MEMBERS_CLASS(SpecializationMapEntry)
 DECLARE_PRINT_MEMBERS_CLASS(ComponentMapping)
 DECLARE_PRINT_MEMBERS_CLASS(MappedMemoryRange)
 DECLARE_PRINT_MEMBERS_CLASS(SubmitInfo)
-DECLARE_PRINT_MEMBERS_CLASS(PhysicalDeviceSeparateDepthStencilLayoutsFeatures);
 #endif
 DECLARE_PRINT_MEMBERS_CLASS(DeviceQueueCreateInfo)
 
