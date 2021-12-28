@@ -58,8 +58,7 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(SynchronousWindow_create);
     AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_acquire_queues);
-    AI_CASE_RETURN(SynchronousWindow_prepare_swapchain);
-    AI_CASE_RETURN(SynchronousWindow_create_render_objects);
+    AI_CASE_RETURN(SynchronousWindow_initialize_vukan);
     AI_CASE_RETURN(SynchronousWindow_render_loop);
     AI_CASE_RETURN(SynchronousWindow_close);
   }
@@ -162,15 +161,13 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           break;
         }
       }
-      set_state(SynchronousWindow_prepare_swapchain);
+      set_state(SynchronousWindow_initialize_vukan);
       [[fallthrough]];
-    case SynchronousWindow_prepare_swapchain:
+    case SynchronousWindow_initialize_vukan:
       prepare_swapchain();
-      set_state(SynchronousWindow_create_render_objects);
-      [[fallthrough]];
-    case SynchronousWindow_create_render_objects:
-      create_frame_resources();
       create_render_passes();
+      create_swapchain_images();
+      create_frame_resources();
       create_swapchain_framebuffer();
       create_descriptor_set();
       create_textures();
@@ -289,6 +286,12 @@ void SynchronousWindow::prepare_swapchain()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::prepare_swapchain()");
   m_swapchain.prepare(this, vk::ImageUsageFlagBits::eColorAttachment, vk::PresentModeKHR::eFifo
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
+}
+
+void SynchronousWindow::create_swapchain_images()
+{
+  m_swapchain.recreate(this, get_extent()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
@@ -915,16 +918,17 @@ void SynchronousWindow::on_window_size_changed_post()
 
   // For all depth attachments.
 
+#if 0
   vk::ImageSubresourceRange const depth_subresource_range =
     vk::ImageSubresourceRange{vulkan::Swapchain::s_default_subresource_range}
       .setAspectMask(vk::ImageAspectFlagBits::eDepth);
 
-  vulkan::ResourceState const new_image_resource_state;
   vulkan::ResourceState const initial_depth_resource_state = {
     .pipeline_stage_mask        = vk::PipelineStageFlagBits::eEarlyFragmentTests,
     .access_mask                = vk::AccessFlagBits::eDepthStencilAttachmentWrite,
     .layout                     = vk::ImageLayout::eDepthStencilAttachmentOptimal
   };
+#endif
 
 #ifdef CWDEBUG
   int frame_resource_index = 0;
@@ -939,26 +943,7 @@ void SynchronousWindow::on_window_size_changed_post()
         s_depth_image_view_kind,
         vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));
-
-    // Transition it away from an undefined layout.
-    set_image_memory_barrier(
-        new_image_resource_state,
-        initial_depth_resource_state,
-        *frame_resources_data->m_depth_attachment.m_image,
-        depth_subresource_range);
   }
-
-  vulkan::ResourceState const initial_present_resource_state = {
-    .pipeline_stage_mask        = vk::PipelineStageFlagBits::eBottomOfPipe,
-    .access_mask                = vk::AccessFlagBits::eMemoryRead,
-    .layout                     = vk::ImageLayout::ePresentSrcKHR
-  };
-
-  // Pre-transition all swapchain images away from an undefined layout.
-  swapchain().set_image_memory_barriers(
-      this,
-      new_image_resource_state,
-      initial_present_resource_state);
 }
 
 //virtual

@@ -158,8 +158,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     SynchronousWindow_create,
     SynchronousWindow_logical_device_index_available,
     SynchronousWindow_acquire_queues,
-    SynchronousWindow_prepare_swapchain,
-    SynchronousWindow_create_render_objects,
+    SynchronousWindow_initialize_vukan,
     SynchronousWindow_render_loop,
     SynchronousWindow_close
   };
@@ -285,25 +284,24 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  private:
   void acquire_queues();
   void prepare_swapchain();
-  void create_swapchain_framebuffer();
-  friend class vulkan::Swapchain;
-  vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
-
- protected:
-  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-
-  // Called from Application::*same name*.
+  void create_swapchain_images();
   void create_frame_resources();
-  virtual void create_render_passes() = 0;
+  void create_swapchain_framebuffer();
   void create_descriptor_set();
   void create_textures();
   void create_pipeline_layout();
+
+  friend class vulkan::Swapchain;
+  vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
+
+  // Optionally overridden by derived class.
+  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
+  virtual size_t number_of_frame_resources() const;
+
+  // Implemented by most derived class.
+  virtual void create_render_passes() = 0;
   virtual void create_graphics_pipeline() = 0;
   virtual void create_vertex_buffers() = 0;
-
- protected:
-  // Implemented by most derived class.
-  virtual size_t number_of_frame_resources() const;
   virtual void draw_frame() = 0;
 
   virtual void on_window_size_changed_pre();

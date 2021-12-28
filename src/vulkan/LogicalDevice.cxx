@@ -540,11 +540,36 @@ Queue LogicalDevice::acquire_queue(
 }
 
 vk::UniqueRenderPass LogicalDevice::create_render_pass(
-    utils::Vector<vk_defaults::AttachmentDescription, rendergraph::AttachmentIndex> const& attachment_descriptions,
-    utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions,
-    std::vector<vk::SubpassDependency> const& dependencies
+    rendergraph::RenderPass const& render_pass_description
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
+  auto const& attachment_descriptions = render_pass_description.attachment_descriptions();
+  auto const& subpass_descriptions = render_pass_description.subpass_descriptions();
+
+  std::vector<vk::SubpassDependency> dependencies = {
+    // FIXME: For now leave dependencies away... the automatically generated ones should suffice - no?
+#if 0
+    {
+      .srcSubpass = VK_SUBPASS_EXTERNAL,
+      .dstSubpass = 0,
+      .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+      .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+      .dependencyFlags = vk::DependencyFlagBits::eByRegion
+    },
+    {
+      .srcSubpass = 0,
+      .dstSubpass = VK_SUBPASS_EXTERNAL,
+      .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+      .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
+      .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+      .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
+      .dependencyFlags = vk::DependencyFlagBits::eByRegion
+    }
+#endif
+  };
+
   vk::RenderPassCreateInfo render_pass_create_info{
     .attachmentCount = static_cast<uint32_t>(attachment_descriptions.size()),
     .pAttachments = attachment_descriptions.data(),
@@ -923,16 +948,32 @@ vk::UniquePipeline LogicalDevice::create_graphics_pipeline(
 }
 
 Swapchain::images_type LogicalDevice::get_swapchain_images(
+    task::SynchronousWindow const* owning_window,
     vk::SwapchainKHR vh_swapchain
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::get_swapchain_images(" << vh_swapchain << ")");
   Swapchain::images_type swapchain_images;
   swapchain_images = m_device->getSwapchainImagesKHR(vh_swapchain);
-#ifdef CWDEBUG
+
+  ResourceState const new_image_resource_state;
+  ResourceState const initial_present_resource_state = {
+    .pipeline_stage_mask        = vk::PipelineStageFlagBits::eBottomOfPipe,
+    .access_mask                = vk::AccessFlagBits::eMemoryRead,
+    .layout                     = vk::ImageLayout::ePresentSrcKHR
+  };
+
   for (SwapchainIndex i = swapchain_images.ibegin(); i != swapchain_images.iend(); ++i)
+  {
     DebugSetName(swapchain_images[i], ambifix("[" + to_string(i) + "]"));
-#endif
+    // Pre-transition all swapchain images away from an undefined layout.
+    owning_window->set_image_memory_barrier(
+      new_image_resource_state,
+      initial_present_resource_state,
+      swapchain_images[i],
+      Swapchain::s_default_subresource_range);
+  }
+
   return swapchain_images;
 }
 

@@ -204,11 +204,6 @@ class Swapchain
     m_resources[new_swapchain_index].swap_image_available_semaphore_with(m_acquire_semaphore);
     m_current_index = new_swapchain_index;
   }
-
-  void set_image_memory_barriers(
-      task::SynchronousWindow const* owning_window,
-      ResourceState const& source,
-      ResourceState const& destination) const;
 };
 
 } // namespace vulkan

@@ -85,9 +85,7 @@ class LogicalDevice
 
   // Create a RenderPass.
   vk::UniqueRenderPass create_render_pass(
-      utils::Vector<vk_defaults::AttachmentDescription, rendergraph::AttachmentIndex> const& attachment_descriptions,
-      utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions,
-      std::vector<vk::SubpassDependency> const& dependencies
+      rendergraph::RenderPass const& render_pass
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
@@ -159,7 +157,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniquePipeline create_graphics_pipeline(vk::PipelineCache vh_pipeline_cache, vk::GraphicsPipelineCreateInfo const& graphics_pipeline_create_info
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  Swapchain::images_type get_swapchain_images(vk::SwapchainKHR vh_swapchain
+  Swapchain::images_type get_swapchain_images(task::SynchronousWindow const* owning_window, vk::SwapchainKHR vh_swapchain
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   void* map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const;
   void flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const;

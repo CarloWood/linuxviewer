@@ -191,9 +191,6 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
 
   // In case of re-use, cant_render_bit might be reset.
   owning_window->no_can_render();
-
-  recreate_swapchain_images(owning_window, desired_extent
-      COMMA_CWDEBUG_ONLY(ambifix));
 }
 
 void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
@@ -238,9 +235,8 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
   m_extent = surface_extent;
   m_swapchain = logical_device.create_swapchain(surface_extent, m_min_image_count, owning_window->presentation_surface(), m_kind, *old_handle
       COMMA_CWDEBUG_ONLY(ambifix(".m_swapchain")));
-  m_vhv_images = logical_device.get_swapchain_images(*m_swapchain
+  m_vhv_images = logical_device.get_swapchain_images(owning_window, *m_swapchain
       COMMA_CWDEBUG_ONLY(ambifix(".m_vhv_images")));
-
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
   // Create the corresponding resources: image view and semaphores.
@@ -264,19 +260,6 @@ void Swapchain::recreate_swapchain_framebuffer(task::SynchronousWindow const* ow
   // Did you call set_swapchain_render_pass from the overridden create_render_passes?
   ASSERT(m_render_pass);
   m_framebuffer = owning_window->create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(ambifix(".m_framebuffer")));
-}
-
-void Swapchain::set_image_memory_barriers(
-    task::SynchronousWindow const* owning_window,
-    ResourceState const& source,
-    ResourceState const& destination) const
-{
-  for (auto const& swapchain_image : m_vhv_images)
-    owning_window->set_image_memory_barrier(
-      source,
-      destination,
-      swapchain_image,
-      Swapchain::s_default_subresource_range);
 }
 
 } // namespace vulkan

@@ -280,27 +280,6 @@ class Window : public task::SynchronousWindow
     m_render_graph = final_pass[~depth]->stores(~output);
     m_render_graph.generate(this);
 
-    std::vector<vk::SubpassDependency> dependencies = {
-      {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        .dependencyFlags = vk::DependencyFlagBits::eByRegion
-      },
-      {
-        .srcSubpass = 0,
-        .dstSubpass = VK_SUBPASS_EXTERNAL,
-        .srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        .dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,
-        .dependencyFlags = vk::DependencyFlagBits::eByRegion
-      }
-    };
-
 #if 0
     // Render pass - from present_src to color_attachment.
     {
@@ -324,10 +303,7 @@ class Window : public task::SynchronousWindow
 #endif
 
     // Create the swapchain render pass.
-    set_swapchain_render_pass(logical_device().create_render_pass(
-          final_pass.attachment_descriptions(),
-          final_pass.subpass_descriptions(),
-          dependencies
+    set_swapchain_render_pass(logical_device().create_render_pass(final_pass
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
     // Create the swapchain render pass.
