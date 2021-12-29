@@ -20,7 +20,7 @@ layout(location = 1) in float v_Distance;
 layout(location = 0) out vec4 o_Color;
 
 void main() {
-  vec4 backgroud_image = texture( u_BackgroundTexture, v_Texcoord );
+  vec4 background_image = texture( u_BackgroundTexture, v_Texcoord );
   vec4 benchmark_image = texture( u_BenchmarkTexture, v_Texcoord );
-  o_Color = v_Distance * mix( backgroud_image, benchmark_image, benchmark_image.a );
+  o_Color = v_Distance * mix( background_image, benchmark_image, benchmark_image.a );
 }

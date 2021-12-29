@@ -846,7 +846,7 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::PipelineLayoutCreateInfo layout_create_info{
-    .flags = vk::PipelineLayoutCreateFlags(0),
+    .flags = {},
     .setLayoutCount = static_cast<uint32_t>(descriptor_set_layouts.size()),
     .pSetLayouts = descriptor_set_layouts.data(),
     .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
