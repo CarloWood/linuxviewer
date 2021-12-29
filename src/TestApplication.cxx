@@ -306,9 +306,6 @@ class Window : public task::SynchronousWindow
     set_swapchain_render_pass(logical_device().create_render_pass(final_pass
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
-    // Create the swapchain render pass.
-//    set_swapchain_render_pass(logical_device().create_render_pass(render_graph COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
-
     //DoutFatal(dc::fatal, "The End");
 
 #if 0
