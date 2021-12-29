@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "BinaryData.h"
+#include "evio/BinaryData.h"
 #include "debug.h"
 #include <iostream>
 #include <string>
@@ -12,7 +12,7 @@ int main(int argc, char** argv)
   std::getline(std::cin, s, '\n');
   std::cout << "Your string is: '" << s << "'" << std::endl;
 
-  BinaryData bd;
+  evio::BinaryData bd;
 
   bd.assign_from_binary(s);
   std::cout << "C escaped representation: " << bd << std::endl;
