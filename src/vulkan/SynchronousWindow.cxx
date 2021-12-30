@@ -169,11 +169,17 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_swapchain_images();
       create_frame_resources();
       create_swapchain_framebuffer();
+
+      //FIXME: the following three are application specific.
       create_descriptor_set();
       create_textures();
       create_pipeline_layout();
+
       create_graphics_pipeline();
+
+      //FIXME: the following is application specific.
       create_vertex_buffers();
+
       set_state(SynchronousWindow_render_loop);
       can_render_again();
       // Turn off debug output for this statefultask while processing the render loop.

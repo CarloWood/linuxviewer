@@ -50,10 +50,6 @@
 	path = dbus-task
 	url = https://github.com/CarloWood/dbus-task.git
 	branch = master
-[submodule "src/GUI_glfw3/glfwpp"]
-	path = src/GUI_glfw3/glfwpp
-	url = https://github.com/CarloWood/glfwpp.git
-        branch = main
 [submodule "xcb-task"]
 	path = xcb-task
 	url = https://github.com/CarloWood/xcb-task.git

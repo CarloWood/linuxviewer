@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
+#include "vulkan/FrameResourcesData.h"
+#include "vulkan/PhysicalDeviceFeatures.h"
+#include "vulkan/infos/DeviceCreateInfo.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -15,8 +18,6 @@
 #include "evio/protocol/EOFDecoder.h"
 #include "utils/debug_ostream_operators.h"
 #include "utils/threading/Gate.h"
-#include "vulkan.old/DeviceCreateInfo.h"
-#include "vulkan.old/CommandPoolCreateInfo.h"
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <functional>
@@ -88,6 +89,7 @@ class MyOutputFile : public evio::File
 {
 };
 
+#if 0 // FIXME: not sure where this goes?
 // Called when the main instance (as determined by the GUI) of the application is starting.
 void LinuxViewerApplication::on_main_instance_startup()
 {
@@ -186,7 +188,9 @@ void LinuxViewerApplication::on_main_instance_startup()
   test_finished.wait();
 #endif
 }
+#endif
 
+#if 0
 void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
 {
   using namespace menu_keys;
@@ -198,7 +202,7 @@ void LinuxViewerApplication::append_menu_entries(LinuxViewerMenuBar* menubar)
   // Menu buttons that have a call back to this object are added below.
   //
 
-  //FIXME: not compiling with glfw3
+  //FIXME: not compiling with vulkan
   //ADD(File, QUIT);
 }
 
@@ -210,6 +214,406 @@ void LinuxViewerApplication::on_menu_File_QUIT()
   // which will terminate the application (see application.cxx).
   terminate();
 }
+#endif
+
+class Window : public task::SynchronousWindow
+{
+ public:
+  using task::SynchronousWindow::SynchronousWindow;
+
+ private:
+  vk::UniquePipeline m_graphics_pipeline;
+
+  int m_frame_count = 0;
+
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    // Limit the frame rate of this window to 10 frames per second.
+    return threadpool::Interval<100, std::chrono::milliseconds>{};
+  }
+
+  size_t number_of_frame_resources() const override
+  {
+    return 3;
+  }
+
+  void draw_frame() override
+  {
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+
+    // Skip the first frame.
+    if (++m_frame_count == 1)
+      return;
+
+    ASSERT(m_current_frame.m_resource_count == 3);
+    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
+    auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+    // Start frame - calculate times and prepare GUI.
+    start_frame();
+
+    // Acquire swapchain image.
+    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
+
+    // Draw scene/prepare scene's command buffers.
+    {
+      // Draw sample-specific data - includes command buffer submission!!
+      DrawSample();
+    }
+
+    // Draw GUI and present swapchain image.
+    finish_frame(vk::RenderPass{});
+
+    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
+
+    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+  }
+
+  void DrawSample()
+  {
+    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
+    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
+
+    std::vector<vk::ClearValue> clear_values = {
+      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } },
+      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } }
+    };
+
+    auto swapchain_extent = swapchain().extent();
+
+    std::array<vk::ImageView, 2> attachments = {
+      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view,
+      swapchain().vh_current_image_view()
+    };
+#ifdef CWDEBUG
+    Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
+    std::array<vk::Image, 2> attachment_images = {
+      swapchain().images()[swapchain().current_index()],
+      *m_current_frame.m_frame_resources->m_depth_attachment.m_image
+    };
+    Dout(dc::vkframe, "Attachments: ");
+    for (int i = 0; i < 2; ++i)
+    {
+      Dout(dc::vkframe, "  image_view: " << attachments[i] << ", image: " << attachment_images[i]);
+    }
+#endif
+    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
+      {
+        .renderPass = swapchain().vh_render_pass(),
+        .framebuffer = swapchain().vh_framebuffer(),
+        .renderArea = {
+          .offset = {},
+          .extent = swapchain_extent
+        },
+        .clearValueCount = static_cast<uint32_t>(clear_values.size()),
+        .pClearValues = clear_values.data()
+      },
+      {
+        .attachmentCount = attachments.size(),
+        .pAttachments = attachments.data()
+      }
+    );
+    vk::RenderPassBeginInfo& render_pass_begin_info = render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
+
+    vk::Viewport viewport{
+      .x = 0,
+      .y = 0,
+      .width = static_cast<float>(swapchain_extent.width),
+      .height = static_cast<float>(swapchain_extent.height),
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f
+    };
+
+    vk::Rect2D scissor{
+      .offset = vk::Offset2D(),
+      .extent = swapchain_extent
+    };
+
+    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+
+    m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+
+      // Get access to the command buffer.
+      auto command_buffer_w = frame_resources->m_pre_command_buffer(command_pool_w);
+
+      Dout(dc::vkframe, "Start recording command buffer.");
+      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+      command_buffer_w->beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer_w->setViewport(0, { viewport });
+      command_buffer_w->setScissor(0, { scissor });
+      command_buffer_w->draw(3, 1, 0, 0);
+      command_buffer_w->endRenderPass();
+      command_buffer_w->end();
+      Dout(dc::vkframe, "End recording command buffer.");
+
+      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+      vk::SubmitInfo submit_info{
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
+        .pWaitDstStageMask = &wait_dst_stage_mask,
+        .commandBufferCount = 1,
+        .pCommandBuffers = command_buffer_w,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
+      };
+
+      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
+      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
+    } // Unlock command pool.
+
+    Dout(dc::vkframe, "Leaving Window::DrawSample.");
+  }
+
+  void create_vertex_buffers() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+  }
+
+  // Create renderpass / attachment objects.
+  vulkan::rendergraph::Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
+
+  void create_render_passes() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+
+    // These must be references.
+    auto& final_pass = m_render_graph.create_render_pass("final_pass");
+    auto& output = swapchain().presentation_attachment();
+
+    m_render_graph = final_pass[~depth]->stores(~output);
+    m_render_graph.generate(this);
+
+    // Create the swapchain render pass.
+    set_swapchain_render_pass(logical_device().create_render_pass(final_pass
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
+  }
+
+  void create_graphics_pipeline() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
+
+    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/triangle.vert.spv"
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
+    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/triangle.frag.spv"
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
+
+    std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
+      // Vertex shader.
+      {
+        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .stage = vk::ShaderStageFlagBits::eVertex,
+        .module = *vertex_shader_module,
+        .pName = "main"
+      },
+      // Fragment shader.
+      {
+        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .stage = vk::ShaderStageFlagBits::eFragment,
+        .module = *fragment_shader_module,
+        .pName = "main"
+      }
+    };
+
+    std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
+    };
+
+    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
+    };
+
+    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
+      .flags = {},
+      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
+      .pVertexBindingDescriptions = vertex_binding_description.data(),
+      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
+      .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
+    };
+
+    vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
+      .flags = {},
+      .topology = vk::PrimitiveTopology::eTriangleList,
+      .primitiveRestartEnable = VK_FALSE
+    };
+
+    vk::Extent2D swapchain_extent = swapchain().extent();
+
+    vk::Viewport viewport{
+      .x = 0.0f,
+      .y = 0.0f,
+      .width = (float)swapchain_extent.width,
+      .height = (float)swapchain_extent.height,
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f
+    };
+
+    vk::Rect2D scissor{
+      .offset = {0, 0},
+      .extent = swapchain_extent
+    };
+
+    vk::PipelineViewportStateCreateInfo viewport_state_create_info{
+      .flags = {},
+      .viewportCount = 1,
+      .pViewports = &viewport,
+      .scissorCount = 1,
+      .pScissors = &scissor
+    };
+
+    vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
+      .flags = {},
+      .depthClampEnable = VK_FALSE,
+      .rasterizerDiscardEnable = VK_FALSE,
+      .polygonMode = vk::PolygonMode::eFill,
+      .cullMode = vk::CullModeFlagBits::eBack,
+      .frontFace = vk::FrontFace::eCounterClockwise,
+      .depthBiasEnable = VK_FALSE,
+      .depthBiasConstantFactor = 0.0f,
+      .depthBiasClamp = 0.0f,
+      .depthBiasSlopeFactor = 0.0f,
+      .lineWidth = 1.0f
+    };
+
+    vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
+      .flags = {},
+      .rasterizationSamples = vk::SampleCountFlagBits::e1,
+      .sampleShadingEnable = VK_FALSE,
+      .minSampleShading = 1.0f,
+      .pSampleMask = nullptr,
+      .alphaToCoverageEnable = VK_FALSE,
+      .alphaToOneEnable = VK_FALSE
+    };
+
+    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
+      .flags = {},
+      .depthTestEnable = VK_TRUE,
+      .depthWriteEnable = VK_TRUE,
+      .depthCompareOp = vk::CompareOp::eLessOrEqual
+    };
+
+    vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
+      .blendEnable = VK_FALSE,
+      .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+      .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+      .colorBlendOp = vk::BlendOp::eAdd,
+      .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+      .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+      .alphaBlendOp = vk::BlendOp::eAdd,
+      .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+    };
+
+    vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
+      .flags = {},
+      .logicOpEnable = VK_FALSE,
+      .logicOp = vk::LogicOp::eCopy,
+      .attachmentCount = 1,
+      .pAttachments = &color_blend_attachment_state,
+      .blendConstants = {{ 0.0f, 0.0f, 0.0f, 0.0f }}
+    };
+
+    std::vector<vk::DynamicState> dynamic_states = {
+      vk::DynamicState::eViewport,
+      vk::DynamicState::eScissor
+    };
+
+    vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
+      .flags = {},
+      .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+      .pDynamicStates = dynamic_states.data()
+    };
+
+    // FIXME: this was already initialized - implement supporting descriptor set and push constants from the Derived class.
+    m_pipeline_layout = logical_device().create_pipeline_layout({}, {}
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+
+    vk::GraphicsPipelineCreateInfo pipeline_create_info{
+      .flags = vk::PipelineCreateFlags(0),
+      .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
+      .pStages = shader_stage_create_infos.data(),
+      .pVertexInputState = &vertex_input_state_create_info,
+      .pInputAssemblyState = &input_assembly_state_create_info,
+      .pTessellationState = nullptr,
+      .pViewportState = &viewport_state_create_info,
+      .pRasterizationState = &rasterization_state_create_info,
+      .pMultisampleState = &multisample_state_create_info,
+      .pDepthStencilState = &depth_stencil_state_create_info,
+      .pColorBlendState = &color_blend_state_create_info,
+      .pDynamicState = &dynamic_state_create_info,
+      .layout = *m_pipeline_layout,
+      .renderPass = swapchain().vh_render_pass(),
+      .subpass = 0,
+      .basePipelineHandle = vk::Pipeline{},
+      .basePipelineIndex = -1
+    };
+
+    m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
+  }
+};
+
+class WindowEvents : public vulkan::WindowEvents
+{
+ private:
+  void MouseMove(int x, int y) override
+  {
+    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ")");
+  }
+
+  void MouseClick(size_t button, bool pressed) override
+  {
+    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ")");
+  }
+
+  void ResetMouse() override
+  {
+    DoutEntering(dc::notice, "WindowEvents::ResetMouse()");
+  }
+};
+
+class LogicalDevice : public vulkan::LogicalDevice
+{
+ public:
+  // Every time create_root_window is called a cookie must be passed.
+  // This cookie will be passed back to the virtual function ... when
+  // querying what presentation queue family to use for that window (and
+  // related windows).
+  static constexpr int root_window_cookie1 = 1;
+
+  LogicalDevice()
+  {
+    DoutEntering(dc::notice, "LogicalDevice::LogicalDevice() [" << this << "]");
+  }
+
+  ~LogicalDevice() override
+  {
+    DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
+  }
+
+  void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const override
+  {
+    // Use the setters from vk::PhysicalDeviceFeatures.
+    physical_device_features.setDepthClamp(true);
+  }
+
+  void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override
+  {
+    using vulkan::QueueFlagBits;
+
+    device_create_info
+    // {0}
+    .addQueueRequest({
+        .queue_flags = QueueFlagBits::eGraphics})
+    // {1}
+    .combineQueueRequest({
+        .queue_flags = QueueFlagBits::ePresentation})
+#ifdef CWDEBUG
+    .setDebugName("LogicalDevice");
+#endif
+    ;
+  }
+};
 
 int main(int argc, char* argv[])
 {
@@ -218,64 +622,32 @@ int main(int argc, char* argv[])
 
   try
   {
-    ApplicationCreateInfo application_create_info;
-    application_create_info
-      // vk::ApplicationInfo
-      .setPApplicationName("LinuxViewerApplication")
-      ;
+    // Create the application object.
+    LinuxViewerApplication application;
 
-    vulkan::InstanceCreateInfo instance_create_info(application_create_info, {
-//        .extensions = { "Kazaam", "foobar" }
-        });
+    // Initialize application using the virtual functions of TestApplication.
+    application.initialize(argc, argv);
 
-    // Create main application.
-    LinuxViewerApplication application(application_create_info, instance_create_info);
+    // Create a window.
+    auto root_window1 = application.create_root_window<WindowEvents, Window>({500, 800}, LogicalDevice::root_window_cookie1, "Main window title");
 
-    gui::WindowCreateInfo main_window_create_info;
-    main_window_create_info
-      // WindowCreateInfo
-      .setExtent(500, 800)
-      .setTitle("Main window title")
-      // WindowHints
-      .setFocused(false)
-      .setResizable(true)
-      ;
+    // Create a logical device that supports presenting to root_window1.
+    auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
-    vulkan::DeviceCreateInfo device_create_info;
-
-    vulkan::QueueRequestIndex const graphics_queue_index(0);
-
-    vulkan::CommandPoolCreateInfo command_pool_create_info;
-    using vk::CommandPoolCreateFlagBits;
-    command_pool_create_info
-      // vulkan::CommandPoolCreateInfo
-      .setQueueRequestIndex(graphics_queue_index)
-#ifdef CWDEBUG
-      .setDebugName("Command Pool")
-#endif
-      // vk::CommandPoolCreateInfo
-      .setFlags(CommandPoolCreateFlagBits::eTransient | CommandPoolCreateFlagBits::eResetCommandBuffer)
-      ;
-
-    // Create all objects.
-    application
-      .create_main_window(std::move(main_window_create_info))
-      .create_vulkan_device(std::move(device_create_info))
-      .create_swapchain()
-      .create_pipeline()
-      .create_command_buffers(std::move(command_pool_create_info))
-      ;
-
-    // Run GUI main loop.
+    // Run the application.
     application.run();
-
-    // Application terminated cleanly.
-    application.join_event_loop();
   }
   catch (AIAlert::Error const& error)
   {
-    Dout(dc::warning, "\e[31m" << error << " caught in LinuxViewerApplication.cxx\e[0m");
+    // Application terminated with an error.
+    Dout(dc::warning, "\e[31m" << error << ", caught in LinuxViewerApplication.cxx\e[0m");
   }
+#ifndef CWDEBUG // Commented out so we can see in gdb where an exception is thrown from.
+  catch (std::exception& exception)
+  {
+    DoutFatal(dc::core, "\e[31mstd::exception: " << exception.what() << " caught in LinuxViewerApplication.cxx\e[0m");
+  }
+#endif
 
   Dout(dc::notice, "Leaving main()");
 }

@@ -75,15 +75,6 @@ add_executable(linuxviewer
   LinuxViewerApplication.h
   LinuxViewerMenuEntries.cxx
   LinuxViewerMenuEntries.h
-  ApplicationCreateInfo.cxx
-  ApplicationCreateInfo.h
-  Application.cxx
-  Application.h
-  Window.cxx
-  Window.h
-  DebugUtilsMessengerCreateInfoEXT.cxx
-  DebugUtilsMessengerCreateInfoEXT.h
-
   LinuxViewerMenuBar.h
 )
 
@@ -92,11 +83,12 @@ target_link_libraries(linuxviewer
     LinuxViewer::protocols
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
-    LinuxViewer::glfw3gui
-    LinuxViewer::vulkan_old
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task
+    LinuxViewer::vulkan
+    AICxx::xcb-task
+    AICxx::xcb-task::OrgFreedesktopXcbError
     dns::dns
     ${AICXX_OBJECTS_LIST}
     farmhash::farmhash
@@ -104,11 +96,8 @@ target_link_libraries(linuxviewer
     Boost::serialization
 )
 
-#add_subdirectory(GUI_gtkmm3)
-add_subdirectory(GUI_glfw3)
 add_subdirectory(protocols)
 add_subdirectory(data_types)
 
 # Vulkan stuff.
-add_subdirectory(vulkan.old)
 add_subdirectory(vulkan)

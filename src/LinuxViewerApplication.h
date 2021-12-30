@@ -1,18 +1,32 @@
 #pragma once
 
-#include "Application.h"
-#include "vulkan.old/Queue.h"
+#include "vulkan/Application.h"
 #include "debug.h"
 
-class LinuxViewerApplication : public Application
+class LinuxViewerApplication : public vulkan::Application
 {
- public:
-  using Application::Application;
+  using vulkan::Application::Application;
 
  private:
-  vulkan::Queue m_graphics_queue;
-  vulkan::Queue m_present_queue;
+  int thread_pool_number_of_worker_threads() const override
+  {
+    // Lets use 4 worker threads in the thread pool.
+    return 4;
+  }
 
+ public:
+  std::string application_name() const override
+  {
+    return "LinuxViewerApplication";
+  }
+
+  void quit()
+  {
+    DoutEntering(dc::notice, "LinuxViewerApplication::quit()");
+    //FIXME: close all windows - that should terminate the application.
+  }
+
+#if 0 // FIXME: no menu support!
  private:
   // Menu button events.
   void on_menu_File_QUIT();
@@ -23,18 +37,5 @@ class LinuxViewerApplication : public Application
 
   // Implementation of append_menu_entries: add File->QUIT with callback on_menu_File_QUIT.
   void append_menu_entries(LinuxViewerMenuBar* menubar) override;
-
- public:
-  void create_swapchain_impl() override
-  {
-    main_window()->create_swapchain(&m_vulkan_device, m_graphics_queue, m_present_queue);
-  }
-
- protected:
-  void init_queue_handles() override
-  {
-    vulkan::QueueRequestIndex request_index(0);
-    m_graphics_queue = m_vulkan_device.get_queue(request_index++, 0);
-    m_present_queue = m_vulkan_device.get_queue(request_index++, 0);
-  }
+#endif
 };
