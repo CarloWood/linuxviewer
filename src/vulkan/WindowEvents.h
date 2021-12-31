@@ -15,6 +15,8 @@ class AsyncAccessSpecialCircumstances
   void set_extent_changed() const { m_special_circumstances->m_flags.fetch_or(SpecialCircumstances::extent_changed_bit, std::memory_order::relaxed); }
   void set_must_close() const { m_special_circumstances->m_flags.store(SpecialCircumstances::must_close_bit, std::memory_order::relaxed); }
   void set_have_synchronous_task() const { m_special_circumstances->m_flags.fetch_or(SpecialCircumstances::have_synchronous_task_bit, std::memory_order::relaxed); }
+  void set_mapped() const { m_special_circumstances->set_mapped(); }
+  void set_unmapped() const { m_special_circumstances->set_unmapped(); }
 
  public:
   // Called one time, immediately after (default) construction.
@@ -43,6 +45,15 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   }
 
   void on_window_size_changed(uint32_t width, uint32_t height) override final;
+
+  void on_map_changed(bool minimized) override final
+  {
+    DoutEntering(dc::notice, "SynchronousWindow::on_map_changed(" << std::boolalpha << minimized << ")");
+    if (minimized)
+      set_unmapped();
+    else
+      set_mapped();
+  }
 
  public:
   // The following functions are thread-safe (use a mutex and/or atomics).

@@ -181,7 +181,8 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_vertex_buffers();
 
       set_state(SynchronousWindow_render_loop);
-      can_render_again();
+      // We already have a swapchain up there - but only now we can really render anything, so set it here.
+      have_swapchain();
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);
       [[fallthrough]];
@@ -232,6 +233,27 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
           special_circumstances &= ~have_synchronous_task_bit;
           need_draw_frame = true;
+        }
+        if (map_changed(special_circumstances))
+        {
+          int map_flags = atomic_map_flags();
+          Dout(dc::vulkan, "Handling map_changed " << print_map_flags(map_flags));
+          bool minimized = !is_mapped(map_flags);
+          bool success = handle_map_changed(map_flags);
+          if (success)
+          {
+            special_circumstances &= ~(map_changed_bit|minimized_bit);  // That event was handled (default to unminimized).
+            if (minimized)
+              special_circumstances |= minimized_bit;                   // Set the minimized flag.
+            else
+              need_draw_frame = true;
+          }
+          else
+          {
+            Dout(dc::notice, "Failed to " << (minimized ? "minimize" : "unminimize") << ".");
+            special_circumstances = atomic_flags();
+            continue;
+          }
         }
         if (!can_render(special_circumstances))
         {
@@ -332,6 +354,22 @@ void SynchronousWindow::handle_window_size_changed()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
   if (can_render(atomic_flags()))
     on_window_size_changed_post();
+}
+
+bool SynchronousWindow::handle_map_changed(int map_flags)
+{
+  DoutEntering(dc::vulkan, "SynchronousWindow::handle_map_changed(" << print_map_flags(map_flags) << ")");
+  reset_map_changed();
+
+  bool is_minimized = !is_mapped(map_flags);
+
+  if (is_minimized)
+    set_minimized();
+  else
+    set_unminimized();
+
+  // Returns true on success, false if there is another map change required.
+  return handled_map_changed(map_flags);
 }
 
 void SynchronousWindow::set_image_memory_barrier(

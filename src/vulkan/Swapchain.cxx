@@ -190,13 +190,13 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
         CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
 
   // In case of re-use, cant_render_bit might be reset.
-  owning_window->no_can_render();
+  owning_window->no_swapchain();
 }
 
 void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
-  owning_window->no_can_render();
+  owning_window->no_swapchain();
 
   if (window_extent.width == 0 || window_extent.height == 0)
   {
@@ -210,7 +210,7 @@ void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D wi
   recreate_swapchain_framebuffer(owning_window
       COMMA_CWDEBUG_ONLY(ambifix));
 
-  owning_window->can_render_again();
+  owning_window->have_swapchain();
 }
 
 void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D surface_extent

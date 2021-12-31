@@ -263,6 +263,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   }
 
   void handle_window_size_changed();
+  bool handle_map_changed(int map_flags);
 
   void set_image_memory_barrier(
     vulkan::ResourceState const& source,
