@@ -1,9 +1,9 @@
 #include <vector>
-#include <string>
+#include <cstddef>
 #include <filesystem>
 
 namespace vk_utils {
 
-std::vector<char> get_binary_file_contents(std::filesystem::path const& filename);
+std::vector<std::byte> get_binary_file_contents(std::filesystem::path const& filename);
 
 } // namespace vk_utils

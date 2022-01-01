@@ -635,7 +635,7 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
     std::filesystem::path const& filename
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  std::vector<char> const code = vk_utils::get_binary_file_contents(filename);
+  std::vector<std::byte> const code = vk_utils::get_binary_file_contents(filename);
 
   vk::ShaderModuleCreateInfo shader_module_create_info{
     .flags = vk::ShaderModuleCreateFlags(0),

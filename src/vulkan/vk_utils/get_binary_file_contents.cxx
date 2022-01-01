@@ -2,28 +2,30 @@
 #include "get_binary_file_contents.h"
 #include "utils/AIAlert.h"
 #include <fstream>
-#include <stdexcept>
-#include <filesystem>
+#include <vector>
+#include "debug.h"
 
 namespace vk_utils {
 
 // Function reading binary contents of a file.
-std::vector<char> get_binary_file_contents(std::filesystem::path const& filename)
+std::vector<std::byte> get_binary_file_contents(std::filesystem::path const& filename)
 {
-  std::ifstream file(filename, std::ios::binary);
+  std::ifstream ifs(filename, std::ios::binary | std::ios::ate);
 
-  if (file.fail())
+  if (ifs.fail())
     THROW_ALERT("Could not open [FILENAME] file!", AIArgs("[FILENAME]", filename));
 
-  std::streampos begin, end;
-  begin = file.tellg();
-  file.seekg(0, std::ios::end);
-  end = file.tellg();
+  std::streampos const file_size = ifs.tellg();
+  ifs.seekg(0, std::ios::beg);
 
-  std::vector<char> result(static_cast<size_t>(end - begin));
-  file.seekg(0, std::ios::beg);
-  file.read(&result[0], end - begin);
-  file.close();
+  std::vector<std::byte> result(file_size);
+  ifs.read(reinterpret_cast<char*>(result.data()), file_size);
+
+  if (!ifs)
+    THROW_ALERT("Reading [SIZE] bytes from [FILENAME] failed!", AIArgs("[SIZE]", file_size)("[FILENAME]", filename));
+
+  ASSERT(ifs.gcount() == file_size);
+  ASSERT(ifs.good());
 
   return result;
 }

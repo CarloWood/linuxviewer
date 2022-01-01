@@ -1,8 +1,9 @@
 #include <vector>
-#include <string>
+#include <filesystem>
+#include <cstddef>
 
 namespace vk_utils {
 
-std::vector<char> get_image_data(std::string const& filename, int requested_components, int* width, int* height, int* components, int* data_size);
+std::vector<std::byte> get_image_data(std::filesystem::path const& filename, int requested_components, int* width, int* height, int* components, int* data_size);
 
 } // namespace vk_utils
