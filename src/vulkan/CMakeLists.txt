@@ -11,49 +11,6 @@ pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 find_package(magic_enum REQUIRED)
 
 #==============================================================================
-# COMPILE SHADERS
-#
-
-set(SHADERS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/resources/shaders)
-set(SHADERS_BINARY_DIR ${PROJECT_BINARY_DIR}/src/data/shaders)
-
-file(GLOB SHADERS
-  ${SHADERS_SOURCE_DIR}/*.vert
-  ${SHADERS_SOURCE_DIR}/*.frag
-  ${SHADERS_SOURCE_DIR}/*.comp
-  ${SHADERS_SOURCE_DIR}/*.geom
-  ${SHADERS_SOURCE_DIR}/*.tesc
-  ${SHADERS_SOURCE_DIR}/*.tese
-  ${SHADERS_SOURCE_DIR}/*.mesh
-  ${SHADERS_SOURCE_DIR}/*.task
-  ${SHADERS_SOURCE_DIR}/*.rgen
-  ${SHADERS_SOURCE_DIR}/*.rchit
-  ${SHADERS_SOURCE_DIR}/*.rmiss)
-
-add_custom_command(
-  COMMAND
-    ${CMAKE_COMMAND} -E make_directory ${SHADERS_BINARY_DIR}
-  OUTPUT ${SHADERS_BINARY_DIR}
-  COMMENT "Creating ${SHADERS_BINARY_DIR}"
-)
-
-foreach(source IN LISTS SHADERS)
-  get_filename_component(FILENAME ${source} NAME)
-  add_custom_command(
-    COMMAND
-      ${glslc_executable}
-      -o ${SHADERS_BINARY_DIR}/${FILENAME}.spv
-      ${source}
-    OUTPUT ${SHADERS_BINARY_DIR}/${FILENAME}.spv
-    DEPENDS ${source} ${SHADERS_BINARY_DIR}
-    COMMENT "Compiling ${FILENAME}"
-  )
-  list(APPEND SPV_SHADERS ${SHADERS_BINARY_DIR}/${FILENAME}.spv)
-endforeach()
-
-add_custom_target(shaders ALL DEPENDS ${SPV_SHADERS})
-
-#==============================================================================
 # BUILD PROJECT
 #
 
@@ -68,6 +25,7 @@ set_property(
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
@@ -75,6 +33,7 @@ file(GLOB SOURCE_FILES
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
@@ -121,8 +80,6 @@ target_compile_definitions(vulkan_ObjLib
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
     VULKAN_HPP_NO_UNION_CONSTRUCTORS
-  PRIVATE
-    SHADERS_DIR="${SHADERS_BINARY_DIR}"
 )
 
 # Require support for C++20.
@@ -139,6 +96,7 @@ target_link_libraries(vulkan_ObjLib
     AICxx::utils
     farmhash::farmhash
     ${CMAKE_DL_LIBS}
+    PkgConfig::Shaderc
 )
 
 # Create an ALIAS target.

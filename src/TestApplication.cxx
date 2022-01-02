@@ -13,6 +13,7 @@
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
+#include "shaderbuilder/ShaderModule.h"
 
 using namespace linuxviewer;
 
@@ -306,8 +307,6 @@ class Window : public task::SynchronousWindow
     set_swapchain_render_pass(logical_device().create_render_pass(final_pass
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
-    //DoutFatal(dc::fatal, "The End");
-
 #if 0
     // Post-render pass - from color_attachment to present_src.
     {
@@ -337,9 +336,63 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/shader.vert.spv"
+    std::string const shader_vert_glsl = R"glsl(
+#version 450
+
+layout(location = 0) in vec4 i_Position;
+layout(location = 1) in vec2 i_Texcoord;
+layout(location = 2) in vec4 i_PerInstanceData;
+
+layout( push_constant ) uniform Scaling {
+  float AspectScale;
+} PushConstant;
+
+out gl_PerVertex
+{
+  vec4 gl_Position;
+};
+
+layout(location = 0) out vec2 v_Texcoord;
+layout(location = 1) out float v_Distance;
+
+void main()
+{
+  v_Texcoord = i_Texcoord;
+  v_Distance = 1.0 - i_PerInstanceData.z;       // Darken with distance
+
+  vec4 position = i_Position;
+  position.y *= PushConstant.AspectScale;      // Adjust to screen aspect ration
+  position.xy *= pow( v_Distance, 0.5 );       // Scale with distance
+  gl_Position = position + i_PerInstanceData;
+}
+)glsl";
+
+    std::string const shader_frag_glsl = R"glsl(
+#version 450
+
+layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
+layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
+
+layout(location = 0) in vec2 v_Texcoord;
+layout(location = 1) in float v_Distance;
+
+layout(location = 0) out vec4 o_Color;
+
+void main() {
+  vec4 background_image = texture( u_BackgroundTexture, v_Texcoord );
+  vec4 benchmark_image = texture( u_BenchmarkTexture, v_Texcoord );
+  o_Color = v_Distance * mix( background_image, benchmark_image, benchmark_image.a );
+}
+)glsl";
+
+    vulkan::shaderbuilder::ShaderModule shader_vert("shader.vert", shaderc_vertex_shader);
+    shader_vert.load_source(shader_vert_glsl);
+    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(shader_vert.compile()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
-    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/shader.frag.spv"
+
+    vulkan::shaderbuilder::ShaderModule shader_frag("shader.frag", shaderc_fragment_shader);
+    shader_frag.load_source(shader_frag_glsl);
+    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(shader_frag.compile()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {

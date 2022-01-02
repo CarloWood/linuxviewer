@@ -4,6 +4,7 @@
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
+#include "vulkan/shaderbuilder/ShaderModule.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -396,9 +397,50 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/triangle.vert.spv"
+    std::string const shader_vert_glsl = R"glsl(
+#version 450
+
+layout(location = 0) out vec3 fragColor;
+
+vec2 positions[3] = vec2[](
+    vec2(0.0, -0.5),
+    vec2(-0.5, 0.5),
+    vec2(0.5, 0.5)
+);
+
+vec3 colors[3] = vec3[](
+    vec3(1.0, 0.0, 0.0),
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
+);
+
+void main()
+{
+  gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+  fragColor = colors[gl_VertexIndex];
+}
+)glsl";
+
+    std::string const shader_frag_glsl = R"glsl(
+#version 450
+
+layout(location = 0) in vec3 fragColor;
+layout(location = 0) out vec4 outColor;
+
+void main()
+{
+  outColor = vec4(fragColor, 1.0);
+}
+)glsl";
+
+    vulkan::shaderbuilder::ShaderModule shader_vert("shader.vert", shaderc_vertex_shader);
+    shader_vert.load_source(shader_vert_glsl);
+    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(shader_vert.compile()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
-    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(m_application->resources_path() / "shaders/triangle.frag.spv"
+
+    vulkan::shaderbuilder::ShaderModule shader_frag("shader.frag", shaderc_fragment_shader);
+    shader_frag.load_source(shader_frag_glsl);
+    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(shader_frag.compile()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {

@@ -123,7 +123,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageKind const& image_kind, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueShaderModule create_shader_module(std::filesystem::path const& filename
+  vk::UniqueShaderModule create_shader_module(std::vector<uint32_t> const& spirv_code
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
