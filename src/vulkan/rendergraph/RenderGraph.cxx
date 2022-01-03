@@ -2,8 +2,8 @@
 #include "RenderGraph.h"
 #include "RenderPass.h"
 #include "Attachment.h"
-#include "../LogicalDevice.h"
-#include "../SynchronousWindow.h"
+#include "LogicalDevice.h"
+#include "SynchronousWindow.h"
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"

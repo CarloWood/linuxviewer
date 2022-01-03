@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ImageKind.h"
+#include "ImageKind.h"
 #include "utils/UniqueID.h"
 
 namespace vulkan::rendergraph {

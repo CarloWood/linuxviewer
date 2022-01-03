@@ -393,11 +393,7 @@ class Window : public task::SynchronousWindow
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
   }
 
-  void create_graphics_pipeline() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
-
-    std::string const shader_vert_glsl = R"glsl(
+  static constexpr std::string_view triangle_vert_glsl = R"glsl(
 #version 450
 
 layout(location = 0) out vec3 fragColor;
@@ -421,7 +417,7 @@ void main()
 }
 )glsl";
 
-    std::string const shader_frag_glsl = R"glsl(
+  static constexpr std::string_view triangle_frag_glsl = R"glsl(
 #version 450
 
 layout(location = 0) in vec3 fragColor;
@@ -433,15 +429,27 @@ void main()
 }
 )glsl";
 
-    vulkan::shaderbuilder::ShaderModule shader_vert("shader.vert", shaderc_vertex_shader);
-    shader_vert.load_source(shader_vert_glsl);
-    vk::UniqueShaderModule vertex_shader_module = logical_device().create_shader_module(shader_vert.compile()
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::vertex_shader_module")));
+  void create_graphics_pipeline() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vulkan::shaderbuilder::ShaderModule shader_frag("shader.frag", shaderc_fragment_shader);
-    shader_frag.load_source(shader_frag_glsl);
-    vk::UniqueShaderModule fragment_shader_module = logical_device().create_shader_module(shader_frag.compile()
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::fragment_shader_module")));
+    vk::UniqueShaderModule vertex_shader_module;
+    vk::UniqueShaderModule fragment_shader_module;
+
+    {
+      using namespace vulkan::shaderbuilder;
+
+      ShaderCompiler compiler;
+      ShaderCompilerOptions options;
+
+      ShaderModule shader_vert;
+      shader_vert.set_name("shader.vert").load(triangle_vert_glsl).compile(compiler, options);
+      vertex_shader_module = create(shader_vert);
+
+      ShaderModule shader_frag;
+      shader_frag.set_name("shader.frag").load(triangle_frag_glsl).compile(compiler, options);
+      fragment_shader_module = create(shader_frag);
+    }
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
       // Vertex shader.

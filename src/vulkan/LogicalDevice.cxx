@@ -632,12 +632,12 @@ ImageParameters LogicalDevice::create_image(
 }
 
 vk::UniqueShaderModule LogicalDevice::create_shader_module(
-    std::vector<uint32_t> const& spirv_code
+    uint32_t const* spirv_code, size_t spirv_size
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   vk::ShaderModuleCreateInfo shader_module_create_info{
-    .codeSize = spirv_code.size() * sizeof(uint32_t),
-    .pCode = spirv_code.data()
+    .codeSize = spirv_size,     // Size is in bytes.
+    .pCode = spirv_code
   };
 
   vk::UniqueShaderModule shader_module = m_device->createShaderModuleUnique(shader_module_create_info);

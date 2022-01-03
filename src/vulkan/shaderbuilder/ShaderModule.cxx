@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "ShaderModule.h"
+#include "LogicalDevice.h"
+#include "SynchronousWindow.h"
 #include "utils/AIAlert.h"
+#include "utils/at_scope_end.h"
 #include <shaderc/shaderc.hpp>
 #include <magic_enum.hpp>
 #include "debug.h"
@@ -52,7 +55,7 @@ shaderc_shader_kind ShaderModule::filename_to_shader_kind(std::filesystem::path 
   return shaderc_glsl_infer_from_source;
 }
 
-void ShaderModule::load_file(std::filesystem::path const& filename)
+ShaderModule& ShaderModule::load(std::same_as<std::filesystem::path> auto const& filename)
 {
   DoutEntering(dc::vulkan, "ShaderModule::load(" << filename << ")");
 
@@ -69,18 +72,54 @@ void ShaderModule::load_file(std::filesystem::path const& filename)
   ASSERT(ifs.gcount() == file_size);
   ASSERT(ifs.good());
 
-  set_shader_kind(filename_to_shader_kind(filename));
+  // Use constructor to set a name, or call set_shader_kind(name) before calling this function,
+  // if you want to set your own name for this ShaderModule.
+  if (m_name.empty())
+    m_name = filename.filename();
+
+  // Only deduce shader kind from filename extension if it wasn't already set.
+  if (m_shader_kind == shaderc_glsl_infer_from_source)
+    set_shader_kind(filename_to_shader_kind(filename));
+
+  return *this;
 }
 
-std::vector<uint32_t> ShaderModule::compile() const
+void ShaderModule::reset()
 {
-  shaderc::Compiler compiler;
-//  shaderc::CompileOptions options;
-  shaderc::SpvCompilationResult result = compiler.CompileGlslToSpv(m_glsl_source_code, m_shader_kind, m_name.c_str());
-  if (result.GetCompilationStatus() != shaderc_compilation_status_success)
-    THROW_ALERT("Failed to compile \"[NAME]\" as [KIND]: [ERROR]", AIArgs("[NAME]", m_name)("[KIND]", m_shader_kind)("[ERROR]", result.GetErrorMessage()));
+  m_spirv_code.clear();
+  m_name.clear();
+  m_glsl_source_code.clear();
+  m_shader_kind = shaderc_glsl_infer_from_source;
+}
 
-  return { result.cbegin(), result.cend() };
+void ShaderModule::compile(ShaderCompiler const& compiler, ShaderCompilerOptions const& options)
+{
+  // Call load() before calling compile().
+  ASSERT(!m_glsl_source_code.empty());
+  // Call reset() before reusing a ShaderModule.
+  ASSERT(m_spirv_code.empty());
+  m_spirv_code = compiler.compile({}, *this, options);
+  // Clean up.
+  m_glsl_source_code.clear();
+}
+
+vk::UniqueShaderModule ShaderModule::create(utils::Badge<task::SynchronousWindow>, task::SynchronousWindow const* owning_window) const
+{
+  // Call compile() before calling this create().
+  ASSERT(!m_spirv_code.empty());
+  return owning_window->logical_device().create_shader_module(
+      m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner(owning_window, m_name)));
+}
+
+vk::UniqueShaderModule ShaderModule::create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options) const
+{
+  // Call load() before calling this create().
+  ASSERT(!m_glsl_source_code.empty());
+  // Call reset() before reusing a ShaderModule.
+  ASSERT(m_spirv_code.empty());
+  return compiler.create({}, owning_window->logical_device(), *this, options
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner(owning_window, m_name)));
 }
 
 #ifdef CWDEBUG

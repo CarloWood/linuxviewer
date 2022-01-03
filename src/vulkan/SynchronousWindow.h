@@ -13,6 +13,7 @@
 #include "Concepts.h"
 #include "ImageKind.h"
 #include "rendergraph/RenderGraph.h"
+#include "shaderbuilder/ShaderModule.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -41,6 +42,10 @@ class Application;
 class LogicalDevice;
 class AmbifixOwner;
 class Swapchain;
+
+namespace shaderbuilder {
+class ShaderModule;
+} // shaderbuilder
 
 namespace detail {
 
@@ -141,6 +146,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
+
+  vk::UniqueShaderModule create(vulkan::shaderbuilder::ShaderModule const& shader_module) const
+  {
+    return shader_module.create({}, this);
+  }
 
   // UNSORTED REMAINING OBJECTS.
   vulkan::DescriptorSetParameters m_descriptor_set;
