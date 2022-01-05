@@ -17,7 +17,11 @@ namespace task {
 class SynchronousWindow;
 } // namespace task
 
-namespace vulkan::shaderbuilder {
+namespace vulkan {
+
+class Pipeline;
+
+namespace shaderbuilder {
 
 class ShaderModule
 {
@@ -57,8 +61,8 @@ class ShaderModule
   vk::UniqueShaderModule create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options) const;
 
   // Create handle from cached SPIR-V code.
-  // Use task::SynchronousWindow::create(shader_module) instead of this function.
-  vk::UniqueShaderModule create(utils::Badge<task::SynchronousWindow>, task::SynchronousWindow const* owning_window) const;
+  // Use vulkan::Pipeline::add(shader_module) instead of this function.
+  vk::UniqueShaderModule create(utils::Badge<vulkan::Pipeline>, task::SynchronousWindow const* owning_window) const;
 
   // Free resources.
   void reset();
@@ -75,4 +79,5 @@ class ShaderModule
 #endif
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace shaderbuilder
+} // namespace vulkan

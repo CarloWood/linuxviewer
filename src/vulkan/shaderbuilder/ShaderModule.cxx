@@ -138,7 +138,7 @@ void ShaderModule::compile(ShaderCompiler const& compiler, ShaderCompilerOptions
   m_glsl_source_code.clear();
 }
 
-vk::UniqueShaderModule ShaderModule::create(utils::Badge<task::SynchronousWindow>, task::SynchronousWindow const* owning_window) const
+vk::UniqueShaderModule ShaderModule::create(utils::Badge<Pipeline>, task::SynchronousWindow const* owning_window) const
 {
   // Call compile() before calling this create().
   ASSERT(!m_spirv_code.empty());

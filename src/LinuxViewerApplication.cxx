@@ -5,6 +5,7 @@
 #include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/shaderbuilder/ShaderModule.h"
+#include "vulkan/Pipeline.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -433,8 +434,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vk::UniqueShaderModule vertex_shader_module;
-    vk::UniqueShaderModule fragment_shader_module;
+    vulkan::Pipeline pipeline(this);
 
     {
       using namespace vulkan::shaderbuilder;
@@ -444,29 +444,14 @@ void main()
 
       ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
       shader_vert.set_name("triangle.vert.glsl").load(triangle_vert_glsl).compile(compiler, options);
-      vertex_shader_module = create(shader_vert);
+      pipeline.add(shader_vert);
 
       ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
       shader_frag.set_name("triangle.frag.glsl").load(triangle_frag_glsl).compile(compiler, options);
-      fragment_shader_module = create(shader_frag);
-    }
+      pipeline.add(shader_frag);
 
-    std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
-      // Vertex shader.
-      {
-        .flags = vk::PipelineShaderStageCreateFlags(0),
-        .stage = vk::ShaderStageFlagBits::eVertex,
-        .module = *vertex_shader_module,
-        .pName = "main"
-      },
-      // Fragment shader.
-      {
-        .flags = vk::PipelineShaderStageCreateFlags(0),
-        .stage = vk::ShaderStageFlagBits::eFragment,
-        .module = *fragment_shader_module,
-        .pName = "main"
-      }
-    };
+//      pipeline.add(ShaderModule{vk::ShaderStageFlagBits::eVertex, "triangle.vert.glsl"}.load(triangle_vert_glsl).compile(compiler, options));
+    }
 
     std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
     };
@@ -577,6 +562,8 @@ void main()
     // FIXME: this was already initialized - implement supporting descriptor set and push constants from the Derived class.
     m_pipeline_layout = logical_device().create_pipeline_layout({}, {}
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+
+    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .flags = vk::PipelineCreateFlags(0),

@@ -8,6 +8,7 @@
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
+#include "vulkan/Pipeline.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -385,8 +386,7 @@ void main() {
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vk::UniqueShaderModule vertex_shader_module;
-    vk::UniqueShaderModule fragment_shader_module;
+    vulkan::Pipeline pipeline(this);
 
     {
       using namespace vulkan::shaderbuilder;
@@ -396,29 +396,12 @@ void main() {
 
       ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
       shader_vert.set_name("intel.vert.glsl").load(intel_vert_glsl).compile(compiler, options);
-      vertex_shader_module = create(shader_vert);
+      pipeline.add(shader_vert);
 
       ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
       shader_frag.set_name("intel.frag.glsl").load(intel_frag_glsl).compile(compiler, options);
-      fragment_shader_module = create(shader_frag);
+      pipeline.add(shader_frag);
     }
-
-    std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
-      // Vertex shader.
-      {
-        .flags = {},
-        .stage = vk::ShaderStageFlagBits::eVertex,
-        .module = *vertex_shader_module,
-        .pName = "main"
-      },
-      // Fragment shader.
-      {
-        .flags = {},
-        .stage = vk::ShaderStageFlagBits::eFragment,
-        .module = *fragment_shader_module,
-        .pName = "main"
-      }
-    };
 
     std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
       {
@@ -537,6 +520,8 @@ void main() {
       .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
       .pDynamicStates = dynamic_states.data()
     };
+
+    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .flags = vk::PipelineCreateFlags(0),

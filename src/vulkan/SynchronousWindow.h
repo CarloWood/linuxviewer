@@ -147,11 +147,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
 
-  vk::UniqueShaderModule create(vulkan::shaderbuilder::ShaderModule const& shader_module) const
-  {
-    return shader_module.create({}, this);
-  }
-
   // UNSORTED REMAINING OBJECTS.
   vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
