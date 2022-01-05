@@ -147,12 +147,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
 
-  // UNSORTED REMAINING OBJECTS.
-  vulkan::DescriptorSetParameters m_descriptor_set;
-  vulkan::ImageParameters m_background_texture;
-  vulkan::ImageParameters m_texture;
-  vk::UniquePipelineLayout m_pipeline_layout;
-
  protected:
   /// The base class of this task.
   using direct_base_type = AIStatefulTask;
@@ -293,9 +287,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_swapchain_images();
   void create_frame_resources();
   void create_swapchain_framebuffer();
-  void create_descriptor_set();
-  void create_textures();
-  void create_pipeline_layout();
 
   friend class vulkan::Swapchain;
   vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
@@ -306,6 +297,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Implemented by most derived class.
   virtual void create_render_passes() = 0;
+  virtual void create_descriptor_set() = 0;
+  virtual void create_textures() = 0;
+  virtual void create_pipeline_layout() = 0;
   virtual void create_graphics_pipeline() = 0;
   virtual void create_vertex_buffers() = 0;
   virtual void draw_frame() = 0;

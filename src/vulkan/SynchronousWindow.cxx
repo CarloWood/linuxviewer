@@ -7,7 +7,6 @@
 #include "VertexData.h"
 #include "StagingBufferParameters.h"
 #include "Exceptions.h"
-#include "vk_utils/get_image_data.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
@@ -169,15 +168,10 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_swapchain_images();
       create_frame_resources();
       create_swapchain_framebuffer();
-
-      //FIXME: the following three are application specific.
       create_descriptor_set();
       create_textures();
       create_pipeline_layout();
-
       create_graphics_pipeline();
-
-      //FIXME: the following is application specific.
       create_vertex_buffers();
 
       set_state(SynchronousWindow_render_loop);
@@ -448,136 +442,6 @@ void SynchronousWindow::set_image_memory_barrier(
       THROW_ALERTC(res, "waitForFences");
     }
   }
-}
-
-void SynchronousWindow::create_descriptor_set()
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::create_descriptor_set() [" << this << "]");
-
-  std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
-    {
-      .binding = 0,
-      .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-      .descriptorCount = 1,
-      .stageFlags = vk::ShaderStageFlagBits::eFragment,
-      .pImmutableSamplers = nullptr
-    },
-    {
-      .binding = 1,
-      .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-      .descriptorCount = 1,
-      .stageFlags = vk::ShaderStageFlagBits::eFragment,
-      .pImmutableSamplers = nullptr
-    }
-  };
-  std::vector<vk::DescriptorPoolSize> pool_sizes = {
-  {
-    .type = vk::DescriptorType::eCombinedImageSampler,
-    .descriptorCount = 2
-  }};
-
-  m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
-}
-
-void SynchronousWindow::create_textures()
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::create_textures() [" << this << "]");
-
-  // Background texture.
-  {
-    int width = 0, height = 0, data_size = 0;
-    std::vector<std::byte> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/background.png", 4, &width, &height, nullptr, &data_size);
-    // Create descriptor resources.
-    {
-      static vulkan::ImageKind const background_image_kind({
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-      });
-
-      static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
-
-      m_background_texture =
-        m_logical_device->create_image(width, height, background_image_kind, background_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
-
-      m_background_texture.m_sampler =
-        m_logical_device->create_sampler(
-            vk::SamplerMipmapMode::eNearest,
-            vk::SamplerAddressMode::eClampToEdge,
-            VK_FALSE
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
-    }
-    // Copy data.
-    {
-      vk_defaults::ImageSubresourceRange const image_subresource_range;
-      copy_data_to_image(data_size, texture_data.data(), *m_background_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
-          vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
-          vk::PipelineStageFlagBits::eFragmentShader);
-    }
-    // Update descriptor set.
-    {
-      std::vector<vk::DescriptorImageInfo> image_infos = {
-        {
-          .sampler = *m_background_texture.m_sampler,
-          .imageView = *m_background_texture.m_image_view,
-          .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        }
-      };
-      m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
-    }
-  }
-
-  // Sample texture.
-  {
-    int width = 0, height = 0, data_size = 0;
-    std::vector<std::byte> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
-    // Create descriptor resources.
-    {
-      static vulkan::ImageKind const sample_image_kind({
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-      });
-
-      static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
-
-      m_texture = m_logical_device->create_image(width, height, sample_image_kind, sample_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-      m_texture.m_sampler = m_logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
-    }
-    // Copy data.
-    {
-      vk_defaults::ImageSubresourceRange const image_subresource_range;
-      copy_data_to_image(data_size, texture_data.data(), *m_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
-          vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
-          vk::PipelineStageFlagBits::eFragmentShader);
-    }
-    // Update descriptor set.
-    {
-      std::vector<vk::DescriptorImageInfo> image_infos = {
-        {
-          .sampler = *m_texture.m_sampler,
-          .imageView = *m_texture.m_image_view,
-          .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        }
-      };
-      m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
-    }
-  }
-}
-
-void SynchronousWindow::create_pipeline_layout()
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::create_pipeline_layout() [" << this << "]");
-
-  vk::PushConstantRange push_constant_ranges{
-    .stageFlags = vk::ShaderStageFlagBits::eVertex,
-    .offset = 0,
-    .size = 4
-  };
-  m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 }
 
 void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,

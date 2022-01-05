@@ -225,6 +225,7 @@ class Window : public task::SynchronousWindow
 
  private:
   vk::UniquePipeline m_graphics_pipeline;
+  vk::UniquePipelineLayout m_pipeline_layout;
 
   int m_frame_count = 0;
 
@@ -394,6 +395,24 @@ class Window : public task::SynchronousWindow
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
   }
 
+  void create_descriptor_set() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
+  }
+
+  void create_textures() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
+  }
+
+  void create_pipeline_layout() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
+
+    m_pipeline_layout = logical_device().create_pipeline_layout({}, {}
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+  }
+
   static constexpr std::string_view triangle_vert_glsl = R"glsl(
 #version 450
 
@@ -558,10 +577,6 @@ void main()
       .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
       .pDynamicStates = dynamic_states.data()
     };
-
-    // FIXME: this was already initialized - implement supporting descriptor set and push constants from the Derived class.
-    m_pipeline_layout = logical_device().create_pipeline_layout({}, {}
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
     auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
