@@ -18,6 +18,7 @@ std::ostream& operator<<(std::ostream& os, shaderc_shader_kind kind)
 
 namespace vulkan::shaderbuilder {
 
+#if 0
 shaderc_shader_kind ShaderModule::filename_to_shader_kind(std::filesystem::path filename, bool force) const
 {
   if (filename.extension() == ".glsl")
@@ -54,6 +55,45 @@ shaderc_shader_kind ShaderModule::filename_to_shader_kind(std::filesystem::path 
   // Strange extension.
   return shaderc_glsl_infer_from_source;
 }
+#endif
+
+shaderc_shader_kind ShaderModule::get_shader_kind() const
+{
+  switch (m_stage)
+  {
+    case vk::ShaderStageFlagBits::eVertex:
+      return shaderc_vertex_shader;
+    case vk::ShaderStageFlagBits::eTessellationControl:
+      return shaderc_tess_control_shader;
+    case vk::ShaderStageFlagBits::eTessellationEvaluation:
+      return shaderc_tess_evaluation_shader;
+    case vk::ShaderStageFlagBits::eGeometry:
+      return shaderc_geometry_shader;
+    case vk::ShaderStageFlagBits::eFragment:
+      return shaderc_fragment_shader;
+    case vk::ShaderStageFlagBits::eCompute:
+      return shaderc_compute_shader;
+    case vk::ShaderStageFlagBits::eRaygenKHR:
+      return shaderc_raygen_shader;
+    case vk::ShaderStageFlagBits::eAnyHitKHR:
+      return shaderc_anyhit_shader;
+    case vk::ShaderStageFlagBits::eClosestHitKHR:
+      return shaderc_closesthit_shader;
+    case vk::ShaderStageFlagBits::eMissKHR:
+      return shaderc_miss_shader;
+    case vk::ShaderStageFlagBits::eIntersectionKHR:
+      return shaderc_intersection_shader;
+    case vk::ShaderStageFlagBits::eCallableKHR:
+      return shaderc_callable_shader;
+    case vk::ShaderStageFlagBits::eTaskNV:
+      return shaderc_task_shader;
+    case vk::ShaderStageFlagBits::eMeshNV:
+      return shaderc_mesh_shader;
+    default:
+      THROW_ALERT("It is not supported to pass [STAGEFLAG] as ShaderModule stage flag", AIArgs("[STAGEFLAG]", to_string(m_stage)));
+  }
+  AI_NEVER_REACHED;
+}
 
 ShaderModule& ShaderModule::load(std::same_as<std::filesystem::path> auto const& filename)
 {
@@ -72,24 +112,19 @@ ShaderModule& ShaderModule::load(std::same_as<std::filesystem::path> auto const&
   ASSERT(ifs.gcount() == file_size);
   ASSERT(ifs.good());
 
-  // Use constructor to set a name, or call set_shader_kind(name) before calling this function,
+  // Use constructor to set a name, or call set_name(name) before calling this function,
   // if you want to set your own name for this ShaderModule.
   if (m_name.empty())
     m_name = filename.filename();
-
-  // Only deduce shader kind from filename extension if it wasn't already set.
-  if (m_shader_kind == shaderc_glsl_infer_from_source)
-    set_shader_kind(filename_to_shader_kind(filename));
 
   return *this;
 }
 
 void ShaderModule::reset()
 {
+  DoutEntering(dc::vulkan, "ShaderModule::reset() for shader \"" << m_name << "\".");
   m_spirv_code.clear();
-  m_name.clear();
   m_glsl_source_code.clear();
-  m_shader_kind = shaderc_glsl_infer_from_source;
 }
 
 void ShaderModule::compile(ShaderCompiler const& compiler, ShaderCompilerOptions const& options)
@@ -136,7 +171,7 @@ void ShaderModule::print_on(std::ostream& os) const
     ++line_number;
   }
   os << "\n";
-  os << "shader_kind:" << m_shader_kind;
+  os << "stage:" << to_string(m_stage);
   os << "}";
 }
 #endif

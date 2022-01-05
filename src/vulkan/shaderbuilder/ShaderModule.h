@@ -22,34 +22,20 @@ namespace vulkan::shaderbuilder {
 class ShaderModule
 {
  private:
-  std::string m_name;
-  std::string m_glsl_source_code;
-  shaderc_shader_kind m_shader_kind;
-  std::vector<uint32_t> m_spirv_code;
+  vk::ShaderStageFlagBits const m_stage;        // The stage that this shader will be used in.
+  std::string m_name;                           // Shader name, used for diagnostics.
+  std::string m_glsl_source_code;               // GLSL source code; loaded with load().
+  std::vector<uint32_t> m_spirv_code;           // Cached, compiled SPIR-V code.
 
  public:
-  // Construct an empty ShaderModule object.
-  ShaderModule() : m_shader_kind(shaderc_glsl_infer_from_source) { }
+  // Construct an empty ShaderModule object to be used for the specified stage.
+  // A name can be specified at construction or later with set_name. Note that a call to reset() does NOT reset the name.
+  ShaderModule(vk::ShaderStageFlagBits stage, std::string name = "uninitialized shader") : m_stage(stage), m_name(std::move(name)) { }
 
-  // Construct with name and kind.
-  ShaderModule(std::string name, shaderc_shader_kind shader_kind = shaderc_glsl_infer_from_source)
+  // Set name of this object (for diagnostics).
+  ShaderModule& set_name(std::string name)
   {
     m_name = std::move(name);
-    m_shader_kind = shader_kind;
-    if (shader_kind == shaderc_glsl_infer_from_source)
-      m_shader_kind = filename_to_shader_kind(m_name);
-  }
-
-  // Set name of this object (for diagnostics) and the kind of shader that this is.
-  // Can (optionally) be used if it can not be deduced from the filename extension.
-  ShaderModule& set_name(std::string name, shaderc_shader_kind shader_kind = shaderc_glsl_infer_from_source)
-  {
-    // Only set name and shader kind once. Call reset() if you want to cleanup/reuse a ShaderModule object.
-    ASSERT(m_name.empty() && m_shader_kind == shaderc_glsl_infer_from_source);
-    m_name = std::move(name);
-    m_shader_kind = shader_kind;
-    if (shader_kind == shaderc_glsl_infer_from_source)
-      m_shader_kind = filename_to_shader_kind(m_name);
     return *this;
   }
 
@@ -58,10 +44,8 @@ class ShaderModule
   ShaderModule& load(std::same_as<std::filesystem::path> auto const& filename);
 
   // Load source code from a string.
-  ShaderModule& load(std::string_view source, shaderc_shader_kind shader_kind = shaderc_glsl_infer_from_source)
+  ShaderModule& load(std::string_view source)
   {
-    if (shader_kind != shaderc_glsl_infer_from_source)
-      m_shader_kind = shader_kind;
     m_glsl_source_code = source;
     return *this;
   }
@@ -81,15 +65,14 @@ class ShaderModule
 
   // Accessors.
   std::string_view glsl_source() const { return m_glsl_source_code; }
-  shaderc_shader_kind shader_kind() const { return m_shader_kind; }
+  vk::ShaderStageFlagBits stage() const { return m_stage; }
   std::string const& name() const { return m_name; }
+
+  shaderc_shader_kind get_shader_kind() const;
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
-
- private:
-  shaderc_shader_kind filename_to_shader_kind(std::filesystem::path filename, bool force = false) const;
 };
 
 } // namespace vulkan::shaderbuilder

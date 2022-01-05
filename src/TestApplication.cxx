@@ -394,26 +394,26 @@ void main() {
       ShaderCompiler compiler;
       ShaderCompilerOptions options;
 
-      ShaderModule shader_vert;
-      shader_vert.set_name("shader.vert").load(intel_vert_glsl).compile(compiler, options);
+      ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
+      shader_vert.set_name("intel.vert.glsl").load(intel_vert_glsl).compile(compiler, options);
       vertex_shader_module = create(shader_vert);
 
-      ShaderModule shader_frag;
-      shader_frag.set_name("shader.frag").load(intel_frag_glsl).compile(compiler, options);
+      ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
+      shader_frag.set_name("intel.frag.glsl").load(intel_frag_glsl).compile(compiler, options);
       fragment_shader_module = create(shader_frag);
     }
 
     std::vector<vk::PipelineShaderStageCreateInfo> shader_stage_create_infos = {
       // Vertex shader.
       {
-        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .flags = {},
         .stage = vk::ShaderStageFlagBits::eVertex,
         .module = *vertex_shader_module,
         .pName = "main"
       },
       // Fragment shader.
       {
-        .flags = vk::PipelineShaderStageCreateFlags(0),
+        .flags = {},
         .stage = vk::ShaderStageFlagBits::eFragment,
         .module = *fragment_shader_module,
         .pName = "main"
@@ -452,6 +452,9 @@ void main() {
         .offset = 0
       }
     };
+
+    //=========================================================================
+    // Vertex input.
 
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
       .flags = vk::PipelineVertexInputStateCreateFlags(0),

@@ -442,12 +442,12 @@ void main()
       ShaderCompiler compiler;
       ShaderCompilerOptions options;
 
-      ShaderModule shader_vert;
-      shader_vert.set_name("shader.vert").load(triangle_vert_glsl).compile(compiler, options);
+      ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
+      shader_vert.set_name("triangle.vert.glsl").load(triangle_vert_glsl).compile(compiler, options);
       vertex_shader_module = create(shader_vert);
 
-      ShaderModule shader_frag;
-      shader_frag.set_name("shader.frag").load(triangle_frag_glsl).compile(compiler, options);
+      ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
+      shader_frag.set_name("triangle.frag.glsl").load(triangle_frag_glsl).compile(compiler, options);
       fragment_shader_module = create(shader_frag);
     }
 
