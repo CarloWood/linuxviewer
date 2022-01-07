@@ -54,3 +54,6 @@
 	path = xcb-task
 	url = https://github.com/CarloWood/xcb-task.git
 	branch = master
+[submodule "external/imgui"]
+	path = external/imgui
+	url = https://github.com/CarloWood/imgui.git

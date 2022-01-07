@@ -58,6 +58,8 @@ add_custom_target(resources ALL DEPENDS ${RESOURCES_TARGETS})
 add_executable(mytest
   TestApplication.cxx
   TestApplication.h
+  TimerData.cxx
+  TimerData.h
 )
 
 target_link_libraries(mytest
@@ -68,6 +70,7 @@ target_link_libraries(mytest
     AICxx::resolver-task
     dns::dns
     ${AICXX_OBJECTS_LIST}
+    ImGui::imgui
 )
 
 add_executable(linuxviewer 

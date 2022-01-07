@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "SampleParameters.h"
+#include "TimerData.h"
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/VertexData.h"
 #include "vulkan/LogicalDevice.h"
@@ -10,6 +11,7 @@
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
 #include "vk_utils/get_image_data.h"
+#include "imgui/imgui.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -33,6 +35,7 @@ class Window : public task::SynchronousWindow
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
+  lv_utils::TimerData m_timer;
 
   SampleParameters Parameters;
 
@@ -79,6 +82,12 @@ class Window : public task::SynchronousWindow
     m_current_frame.m_resource_count = Parameters.FrameResourcesCount;  // Slider value.
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+    m_timer.update();
+#if 0
+  Gui.StartFrame( Timer, MouseState );
+  PrepareGUIFrame();
+#endif
 
     // Start frame - calculate times and prepare GUI.
     start_frame();

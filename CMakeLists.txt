@@ -1,6 +1,11 @@
 # FetchContent was added to 3.14.
 cmake_minimum_required(VERSION 3.14...3.17)
 
+# Compile all subdirectories with the same standard.
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 project(linuxviewer
   LANGUAGES C CXX
   DESCRIPTION "Viewer for SecondLife and OpenSim."
@@ -60,6 +65,7 @@ set(BUILD_GMOCK OFF CACHE BOOL "")
 # Disable installation of googletest.
 set(INSTALL_GTEST OFF CACHE BOOL "")
 
+add_subdirectory(external)
 #add_subdirectory(helloworld-task)
 #add_subdirectory(filelock-task)
 add_subdirectory(resolver-task)

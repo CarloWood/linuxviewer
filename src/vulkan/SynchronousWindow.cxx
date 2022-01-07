@@ -665,11 +665,6 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
 void SynchronousWindow::start_frame()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::start_frame(...)");
-#if 0
-  Timer.Update();
-  Gui.StartFrame( Timer, MouseState );
-  PrepareGUIFrame();
-#endif
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
