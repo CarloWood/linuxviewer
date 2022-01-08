@@ -1,20 +1,15 @@
 #pragma once
 
-#include "debug.h"
+namespace task {
+class SynchronousWindow;
+} // namespace task
 
 namespace vulkan {
 
-class ImGui {
+class ImGui
+{
  public:
-  ImGui()
-  {
-    DoutEntering(dc::vulkan, "ImGui::ImGui()");
-  }
-
-  ~ImGui()
-  {
-    DoutEntering(dc::vulkan, "ImGui::~ImGui()");
-  }
+  void init(task::SynchronousWindow const* owning_window);
 };
 
 } // namespace vulkan

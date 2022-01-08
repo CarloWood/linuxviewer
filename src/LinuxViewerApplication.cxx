@@ -265,7 +265,7 @@ class Window : public task::SynchronousWindow
     }
 
     // Draw GUI and present swapchain image.
-    finish_frame(vk::RenderPass{});
+    finish_frame();
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
 

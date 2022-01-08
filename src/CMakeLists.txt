@@ -68,9 +68,9 @@ target_link_libraries(mytest
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task
-    dns::dns
-    ${AICXX_OBJECTS_LIST}
     ImGui::imgui
+    ${AICXX_OBJECTS_LIST}
+    dns::dns
 )
 
 add_executable(linuxviewer 
@@ -86,14 +86,15 @@ target_link_libraries(linuxviewer
     LinuxViewer::protocols
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
+    LinuxViewer::vulkan
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task
-    LinuxViewer::vulkan
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
-    dns::dns
+    ImGui::imgui
     ${AICXX_OBJECTS_LIST}
+    dns::dns
     farmhash::farmhash
     blaze::blaze
     Boost::serialization

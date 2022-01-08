@@ -11,7 +11,6 @@
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
 #include "vk_utils/get_image_data.h"
-#include "imgui/imgui.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
@@ -114,7 +113,7 @@ class Window : public task::SynchronousWindow
     }
 
     // Draw GUI and present swapchain image.
-    finish_frame(/* *m_current_frame.m_frame_resources->m_post_command_buffer,*/ *m_post_render_pass);
+    finish_frame();
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);

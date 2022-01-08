@@ -28,6 +28,7 @@ namespace vulkan {
 
 class InstanceCreateInfo;
 class DeviceCreateInfo;
+class ImGui;
 
 class Application
 {
@@ -135,6 +136,7 @@ class Application
   int create_device(std::unique_ptr<LogicalDevice>&& logical_device, task::SynchronousWindow* root_window);
 
   // Accessor.
+  friend class ImGui;
   vk::Instance vh_instance() const { return *m_instance; }
 
  public:

@@ -97,6 +97,7 @@ target_link_libraries(vulkan_ObjLib
     farmhash::farmhash
     ${CMAKE_DL_LIBS}
     PkgConfig::Shaderc
+    ImGui::imgui
 )
 
 # Create an ALIAS target.

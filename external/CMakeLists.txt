@@ -31,12 +31,11 @@ target_sources(imgui_ObjLib
 )
 
 target_include_directories(imgui_ObjLib
-  PRIVATE
+  PUBLIC
     # Because the .cpp files use #include "xyz.h", expecting the source directory to be "${CMAKE_CURRENT_SOURCE_DIR}/imgui".
+    # And when using imgui, we can't use #include <imgui/*> because backends/*.h use #include "imgui.h"; so we'll just
+    # have to include this directory at all times.
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui"
-  INTERFACE
-    # Because when using imgui, we use #include <imgui/imgui.h>.
-    "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 # Create an ALIAS target.

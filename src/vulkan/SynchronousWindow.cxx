@@ -173,6 +173,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_pipeline_layout();
       create_graphics_pipeline();
       create_vertex_buffers();
+      create_imgui();
 
       set_state(SynchronousWindow_render_loop);
       // We already have a swapchain up there - but only now we can really render anything, so set it here.
@@ -321,6 +322,12 @@ void SynchronousWindow::create_swapchain_framebuffer()
 {
   m_swapchain.recreate_swapchain_framebuffer(this
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
+}
+
+void SynchronousWindow::create_imgui()
+{
+  DoutEntering(dc::vulkan, "SynchronousWindow::create_imgui()");
+  m_imgui.init(this);
 }
 
 void SynchronousWindow::wait_for_all_fences() const
@@ -672,7 +679,7 @@ void SynchronousWindow::start_frame()
     throw std::runtime_error("Waiting for a fence takes too long!");
 }
 
-void SynchronousWindow::finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass)
+void SynchronousWindow::finish_frame()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
 

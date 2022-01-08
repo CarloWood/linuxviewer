@@ -12,6 +12,7 @@
 #include "WindowEvents.h"
 #include "Concepts.h"
 #include "ImageKind.h"
+#include "ImGui.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "statefultask/Broker.h"
@@ -147,6 +148,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
 
+  // Initialized by create_imgui.
+  vulkan::ImGui m_imgui;                                                                // ImGui framework.
+
  protected:
   /// The base class of this task.
   using direct_base_type = AIStatefulTask;
@@ -211,6 +215,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   window_cookie_type window_cookie() const
   {
     return m_window_cookie;
+  }
+
+  vulkan::Application const& application() const
+  {
+    return *m_application;
   }
 
   int get_logical_device_index() const
@@ -287,6 +296,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_swapchain_images();
   void create_frame_resources();
   void create_swapchain_framebuffer();
+  void create_imgui();
 
   friend class vulkan::Swapchain;
   vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
@@ -314,7 +324,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   }
 
   void start_frame();
-  void finish_frame(/* vulkan::handle::CommandBuffer command_buffer,*/ vk::RenderPass render_pass);
+  void finish_frame();
   void acquire_image();
 
 #ifdef CWDEBUG

@@ -9,6 +9,7 @@
 #include "ImageParameters.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
+#include "utils/Badge.h"
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
 
@@ -19,6 +20,7 @@ class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
 class PresentationSurface;
 class CommandBuffer;
+class ImGui;
 struct AmbifixOwner;
 
 // The collection of queue family properties for a given physical device.
@@ -65,6 +67,7 @@ class LogicalDevice
 
   // Accessor for underlaying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
+  vk::Device vh_logical_device(utils::Badge<ImGui>) const { return *m_device; }
 
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
