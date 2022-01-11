@@ -73,7 +73,22 @@ std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
   return os << '>';
 }
 
+template<typename T>
+std::ostream& operator<<(std::ostream& os, vk::ArrayWrapper1D<T, 4> const& array_proxy)
+{
+  os << '<';
+  char const* prefix = "";
+  for (auto const& element : array_proxy)
+  {
+    os << prefix << element;
+    prefix = ", ";
+  }
+  return os << '>';
+}
+
 std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference);
+std::ostream& operator<<(std::ostream& os, vk::ClearColorValue const& clear_color_value);
+std::ostream& operator<<(std::ostream& os, vk::ClearDepthStencilValue const& clear_depth_stencil_value);
 
 } // namespace vk
 

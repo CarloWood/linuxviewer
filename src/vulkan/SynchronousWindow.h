@@ -13,6 +13,8 @@
 #include "Concepts.h"
 #include "ImageKind.h"
 #include "ImGui.h"
+#include "ClearValue.h"
+#include "RenderPass.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "statefultask/Broker.h"
@@ -94,6 +96,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   static vulkan::ImageKind const s_depth_image_kind;
   static vulkan::ImageViewKind const s_depth_image_view_kind;
+  static vulkan::ImageKind const s_color_image_kind;
+  static vulkan::ImageViewKind const s_color_image_view_kind;
 
  private:
   static constexpr condition_type connection_set_up = 1;
@@ -127,6 +131,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
+  vulkan::ClearValue m_default_color_clear_value;                         // Clear value that is used for color attachments by default (if they are cleared).
+  vulkan::ClearValue m_default_depth_stencil_clear_value{1.f, 0};         // Clear value that is used for depth/stencil attachments by default (if they are cleared).
+
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
@@ -138,6 +145,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Accessed by Swapchain.
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
   utils::UniqueIDContext<int> attachment_id_context;                                    // Provides an unique ID for attachments.
+
+  // Called from constructor of rendergraph::Attachment.
+  vulkan::ClearValue get_default_clear_value(bool is_depth_stencil) const
+  {
+    return is_depth_stencil ? m_default_depth_stencil_clear_value : m_default_color_clear_value;
+  }
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
@@ -304,6 +317,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Optionally overridden by derived class.
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
   virtual size_t number_of_frame_resources() const;
+  virtual void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil);
 
   // Implemented by most derived class.
   virtual void create_render_passes() = 0;

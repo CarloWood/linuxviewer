@@ -28,6 +28,12 @@ vulkan::ImageKind const SynchronousWindow::s_depth_image_kind({
 //static
 vulkan::ImageViewKind const SynchronousWindow::s_depth_image_view_kind(s_depth_image_kind, {});
 
+//static
+vulkan::ImageKind const SynchronousWindow::s_color_image_kind({});      // The default is exactly what we want, as default.
+
+//static
+vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_image_kind, {});
+
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); })
@@ -164,6 +170,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       set_state(SynchronousWindow_initialize_vukan);
       [[fallthrough]];
     case SynchronousWindow_initialize_vukan:
+      set_default_clear_values(m_default_color_clear_value, m_default_depth_stencil_clear_value);
       prepare_swapchain();
       create_render_passes();
       create_swapchain_images();
@@ -862,6 +869,17 @@ void SynchronousWindow::on_window_size_changed_post()
 size_t SynchronousWindow::number_of_frame_resources() const
 {
   return s_default_number_of_frame_resources;
+}
+
+//virtual
+// Override this function to change these values.
+void SynchronousWindow::set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil)
+{
+  Dout(dc::vulkan, "Using default clear values; color: " << color << ", depth_stencil: " << depth_stencil);
+  // These are already the default.
+  //color.set(1.f, 0.f, 0.f, 1.f);      or  color = { 1.f, 0.f, 0.f, 1.f };
+  //depth_stencil.set(1.f);             or  color = 1.f;
+  //depth_stencil.set(1.f, 0xffffffff);
 }
 
 void SynchronousWindow::create_frame_resources()

@@ -18,6 +18,9 @@
 #endif
 #include "shaderbuilder/ShaderModule.h"
 
+#include "vulkan/ClearValue.h"
+#include "vulkan/ImageKind.h"
+
 using namespace linuxviewer;
 
 class Window : public task::SynchronousWindow
@@ -49,6 +52,12 @@ class Window : public task::SynchronousWindow
   size_t number_of_frame_resources() const override
   {
     return 5;
+  }
+
+  void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil) override
+  {
+    // Use red as default clear color for this window.
+    color = { 1.f, 0.f, 0.f, 1.f };
   }
 
   void PerformHardcoreCalculations(int duration) const
@@ -293,6 +302,10 @@ class Window : public task::SynchronousWindow
     // These must be references.
     auto& final_pass = m_render_graph.create_render_pass("final_pass");
     auto& output = swapchain().presentation_attachment();
+
+    // Change the clear value of depth.
+    depth.set_clear_value({1.f, 0xffff0000});
+    output.set_clear_value({0.f, 1.f, 1.f, 1.f});
 
     m_render_graph = final_pass[~depth]->stores(~output);
     m_render_graph.generate(this);
