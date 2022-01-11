@@ -13,7 +13,6 @@ namespace vulkan::rendergraph {
 class RenderGraph
 {
  private:
-  std::map<std::string, RenderPass> m_render_passes;    // All render pass objects.
   std::vector<RenderPass*> m_sources;                   // All leaves that have only outgoing vertices (finalized by generate()).
   std::vector<RenderPass*> m_sinks;                     // All leaves that have only incoming vertices (finalized by generate()).
 
@@ -28,8 +27,6 @@ class RenderGraph
   void for_each_render_pass(Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const;
   void for_each_render_pass_from(RenderPass* start, Direction direction, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> lambda) const;
   void generate(task::SynchronousWindow* owning_window);
-
-  RenderPass& create_render_pass(std::string const&);
 
 #ifdef CWDEBUG
   // Testsuite stuff.

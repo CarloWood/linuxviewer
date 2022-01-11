@@ -58,12 +58,11 @@ class RenderPass
   utils::Vector<vk_defaults::SubpassDescription> m_subpass_descriptions;
                                                                         // Subpass descriptions corresponding to subpasses of this render pass.
 
- public:
-  // Constructor (only called by RenderGraph::create_render_pass.
-  // Use:
-  //   auto& my_pass = my_render_graph.create_render_pass("my_pass"); to get a reference to a RenderPass.
-  RenderPass(utils::Badge<RenderGraph>, std::string const& name) : m_name(name), m_stream(this) { }
+ protected:
+  // Constructor.
+  RenderPass(std::string const& name) : m_name(name), m_stream(this) { }
   RenderPass(RenderPass const&&) = delete;      // Not allowed because m_stream contains a pointer back to this object.
+  RenderPass(RenderPass&&) = delete;            // Not allowed because the RenderGraph stores pointers in m_render_passes.
 
  public:
   // Modifiers.

@@ -302,7 +302,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
   Swapchain& swapchain = owning_window->swapchain();
   Attachment const& presentation_attachment = swapchain.presentation_attachment();
   auto iter = std::find_if(all_attachments.begin(), all_attachments.end(),
-      [presentation_attachment](Attachment const* candidate){ return candidate->id() == presentation_attachment.id(); });
+      [id = presentation_attachment.id()](Attachment const* candidate){ return candidate->id() == id; });
   // Does this render graph know about the swapchain attachment?
   if (iter != all_attachments.end())
   {
@@ -422,6 +422,9 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
     attachment_reference_ptr->setAttachment(static_cast<uint32_t>(node.index().get_value()))
       .setLayout(get_optimal_layout(node, false /* layout may not be DEPTH_ATTACHMENT_OPTIMAL|DEPTH_READ_ONLY_OPTIMAL|STENCIL_ATTACHMENT_OPTIMAL|STENCIL_READ_ONLY_OPTIMAL */));
   }
+  // If we did not encounter a depth/stencil attachment then apparently we're not using it.
+  if (m_subpass_data.m_depth_stencil_attachment.layout == vk::ImageLayout::eUndefined)
+    m_subpass_data.m_depth_stencil_attachment.attachment = VK_ATTACHMENT_UNUSED;
   subpass_description
     .setColorAttachments(m_subpass_data.m_color_attachments)
     .setPDepthStencilAttachment(&m_subpass_data.m_depth_stencil_attachment);
@@ -474,30 +477,84 @@ void RenderGraph::operator+=(RenderPassStream& sink)
       });
 }
 
-RenderPass& RenderGraph::create_render_pass(std::string const& name)
-{
-  auto res = m_render_passes.try_emplace(name, utils::Badge<RenderGraph>{}, name);
-  // Please use a unique name for each render pass.
-  ASSERT(res.second);
-  return res.first->second;
-}
-
 #ifdef CWDEBUG
 
-#define DECLARATION \
-    [[maybe_unused]] bool illegal = false; \
-    RenderGraph render_graph; \
-    [[maybe_unused]] auto& lighting = render_graph.create_render_pass("lighting"); \
-    [[maybe_unused]] auto& pass1 = render_graph.create_render_pass("pass1"); \
-    [[maybe_unused]] auto& pass2 = render_graph.create_render_pass("pass2"); \
-    auto& render_pass = render_graph.create_render_pass("render_pass"); \
-    Dout(dc::renderpass, "====================== Next Test ===========================")
+class TestWindow : public task::SynchronousWindow
+{
+ public:
+  TestWindow() : task::SynchronousWindow(nullptr)
+  {
+    Dout(dc::renderpass, "====================== Next Test ===========================");
+  }
+
+  RenderPass lighting{this, "lighting"};
+  RenderPass pass1{this, "pass1"};
+  RenderPass pass2{this, "pass2"};
+  RenderPass render_pass{this, "render_pass"};
+
+  RenderGraph& render_graph() { return m_render_graph; }
+  void run_test(std::function<void()> test) { test(); }
+
+  void run_bigtest(utils::UniqueIDContext<int>& context, vulkan::ImageViewKind const& v1)
+  {
+    RenderGraph& graph(render_graph());
+    Attachment const a1{context, "a1", v1};
+    Attachment const a2{context, "a2", v1};
+    Attachment const a3{context, "a3", v1};
+    Attachment const a4{context, "a4", v1};
+    Attachment const a5{context, "a5", v1};
+    Attachment const a6{context, "a6", v1};
+    Attachment const a7{context, "a7", v1};
+    Attachment const a8{context, "a8", v1};
+    Attachment const a9{context, "a9", v1};
+    Attachment const a10{context, "a10", v1};
+    Attachment const a11{context, "a11", v1};
+    Attachment const a12{context, "a12", v1};
+    RenderPass pass1(this, "pass1");
+    RenderPass pass2(this, "pass2");
+    RenderPass pass3(this, "pass3");
+    RenderPass pass4(this, "pass4");
+    RenderPass pass5(this, "pass5");
+    RenderPass pass6(this, "pass6");
+    RenderPass pass7(this, "pass7");
+    RenderPass pass8(this, "pass8");
+    RenderPass pass9(this, "pass9");
+    RenderPass pass10(this, "pass10");
+    RenderPass pass11(this, "pass11");
+    RenderPass pass12(this, "pass12");
+
+    graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9;
+    graph += pass3->stores(a3)                                                                                         >> pass12[+a1][+a9][+a10]->stores(a12);
+    graph += pass3             >> pass4[+a3]->stores(a4) >> pass9->stores(a9)                                          >> pass12;
+    graph += pass3                                                                    >> pass10[+a3][+a5]->stores(a10) >> pass12;
+    graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
+    graph +=                      pass8->stores(a8)      >> pass11[+a6]->stores(a11);
+    graph +=                      pass6                  >> pass11;
+    graph.generate(nullptr);
+  }
+
+ private:
+  void create_render_passes() override { }
+  void create_descriptor_set() override { }
+  void create_textures() override { }
+  void create_pipeline_layout() override { }
+  void create_graphics_pipeline() override { }
+  void create_vertex_buffers() override { }
+  void draw_frame() override { }
+};
 
 #define TEST(test) \
-    DECLARATION; \
-    Dout(dc::renderpass, "Running test: " << #test); \
-    render_graph = test; \
-    render_graph.generate(nullptr);
+    TestWindow window; \
+    RenderGraph& render_graph(window.render_graph()); \
+    RenderPass& lighting = window.lighting; \
+    RenderPass& pass1 = window.pass1; \
+    RenderPass& pass2 = window.pass2; \
+    RenderPass& render_pass = window.render_pass; \
+    window.run_test([&](){ \
+        Dout(dc::renderpass, "Running test: " << #test); \
+        render_graph = test; \
+        render_graph.generate(nullptr); \
+    });
 
 //static
 void RenderGraph::testsuite()
@@ -515,8 +572,8 @@ void RenderGraph::testsuite()
   vulkan::ImageKind const k1{{}};
   vulkan::ImageViewKind const v1{k1, {}};
   utils::UniqueIDContext<int> context;
-  Attachment const specular{context, v1, "specular"};
-  Attachment const output{context, v1, "output"};
+  Attachment const specular{context, "specular", v1};
+  Attachment const output{context, "output", v1};
 
   {
     TEST(render_pass->stores(output));                        // attachment not used.
@@ -705,41 +762,8 @@ void RenderGraph::testsuite()
     ASSERT(illegal);
   }
   {
-    Attachment const a1{context, v1, "a1"};
-    Attachment const a2{context, v1, "a2"};
-    Attachment const a3{context, v1, "a3"};
-    Attachment const a4{context, v1, "a4"};
-    Attachment const a5{context, v1, "a5"};
-    Attachment const a6{context, v1, "a6"};
-    Attachment const a7{context, v1, "a7"};
-    Attachment const a8{context, v1, "a8"};
-    Attachment const a9{context, v1, "a9"};
-    Attachment const a10{context, v1, "a10"};
-    Attachment const a11{context, v1, "a11"};
-    Attachment const a12{context, v1, "a12"};
-    RenderGraph graph;
-    RenderPass& pass1 = graph.create_render_pass("pass1");
-    RenderPass& pass2 = graph.create_render_pass("pass2");
-    RenderPass& pass3 = graph.create_render_pass("pass3");
-    RenderPass& pass4 = graph.create_render_pass("pass4");
-    RenderPass& pass5 = graph.create_render_pass("pass5");
-    RenderPass& pass6 = graph.create_render_pass("pass6");
-    RenderPass& pass7 = graph.create_render_pass("pass7");
-    RenderPass& pass8 = graph.create_render_pass("pass8");
-    RenderPass& pass9 = graph.create_render_pass("pass9");
-    RenderPass& pass10 = graph.create_render_pass("pass10");
-    RenderPass& pass11 = graph.create_render_pass("pass11");
-    RenderPass& pass12 = graph.create_render_pass("pass12");
-
-    graph  = pass1->stores(a1) >> pass2->stores(a2)      >> pass9;
-    graph += pass3->stores(a3)                                                                                         >> pass12[+a1][+a9][+a10]->stores(a12);
-    graph += pass3             >> pass4[+a3]->stores(a4) >> pass9->stores(a9)                                          >> pass12;
-    graph += pass3                                                                    >> pass10[+a3][+a5]->stores(a10) >> pass12;
-    graph += pass5->stores(a5) >> pass6->stores(a6)      >> pass7->stores(a7)         >> pass10;
-    graph +=                      pass8->stores(a8)      >> pass11[+a6]->stores(a11);
-    graph +=                      pass6                  >> pass11;
-    graph.generate(nullptr);
-
+    TestWindow window;
+    window.run_bigtest(context, v1);
   }
   {
     TEST(lighting->stores(~specular) >> render_pass->stores(output) >> pass1[+specular]->stores(output));

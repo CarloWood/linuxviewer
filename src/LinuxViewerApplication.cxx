@@ -377,14 +377,14 @@ class Window : public task::SynchronousWindow
   }
 
   // Create renderpass / attachment objects.
-  vulkan::rendergraph::Attachment const depth{attachment_id_context, s_depth_image_view_kind, "depth"};
+  RenderPass final_pass{this, "final_pass"};
+  Attachment depth{this, "depth", s_depth_image_view_kind};
 
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
 
     // These must be references.
-    auto& final_pass = m_render_graph.create_render_pass("final_pass");
     auto& output = swapchain().presentation_attachment();
 
     m_render_graph = final_pass[~depth]->stores(~output);

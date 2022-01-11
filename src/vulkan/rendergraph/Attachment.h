@@ -30,6 +30,9 @@ class Attachment
     m_image_view_kind(image_view_kind), m_id(context.get_id()), m_name(name) { }
 #endif
 
+  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind);
+  Attachment(Attachment const&) = delete;
+
   // The result type of ~attachment.
   struct OpClear
   {
@@ -67,6 +70,7 @@ class Attachment
   OpLoad operator+() const { return this; }
   OpRemoveOrDontCare operator-() const { return this; }
 
+  std::string const& name() const { return m_name; }
   ImageKind const& image_kind() const { return m_image_view_kind.image_kind(); }
   ImageViewKind const& image_view_kind() const { return m_image_view_kind; }
 

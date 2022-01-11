@@ -14,6 +14,7 @@ Attachment::Attachment(task::SynchronousWindow* owning_window, std::string const
 {
   DoutEntering(dc::vulkan, "vulkan::rendergraph::Attachment::Attachment(" << owning_window << ", " << image_view_kind << ", \"" << name << "\"");
   Dout(dc::vulkan, "Default clear value of attachment \"" << name << "\" is " << m_clear_value);
+  owning_window->register_attachment(this);
 }
 
 void Attachment::print_on(std::ostream& os) const

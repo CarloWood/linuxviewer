@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "RenderPass.h"
+#include "SynchronousWindow.h"
 #include "utils/AIAlert.h"
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"

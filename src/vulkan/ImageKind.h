@@ -50,7 +50,7 @@ struct ImageKindPOD
   vk::SharingMode         sharing_mode = vk::SharingMode::eExclusive;
   uint32_t                m_queue_family_index_count = {};
   uint32_t const*         m_queue_family_indices = {};
-  vk::ImageLayout         initial_layout = vk::ImageLayout::eUndefined;
+  vk::ImageLayout         initial_layout = vk::ImageLayout::eUndefined;         // Use eUndefined to automatically: use final_layout if presented (and keep it at undefined when discarded).
 };
 
 class ImageKind

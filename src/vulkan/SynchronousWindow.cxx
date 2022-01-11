@@ -56,6 +56,20 @@ vulkan::LogicalDevice* SynchronousWindow::get_logical_device() const
   return m_application->get_logical_device(get_logical_device_index());
 }
 
+void SynchronousWindow::register_render_pass(SynchronousWindow::RenderPass* render_pass)
+{
+  [[maybe_unused]] auto res = m_render_passes.try_emplace(render_pass->name(), render_pass);
+  // Please use a unique name for each render pass.
+  ASSERT(res.second);
+}
+
+void SynchronousWindow::register_attachment(SynchronousWindow::Attachment* attachment)
+{
+  [[maybe_unused]] auto res = m_attachments.try_emplace(attachment->name(), attachment);
+  // Please use a unique name for each attachment.
+  ASSERT(res.second);
+}
+
 char const* SynchronousWindow::state_str_impl(state_type run_state) const
 {
   switch (run_state)
@@ -923,6 +937,7 @@ void SynchronousWindow::create_frame_resources()
     .m_resource_index = 0
   };
 
+  // Initialize all attachments (images, image views, memory).
   on_window_size_changed_post();
 }
 

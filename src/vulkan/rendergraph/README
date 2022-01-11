@@ -78,18 +78,25 @@ The render pass that writes to the swapchain image is usually called
 All attachments involved with the render graph also
 get a name:
 
-  vulkan::Attachment const a1(image_view_kind1, "a1");
-  vulkan::Attachment const b1(image_view_kind2, "b1");
+  vulkan::rendergraph::Attachment const a1(owning_window, image_view_kind1, "a1");
+  vulkan::rendergraph::Attachment const b1(owning_window, image_view_kind2, "b1");
   etc.
 
 where `image_view_kind` describes the underlaying image (view)
 that is used for that attachment (see class ImageViewKind).
+Usually `owning_window` will be just `this` when constructing these
+as member objects of your Window class (derived from vulkan::SynchronousWindow).
+The swapchain attachment must be obtained dynamically, in Window::create_render_passes:
+
+    auto& output = swapchain().presentation_attachment();
+
+and will have the name "swapchain".
 
 Each PASS writes to one or more attachments, for example
 
   pass1->stores(a1, a4, a5)
 
-This notation implies S for the listed attachments.
+This notation implies S (see above) for the listed attachments.
 
 If there is a vertex in the graph of attachment a1 from passx
 to passy then this is denoted with an overloaded operator>>:
@@ -127,12 +134,13 @@ can be denoted in two ways:
 
   pass1->stores(a2) >> pass2[+a1]->stores(...)
 
-If pass1 stores a1, pass2 knows about a1, but doesn't
-store to it or clears it (in other words, it must load it)
-and pass3 that follows pass2 loads a1, then pass2 must
-preserve a1. For example,
+If pass1 stores a1, pass2 knows about a1, but neither
+stores nor clears it (in other words, it must load it)
+and pass3 that follows pass2 loads a1, for example,
 
   pass1->stores(a1) >> pass2->stores(a2) >> pass3[+a1]->stores(...)
+
+then pass2 must preserve a1.
 
 This is also the case when there are multiple routes from
 pass1 to pass3. For example,
@@ -140,7 +148,7 @@ pass1 to pass3. For example,
   pass1->stores(a1) >> pass2->stores(a2) >> pass3[+a1][+a5]->stores(a3)
   pass4[+a1]->stores(a4) >> pass5->stores(a5);
 
-Here pass4 must preserve a1 because it known about it and sits between
+Here pass4 must preserve a1 because it knows about it and sits between
 pass1 and pass3. Pass5 automatically preserves it because it doesn't
 know about a1 (--).
 
@@ -190,7 +198,7 @@ class Attachment
 {
   ImageViewKind const& m_image_view_kind;       // Static description of the image view related to this attachment.
   utils::UniqueID<int> const m_id;              // Unique in the context of a given task::SynchronousWindow.
-  std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "output".
+  std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "swapchain".
 
   ...
 };

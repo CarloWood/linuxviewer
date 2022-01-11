@@ -156,8 +156,19 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
   static constexpr size_t s_default_number_of_frame_resources = 2;                      // Default size of m_frame_resources_list.
 
+  // Render graph nodes.
+  using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
+  using Attachment = vulkan::rendergraph::Attachment;                                   // Use to define attachments in derived Window class.
+  // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
+  std::map<std::string, RenderPass*> m_render_passes;                                   // All render pass objects.
+  std::map<std::string, Attachment*> m_attachments;                                     // All render pass objects.
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
 
+ public:
+  void register_render_pass(RenderPass*);
+  void register_attachment(Attachment*);
+
+ protected:
   std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
 
@@ -185,6 +196,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  public:
   /// Construct a synchronous SynchronousWindow task.
   SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
+
+  // Called by the constructor of vulkan::rendergraph::RenderPass objects,
+  // which should be members of the derived class.
+  vulkan::rendergraph::RenderGraph& render_graph() { return m_render_graph; }
 
   // Called from Application::create_root_window.
   template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
