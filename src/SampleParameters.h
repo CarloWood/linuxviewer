@@ -15,7 +15,7 @@ struct SampleParameters
   int                                         PostSubmitCpuWorkTime;
   float                                       FrameGenerationTime;
   float                                       TotalFrameTime;
-  int                                         FrameResourcesCount;
+  vulkan::FrameResourceIndex                  m_frame_resources_count;
 
 //  vk::UniqueRenderPass                        RenderPass;
 //  vk::UniqueRenderPass                        PostRenderPass;
@@ -33,7 +33,7 @@ struct SampleParameters
   PostSubmitCpuWorkTime(0),
   FrameGenerationTime(0),
   TotalFrameTime(0),
-  FrameResourcesCount(1)
+  m_frame_resources_count(1)
 //  RenderPass(),
 //  PostRenderPass(),
 //  DescriptorSet(),

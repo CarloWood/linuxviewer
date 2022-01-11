@@ -49,9 +49,9 @@ class Window : public task::SynchronousWindow
     return threadpool::Interval<50, std::chrono::milliseconds>{};
   }
 
-  size_t number_of_frame_resources() const override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
-    return 5;
+    return vulkan::FrameResourceIndex{5};
   }
 
   void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil) override
@@ -87,7 +87,7 @@ class Window : public task::SynchronousWindow
     if (++m_frame_count == 1)
       return;
 
-    m_current_frame.m_resource_count = Parameters.FrameResourcesCount;  // Slider value.
+    m_current_frame.m_resource_count = Parameters.m_frame_resources_count;  // Slider value.
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 

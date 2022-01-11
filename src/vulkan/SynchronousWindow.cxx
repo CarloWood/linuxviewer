@@ -863,7 +863,7 @@ void SynchronousWindow::on_window_size_changed_post()
 #endif
 
 #ifdef CWDEBUG
-  int frame_resource_index = 0;
+  vulkan::FrameResourceIndex frame_resource_index{0};
 #endif
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
@@ -874,13 +874,13 @@ void SynchronousWindow::on_window_size_changed_post()
         s_depth_image_kind,
         s_depth_image_view_kind,
         vk::MemoryPropertyFlagBits::eDeviceLocal
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + std::to_string(frame_resource_index++) + "]->m_depth_attachment")));
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index++) + "]->m_depth_attachment")));
   }
 }
 
 //virtual
 // Override this function to change this value.
-size_t SynchronousWindow::number_of_frame_resources() const
+vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
 {
   return s_default_number_of_frame_resources;
 }
@@ -900,12 +900,12 @@ void SynchronousWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
-  m_frame_resources_list.resize(number_of_frame_resources());
+  m_frame_resources_list.resize(number_of_frame_resources().get_value());
   Dout(dc::vulkan, "Creating " << m_frame_resources_list.size() << " frame resources.");
-  for (size_t i = 0; i < m_frame_resources_list.size(); ++i)
+  for (vulkan::FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
   {
 #ifdef CWDEBUG
-    vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + std::to_string(i) + "]");
+    vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + to_string(i) + "]");
 #endif
     // Create a new vulkan::FrameResourcesData object.
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
@@ -932,9 +932,9 @@ void SynchronousWindow::create_frame_resources()
 
   // Initialize m_current_frame to point to frame resources index 0.
   m_current_frame = vulkan::CurrentFrameData{
-    .m_frame_resources = m_frame_resources_list[0].get(),
-    .m_resource_count = static_cast<uint32_t>(m_frame_resources_list.size()),
-    .m_resource_index = 0
+    .m_frame_resources = m_frame_resources_list.begin()->get(),
+    .m_resource_count = static_cast<vulkan::FrameResourceIndex>(m_frame_resources_list.size()),
+    .m_resource_index = static_cast<vulkan::FrameResourceIndex>(0)
   };
 
   // Initialize all attachments (images, image views, memory).

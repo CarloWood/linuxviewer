@@ -25,6 +25,7 @@
 #include "statefultask/AIEngine.h"
 #include "utils/Badge.h"
 #include "utils/UniqueID.h"
+#include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
@@ -46,6 +47,8 @@ class Application;
 class LogicalDevice;
 class AmbifixOwner;
 class Swapchain;
+
+using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 
 namespace shaderbuilder {
 class ShaderModule;
@@ -155,7 +158,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  static constexpr size_t s_default_number_of_frame_resources = 2;                      // Default size of m_frame_resources_list.
+  static constexpr vulkan::FrameResourceIndex s_default_number_of_frame_resources{2};   // Default size of m_frame_resources_list.
 
   // Render graph nodes.
   using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
@@ -170,8 +173,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void register_attachment(Attachment*);
 
  protected:
-  std::vector<std::unique_ptr<vulkan::FrameResourcesData>> m_frame_resources_list;      // Vector with frame resources.
-  vulkan::CurrentFrameData m_current_frame = { nullptr, 0, 0 };
+  utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
+  vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
 
   // Initialized by create_imgui.
   vulkan::ImGui m_imgui;                                                                // ImGui framework.
@@ -332,7 +335,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Optionally overridden by derived class.
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-  virtual size_t number_of_frame_resources() const;
+  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
   virtual void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil);
 
   // Implemented by most derived class.
