@@ -893,27 +893,26 @@ void SynchronousWindow::create_frame_resources()
 #ifdef CWDEBUG
     vulkan::AmbifixOwner const ambifix = debug_name_prefix("m_frame_resources_list[" + std::to_string(i) + "]");
 #endif
+    // Create a new vulkan::FrameResourcesData object.
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
         // Constructor arguments for m_command_pool. Too specialized? (should this be part of a derived class?)
         m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
 
+    // A handle alias for the newly created frame resources object.
     auto& frame_resources = m_frame_resources_list[i];
 
+    // Create the 'command_buffers_completed' fence (even we only have a single command buffer right now).
     frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, ambifix("->m_command_buffers_completed")));
 
+    // Create the command buffer.
     {
       // Lock command pool.
       vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
 
-      frame_resources->m_pre_command_buffer = command_pool_w->allocate_buffer(
-          CWDEBUG_ONLY(ambifix("->m_pre_command_buffer"))
-          );
-#if 0
-      frame_resources->m_post_command_buffer = command_pool_w->allocate_buffer(
-          CWDEBUG_ONLY(ambifix("->m_post_command_buffer"))
-          );
-#endif
+      frame_resources->m_command_buffer = command_pool_w->allocate_buffer(
+          CWDEBUG_ONLY(ambifix("->m_command_buffer")));
+
     } // Unlock command pool.
   }
 

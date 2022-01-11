@@ -201,7 +201,7 @@ class Window : public task::SynchronousWindow
       vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
 
       // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_pre_command_buffer(command_pool_w);
+      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
 
       Dout(dc::vkframe, "Start recording command buffer.");
       command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
