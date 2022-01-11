@@ -15,6 +15,7 @@
 #include "ImGui.h"
 #include "ClearValue.h"
 #include "RenderPass.h"
+#include "Attachment.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "statefultask/Broker.h"
@@ -146,7 +147,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
   utils::UniqueIDContext<int> attachment_id_context;                                    // Provides an unique ID for attachments.
 
-  // Called from constructor of rendergraph::Attachment.
+  // Called from constructor of Attachment.
   vulkan::ClearValue get_default_clear_value(bool is_depth_stencil) const
   {
     return is_depth_stencil ? m_default_depth_stencil_clear_value : m_default_color_clear_value;
@@ -158,7 +159,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Render graph nodes.
   using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
-  using Attachment = vulkan::rendergraph::Attachment;                                   // Use to define attachments in derived Window class.
+  using Attachment = vulkan::Attachment;                                                // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
   std::map<std::string, RenderPass*> m_render_passes;                                   // All render pass objects.
   std::map<std::string, Attachment*> m_attachments;                                     // All render pass objects.

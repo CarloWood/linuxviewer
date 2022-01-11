@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ImageKind.h"
-#include "ClearValue.h"
 #include "utils/UniqueID.h"
 
 namespace task {
@@ -22,7 +21,6 @@ class Attachment
   utils::UniqueID<int> const m_id;              // Unique in the context of a given task::SynchronousWindow.
   std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "output".
   mutable vk::ImageLayout m_final_layout = {};
-  mutable ClearValue m_clear_value;             // Default color or depth/stencil clear value.
 
  public:
 #ifdef CWDEBUG
@@ -94,16 +92,6 @@ class Attachment
   vk::ImageLayout get_final_layout() const
   {
     return m_final_layout;
-  }
-
-  void set_clear_value(ClearValue clear_value) const
-  {
-    m_clear_value = clear_value;
-  }
-
-  ClearValue const& get_clear_value() const
-  {
-    return m_clear_value;
   }
 
   void print_on(std::ostream& os) const;
