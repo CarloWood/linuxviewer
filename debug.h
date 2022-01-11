@@ -14,16 +14,14 @@ using utils::print_using;
 using utils::QuotedList;
 } // namespace libcwd
 
+// Add support for classes with a print_on method, defined in global namespace.
 #include "utils/has_print_on.h"
+// Add catch all for global namespace.
+using utils::has_print_on::operator<<;
 
-template<typename T>
-std::enable_if_t<utils::has_print_on<T const>, std::ostream&>
-operator<<(std::ostream& os, T const& data)
-{
-  data.print_on(os);
-  return os;
-}
+namespace std {
 
+// For debugging purposes, allow printing vectors.
 template<typename T>
 std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
 {
@@ -36,6 +34,8 @@ std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
   }
   return os << '}';
 }
+
+} // namespace std
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START

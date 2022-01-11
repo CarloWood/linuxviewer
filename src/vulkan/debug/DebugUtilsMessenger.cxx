@@ -4,6 +4,7 @@
 #include "Defaults.h"
 #include "DebugUtilsMessenger.h"
 #include "debug.h"
+#include "debug/vulkan_print_on.h"
 
 namespace vulkan {
 

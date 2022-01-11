@@ -2,6 +2,7 @@
 
 #include "ImageKind.h"
 #include "PresentationSurface.h"
+#include "debug/vulkan_print_on.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/PrintList.h"
 #ifdef CWDEBUG

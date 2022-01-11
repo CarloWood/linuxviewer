@@ -1,4 +1,5 @@
 #include "sys.h"
+#include "debug/vulkan_print_on.h"
 #include "CommandBuffer.h"
 #include "Application.h"
 #include "LogicalDevice.h"

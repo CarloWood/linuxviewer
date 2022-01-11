@@ -3,6 +3,7 @@
 #include "debug.h"
 #ifdef CWDEBUG
 #include "cwds/debug_ostream_operators.h"
+#include "debug/vulkan_print_on.h"
 #endif
 
 namespace vulkan {

@@ -29,6 +29,7 @@ class TimerData
   TimerData() : m_first_index(0), m_current_index(-1) { }
 
   void print_on(std::ostream& os) const;
+  friend std::ostream& operator<<(std::ostream& os, TimerData const& data) { data.print_on(os); return os; }
 };
 
 } // namespace lv_utils

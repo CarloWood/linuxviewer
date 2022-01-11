@@ -5,6 +5,8 @@
 
 #include "Defaults.h"           // For its print_on capability.
 
+#ifdef CWDEBUG
+
 // ostream inserters for objects in namespace vk:
 #define DECLARE_OSTREAM_INSERTER(vk_class) \
   inline std::ostream& operator<<(std::ostream& os, vk_class const& object) \
@@ -74,5 +76,7 @@ std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
 std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference);
 
 } // namespace vk
+
+#endif // CWDEBUG
 
 #undef DECLARE_OSTREAM_INSERTER

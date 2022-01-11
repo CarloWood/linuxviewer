@@ -138,6 +138,7 @@ class Window : public task::SynchronousWindow
       *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view,
       swapchain().vh_current_image_view()
     };
+
 #ifdef CWDEBUG
     Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
     std::array<vk::Image, 2> attachment_images = {
@@ -150,6 +151,7 @@ class Window : public task::SynchronousWindow
       Dout(dc::vkframe, "  image_view: " << attachments[i] << ", image: " << attachment_images[i]);
     }
 #endif
+
     vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
       {
         .renderPass = swapchain().vh_render_pass(),

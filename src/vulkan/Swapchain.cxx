@@ -9,6 +9,7 @@
 #include "vk_utils/print_flags.h"
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
+#include "debug/vulkan_print_on.h"
 #endif
 
 namespace {

@@ -79,6 +79,7 @@ class LoginResponseData
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
+  friend std::ostream& operator<<(std::ostream& os, LoginResponseData const& data) { data.print_on(os); return os; }
 #endif
 };
 

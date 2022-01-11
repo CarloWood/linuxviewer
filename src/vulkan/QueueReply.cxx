@@ -1,5 +1,8 @@
 #include "sys.h"
 #include "QueueReply.h"
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#endif
 
 namespace vulkan {
 

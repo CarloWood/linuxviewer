@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
+#include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"
 #include "evio/EventLoop.h"
