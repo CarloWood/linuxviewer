@@ -8,12 +8,12 @@ namespace vulkan {
 class Attachment : public rendergraph::Attachment
 {
  private:
-  mutable ClearValue m_clear_value;             // Default color or depth/stencil clear value.
+  ClearValue m_clear_value;     // Default color or depth/stencil clear value.
 
  public:
   using rendergraph::Attachment::Attachment;
 
-  void set_clear_value(ClearValue clear_value) const
+  void set_clear_value(ClearValue clear_value)
   {
     m_clear_value = clear_value;
   }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {
@@ -12,5 +13,8 @@ struct ImageParameters
   vk::UniqueSampler             m_sampler;
   vk::UniqueDeviceMemory        m_memory;
 };
+
+// Index for storing ImageParameters as function of Attachment.
+using AttachmentIndex = utils::VectorIndex<ImageParameters>;
 
 } // namespace vulkan

@@ -313,7 +313,7 @@ class Window : public task::SynchronousWindow
 
     // Change the clear value of depth.
     depth.set_clear_value({1.f, 0xffff0000});
-    output.set_clear_value({0.f, 1.f, 1.f, 1.f});
+    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
 
     m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);
     m_render_graph.generate(this);

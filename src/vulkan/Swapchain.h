@@ -132,6 +132,11 @@ class Swapchain
     return m_presentation_attachment.value();
   }
 
+  void set_clear_value_presentation_attachment(ClearValue clear_value)
+  {
+    m_presentation_attachment.value().set_clear_value(clear_value);
+  }
+
   SwapchainKind const& kind() const
   {
     return m_kind;
