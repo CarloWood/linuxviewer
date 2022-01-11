@@ -42,7 +42,7 @@ class RenderPass
  private:
   std::string m_name;                                                   // Human readable name of this render pass.
   utils::Vector<AttachmentNode> m_known_attachments;                    // Vector with all known attachments of this render pass.
-  AttachmentIndex m_next_index{0};                                      // The next attachment index to use for a new attachment node.
+  pAttachmentsIndex m_next_index{0};                                    // The next attachment index to use for a new attachment node.
   std::vector<Attachment const*> m_remove_or_dontcare_attachments;      // Temporary storage for attachments listed with `[-attachment]`.
   RenderPassStream m_stream;                                            // Helper object that operator-> points to.
   std::set<RenderPass*> m_stores_called;
@@ -52,7 +52,7 @@ class RenderPass
   std::set<RenderPass*> m_outgoing_vertices;
 
   // RenderPass::create:
-  utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> m_attachment_descriptions;
+  utils::Vector<vk_defaults::AttachmentDescription, pAttachmentsIndex> m_attachment_descriptions;
                                                                         // Attachment descriptions corresponding to the attachment nodes of m_known_attachments.
   RenderPassSubpassData m_subpass_data;                                 // Objects pointed to by m_subpass_descriptions.
   utils::Vector<vk_defaults::SubpassDescription> m_subpass_descriptions;
@@ -100,9 +100,9 @@ class RenderPass
   void create(task::SynchronousWindow const* owning_window);
 
   // Harvest information.
-  utils::Vector<vk_defaults::AttachmentDescription, AttachmentIndex> const& attachment_descriptions() const { return m_attachment_descriptions; }
+  utils::Vector<vk_defaults::AttachmentDescription, pAttachmentsIndex> const& attachment_descriptions() const { return m_attachment_descriptions; }
   utils::Vector<vk_defaults::SubpassDescription> const& subpass_descriptions() const { return m_subpass_descriptions; }
-  utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> get_framebuffer_attachment_image_infos(vk::Extent2D extent) const;
+  utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> get_framebuffer_attachment_image_infos(vk::Extent2D extent) const;
 
   //---------------------------------------------------------------------------
   // Utilities

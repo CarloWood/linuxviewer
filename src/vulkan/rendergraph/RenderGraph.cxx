@@ -432,10 +432,10 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
   m_subpass_descriptions.push_back(subpass_description);
 }
 
-utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
+utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
 {
   DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
-  utils::Vector<vk::FramebufferAttachmentImageInfo, AttachmentIndex> attachments_image_infos;
+  utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> attachments_image_infos;
   for (AttachmentNode const& node : m_known_attachments)
   {
     ImageKind const& image_kind = node.attachment()->image_kind();

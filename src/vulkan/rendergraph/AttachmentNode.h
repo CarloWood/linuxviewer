@@ -11,11 +11,11 @@ namespace vulkan::rendergraph {
 class RenderPass;
 class AttachmentNode;
 
-// AttachmentIndex.
+// pAttachmentsIndex.
 //
 // A wrapper around a size_t that can be used into a vector of attachments known by given render pass.
 //
-using AttachmentIndex = utils::VectorIndex<AttachmentNode>;
+using pAttachmentsIndex = utils::VectorIndex<AttachmentNode>;
 
 // AttachmentNode.
 //
@@ -26,14 +26,14 @@ class AttachmentNode
  private:
   RenderPass const* m_render_pass;                                      // The render pass this node falls under.
   Attachment const* m_attachment;                                       // A pointer to the associated Attachment description.
-  AttachmentIndex m_index;                                              // The render pass specific index (index into pAttachments).
+  pAttachmentsIndex m_index;                                              // The render pass specific index (index into pAttachments).
   LoadStoreOps m_ops;                                                   // Encodes the [DCL][DS] code for this attachment/render_pass.
   bool m_is_source = false;
   bool m_is_sink = false;
   bool m_is_present = false;
 
  public:
-  AttachmentNode(RenderPass const* render_pass, Attachment const* attachment, AttachmentIndex index) :
+  AttachmentNode(RenderPass const* render_pass, Attachment const* attachment, pAttachmentsIndex index) :
     m_render_pass(render_pass), m_attachment(attachment), m_index(index) { }
 
   utils::UniqueID<int> id() const { return m_attachment->id(); }
@@ -61,7 +61,7 @@ class AttachmentNode
 
   // Accessor.
   RenderPass const* render_pass() const { return m_render_pass; }
-  AttachmentIndex index() const { return m_index; }
+  pAttachmentsIndex index() const { return m_index; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

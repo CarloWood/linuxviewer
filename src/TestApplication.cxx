@@ -321,7 +321,7 @@ class Window : public task::SynchronousWindow
 #if 0
     // Render pass - from present_src to color_attachment.
     {
-      utils::Vector<vk_defaults::AttachmentDescription, vulkan::rendergraph::AttachmentIndex> attachment_descriptions = {
+      utils::Vector<vk_defaults::AttachmentDescription, vulkan::rendergraph::pAttachmentsIndex> attachment_descriptions = {
         vk::AttachmentDescription{
           .format = s_default_depth_format,
           .loadOp = vk::AttachmentLoadOp::eClear,

@@ -12,7 +12,7 @@ using vk_utils::print_api_version;
 std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference)
 {
   os << '{';
-  vulkan::rendergraph::AttachmentIndex attachment{attachment_reference.attachment};
+  vulkan::rendergraph::pAttachmentsIndex attachment{attachment_reference.attachment};
   os << "attachment:" << attachment <<
       ", layout:" << to_string(attachment_reference.layout);
   os << '}';

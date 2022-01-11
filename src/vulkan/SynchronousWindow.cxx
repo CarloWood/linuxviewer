@@ -761,7 +761,7 @@ vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(
 
   vk::Extent2D const& extent = m_swapchain.extent();
   vulkan::rendergraph::RenderPass const* swapchain_render_pass_output_sink = m_swapchain.render_pass_output_sink();
-  utils::Vector<vk::FramebufferAttachmentImageInfo, vulkan::rendergraph::AttachmentIndex> framebuffer_attachment_image_infos =
+  utils::Vector<vk::FramebufferAttachmentImageInfo, vulkan::rendergraph::pAttachmentsIndex> framebuffer_attachment_image_infos =
     swapchain_render_pass_output_sink->get_framebuffer_attachment_image_infos(extent);
 
   vk::StructureChain<vk::FramebufferCreateInfo, vk::FramebufferAttachmentsCreateInfo> framebuffer_create_info_chain(
