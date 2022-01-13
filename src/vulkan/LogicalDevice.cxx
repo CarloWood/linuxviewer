@@ -541,11 +541,11 @@ Queue LogicalDevice::acquire_queue(
 }
 
 vk::UniqueRenderPass LogicalDevice::create_render_pass(
-    rendergraph::RenderPass const& render_pass_description
+    rendergraph::RenderPass const& render_graph_pass
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  auto const& attachment_descriptions = render_pass_description.attachment_descriptions();
-  auto const& subpass_descriptions = render_pass_description.subpass_descriptions();
+  auto const& attachment_descriptions = render_graph_pass.attachment_descriptions();
+  auto const& subpass_descriptions = render_graph_pass.subpass_descriptions();
 
   std::vector<vk::SubpassDependency> dependencies = {
     // FIXME: For now leave dependencies away... the automatically generated ones should suffice - no?

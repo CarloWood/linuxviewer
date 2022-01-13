@@ -167,10 +167,15 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::map<std::string, RenderPass*> m_render_passes;                                   // All render pass objects.
   std::map<std::string, Attachment*> m_attachments;                                     // All render pass objects.
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
+  utils::UniqueIDContext<vulkan::AttachmentIndex> m_render_graph_context;
 
  public:
   void register_render_pass(RenderPass*);
   void register_attachment(Attachment*);
+  utils::UniqueIDContext<vulkan::AttachmentIndex>& render_graph_context() { return m_render_graph_context; }
+  size_t number_of_attachments() const { return m_attachments.size(); }
+  auto attachments_begin() const { return m_attachments.begin(); }
+  auto attachments_end() const { return m_attachments.end(); }
 
  protected:
   utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
@@ -280,6 +285,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   vulkan::Swapchain& swapchain() { return m_swapchain; }
   vulkan::Swapchain const& swapchain() const { return m_swapchain; }
+  void no_swapchain(utils::Badge<vulkan::Swapchain>) const { vulkan::SynchronousEngine::no_swapchain(); }
+  void have_swapchain(utils::Badge<vulkan::Swapchain>) const { vulkan::SynchronousEngine::have_swapchain(); }
 
   void wait_for_all_fences() const;
 
@@ -350,12 +357,15 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   virtual void on_window_size_changed_pre();
   virtual void on_window_size_changed_post();
 
- protected:
-  void set_swapchain_render_pass(vk::UniqueRenderPass&& render_pass)
+ public:
+#if 0
+  void set_swapchain_render_pass(utils::Badge<vulkan::rendergraph::RenderPass>, vk::UniqueRenderPass&& render_pass)
   {
     m_swapchain.set_render_pass(std::move(render_pass));
   }
+#endif
 
+ protected:
   void start_frame();
   void finish_frame();
   void acquire_image();

@@ -277,22 +277,25 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
+    auto clear_values = final_pass.clear_values();
+#if 0
     std::vector<vk::ClearValue> clear_values = {
       { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } },
       { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } }
     };
+#endif
 
     auto swapchain_extent = swapchain().extent();
 
     std::array<vk::ImageView, 2> attachments = {
-      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view,
+      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image_view,
       swapchain().vh_current_image_view()
     };
 #ifdef CWDEBUG
     Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
     std::array<vk::Image, 2> attachment_images = {
       swapchain().images()[swapchain().current_index()],
-      *m_current_frame.m_frame_resources->m_depth_attachment.m_image
+      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image
     };
     Dout(dc::vkframe, "Attachments: ");
     for (int i = 0; i < 2; ++i)
@@ -389,10 +392,6 @@ class Window : public task::SynchronousWindow
 
     m_render_graph = final_pass[~depth]->stores(~output);
     m_render_graph.generate(this);
-
-    // Create the swapchain render pass.
-    set_swapchain_render_pass(logical_device().create_render_pass(final_pass
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
   }
 
   void create_descriptor_set() override

@@ -251,6 +251,19 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
   if (!owning_window)
     return;
 
+#ifdef CWDEBUG
+  size_t number_of_constructed_attachments = owning_window->number_of_attachments();
+  // It should be impossible that this fails (paranoia check).
+  ASSERT(number_of_constructed_attachments >= all_attachments.size());
+  if (number_of_constructed_attachments > all_attachments.size())
+    Dout(dc::warning, "You have unused attachments!");
+
+  for (auto attachment = owning_window->attachments_begin(); attachment != owning_window->attachments_end(); ++attachment)
+  {
+    Dout(dc::notice, "Attachment \"" << attachment->first << "\" with ID " << static_cast<AttachmentIndex>(*attachment->second) << ".");
+  }
+#endif
+
   // Before we can create the render passes, we have to mark any attachment that is used for presentation.
   // Currently we only support one such attachment: the Swapchain::m_presentation_attachment
   // of the owning window.
@@ -328,7 +341,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
         });
     if (!sink)
       THROW_ALERT("The swapchain attachment is used in this render graph, but none of the render passes uses it as an output sink.");
-    swapchain.set_render_pass_output_sink(sink);
+    swapchain.set_render_pass_output_sink(static_cast<vulkan::RenderPass*>(sink));
   }
 
 #if 0 //def CWDEBUG
@@ -370,85 +383,6 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
         render_pass->create(owning_window);
         return false;
       });
-}
-
-void RenderPass::create(task::SynchronousWindow const* owning_window)
-{
-  DoutEntering(dc::renderpass, "RenderPass:create(" << owning_window << ") [" << this << "]");
-  // Create vk::AttachmentDescription objects.
-  for (AttachmentNode const& node : m_known_attachments)
-  {
-    Attachment const* attachment = node.attachment();
-    vk::Format const format = attachment->image_view_kind()->format;
-    vk::SampleCountFlagBits const samples = attachment->image_kind()->samples;
-    vk_defaults::AttachmentDescription attachment_description;
-    attachment_description
-      .setFormat(format)
-      .setSamples(samples)
-      .setLoadOp(get_load_op(attachment))
-      .setStoreOp(get_store_op(attachment))
-      ;
-    if (attachment->image_view_kind().is_stencil())
-    {
-      attachment_description
-        .setStencilLoadOp(get_stencil_load_op(attachment))
-        .setStencilStoreOp(get_stencil_store_op(attachment))
-        ;
-    }
-    bool supports_separate_depth_stencil_layouts = owning_window->logical_device().supports_separate_depth_stencil_layouts();
-    attachment_description.setInitialLayout(get_initial_layout(attachment, supports_separate_depth_stencil_layouts));
-    attachment_description.setFinalLayout(get_final_layout(attachment, supports_separate_depth_stencil_layouts));
-
-    Dout(dc::notice, "attachment_description " << node.index() << " = " << attachment_description);
-    m_attachment_descriptions.push_back(attachment_description);
-  }
-
-  // Create vk::SubpassDescription object (currently only one subpass is supported, which is sufficient on desktops).
-  vk_defaults::SubpassDescription subpass_description;
-  for (AttachmentNode const& node : m_known_attachments)
-  {
-    vk::AttachmentReference* attachment_reference_ptr = nullptr;
-    Attachment const* attachment = node.attachment();
-    if (attachment->image_view_kind().is_color())
-      attachment_reference_ptr = &m_subpass_data.m_color_attachments.emplace_back();
-    else if (attachment->image_view_kind().is_depth_and_or_stencil())
-    {
-      attachment_reference_ptr = &m_subpass_data.m_depth_stencil_attachment;
-      // There should only be one depth/stencil attachment!
-      ASSERT(attachment_reference_ptr->layout == vk::ImageLayout::eUndefined);
-    }
-    else
-      THROW_ALERT("Don't know how to create a SubpassDescription for image view kind of [ATTACHMENT].", AIArgs("[ATTACHMENT]", attachment));
-    attachment_reference_ptr->setAttachment(static_cast<uint32_t>(node.index().get_value()))
-      .setLayout(get_optimal_layout(node, false /* layout may not be DEPTH_ATTACHMENT_OPTIMAL|DEPTH_READ_ONLY_OPTIMAL|STENCIL_ATTACHMENT_OPTIMAL|STENCIL_READ_ONLY_OPTIMAL */));
-  }
-  // If we did not encounter a depth/stencil attachment then apparently we're not using it.
-  if (m_subpass_data.m_depth_stencil_attachment.layout == vk::ImageLayout::eUndefined)
-    m_subpass_data.m_depth_stencil_attachment.attachment = VK_ATTACHMENT_UNUSED;
-  subpass_description
-    .setColorAttachments(m_subpass_data.m_color_attachments)
-    .setPDepthStencilAttachment(&m_subpass_data.m_depth_stencil_attachment);
-  Dout(dc::notice, "subpass_description #0 = " << subpass_description);
-  m_subpass_descriptions.push_back(subpass_description);
-}
-
-utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
-{
-  DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
-  utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> attachments_image_infos;
-  for (AttachmentNode const& node : m_known_attachments)
-  {
-    ImageKind const& image_kind = node.attachment()->image_kind();
-    attachments_image_infos.push_back({
-        .usage = image_kind->usage,
-        .width = extent.width,
-        .height = extent.height,
-        .layerCount = image_kind->array_layers,
-        .viewFormatCount = 1,
-        .pViewFormats = &image_kind->format
-      });
-  }
-  return attachments_image_infos;
 }
 
 void RenderGraph::operator=(RenderPassStream& sink)
@@ -495,21 +429,21 @@ class TestWindow : public task::SynchronousWindow
   RenderGraph& render_graph() { return m_render_graph; }
   void run_test(std::function<void()> test) { test(); }
 
-  void run_bigtest(utils::UniqueIDContext<int>& context, vulkan::ImageViewKind const& v1)
+  void run_bigtest(vulkan::ImageViewKind const& v1)
   {
     RenderGraph& graph(render_graph());
-    Attachment const a1{context, "a1", v1};
-    Attachment const a2{context, "a2", v1};
-    Attachment const a3{context, "a3", v1};
-    Attachment const a4{context, "a4", v1};
-    Attachment const a5{context, "a5", v1};
-    Attachment const a6{context, "a6", v1};
-    Attachment const a7{context, "a7", v1};
-    Attachment const a8{context, "a8", v1};
-    Attachment const a9{context, "a9", v1};
-    Attachment const a10{context, "a10", v1};
-    Attachment const a11{context, "a11", v1};
-    Attachment const a12{context, "a12", v1};
+    Attachment const a1{this, "a1", v1};
+    Attachment const a2{this, "a2", v1};
+    Attachment const a3{this, "a3", v1};
+    Attachment const a4{this, "a4", v1};
+    Attachment const a5{this, "a5", v1};
+    Attachment const a6{this, "a6", v1};
+    Attachment const a7{this, "a7", v1};
+    Attachment const a8{this, "a8", v1};
+    Attachment const a9{this, "a9", v1};
+    Attachment const a10{this, "a10", v1};
+    Attachment const a11{this, "a11", v1};
+    Attachment const a12{this, "a12", v1};
     RenderPass pass1(this, "pass1");
     RenderPass pass2(this, "pass2");
     RenderPass pass3(this, "pass3");
@@ -763,7 +697,7 @@ void RenderGraph::testsuite()
   }
   {
     TestWindow window;
-    window.run_bigtest(context, v1);
+    window.run_bigtest(v1);
   }
   {
     TEST(lighting->stores(~specular) >> render_pass->stores(output) >> pass1[+specular]->stores(output));

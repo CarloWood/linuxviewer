@@ -13,7 +13,6 @@
 #include "debug.h"
 #ifdef CWDEBUG
 #include <map>
-#include <vector>
 #endif
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
@@ -63,6 +62,7 @@ class RenderPass
   RenderPass(std::string const& name) : m_name(name), m_stream(this) { }
   RenderPass(RenderPass const&&) = delete;      // Not allowed because m_stream contains a pointer back to this object.
   RenderPass(RenderPass&&) = delete;            // Not allowed because the RenderGraph stores pointers in m_render_passes.
+  virtual ~RenderPass() = default;              // Not that you ever should create a RenderPass with new... but well.
 
  public:
   // Modifiers.
@@ -97,7 +97,8 @@ class RenderPass
   vk::ImageLayout get_final_layout(Attachment const* attachment, bool supports_separate_depth_stencil_layouts) const;
 
   // Actual creation.
-  void create(task::SynchronousWindow const* owning_window);
+  void create(task::SynchronousWindow const* owning_window);    // Which calls...
+  virtual void create_render_pass() = 0;                        // the one that creates the vulkan RenderPass object.
 
   // Harvest information.
   utils::Vector<vk_defaults::AttachmentDescription, pAttachmentsIndex> const& attachment_descriptions() const { return m_attachment_descriptions; }

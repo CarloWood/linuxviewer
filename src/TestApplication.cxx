@@ -29,7 +29,18 @@ class Window : public task::SynchronousWindow
   using task::SynchronousWindow::SynchronousWindow;
 
  private:
-  vk::UniqueRenderPass m_main_render_pass;
+  // Additional image (view) kind.
+  static vulkan::ImageKind const s_vector_image_kind;
+  static vulkan::ImageViewKind const s_vector_image_view_kind;
+
+  // Define renderpass / attachment objects.
+  RenderPass  main_pass{this, "main_pass"};
+  RenderPass imgui_pass{this, "imgui_pass"};       // FIXME: put this in the base class?
+  Attachment      depth{this, "depth",    s_depth_image_view_kind};
+  Attachment   position{this, "position", s_vector_image_view_kind};
+  Attachment     normal{this, "normal",   s_vector_image_view_kind};
+  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
+
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
@@ -40,9 +51,9 @@ class Window : public task::SynchronousWindow
   lv_utils::TimerData m_timer;
 
   SampleParameters Parameters;
-
   int m_frame_count = 0;
 
+ private:
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 10 frames per second.
@@ -136,15 +147,11 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
-    std::vector<vk::ClearValue> clear_values = {
-      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } },
-      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } }
-    };
-
-    auto swapchain_extent = swapchain().extent();
+    // Record the command buffer of main_pass.
+    auto clear_values = main_pass.clear_values();
 
     std::array<vk::ImageView, 2> attachments = {
-      *m_current_frame.m_frame_resources->m_depth_attachment.m_image_view,
+      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image_view,
       swapchain().vh_current_image_view()
     };
 
@@ -152,7 +159,7 @@ class Window : public task::SynchronousWindow
     Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
     std::array<vk::Image, 2> attachment_images = {
       swapchain().images()[swapchain().current_index()],
-      *m_current_frame.m_frame_resources->m_depth_attachment.m_image
+      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image
     };
     Dout(dc::vkframe, "Attachments: ");
     for (int i = 0; i < 2; ++i)
@@ -161,10 +168,11 @@ class Window : public task::SynchronousWindow
     }
 #endif
 
+    auto swapchain_extent = swapchain().extent();
     vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
       {
-        .renderPass = swapchain().vh_render_pass(),
-        .framebuffer = swapchain().vh_framebuffer(),
+        .renderPass = main_pass.vh_render_pass(),
+        .framebuffer = swapchain().vh_framebuffer(),   // FIXME: pass main_pass.vh_framebuffer()
         .renderArea = {
           .offset = {},
           .extent = swapchain_extent
@@ -288,18 +296,6 @@ class Window : public task::SynchronousWindow
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
   }
 
-  // Additional image (view) kind.
-  /*static constexpr*/ vulkan::ImageKind s_vector_image_kind{{ .format = vk::Format::eR16G16B16A16Sfloat }};
-  /*static constexpr*/ vulkan::ImageViewKind s_vector_image_view_kind{s_vector_image_kind, {}};
-
-  // Define renderpass / attachment objects.
-  RenderPass  main_pass{this, "main_pass"};
-  RenderPass imgui_pass{this, "imgui_pass"};       // FIXME: put this in the base class?
-  Attachment      depth{this, "depth",    s_depth_image_view_kind};
-  Attachment   position{this, "position", s_vector_image_view_kind};
-  Attachment     normal{this, "normal",   s_vector_image_view_kind};
-  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
-
   void create_render_passes() override
   {
     DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
@@ -311,11 +307,14 @@ class Window : public task::SynchronousWindow
     // This must be a reference.
     auto& output = swapchain().presentation_attachment();
 
-    // Change the clear value of depth.
+    // Change the clear values.
     depth.set_clear_value({1.f, 0xffff0000});
     swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
 
+    // Define the render graph.
     m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);
+
+    // Generate everything.
     m_render_graph.generate(this);
 
 #if 0
@@ -339,14 +338,6 @@ class Window : public task::SynchronousWindow
       };
     }
 #endif
-
-    // Create the main render pass.
-    m_main_render_pass = logical_device().create_render_pass(main_pass
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_main_render_pass")));
-
-    // Create the swapchain render pass.
-    set_swapchain_render_pass(logical_device().create_render_pass(imgui_pass
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain.m_render_pass"))));
 
 #if 0
     // Post-render pass - from color_attachment to present_src.
@@ -707,7 +698,7 @@ void main() {
       .pColorBlendState = &color_blend_state_create_info,
       .pDynamicState = &dynamic_state_create_info,
       .layout = *m_pipeline_layout,
-      .renderPass = *m_main_render_pass,
+      .renderPass = main_pass.vh_render_pass(),
       .subpass = 0,
       .basePipelineHandle = vk::Pipeline{},
       .basePipelineIndex = -1
@@ -717,6 +708,9 @@ void main() {
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
   }
 };
+
+vulkan::ImageKind const Window::s_vector_image_kind{{ .format = vk::Format::eR16G16B16A16Sfloat }};
+vulkan::ImageViewKind const Window::s_vector_image_view_kind{s_vector_image_kind, {}};
 
 class WindowEvents : public vulkan::WindowEvents
 {

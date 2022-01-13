@@ -15,9 +15,7 @@ class SynchronousWindow;
 
 namespace vulkan {
 
-namespace rendergraph {
 class RenderPass;
-} // namespace rendergraph
 
 class Swapchain;
 using SwapchainIndex = utils::VectorIndex<Swapchain>;
@@ -98,8 +96,7 @@ class Swapchain
   // prepare:
   std::optional<Attachment> m_presentation_attachment;  // The presentation attachment ("optional" because it is initialized during prepare).
   // RenderGraph::generate:
-  rendergraph::RenderPass*  m_render_pass_output_sink = nullptr;        // The render pass that stores to presentation attachment as a sink.
-  vk::UniqueRenderPass      m_render_pass;                              // The render pass that writes to m_frame_buffer.
+  RenderPass*               m_render_pass_output_sink = nullptr;        // The render pass that stores to presentation attachment as a sink.
   vk::UniqueFramebuffer     m_framebuffer;                              // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
 
  public:
@@ -110,15 +107,17 @@ class Swapchain
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
   // Set and get the rendergraph node that writes to the presentation attachment.
-  void set_render_pass_output_sink(rendergraph::RenderPass* sink) { m_render_pass_output_sink = sink; }
-  rendergraph::RenderPass* render_pass_output_sink() const { ASSERT(m_render_pass_output_sink); return m_render_pass_output_sink; }
+  void set_render_pass_output_sink(RenderPass* sink) { m_render_pass_output_sink = sink; }
+  RenderPass* render_pass_output_sink() const { ASSERT(m_render_pass_output_sink); return m_render_pass_output_sink; }
 
+#if 0
   void set_render_pass(vk::UniqueRenderPass&& render_pass)
   {
     // This function should only be called once.
     ASSERT(!m_render_pass);
     m_render_pass = std::move(render_pass);
   }
+#endif
 
   void recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
@@ -184,11 +183,7 @@ class Swapchain
     return *m_swapchain;
   }
 
-  vk::RenderPass vh_render_pass() const
-  {
-    return *m_render_pass;
-  }
-
+  vk::RenderPass vh_render_pass() const;
   vk::Framebuffer vh_framebuffer() const
   {
     return *m_framebuffer;

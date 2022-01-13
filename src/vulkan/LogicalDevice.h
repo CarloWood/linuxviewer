@@ -86,11 +86,6 @@ class LogicalDevice
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
   Queue acquire_queue(QueueFlags flags, task::SynchronousWindow::window_cookie_type window_cookie) const;
 
-  // Create a RenderPass.
-  vk::UniqueRenderPass create_render_pass(
-      rendergraph::RenderPass const& render_pass
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
   void wait_idle() const { m_device->waitIdle(); }
@@ -133,6 +128,8 @@ class LogicalDevice
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueFramebuffer create_framebuffer(vk::FramebufferCreateInfo const& framebuffer_create_info
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;

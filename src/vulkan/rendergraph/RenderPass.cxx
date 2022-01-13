@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "RenderPass.h"
 #include "SynchronousWindow.h"
+#include "LogicalDevice.h"
 #include "utils/AIAlert.h"
 #ifdef CWDEBUG
 #include "debug_ostream_operators.h"
@@ -294,6 +295,88 @@ void RenderPass::stores_called(RenderPass* render_pass)
   auto res = m_stores_called.insert(render_pass);
   if (!res.second)
     THROW_ALERT("Render pass \"[RENDERPASS]\" occurs more than once in the graph", AIArgs("[RENDERPASS]", render_pass));
+}
+
+void RenderPass::create(task::SynchronousWindow const* owning_window)
+{
+  DoutEntering(dc::renderpass, "RenderPass:create(" << owning_window << ") [" << this << "]");
+  // Create vk::AttachmentDescription objects.
+  for (AttachmentNode const& node : m_known_attachments)
+  {
+    Attachment const* attachment = node.attachment();
+    vk::Format const format = attachment->image_view_kind()->format;
+    vk::SampleCountFlagBits const samples = attachment->image_kind()->samples;
+    vk_defaults::AttachmentDescription attachment_description;
+    attachment_description
+      .setFormat(format)
+      .setSamples(samples)
+      .setLoadOp(get_load_op(attachment))
+      .setStoreOp(get_store_op(attachment))
+      ;
+    if (attachment->image_view_kind().is_stencil())
+    {
+      attachment_description
+        .setStencilLoadOp(get_stencil_load_op(attachment))
+        .setStencilStoreOp(get_stencil_store_op(attachment))
+        ;
+    }
+    bool supports_separate_depth_stencil_layouts = owning_window->logical_device().supports_separate_depth_stencil_layouts();
+    attachment_description.setInitialLayout(get_initial_layout(attachment, supports_separate_depth_stencil_layouts));
+    attachment_description.setFinalLayout(get_final_layout(attachment, supports_separate_depth_stencil_layouts));
+
+    Dout(dc::notice, "attachment_description " << node.index() << " = " << attachment_description);
+    m_attachment_descriptions.push_back(attachment_description);
+  }
+
+  // Create vk::SubpassDescription object (currently only one subpass is supported, which is sufficient on desktops).
+  vk_defaults::SubpassDescription subpass_description;
+  for (AttachmentNode const& node : m_known_attachments)
+  {
+    vk::AttachmentReference* attachment_reference_ptr = nullptr;
+    Attachment const* attachment = node.attachment();
+    if (attachment->image_view_kind().is_color())
+      attachment_reference_ptr = &m_subpass_data.m_color_attachments.emplace_back();
+    else if (attachment->image_view_kind().is_depth_and_or_stencil())
+    {
+      attachment_reference_ptr = &m_subpass_data.m_depth_stencil_attachment;
+      // There should only be one depth/stencil attachment!
+      ASSERT(attachment_reference_ptr->layout == vk::ImageLayout::eUndefined);
+    }
+    else
+      THROW_ALERT("Don't know how to create a SubpassDescription for image view kind of [ATTACHMENT].", AIArgs("[ATTACHMENT]", attachment));
+    attachment_reference_ptr->setAttachment(static_cast<uint32_t>(node.index().get_value()))
+      .setLayout(get_optimal_layout(node, false /* layout may not be DEPTH_ATTACHMENT_OPTIMAL|DEPTH_READ_ONLY_OPTIMAL|STENCIL_ATTACHMENT_OPTIMAL|STENCIL_READ_ONLY_OPTIMAL */));
+  }
+  // If we did not encounter a depth/stencil attachment then apparently we're not using it.
+  if (m_subpass_data.m_depth_stencil_attachment.layout == vk::ImageLayout::eUndefined)
+    m_subpass_data.m_depth_stencil_attachment.attachment = VK_ATTACHMENT_UNUSED;
+  subpass_description
+    .setColorAttachments(m_subpass_data.m_color_attachments)
+    .setPDepthStencilAttachment(&m_subpass_data.m_depth_stencil_attachment);
+  Dout(dc::notice, "subpass_description #0 = " << subpass_description);
+  m_subpass_descriptions.push_back(subpass_description);
+
+  // Finally really create the render pass.
+  create_render_pass();
+}
+
+utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> RenderPass::get_framebuffer_attachment_image_infos(vk::Extent2D extent) const
+{
+  DoutEntering(dc::renderpass, "RenderPass::get_attachments_image_infos(" << extent << ")");
+  utils::Vector<vk::FramebufferAttachmentImageInfo, pAttachmentsIndex> attachments_image_infos;
+  for (AttachmentNode const& node : m_known_attachments)
+  {
+    ImageKind const& image_kind = node.attachment()->image_kind();
+    attachments_image_infos.push_back({
+        .usage = image_kind->usage,
+        .width = extent.width,
+        .height = extent.height,
+        .layerCount = image_kind->array_layers,
+        .viewFormatCount = 1,
+        .pViewFormats = &image_kind->format
+      });
+  }
+  return attachments_image_infos;
 }
 
 void RenderPass::print_on(std::ostream& os) const

@@ -3,13 +3,14 @@
 #include "ImageParameters.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
+#include "utils/Vector.h"
 #include <memory>
 
 namespace vulkan {
 
 struct FrameResourcesData
 {
-  ImageParameters         m_depth_attachment;
+  utils::Vector<ImageParameters, AttachmentIndex> m_image_parameters;
 
   // Too specialized?
   using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
@@ -22,10 +23,12 @@ struct FrameResourcesData
   vk::UniqueFence         m_command_buffers_completed;          // This fence should be signaled when the last command buffer used for this frame completed.
 
   FrameResourcesData(
+      size_t number_of_attachments,
       // Arguments for m_command_pool.
       LogicalDevice const* logical_device,
       QueueFamilyPropertiesIndex queue_family
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& command_pool_debug_name)) :
+    m_image_parameters(number_of_attachments),
     m_command_pool(logical_device, queue_family COMMA_CWDEBUG_ONLY(command_pool_debug_name)) { }
 
   ~FrameResourcesData()

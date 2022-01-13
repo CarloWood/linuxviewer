@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Attachment.h"
 #include "LoadStoreOps.h"
 #include "utils/Vector.h"
 #include "utils/AIAlert.h"
+#include "utils/UniqueID.h"
 #include "debug.h"
 
 namespace vulkan::rendergraph {
 
+class Attachment;
 class RenderPass;
 class AttachmentNode;
 
@@ -26,7 +27,7 @@ class AttachmentNode
  private:
   RenderPass const* m_render_pass;                                      // The render pass this node falls under.
   Attachment const* m_attachment;                                       // A pointer to the associated Attachment description.
-  pAttachmentsIndex m_index;                                              // The render pass specific index (index into pAttachments).
+  pAttachmentsIndex m_index;                                            // The render pass specific index (index into pAttachments).
   LoadStoreOps m_ops;                                                   // Encodes the [DCL][DS] code for this attachment/render_pass.
   bool m_is_source = false;
   bool m_is_sink = false;
@@ -36,7 +37,7 @@ class AttachmentNode
   AttachmentNode(RenderPass const* render_pass, Attachment const* attachment, pAttachmentsIndex index) :
     m_render_pass(render_pass), m_attachment(attachment), m_index(index) { }
 
-  utils::UniqueID<int> id() const { return m_attachment->id(); }
+  utils::UniqueID<int> id() const;
   Attachment const* attachment() const { return m_attachment; }
 
   void set_load();

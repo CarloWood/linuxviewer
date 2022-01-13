@@ -36,7 +36,8 @@ vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_i
 
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
-  m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); })
+  m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
+  m_render_graph_context(vulkan::AttachmentIndex{0})
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
@@ -68,6 +69,9 @@ void SynchronousWindow::register_attachment(SynchronousWindow::Attachment* attac
   [[maybe_unused]] auto res = m_attachments.try_emplace(attachment->name(), attachment);
   // Please use a unique name for each attachment.
   ASSERT(res.second);
+  // Paranoia check: the attachment index will be used in an array of size m_attachments.size().
+  // If UniqueID isn't changed then this should always hold.
+  ASSERT(0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size());
 }
 
 char const* SynchronousWindow::state_str_impl(state_type run_state) const
@@ -199,7 +203,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
 
       set_state(SynchronousWindow_render_loop);
       // We already have a swapchain up there - but only now we can really render anything, so set it here.
-      have_swapchain();
+      vulkan::SynchronousEngine::have_swapchain();
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);
       [[fallthrough]];
@@ -865,16 +869,23 @@ void SynchronousWindow::on_window_size_changed_post()
 #ifdef CWDEBUG
   vulkan::FrameResourceIndex frame_resource_index{0};
 #endif
+  // Run over all frame resources.
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
-    // Create depth attachment.
-    frame_resources_data->m_depth_attachment = m_logical_device->create_image(
-        swapchain().extent().width,
-        swapchain().extent().height,
-        s_depth_image_kind,
-        s_depth_image_view_kind,
-        vk::MemoryPropertyFlagBits::eDeviceLocal
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index++) + "]->m_depth_attachment")));
+    // Run over all attachments.
+    for (auto attachment_iter = m_attachments.begin(); attachment_iter != m_attachments.end(); ++attachment_iter)
+    {
+      Dout(dc::vulkan, "Creating attachment \"" << attachment_iter->first << "\".");
+      Attachment* attachment = attachment_iter->second;
+      frame_resources_data->m_image_parameters[*attachment] = m_logical_device->create_image(
+          swapchain().extent().width,
+          swapchain().extent().height,
+          attachment->image_kind(),
+          attachment->image_view_kind(),
+          vk::MemoryPropertyFlagBits::eDeviceLocal
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index++) +
+              "]->m_image_parameters[" + to_string(attachment->index()) + "]")));
+    }
   }
 }
 
@@ -909,6 +920,8 @@ void SynchronousWindow::create_frame_resources()
 #endif
     // Create a new vulkan::FrameResourcesData object.
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
+        // The number of attachments.
+        m_attachments.size(),
         // Constructor arguments for m_command_pool. Too specialized? (should this be part of a derived class?)
         m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));

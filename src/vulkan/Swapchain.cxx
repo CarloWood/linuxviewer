@@ -191,13 +191,13 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
         CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
 
   // In case of re-use, cant_render_bit might be reset.
-  owning_window->no_swapchain();
+  owning_window->no_swapchain({});
 }
 
 void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
-  owning_window->no_swapchain();
+  owning_window->no_swapchain({});
 
   if (window_extent.width == 0 || window_extent.height == 0)
   {
@@ -211,7 +211,7 @@ void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D wi
   recreate_swapchain_framebuffer(owning_window
       COMMA_CWDEBUG_ONLY(ambifix));
 
-  owning_window->have_swapchain();
+  owning_window->have_swapchain({});
 }
 
 void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D surface_extent
@@ -257,10 +257,12 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
 void Swapchain::recreate_swapchain_framebuffer(task::SynchronousWindow const* owning_window
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {
-  // (Re)create the imageless framebuffer, because it depends on the swapchain size.
-  // Did you call set_swapchain_render_pass from the overridden create_render_passes?
-  ASSERT(m_render_pass);
   m_framebuffer = owning_window->create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(ambifix(".m_framebuffer")));
+}
+
+vk::RenderPass Swapchain::vh_render_pass() const
+{
+  return m_render_pass_output_sink->vh_render_pass();
 }
 
 } // namespace vulkan

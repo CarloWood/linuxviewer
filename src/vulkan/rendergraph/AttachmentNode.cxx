@@ -12,6 +12,11 @@ void AttachmentNode::print_on(std::ostream& os) const
 }
 #endif
 
+utils::UniqueID<int> AttachmentNode::id() const
+{
+  return m_attachment->id();
+}
+
 void AttachmentNode::set_load()
 {
   DoutEntering(dc::renderpass, "AttachmentNode::set_load() [" << m_render_pass << "/" << m_attachment << "]");
