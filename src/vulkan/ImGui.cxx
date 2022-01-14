@@ -80,4 +80,10 @@ void ImGui::init(task::SynchronousWindow const* owning_window)
   ImGui_ImplVulkan_Init(&init_info, owning_window->swapchain().vh_render_pass());
 }
 
+ImGui::~ImGui()
+{
+  ImGui_ImplVulkan_Shutdown();
+  ::ImGui::DestroyContext();
+}
+
 } // namespace vulkan

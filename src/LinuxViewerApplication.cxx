@@ -462,11 +462,11 @@ void main()
 
       ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
       shader_vert.set_name("triangle.vert.glsl").load(triangle_vert_glsl).compile(compiler, options);
-      pipeline.add(shader_vert);
+      pipeline.add(shader_vert COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
 
       ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
       shader_frag.set_name("triangle.frag.glsl").load(triangle_frag_glsl).compile(compiler, options);
-      pipeline.add(shader_frag);
+      pipeline.add(shader_frag COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
 
 //      pipeline.add(ShaderModule{vk::ShaderStageFlagBits::eVertex, "triangle.vert.glsl"}.load(triangle_vert_glsl).compile(compiler, options));
     }

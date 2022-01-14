@@ -18,9 +18,11 @@ class Pipeline
   Pipeline(task::SynchronousWindow const* owning_window) : m_owning_window(owning_window) { }
 
   // Add a shader module to this pipeline.
-  void add(shaderbuilder::ShaderModule const& shader_module)
+  void add(shaderbuilder::ShaderModule const& shader_module
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
   {
-    m_unique_handles.push_back(shader_module.create({}, m_owning_window));
+    m_unique_handles.push_back(shader_module.create({}, m_owning_window
+        COMMA_CWDEBUG_ONLY(ambifix(".m_unique_handles[" + std::to_string(m_unique_handles.size()) + "]"))));
     m_shader_stage_create_infos.push_back(
       {
         .flags = vk::PipelineShaderStageCreateFlags(0),

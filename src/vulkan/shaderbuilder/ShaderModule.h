@@ -58,11 +58,13 @@ class ShaderModule
   void compile(ShaderCompiler const& compiler, ShaderCompilerOptions const& options);
 
   // Compile and forget.
-  vk::UniqueShaderModule create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options) const;
+  vk::UniqueShaderModule create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
   // Create handle from cached SPIR-V code.
   // Use vulkan::Pipeline::add(shader_module) instead of this function.
-  vk::UniqueShaderModule create(utils::Badge<vulkan::Pipeline>, task::SynchronousWindow const* owning_window) const;
+  vk::UniqueShaderModule create(utils::Badge<vulkan::Pipeline>, task::SynchronousWindow const* owning_window
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
   // Free resources.
   void reset();

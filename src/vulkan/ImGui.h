@@ -10,6 +10,8 @@ class ImGui
 {
  public:
   void init(task::SynchronousWindow const* owning_window);
+
+  ~ImGui();
 };
 
 } // namespace vulkan

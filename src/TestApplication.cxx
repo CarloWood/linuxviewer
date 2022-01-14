@@ -584,11 +584,11 @@ void main() {
 
       ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
       shader_vert.set_name("intel.vert.glsl").load(intel_vert_glsl).compile(compiler, options);
-      pipeline.add(shader_vert);
+      pipeline.add(shader_vert COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
 
       ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
       shader_frag.set_name("intel.frag.glsl").load(intel_frag_glsl).compile(compiler, options);
-      pipeline.add(shader_frag);
+      pipeline.add(shader_frag COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
     }
 
     std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {

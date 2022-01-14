@@ -138,23 +138,25 @@ void ShaderModule::compile(ShaderCompiler const& compiler, ShaderCompilerOptions
   m_glsl_source_code.clear();
 }
 
-vk::UniqueShaderModule ShaderModule::create(utils::Badge<Pipeline>, task::SynchronousWindow const* owning_window) const
-{
-  // Call compile() before calling this create().
-  ASSERT(!m_spirv_code.empty());
-  return owning_window->logical_device().create_shader_module(
-      m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner(owning_window, m_name)));
-}
-
-vk::UniqueShaderModule ShaderModule::create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options) const
+vk::UniqueShaderModule ShaderModule::create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, ShaderCompilerOptions const& options
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
   // Call load() before calling this create().
   ASSERT(!m_glsl_source_code.empty());
   // Call reset() before reusing a ShaderModule.
   ASSERT(m_spirv_code.empty());
   return compiler.create({}, owning_window->logical_device(), *this, options
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner(owning_window, m_name)));
+      COMMA_CWDEBUG_ONLY(debug_name));
+}
+
+vk::UniqueShaderModule ShaderModule::create(utils::Badge<Pipeline>, task::SynchronousWindow const* owning_window
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
+{
+  // Call compile() before calling this create().
+  ASSERT(!m_spirv_code.empty());
+  return owning_window->logical_device().create_shader_module(
+      m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
+      COMMA_CWDEBUG_ONLY(debug_name));
 }
 
 #ifdef CWDEBUG

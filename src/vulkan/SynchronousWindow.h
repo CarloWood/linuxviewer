@@ -181,7 +181,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
 
-  // Initialized by create_imgui.
+  // Initialized by create_imgui. Deinitialized by destruction.
   vulkan::ImGui m_imgui;                                                                // ImGui framework.
 
  protected:
