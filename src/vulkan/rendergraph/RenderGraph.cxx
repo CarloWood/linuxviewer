@@ -258,9 +258,10 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
   if (number_of_constructed_attachments > all_attachments.size())
     Dout(dc::warning, "You have unused attachments!");
 
-  for (auto attachment = owning_window->attachments_begin(); attachment != owning_window->attachments_end(); ++attachment)
+  for (auto iter = owning_window->attachments_begin(); iter != owning_window->attachments_end(); ++iter)
   {
-    Dout(dc::notice, "Attachment \"" << attachment->first << "\" with ID " << static_cast<AttachmentIndex>(*attachment->second) << ".");
+    vulkan::Attachment const* attachment = *iter;
+    Dout(dc::notice, "Attachment \"" << attachment->name() << "\" with ID " << attachment->index() << ".");
   }
 #endif
 

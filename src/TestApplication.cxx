@@ -68,7 +68,7 @@ class Window : public task::SynchronousWindow
   void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil) override
   {
     // Use red as default clear color for this window.
-    color = { 1.f, 0.f, 0.f, 1.f };
+//    color = { 1.f, 0.f, 0.f, 1.f };
   }
 
   void PerformHardcoreCalculations(int duration) const
@@ -172,7 +172,7 @@ class Window : public task::SynchronousWindow
     vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
       {
         .renderPass = main_pass.vh_render_pass(),
-        .framebuffer = swapchain().vh_framebuffer(),   // FIXME: pass main_pass.vh_framebuffer()
+        .framebuffer = main_pass.vh_framebuffer(),
         .renderArea = {
           .offset = {},
           .extent = swapchain_extent
@@ -186,6 +186,31 @@ class Window : public task::SynchronousWindow
       }
     );
     vk::RenderPassBeginInfo& render_pass_begin_info = render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
+
+    //======================================================
+    // temporary imgui renderpass stuff.
+    auto imgui_clear_values = imgui_pass.clear_values();
+    std::array<vk::ImageView, 1> imgui_attachments = {
+      swapchain().vh_current_image_view()
+    };
+    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> imgui_render_pass_begin_info_chain(
+      {
+        .renderPass = imgui_pass.vh_render_pass(),
+        .framebuffer = imgui_pass.vh_framebuffer(),
+        .renderArea = {
+          .offset = {},
+          .extent = swapchain_extent
+        },
+        .clearValueCount = static_cast<uint32_t>(imgui_clear_values.size()),
+        .pClearValues = imgui_clear_values.data()
+      },
+      {
+        .attachmentCount = imgui_attachments.size(),
+        .pAttachments = imgui_attachments.data()
+      }
+    );
+    vk::RenderPassBeginInfo& imgui_render_pass_begin_info = imgui_render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
+    //======================================================
 
     vk::Viewport viewport{
       .x = 0,
@@ -221,6 +246,8 @@ class Window : public task::SynchronousWindow
       command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
+      command_buffer_w->endRenderPass();
+      command_buffer_w->beginRenderPass(imgui_render_pass_begin_info, vk::SubpassContents::eInline);
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
@@ -308,8 +335,8 @@ class Window : public task::SynchronousWindow
     auto& output = swapchain().presentation_attachment();
 
     // Change the clear values.
-    depth.set_clear_value({1.f, 0xffff0000});
-    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
+//    depth.set_clear_value({1.f, 0xffff0000});
+//    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
 
     // Define the render graph.
     m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);

@@ -164,8 +164,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
   using Attachment = vulkan::Attachment;                                                // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
-  std::map<std::string, RenderPass*> m_render_passes;                                   // All render pass objects.
-  std::map<std::string, Attachment*> m_attachments;                                     // All render pass objects.
+  std::vector<RenderPass*> m_render_passes;                                             // All render pass objects.
+  std::vector<Attachment*> m_attachments;                                               // All render pass objects.
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
   utils::UniqueIDContext<vulkan::AttachmentIndex> m_render_graph_context;
 
@@ -332,13 +332,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  private:
   void acquire_queues();
   void prepare_swapchain();
+  void create_imageless_framebuffers();
   void create_swapchain_images();
+  void recreate_framebuffers(vk::Extent2D extent, uint32_t layers);
   void create_frame_resources();
-  void create_swapchain_framebuffer();
   void create_imgui();
-
-  friend class vulkan::Swapchain;
-  vk::UniqueFramebuffer create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
   // Optionally overridden by derived class.
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;

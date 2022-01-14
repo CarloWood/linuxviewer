@@ -127,9 +127,9 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueFramebuffer create_framebuffer(vk::FramebufferCreateInfo const& framebuffer_create_info
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueFramebuffer create_imageless_framebuffer(RenderPass const& render_graph_pass, vk::Extent2D extent, uint32_t layers
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;

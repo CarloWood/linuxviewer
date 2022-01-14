@@ -59,16 +59,24 @@ vulkan::LogicalDevice* SynchronousWindow::get_logical_device() const
 
 void SynchronousWindow::register_render_pass(SynchronousWindow::RenderPass* render_pass)
 {
-  [[maybe_unused]] auto res = m_render_passes.try_emplace(render_pass->name(), render_pass);
+#if CW_DEBUG
+  std::string const& name = render_pass->name();
+  auto res = std::find_if(m_render_passes.begin(), m_render_passes.end(), [&name](RenderPass* render_pass){ return render_pass->name() == name; });
   // Please use a unique name for each render pass.
-  ASSERT(res.second);
+  ASSERT(res == m_render_passes.end());
+#endif
+  m_render_passes.emplace_back(render_pass);
 }
 
 void SynchronousWindow::register_attachment(SynchronousWindow::Attachment* attachment)
 {
-  [[maybe_unused]] auto res = m_attachments.try_emplace(attachment->name(), attachment);
+#if CW_DEBUG
+  std::string const& name = attachment->name();
+  auto res = std::find_if(m_attachments.begin(), m_attachments.end(), [&name](Attachment* attachment){ return attachment->name() == name; });
   // Please use a unique name for each attachment.
-  ASSERT(res.second);
+  ASSERT(res == m_attachments.end());
+#endif
+  m_attachments.emplace_back(attachment);
   // Paranoia check: the attachment index will be used in an array of size m_attachments.size().
   // If UniqueID isn't changed then this should always hold.
   ASSERT(0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size());
@@ -193,7 +201,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_render_passes();
       create_swapchain_images();
       create_frame_resources();
-      create_swapchain_framebuffer();
+      create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
       create_descriptor_set();
       create_textures();
       create_pipeline_layout();
@@ -344,10 +352,11 @@ void SynchronousWindow::create_swapchain_images()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
-void SynchronousWindow::create_swapchain_framebuffer()
+void SynchronousWindow::create_imageless_framebuffers()
 {
-  m_swapchain.recreate_swapchain_framebuffer(this
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
+  vk::Extent2D extent = m_swapchain.extent();
+  uint32_t layers = m_swapchain.image_kind()->array_layers;
+  recreate_framebuffers(extent, layers);
 }
 
 void SynchronousWindow::create_imgui()
@@ -377,10 +386,20 @@ void SynchronousWindow::handle_window_size_changed()
   // We must wait here until all fences are signalled.
   wait_for_all_fences();
   // Now it is safe to recreate the swapchain.
-  m_swapchain.recreate(this, get_extent()
+  vk::Extent2D extent = get_extent();
+  m_swapchain.recreate(this, extent
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
+  uint32_t const layers = m_swapchain.image_kind()->array_layers;
+  recreate_framebuffers(extent, layers);
   if (can_render(atomic_flags()))
     on_window_size_changed_post();
+}
+
+void SynchronousWindow::recreate_framebuffers(vk::Extent2D extent, uint32_t layers)
+{
+  // Run over all render passes.
+  for (auto render_pass : m_render_passes)
+    render_pass->create_imageless_framebuffer(extent, layers);
 }
 
 bool SynchronousWindow::handle_map_changed(int map_flags)
@@ -759,36 +778,6 @@ void SynchronousWindow::finish_frame()
   }
 }
 
-vk::UniqueFramebuffer SynchronousWindow::create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::create_imageless_swapchain_framebuffer()" << " [" << (is_slow() ? "SlowWindow" : "Window") << "]");
-
-  vk::Extent2D const& extent = m_swapchain.extent();
-  vulkan::rendergraph::RenderPass const* swapchain_render_pass_output_sink = m_swapchain.render_pass_output_sink();
-  utils::Vector<vk::FramebufferAttachmentImageInfo, vulkan::rendergraph::pAttachmentsIndex> framebuffer_attachment_image_infos =
-    swapchain_render_pass_output_sink->get_framebuffer_attachment_image_infos(extent);
-
-  vk::StructureChain<vk::FramebufferCreateInfo, vk::FramebufferAttachmentsCreateInfo> framebuffer_create_info_chain(
-    {
-      .flags = vk::FramebufferCreateFlagBits::eImageless,
-      .renderPass = m_swapchain.vh_render_pass(),
-      .attachmentCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
-      .width = extent.width,
-      .height = extent.height,
-      .layers = m_swapchain.image_kind()->array_layers
-    },
-    {
-      .attachmentImageInfoCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
-      .pAttachmentImageInfos = framebuffer_attachment_image_infos.data()
-    }
-  );
-
-  vk::UniqueFramebuffer framebuffer = m_logical_device->create_framebuffer(framebuffer_create_info_chain.get<vk::FramebufferCreateInfo>()
-      COMMA_CWDEBUG_ONLY(debug_name));
-
-  return framebuffer;
-}
-
 void SynchronousWindow::acquire_image()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::acquire_image() [" << this << "]");
@@ -873,10 +862,9 @@ void SynchronousWindow::on_window_size_changed_post()
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
     // Run over all attachments.
-    for (auto attachment_iter = m_attachments.begin(); attachment_iter != m_attachments.end(); ++attachment_iter)
+    for (Attachment* attachment : m_attachments)
     {
-      Dout(dc::vulkan, "Creating attachment \"" << attachment_iter->first << "\".");
-      Attachment* attachment = attachment_iter->second;
+      Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
       frame_resources_data->m_image_parameters[*attachment] = m_logical_device->create_image(
           swapchain().extent().width,
           swapchain().extent().height,

@@ -208,8 +208,6 @@ void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D wi
 
   recreate_swapchain_images(owning_window, window_extent
       COMMA_CWDEBUG_ONLY(ambifix));
-  recreate_swapchain_framebuffer(owning_window
-      COMMA_CWDEBUG_ONLY(ambifix));
 
   owning_window->have_swapchain({});
 }
@@ -254,15 +252,14 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
   }
 }
 
-void Swapchain::recreate_swapchain_framebuffer(task::SynchronousWindow const* owning_window
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
-{
-  m_framebuffer = owning_window->create_imageless_swapchain_framebuffer(CWDEBUG_ONLY(ambifix(".m_framebuffer")));
-}
-
 vk::RenderPass Swapchain::vh_render_pass() const
 {
   return m_render_pass_output_sink->vh_render_pass();
+}
+
+vk::Framebuffer Swapchain::vh_framebuffer() const
+{
+  return m_render_pass_output_sink->vh_framebuffer();
 }
 
 } // namespace vulkan

@@ -97,7 +97,6 @@ class Swapchain
   std::optional<Attachment> m_presentation_attachment;  // The presentation attachment ("optional" because it is initialized during prepare).
   // RenderGraph::generate:
   RenderPass*               m_render_pass_output_sink = nullptr;        // The render pass that stores to presentation attachment as a sink.
-  vk::UniqueFramebuffer     m_framebuffer;                              // The imageless framebuffer used for rendering to a swapchain image (also see https://i.stack.imgur.com/K0NRD.png).
 
  public:
   Swapchain() { DoutEntering(dc::vulkan, "Swapchain::Swapchain() [" << this << "]"); }
@@ -120,8 +119,6 @@ class Swapchain
 #endif
 
   void recreate_swapchain_images(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
-  void recreate_swapchain_framebuffer(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
@@ -184,10 +181,7 @@ class Swapchain
   }
 
   vk::RenderPass vh_render_pass() const;
-  vk::Framebuffer vh_framebuffer() const
-  {
-    return *m_framebuffer;
-  }
+  vk::Framebuffer vh_framebuffer() const;
 
   vk::Semaphore vh_acquire_semaphore() const
   {

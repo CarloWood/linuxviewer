@@ -705,12 +705,30 @@ vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(
   throw std::runtime_error("Could not allocate a memory for an image!");
 }
 
-vk::UniqueFramebuffer LogicalDevice::create_framebuffer(
-    vk::FramebufferCreateInfo const& framebuffer_create_info
+vk::UniqueFramebuffer LogicalDevice::create_imageless_framebuffer(
+    RenderPass const& render_pass,
+    vk::Extent2D extent, uint32_t layers
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::create_framebuffer(" << framebuffer_create_info << ")");
-  vk::UniqueFramebuffer framebuffer = m_device->createFramebufferUnique(framebuffer_create_info);
+  utils::Vector<vk::FramebufferAttachmentImageInfo, vulkan::rendergraph::pAttachmentsIndex> framebuffer_attachment_image_infos =
+    render_pass.get_framebuffer_attachment_image_infos(extent);
+
+  vk::StructureChain<vk::FramebufferCreateInfo, vk::FramebufferAttachmentsCreateInfo> framebuffer_create_info_chain(
+    {
+      .flags = vk::FramebufferCreateFlagBits::eImageless,
+      .renderPass = render_pass.vh_render_pass(),
+      .attachmentCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
+      .width = extent.width,
+      .height = extent.height,
+      .layers = layers
+    },
+    {
+      .attachmentImageInfoCount = static_cast<uint32_t>(framebuffer_attachment_image_infos.size()),
+      .pAttachmentImageInfos = framebuffer_attachment_image_infos.data()
+    }
+  );
+
+  vk::UniqueFramebuffer framebuffer = m_device->createFramebufferUnique(framebuffer_create_info_chain.get<vk::FramebufferCreateInfo>());
   DebugSetName(framebuffer, debug_name);
   return framebuffer;
 }

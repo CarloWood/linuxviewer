@@ -17,6 +17,12 @@ void RenderPass::create_render_pass()
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner{m_owning_window, "«" + name() + "».m_render_pass"}));
 }
 
+void RenderPass::create_imageless_framebuffer(vk::Extent2D extent, uint32_t layers)
+{
+  m_framebuffer = m_owning_window->logical_device().create_imageless_framebuffer(*this, extent, layers
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner{m_owning_window, "«" + name() + "».m_framebuffer"}));
+}
+
 std::vector<vk::ClearValue> RenderPass::clear_values() const
 {
   DoutEntering(dc::vulkan, "RenderPass::clear_values() [" << name() << "]");
