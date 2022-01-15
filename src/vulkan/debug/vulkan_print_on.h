@@ -1,6 +1,7 @@
 #pragma once
 
 #include "debug.h"
+#include "utils/has_print_on.h"
 
 namespace vulkan {
 

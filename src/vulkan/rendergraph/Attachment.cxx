@@ -1,7 +1,7 @@
 #include "sys.h"
-#include "debug/vulkan_print_on.h"
 #include "Attachment.h"
 #include "SynchronousWindow.h"
+#include "debug/vulkan_print_on.h"
 #include "debug/debug_ostream_operators.h"
 
 namespace vulkan::rendergraph {

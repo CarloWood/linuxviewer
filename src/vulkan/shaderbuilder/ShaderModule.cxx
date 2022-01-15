@@ -6,6 +6,7 @@
 #include "utils/at_scope_end.h"
 #include <shaderc/shaderc.hpp>
 #include <magic_enum.hpp>
+#include <fstream>
 #include "debug.h"
 #ifdef CWDEBUG
 #include <sstream>
