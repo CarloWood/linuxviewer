@@ -182,7 +182,7 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
   });
 
   // Perform the delayed initialization of m_presentation_attachment.
-  m_presentation_attachment.emplace(owning_window, "swapchain", image_view_kind());
+  m_presentation_attachment.emplace(utils::Badge<Swapchain>{}, owning_window, "swapchain", image_view_kind());
   Dout(dc::notice, "m_presentation_attachment->image_view_kind() = " << m_presentation_attachment->image_view_kind());
 
   m_min_image_count = desired_image_count;

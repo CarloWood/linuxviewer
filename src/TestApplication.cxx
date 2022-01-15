@@ -147,28 +147,12 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
+    auto swapchain_extent = swapchain().extent();
+
     // Record the command buffer of main_pass.
     auto clear_values = main_pass.clear_values();
+    auto attachments = main_pass.attachment_image_views(swapchain(), frame_resources);
 
-    std::array<vk::ImageView, 2> attachments = {
-      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image_view,
-      swapchain().vh_current_image_view()
-    };
-
-#ifdef CWDEBUG
-    Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
-    std::array<vk::Image, 2> attachment_images = {
-      swapchain().images()[swapchain().current_index()],
-      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image
-    };
-    Dout(dc::vkframe, "Attachments: ");
-    for (int i = 0; i < 2; ++i)
-    {
-      Dout(dc::vkframe, "  image_view: " << attachments[i] << ", image: " << attachment_images[i]);
-    }
-#endif
-
-    auto swapchain_extent = swapchain().extent();
     vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
       {
         .renderPass = main_pass.vh_render_pass(),
@@ -181,7 +165,7 @@ class Window : public task::SynchronousWindow
         .pClearValues = clear_values.data()
       },
       {
-        .attachmentCount = attachments.size(),
+        .attachmentCount = static_cast<uint32_t>(attachments.size()),
         .pAttachments = attachments.data()
       }
     );
@@ -190,9 +174,7 @@ class Window : public task::SynchronousWindow
     //======================================================
     // temporary imgui renderpass stuff.
     auto imgui_clear_values = imgui_pass.clear_values();
-    std::array<vk::ImageView, 1> imgui_attachments = {
-      swapchain().vh_current_image_view()
-    };
+    auto imgui_attachments = imgui_pass.attachment_image_views(swapchain(), frame_resources);
     vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> imgui_render_pass_begin_info_chain(
       {
         .renderPass = imgui_pass.vh_render_pass(),
@@ -205,7 +187,7 @@ class Window : public task::SynchronousWindow
         .pClearValues = imgui_clear_values.data()
       },
       {
-        .attachmentCount = imgui_attachments.size(),
+        .attachmentCount = static_cast<uint32_t>(imgui_attachments.size()),
         .pAttachments = imgui_attachments.data()
       }
     );
@@ -228,7 +210,7 @@ class Window : public task::SynchronousWindow
 
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
-    m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
+    m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
     {
       // Lock command pool.
       vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
@@ -343,52 +325,6 @@ class Window : public task::SynchronousWindow
 
     // Generate everything.
     m_render_graph.generate(this);
-
-#if 0
-    // Render pass - from present_src to color_attachment.
-    {
-      utils::Vector<vk_defaults::AttachmentDescription, vulkan::rendergraph::pAttachmentsIndex> attachment_descriptions = {
-        vk::AttachmentDescription{
-          .format = s_default_depth_format,
-          .loadOp = vk::AttachmentLoadOp::eClear,
-          .storeOp = vk::AttachmentStoreOp::eStore,
-          .initialLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-          .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-        },
-        vk::AttachmentDescription{
-          .format = swapchain().image_kind()->format,
-          .loadOp = vk::AttachmentLoadOp::eClear,
-          .storeOp = vk::AttachmentStoreOp::eStore,
-          .initialLayout = vk::ImageLayout::ePresentSrcKHR,
-          .finalLayout = vk::ImageLayout::ePresentSrcKHR //vk::ImageLayout::eColorAttachmentOptimal
-        }
-      };
-    }
-#endif
-
-#if 0
-    // Post-render pass - from color_attachment to present_src.
-    {
-      std::vector<vulkan::RenderPassAttachmentData> attachment_descriptions = {
-        {
-          .m_format = swapchain().image_kind()->format,
-          .m_load_op = vk::AttachmentLoadOp::eLoad,
-          .m_store_op = vk::AttachmentStoreOp::eStore,
-          .m_initial_layout = vk::ImageLayout::eColorAttachmentOptimal,
-          .m_final_layout = vk::ImageLayout::ePresentSrcKHR
-        },
-        {
-          .m_format = s_default_depth_format,
-          .m_load_op = vk::AttachmentLoadOp::eDontCare,
-          .m_store_op = vk::AttachmentStoreOp::eDontCare,
-          .m_initial_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-          .m_final_layout = vk::ImageLayout::eDepthStencilAttachmentOptimal
-        }
-      };
-      m_post_render_pass = logical_device().create_render_pass(attachment_descriptions, subpass_descriptions, dependencies
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_post_render_pass")));
-    }
-#endif
   }
 
   void create_descriptor_set() override

@@ -4,6 +4,9 @@
 
 namespace vulkan {
 
+class Swapchain;
+class FrameResourcesData;
+
 class RenderPass : public rendergraph::RenderPass
 {
  private:
@@ -30,6 +33,10 @@ class RenderPass : public rendergraph::RenderPass
   // Return a vector with clear values for this RenderPass that
   // can be used for vk::RenderPassBeginInfo::pClearValues.
   std::vector<vk::ClearValue> clear_values() const;
+
+  // Return a vector with image views for this RenderPass that
+  // can be used for vk::RenderPassAttachmentBeginInfo::pAttachments, for use with imageless frame buffers.
+  std::vector<vk::ImageView> attachment_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources) const;
 
   // Accessors.
   vk::RenderPass vh_render_pass() const

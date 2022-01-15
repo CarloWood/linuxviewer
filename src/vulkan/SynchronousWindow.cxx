@@ -77,9 +77,10 @@ void SynchronousWindow::register_attachment(SynchronousWindow::Attachment* attac
   ASSERT(res == m_attachments.end());
 #endif
   m_attachments.emplace_back(attachment);
-  // Paranoia check: the attachment index will be used in an array of size m_attachments.size().
+  // Paranoia check: if the attachment isn't swapchain, then the attachment index will be used in an array of size m_attachments.size().
   // If UniqueID isn't changed then this should always hold.
-  ASSERT(0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size());
+  ASSERT(attachment->index().undefined() ||     // swapchain
+      (0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size()));
 }
 
 char const* SynchronousWindow::state_str_impl(state_type run_state) const
@@ -864,6 +865,8 @@ void SynchronousWindow::on_window_size_changed_post()
     // Run over all attachments.
     for (Attachment* attachment : m_attachments)
     {
+      if (attachment->index().undefined())      // Skip swapchain attachments.
+        continue;
       Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
       frame_resources_data->m_image_parameters[*attachment] = m_logical_device->create_image(
           swapchain().extent().width,

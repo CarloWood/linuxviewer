@@ -2,6 +2,7 @@
 #include "RenderPass.h"
 #include "SynchronousWindow.h"
 #include "LogicalDevice.h"
+#include "FrameResourcesData.h"
 
 namespace vulkan {
 
@@ -41,6 +42,29 @@ std::vector<vk::ClearValue> RenderPass::clear_values() const
     Attachment const* attachment = static_cast<Attachment const*>(node.attachment());
     Dout(dc::vulkan, i << " : " << attachment->get_clear_value());
     result.push_back(attachment->get_clear_value());
+  }
+
+  return result;
+}
+
+std::vector<vk::ImageView> RenderPass::attachment_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources) const
+{
+  DoutEntering(dc::vulkan, "RenderPass::attachment_image_views(" << frame_resources << ") [" << name() << "]");
+  std::vector<vk::ImageView> result;
+
+  // Let attachment_nodes list all attachments known to this render pass.
+  auto const& attachment_nodes = known_attachments();
+
+  // Run over all known attachments and push the corresponding image views of the current frame resources in order to the result vector.
+  for (auto i = attachment_nodes.ibegin(); i != attachment_nodes.iend(); ++i)
+  {
+    AttachmentIndex attachment_index = static_cast<Attachment const*>(attachment_nodes[i].attachment())->index();
+    vk::ImageView vh_image_view = attachment_index.undefined() ? swapchain.vh_current_image_view() : *frame_resources->m_image_parameters[attachment_index].m_image_view;
+#ifdef CWDEBUG
+    vk::Image vh_image = attachment_index.undefined() ? swapchain.images()[swapchain.current_index()] : *frame_resources->m_image_parameters[attachment_index].m_image;
+#endif
+    Dout(dc::vulkan, i << " : " << vh_image_view << " (image: " << vh_image << ")");
+    result.push_back(vh_image_view);
   }
 
   return result;
