@@ -355,9 +355,10 @@ void SynchronousWindow::create_swapchain_images()
 
 void SynchronousWindow::create_imageless_framebuffers()
 {
+  prepare_begin_info_chains();
   vk::Extent2D extent = m_swapchain.extent();
   uint32_t layers = m_swapchain.image_kind()->array_layers;
-  recreate_framebuffers(extent, layers);
+  recreate_framebuffers(extent, layers);                        // Really just create for the first time.
 }
 
 void SynchronousWindow::create_imgui()
@@ -394,6 +395,13 @@ void SynchronousWindow::handle_window_size_changed()
   recreate_framebuffers(extent, layers);
   if (can_render(atomic_flags()))
     on_window_size_changed_post();
+}
+
+void SynchronousWindow::prepare_begin_info_chains()
+{
+  // Run over all render passes.
+  for (auto render_pass : m_render_passes)
+    render_pass->prepare_begin_info_chain();
 }
 
 void SynchronousWindow::recreate_framebuffers(vk::Extent2D extent, uint32_t layers)

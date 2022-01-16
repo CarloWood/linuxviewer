@@ -22,6 +22,7 @@ void RenderPass::create_imageless_framebuffer(vk::Extent2D extent, uint32_t laye
 {
   m_framebuffer = m_owning_window->logical_device().create_imageless_framebuffer(*this, extent, layers
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner{m_owning_window, "«" + name() + "».m_framebuffer"}));
+  update_framebuffer({{}, extent});
 }
 
 std::vector<vk::ClearValue> RenderPass::clear_values() const
@@ -47,10 +48,22 @@ std::vector<vk::ClearValue> RenderPass::clear_values() const
   return result;
 }
 
-std::vector<vk::ImageView> RenderPass::attachment_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources) const
+void RenderPass::prepare_begin_info_chain()
 {
-  DoutEntering(dc::vulkan, "RenderPass::attachment_image_views(" << frame_resources << ") [" << name() << "]");
-  std::vector<vk::ImageView> result;
+  DoutEntering(dc::vulkan, "RenderPass::prepare_begin_info_chain() [" << name() << "]");
+
+  m_clear_values = clear_values();
+  m_attachment_image_views.resize(known_attachments().size());  // Will be initialized/updated every frame (rotating frame resources and swapchain images).
+  m_begin_info_chain.get<vk::RenderPassBeginInfo>()
+    .setRenderPass(*m_render_pass)
+    .setClearValues(m_clear_values);
+  m_begin_info_chain.get<vk::RenderPassAttachmentBeginInfo>()
+    .setAttachments(m_attachment_image_views);
+}
+
+void RenderPass::update_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources)
+{
+  DoutEntering(dc::vkframe, "RenderPass::update_image_views(" << frame_resources << ") [" << name() << "]");
 
   // Let attachment_nodes list all attachments known to this render pass.
   auto const& attachment_nodes = known_attachments();
@@ -63,11 +76,25 @@ std::vector<vk::ImageView> RenderPass::attachment_image_views(Swapchain const& s
 #ifdef CWDEBUG
     vk::Image vh_image = attachment_index.undefined() ? swapchain.images()[swapchain.current_index()] : *frame_resources->m_image_parameters[attachment_index].m_image;
 #endif
-    Dout(dc::vulkan, i << " : " << vh_image_view << " (image: " << vh_image << ")");
-    result.push_back(vh_image_view);
+    Dout(dc::vkframe, i << " : " << vh_image_view << " (image: " << vh_image << ")");
+    m_attachment_image_views[i] = vh_image_view;
   }
+}
 
-  return result;
+void RenderPass::update_framebuffer(vk::Rect2D render_area)
+{
+  DoutEntering(dc::vulkan, "RenderPass::update_framebuffer(" << render_area << ") [" << name() << "]");
+  // Usually a framebuffer is (re)created when (also) the extent changed, so update the render_area in one go.
+  m_begin_info_chain.get<vk::RenderPassBeginInfo>()
+    .setFramebuffer(*m_framebuffer)
+    .setRenderArea(render_area);
+}
+
+void RenderPass::update_render_area(vk::Rect2D render_area)
+{
+  DoutEntering(dc::vulkan, "RenderPass::update_render_area(" << render_area << ") [" << name() << "]");
+  m_begin_info_chain.get<vk::RenderPassBeginInfo>()
+    .setRenderArea(render_area);
 }
 
 } // namespace vulkan

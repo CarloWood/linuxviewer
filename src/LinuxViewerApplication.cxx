@@ -224,6 +224,10 @@ class Window : public task::SynchronousWindow
   using task::SynchronousWindow::SynchronousWindow;
 
  private:
+  // Create renderpass / attachment objects.
+  RenderPass final_pass{this, "final_pass"};
+  Attachment depth{this, "depth", s_depth_image_view_kind};
+
   vk::UniquePipeline m_graphics_pipeline;
   vk::UniquePipelineLayout m_pipeline_layout;
 
@@ -238,6 +242,17 @@ class Window : public task::SynchronousWindow
   vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
     return vulkan::FrameResourceIndex{3};
+  }
+
+  void create_render_passes() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+
+    // These must be references.
+    auto& output = swapchain().presentation_attachment();
+
+    m_render_graph = final_pass[~depth]->stores(~output);
+    m_render_graph.generate(this);
   }
 
   void draw_frame() override
@@ -277,49 +292,8 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
-    auto clear_values = final_pass.clear_values();
-#if 0
-    std::vector<vk::ClearValue> clear_values = {
-      { .depthStencil = vk::ClearDepthStencilValue{ .depth = 1.0f } },
-      { .color = vk::ClearColorValue{ .float32 = {{ 0.0f, 0.0f, 0.0f, 1.0f }} } }
-    };
-#endif
-
     auto swapchain_extent = swapchain().extent();
-
-    std::array<vk::ImageView, 2> attachments = {
-      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image_view,
-      swapchain().vh_current_image_view()
-    };
-#ifdef CWDEBUG
-    Dout(dc::vkframe, "m_swapchain.m_current_index = " << swapchain().current_index());
-    std::array<vk::Image, 2> attachment_images = {
-      swapchain().images()[swapchain().current_index()],
-      *m_current_frame.m_frame_resources->m_image_parameters[depth].m_image
-    };
-    Dout(dc::vkframe, "Attachments: ");
-    for (int i = 0; i < 2; ++i)
-    {
-      Dout(dc::vkframe, "  image_view: " << attachments[i] << ", image: " << attachment_images[i]);
-    }
-#endif
-    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
-      {
-        .renderPass = swapchain().vh_render_pass(),
-        .framebuffer = swapchain().vh_framebuffer(),
-        .renderArea = {
-          .offset = {},
-          .extent = swapchain_extent
-        },
-        .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-        .pClearValues = clear_values.data()
-      },
-      {
-        .attachmentCount = attachments.size(),
-        .pAttachments = attachments.data()
-      }
-    );
-    vk::RenderPassBeginInfo& render_pass_begin_info = render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
+    final_pass.update_image_views(swapchain(), frame_resources);
 
     vk::Viewport viewport{
       .x = 0,
@@ -335,7 +309,7 @@ class Window : public task::SynchronousWindow
       .extent = swapchain_extent
     };
 
-    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+//    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
     m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
     {
@@ -347,7 +321,7 @@ class Window : public task::SynchronousWindow
 
       Dout(dc::vkframe, "Start recording command buffer.");
       command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+      command_buffer_w->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->setScissor(0, { scissor });
@@ -377,21 +351,6 @@ class Window : public task::SynchronousWindow
   void create_vertex_buffers() override
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
-  }
-
-  // Create renderpass / attachment objects.
-  RenderPass final_pass{this, "final_pass"};
-  Attachment depth{this, "depth", s_depth_image_view_kind};
-
-  void create_render_passes() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
-
-    // These must be references.
-    auto& output = swapchain().presentation_attachment();
-
-    m_render_graph = final_pass[~depth]->stores(~output);
-    m_render_graph.generate(this);
   }
 
   void create_descriptor_set() override

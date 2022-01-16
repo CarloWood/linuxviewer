@@ -90,6 +90,28 @@ class Window : public task::SynchronousWindow
     while (calculations_time < 1000 * duration);
   }
 
+  void create_render_passes() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+
+#ifdef CWDEBUG
+//    vulkan::rendergraph::RenderGraph::testsuite();
+#endif
+
+    // This must be a reference.
+    auto& output = swapchain().presentation_attachment();
+
+    // Change the clear values.
+//    depth.set_clear_value({1.f, 0xffff0000});
+//    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
+
+    // Define the render graph.
+    m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);
+
+    // Generate everything.
+    m_render_graph.generate(this);
+  }
+
   void draw_frame() override
   {
     DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
@@ -148,51 +170,8 @@ class Window : public task::SynchronousWindow
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
     auto swapchain_extent = swapchain().extent();
-
-    // Record the command buffer of main_pass.
-    auto clear_values = main_pass.clear_values();
-    auto attachments = main_pass.attachment_image_views(swapchain(), frame_resources);
-
-    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> render_pass_begin_info_chain(
-      {
-        .renderPass = main_pass.vh_render_pass(),
-        .framebuffer = main_pass.vh_framebuffer(),
-        .renderArea = {
-          .offset = {},
-          .extent = swapchain_extent
-        },
-        .clearValueCount = static_cast<uint32_t>(clear_values.size()),
-        .pClearValues = clear_values.data()
-      },
-      {
-        .attachmentCount = static_cast<uint32_t>(attachments.size()),
-        .pAttachments = attachments.data()
-      }
-    );
-    vk::RenderPassBeginInfo& render_pass_begin_info = render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
-
-    //======================================================
-    // temporary imgui renderpass stuff.
-    auto imgui_clear_values = imgui_pass.clear_values();
-    auto imgui_attachments = imgui_pass.attachment_image_views(swapchain(), frame_resources);
-    vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> imgui_render_pass_begin_info_chain(
-      {
-        .renderPass = imgui_pass.vh_render_pass(),
-        .framebuffer = imgui_pass.vh_framebuffer(),
-        .renderArea = {
-          .offset = {},
-          .extent = swapchain_extent
-        },
-        .clearValueCount = static_cast<uint32_t>(imgui_clear_values.size()),
-        .pClearValues = imgui_clear_values.data()
-      },
-      {
-        .attachmentCount = static_cast<uint32_t>(imgui_attachments.size()),
-        .pAttachments = imgui_attachments.data()
-      }
-    );
-    vk::RenderPassBeginInfo& imgui_render_pass_begin_info = imgui_render_pass_begin_info_chain.get<vk::RenderPassBeginInfo>();
-    //======================================================
+    main_pass.update_image_views(swapchain(), frame_resources);
+    imgui_pass.update_image_views(swapchain(), frame_resources);
 
     vk::Viewport viewport{
       .x = 0,
@@ -220,7 +199,7 @@ class Window : public task::SynchronousWindow
 
       Dout(dc::vkframe, "Start recording command buffer.");
       command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(render_pass_begin_info, vk::SubpassContents::eInline);
+      command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->setScissor(0, { scissor });
@@ -229,7 +208,7 @@ class Window : public task::SynchronousWindow
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
       command_buffer_w->endRenderPass();
-      command_buffer_w->beginRenderPass(imgui_render_pass_begin_info, vk::SubpassContents::eInline);
+      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
@@ -303,28 +282,6 @@ class Window : public task::SynchronousWindow
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
     copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
-  }
-
-  void create_render_passes() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
-
-#ifdef CWDEBUG
-//    vulkan::rendergraph::RenderGraph::testsuite();
-#endif
-
-    // This must be a reference.
-    auto& output = swapchain().presentation_attachment();
-
-    // Change the clear values.
-//    depth.set_clear_value({1.f, 0xffff0000});
-//    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
-
-    // Define the render graph.
-    m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);
-
-    // Generate everything.
-    m_render_graph.generate(this);
   }
 
   void create_descriptor_set() override

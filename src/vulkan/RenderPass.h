@@ -14,6 +14,11 @@ class RenderPass : public rendergraph::RenderPass
   vk::UniqueRenderPass m_render_pass;           // The underlaying Vulkan render pass.
   vk::UniqueFramebuffer m_framebuffer;          // The imageless framebuffer used by this render pass.
 
+  // initialize_begin_info_chain():
+  std::vector<vk::ClearValue> m_clear_values;                                                   // Pointed to by m_begin_info_chain.
+  utils::Vector<vk::ImageView, rendergraph::pAttachmentsIndex> m_attachment_image_views;        // Pointed to by m_begin_info_chain
+  vk::StructureChain<vk::RenderPassBeginInfo, vk::RenderPassAttachmentBeginInfo> m_begin_info_chain;
+
  public:
   // Constructor (only construct RenderPass nodes as objects in your Window class.
   //
@@ -30,13 +35,18 @@ class RenderPass : public rendergraph::RenderPass
   // Called from SynchronousWindow::recreate_framebuffers.
   void create_imageless_framebuffer(vk::Extent2D extent, uint32_t layers);
 
-  // Return a vector with clear values for this RenderPass that
-  // can be used for vk::RenderPassBeginInfo::pClearValues.
-  std::vector<vk::ClearValue> clear_values() const;
+  // Prepare m_begin_info_chain.
+  void prepare_begin_info_chain();
 
   // Return a vector with image views for this RenderPass that
   // can be used for vk::RenderPassAttachmentBeginInfo::pAttachments, for use with imageless frame buffers.
-  std::vector<vk::ImageView> attachment_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources) const;
+  void update_image_views(Swapchain const& swapchain, FrameResourcesData const* frame_resources);
+
+  // Update the framebuffer handle and render area that this render pass uses.
+  void update_framebuffer(vk::Rect2D render_area);
+
+  // Update the render area that this render pass renders into.
+  void update_render_area(vk::Rect2D render_area);
 
   // Accessors.
   vk::RenderPass vh_render_pass() const
@@ -49,7 +59,16 @@ class RenderPass : public rendergraph::RenderPass
     return *m_framebuffer;
   }
 
+  vk::RenderPassBeginInfo const& begin_info() const
+  {
+    return m_begin_info_chain.get<vk::RenderPassBeginInfo>();
+  }
+
  private:
+  // Return a vector with clear values for this RenderPass that
+  // can be used for vk::RenderPassBeginInfo::pClearValues.
+  std::vector<vk::ClearValue> clear_values() const;
+
   void create_render_pass() override;
 };
 

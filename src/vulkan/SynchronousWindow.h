@@ -335,6 +335,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_imageless_framebuffers();
   void create_swapchain_images();
   void recreate_framebuffers(vk::Extent2D extent, uint32_t layers);
+  void prepare_begin_info_chains();
   void create_frame_resources();
   void create_imgui();
 

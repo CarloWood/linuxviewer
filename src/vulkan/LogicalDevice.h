@@ -95,12 +95,12 @@ class LogicalDevice
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, AmbifixOwner const& ambifix)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
-    DoutEntering(dc::vulkan, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
+    DoutEntering(dc::vkframe, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
     return m_device->waitForFences(fences, wait_all, timeout);
   }
   void reset_fences(vk::ArrayProxy<vk::Fence const> const& fences) const
   {
-    DoutEntering(dc::vulkan, "LogicalDevice::reset_fences(" << fences << ")");
+    DoutEntering(dc::vkframe, "LogicalDevice::reset_fences(" << fences << ")");
     m_device->resetFences(fences);
   }
   inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags
@@ -108,7 +108,7 @@ class LogicalDevice
   inline void destroy_command_pool(vk::CommandPool command_pool) const;
   vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
   {
-    DoutEntering(dc::vulkan, "LogicalDevice::acquire_next_image(" << swapchain << ", " << timeout << ", " << semaphore << ", " << fence << ", ...)");
+    DoutEntering(dc::vkframe, "LogicalDevice::acquire_next_image(" << swapchain << ", " << timeout << ", " << semaphore << ", " << fence << ", ...)");
 
     uint32_t new_image_index;
     auto result = m_device->acquireNextImageKHR(swapchain, timeout, semaphore, fence, &new_image_index);
