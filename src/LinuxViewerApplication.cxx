@@ -2,7 +2,6 @@
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
 #include "vulkan/FrameResourcesData.h"
-#include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/shaderbuilder/ShaderModule.h"
 #include "vulkan/Pipeline.h"
@@ -601,10 +600,9 @@ class LogicalDevice : public vulkan::LogicalDevice
     DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
   }
 
-  void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const override
+  void prepare_physical_device_features(vk::PhysicalDeviceFeatures& features10, vk::PhysicalDeviceVulkan11Features& features11, vk::PhysicalDeviceVulkan12Features& features12) const override
   {
-    // Use the setters from vk::PhysicalDeviceFeatures.
-    physical_device_features.setDepthClamp(true);
+    features10.setDepthClamp(true);
   }
 
   void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override

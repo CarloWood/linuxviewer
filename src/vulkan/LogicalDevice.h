@@ -2,16 +2,25 @@
 #define LOGICAL_DEVICE_DECLARATION_H
 
 #include "DispatchLoader.h"
-#include "SynchronousWindow.h"
+#include "Swapchain.h"
 #include "QueueReply.h"
 #include "RenderPassAttachmentData.h"
 #include "Queue.h"
 #include "ImageParameters.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
+#include "SamplerKind.h"
+#include "BufferParameters.h"
+#include "statefultask/AIStatefulTask.h"
+#include "statefultask/TaskEvent.h"
 #include "utils/Badge.h"
+#include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
+
+namespace task {
+class SynchronousWindow;
+} // namespace task
 
 namespace vulkan {
 
@@ -22,6 +31,15 @@ class PresentationSurface;
 class CommandBuffer;
 class ImGui;
 struct AmbifixOwner;
+class Swapchain;
+class RenderPass;
+class Application;
+class SamplerKind;
+using SwapchainIndex = utils::VectorIndex<Swapchain>;
+
+namespace rendergraph {
+class RenderPass;
+} // namespace rendergraph
 
 // The collection of queue family properties for a given physical device.
 class QueueFamilies
@@ -56,6 +74,8 @@ class LogicalDevice
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
+  bool m_supports_sampler_anisotropy = {};
+
 #ifdef CWDEBUG
   std::string m_debug_name;
 #endif
@@ -71,6 +91,7 @@ class LogicalDevice
 
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
+  bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;
@@ -84,7 +105,7 @@ class LogicalDevice
 #endif
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  Queue acquire_queue(QueueFlags flags, task::SynchronousWindow::window_cookie_type window_cookie) const;
+  Queue acquire_queue(QueueFlags flags, vulkan::QueueReply::window_cookies_type window_cookie) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
@@ -119,12 +140,14 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageKind const& image_kind, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
+  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueSampler create_sampler(vk::SamplerMipmapMode mipmap_mode, vk::SamplerAddressMode address_mode, vk::Bool32 unnormalized_coords
+  vk::UniqueSampler create_sampler(SamplerKind const& sampler_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const { return create_sampler({this, std::move(sampler_kind)} COMMA_CWDEBUG_ONLY(ambifix)); }
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
@@ -165,7 +188,7 @@ class LogicalDevice
 
  private:
   // Override this function to change the default physical device features.
-  virtual void prepare_physical_device_features(PhysicalDeviceFeatures& physical_device_features) const { }
+  virtual void prepare_physical_device_features(vk::PhysicalDeviceFeatures& features10, vk::PhysicalDeviceVulkan11Features& features11, vk::PhysicalDeviceVulkan12Features& features12) const { }
 
   // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
   virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const { }
@@ -206,20 +229,16 @@ class LogicalDevice : public AIStatefulTask
   static constexpr condition_type window_available_condition = 1;
 
  public:
-  LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application) { }
+  LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void set_logical_device(std::unique_ptr<vulkan::LogicalDevice>&& logical_device) { m_logical_device = std::move(logical_device); }
-  void set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)
-  {
-    // The const_pointer_cast is OK because m_root_window is only used during initialization - aka, synchronous.
-    m_root_window = boost::const_pointer_cast<task::SynchronousWindow>(std::move(root_window));
-  }
+  void set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window);
 
   int get_index() const { ASSERT(m_index != -1); return m_index; }
 
  protected:
   /// Call finish() (or abort()), not delete.
-  ~LogicalDevice() override = default;
+  ~LogicalDevice() override;
 
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override final;

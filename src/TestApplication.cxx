@@ -1,11 +1,9 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "SampleParameters.h"
-#include "TimerData.h"
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/VertexData.h"
 #include "vulkan/LogicalDevice.h"
-#include "vulkan/PhysicalDeviceFeatures.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
@@ -44,11 +42,9 @@ class Window : public task::SynchronousWindow
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
-  vulkan::DescriptorSetParameters m_descriptor_set;
   vulkan::ImageParameters m_background_texture;
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
-  lv_utils::TimerData m_timer;
 
   SampleParameters Parameters;
   int m_frame_count = 0;
@@ -124,13 +120,7 @@ class Window : public task::SynchronousWindow
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 
-    m_timer.update();
-#if 0
-  Gui.StartFrame( Timer, MouseState );
-  PrepareGUIFrame();
-#endif
-
-    // Start frame - calculate times and prepare GUI.
+    // Start frame.
     start_frame();
 
     // Acquire swapchain image.
@@ -209,6 +199,7 @@ class Window : public task::SynchronousWindow
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
       command_buffer_w->endRenderPass();
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      m_imgui.render_frame(command_buffer_w);
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
@@ -288,11 +279,12 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 
+    m_use_imgui = true;
     std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
       {
-        .binding = 0,
+        .binding = 0,                                                   // imgui's shaders have a hardcoded binding of 0.
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-        .descriptorCount = 1,
+        .descriptorCount = m_use_imgui ? 1U : 0U,                       // 0 means this entry is unused.
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
         .pImmutableSamplers = nullptr
       },
@@ -302,12 +294,19 @@ class Window : public task::SynchronousWindow
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
         .pImmutableSamplers = nullptr
+      },
+      {
+        .binding = 2,
+        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eFragment,
+        .pImmutableSamplers = nullptr
       }
     };
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
     {
       .type = vk::DescriptorType::eCombinedImageSampler,
-      .descriptorCount = 2
+      .descriptorCount = 3
     }};
 
     m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
@@ -332,15 +331,13 @@ class Window : public task::SynchronousWindow
         static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
         m_background_texture =
-          m_logical_device->create_image(width, height, background_image_kind, background_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+          m_logical_device->create_image(width, height, background_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
               COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
 
-        m_background_texture.m_sampler =
-          m_logical_device->create_sampler(
-              vk::SamplerMipmapMode::eNearest,
-              vk::SamplerAddressMode::eClampToEdge,
-              VK_FALSE
-              COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
+        m_background_texture.m_sampler = m_logical_device->create_sampler({
+            .mipmapMode = vk::SamplerMipmapMode::eNearest,
+            .anisotropyEnable = VK_FALSE }
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
       }
       // Copy data.
       {
@@ -358,7 +355,7 @@ class Window : public task::SynchronousWindow
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
+        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
       }
     }
 
@@ -375,9 +372,11 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_texture = m_logical_device->create_image(width, height, sample_image_kind, sample_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+        m_texture = m_logical_device->create_image(width, height, sample_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-        m_texture.m_sampler = m_logical_device->create_sampler(vk::SamplerMipmapMode::eNearest, vk::SamplerAddressMode::eClampToEdge, VK_FALSE
+        m_texture.m_sampler = m_logical_device->create_sampler({
+            .mipmapMode = vk::SamplerMipmapMode::eNearest,
+            .anisotropyEnable = VK_FALSE }
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
       }
       // Copy data.
@@ -396,7 +395,7 @@ class Window : public task::SynchronousWindow
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
+        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 2, 0, image_infos);
       }
     }
   }
@@ -448,8 +447,8 @@ void main()
   static constexpr std::string_view intel_frag_glsl = R"glsl(
 #version 450
 
-layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
-layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
+layout(set=0, binding=1) uniform sampler2D u_BackgroundTexture;
+layout(set=0, binding=2) uniform sampler2D u_BenchmarkTexture;
 
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) in float v_Distance;
@@ -689,11 +688,9 @@ class LogicalDevice : public vulkan::LogicalDevice
     DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
   }
 
-  void prepare_physical_device_features(vulkan::PhysicalDeviceFeatures& physical_device_features) const override
+  void prepare_physical_device_features(vk::PhysicalDeviceFeatures& features10, vk::PhysicalDeviceVulkan11Features& features11, vk::PhysicalDeviceVulkan12Features& features12) const override
   {
-    // Use the setters from vk::PhysicalDeviceFeatures.
-    physical_device_features.setDepthClamp(true);
-    // FIXME: Allow adding features to the pNext chain of vk::PhysicalDeviceFeatures2.
+    features10.setDepthClamp(true);
   }
 
   void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override

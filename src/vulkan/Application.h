@@ -2,6 +2,7 @@
 
 #include "DispatchLoader.h"
 #include "LogicalDevice.h"
+#include "SynchronousWindow.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"

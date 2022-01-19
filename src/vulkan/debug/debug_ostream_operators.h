@@ -1,11 +1,9 @@
 #pragma once
 
+#ifdef CWDEBUG
+#include "Defaults.h"           // For its print_on capability.
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
-
-#include "Defaults.h"           // For its print_on capability.
-
-#ifdef CWDEBUG
 
 // ostream inserters for objects in namespace vk:
 #define DECLARE_OSTREAM_INSERTER(vk_class) \
@@ -21,10 +19,6 @@ DECLARE_OSTREAM_INSERTER(ApplicationInfo)
 DECLARE_OSTREAM_INSERTER(InstanceCreateInfo)
 DECLARE_OSTREAM_INSERTER(Instance)
 DECLARE_OSTREAM_INSERTER(DebugUtilsObjectNameInfoEXT)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceFeatures)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceFeatures2)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceVulkan11Features)
-DECLARE_OSTREAM_INSERTER(PhysicalDeviceVulkan12Features)
 DECLARE_OSTREAM_INSERTER(QueueFamilyProperties)
 DECLARE_OSTREAM_INSERTER(ExtensionProperties)
 DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
@@ -60,7 +54,7 @@ DECLARE_OSTREAM_INSERTER(AttachmentDescription)
 DECLARE_OSTREAM_INSERTER(SubpassDescription)
 
 template<typename T>
-std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
+std::ostream& operator<<(std::ostream& os, ArrayProxy<T> const& array_proxy)
 {
   os << '<';
   T const* elements = array_proxy.begin();      // vk::ArrayProxy is contiguous.
@@ -74,7 +68,7 @@ std::ostream& operator<<(std::ostream& os, vk::ArrayProxy<T> const& array_proxy)
 }
 
 template<typename T>
-std::ostream& operator<<(std::ostream& os, vk::ArrayWrapper1D<T, 4> const& array_proxy)
+std::ostream& operator<<(std::ostream& os, ArrayWrapper1D<T, 4> const& array_proxy)
 {
   os << '<';
   char const* prefix = "";
@@ -86,9 +80,13 @@ std::ostream& operator<<(std::ostream& os, vk::ArrayWrapper1D<T, 4> const& array
   return os << '>';
 }
 
-std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference);
-std::ostream& operator<<(std::ostream& os, vk::ClearColorValue const& clear_color_value);
-std::ostream& operator<<(std::ostream& os, vk::ClearDepthStencilValue const& clear_depth_stencil_value);
+std::ostream& operator<<(std::ostream& os, AttachmentReference const& attachment_reference);
+std::ostream& operator<<(std::ostream& os, ClearColorValue const& clear_color_value);
+std::ostream& operator<<(std::ostream& os, ClearDepthStencilValue const& clear_depth_stencil_value);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures const& features10);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures2 const& features2);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan11Features const& features11);
+std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan12Features const& features12);
 
 } // namespace vk
 

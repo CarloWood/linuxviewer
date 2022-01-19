@@ -3,7 +3,6 @@
 #include "CommandBuffer.h"
 #include "Application.h"
 #include "LogicalDevice.h"
-#include "PhysicalDeviceFeatures.h"
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
@@ -328,13 +327,13 @@ void LogicalDevice::prepare(
 {
   DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vulkan_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
 
-  // Get the required physical device features from the user, using the virtual function prepare_physical_device_features.
-  PhysicalDeviceFeatures physical_device_features;
-  prepare_physical_device_features(physical_device_features);
-  Dout(dc::vulkan, "Requested PhysicalDeviceFeatures: " << physical_device_features << " [" << this << "]");
-
   // Get the queue family requirements from the user, using the virtual function prepare_logical_device
   // and enable the imagelessFramebuffer feature.
+  vk::PhysicalDeviceFeatures2 features2 = {
+    .features =
+      // 1.0 features.
+      { }
+  };
   vk::StructureChain<DeviceCreateInfo, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> device_create_info_chain({},
       // 1.1 features.
       { },
@@ -342,7 +341,26 @@ void LogicalDevice::prepare(
       { .imagelessFramebuffer = true,           // Mandatory feature.
         .separateDepthStencilLayouts = true }   // Optional feature.
   );
+
+  // Get the required physical device features from the user, using the virtual function prepare_physical_device_features.
+  auto& features10 = features2.features;
+  auto& features11 = device_create_info_chain.get<vk::PhysicalDeviceVulkan11Features>();
+  auto& features12 = device_create_info_chain.get<vk::PhysicalDeviceVulkan12Features>();
+  prepare_physical_device_features(features10, features11, features12);
+
+  // Enforce mandatory features.
+  if (!features12.imagelessFramebuffer)
+  {
+    Dout(dc::warning, "imagelessFramebuffer is mandatory!");
+    features12.setImagelessFramebuffer(VK_TRUE);
+  }
+
+  // Link features11 and on also from features2, and print that.
+  features2.setPNext(&features11);
+  Dout(dc::vulkan, "Requested PhysicalDeviceFeatures: " << features2 << " [" << this << "]");
+
   DeviceCreateInfo& device_create_info = device_create_info_chain.get<DeviceCreateInfo>();
+  device_create_info.setPEnabledFeatures(&features10);
   prepare_logical_device(device_create_info);
 
   Dout(dc::vulkan, "Requested QueueRequest's: " << device_create_info.get_queue_requests() << " [" << this << "]");
@@ -380,8 +398,6 @@ void LogicalDevice::prepare(
     THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
 
   // Check for optional features.
-  vk::StructureChain<vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> physical_device_features_chain;
-
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Properties:");
   {
@@ -395,10 +411,10 @@ void LogicalDevice::prepare(
 #ifdef CWDEBUG
     debug::Mark mark;
 #endif
-    vk::PhysicalDeviceFeatures2& features = physical_device_features_chain.get<vk::PhysicalDeviceFeatures2>();
-    m_vh_physical_device.getFeatures2(&features);
-    m_supports_separate_depth_stencil_layouts = physical_device_features_chain.get<vk::PhysicalDeviceVulkan12Features>().separateDepthStencilLayouts;
-    Dout(dc::vulkan, features);
+    m_vh_physical_device.getFeatures2(&features2);
+    m_supports_sampler_anisotropy = features10.samplerAnisotropy;
+    m_supports_separate_depth_stencil_layouts = features12.separateDepthStencilLayouts;
+    Dout(dc::vulkan, features2);
   }
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Extension Properties:");
@@ -609,12 +625,11 @@ vk::UniqueImageView LogicalDevice::create_image_view(
 ImageParameters LogicalDevice::create_image(
     uint32_t width,
     uint32_t height,
-    vulkan::ImageKind const& image_kind,
     vulkan::ImageViewKind const& image_view_kind,
     vk::MemoryPropertyFlagBits property
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
-  vk::UniqueImage tmp_image = create_image({ width, height }, image_kind
+  vk::UniqueImage tmp_image = create_image({ width, height }, image_view_kind.image_kind()
       COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
 
   vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
@@ -647,32 +662,12 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
 }
 
 vk::UniqueSampler LogicalDevice::create_sampler(
-    vk::SamplerMipmapMode mipmap_mode,
-    vk::SamplerAddressMode address_mode,
-    vk::Bool32 unnormalized_coords
+    SamplerKind const& sampler_kind
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << mipmap_mode << ", " << address_mode << ", " << unnormalized_coords << ")");
+  DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << sampler_kind << ")");
 
-  vk::SamplerCreateInfo sampler_create_info{
-    .flags = vk::SamplerCreateFlags(0),
-    .magFilter = vk::Filter::eLinear,
-    .minFilter = vk::Filter::eLinear,
-    .mipmapMode = mipmap_mode,
-    .addressModeU = address_mode,
-    .addressModeV = address_mode,
-    .addressModeW = address_mode,
-    .mipLodBias = 0.0f,
-    .anisotropyEnable = VK_FALSE,
-    .maxAnisotropy = 1.0f,
-    .compareEnable = VK_FALSE,
-    .compareOp = vk::CompareOp::eAlways,
-    .minLod = 0.0f,
-    .maxLod = 0.0f,
-    .borderColor = vk::BorderColor::eFloatOpaqueBlack,
-    .unnormalizedCoordinates = unnormalized_coords
-  };
-  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_create_info);
+  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_kind());
   DebugSetName(sampler, debug_name);
   return sampler;
 }
@@ -1024,6 +1019,21 @@ void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 } // namespace vulkan
 
 namespace task {
+
+LogicalDevice::LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
+  AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application)
+{
+}
+
+LogicalDevice::~LogicalDevice()
+{
+}
+
+void LogicalDevice::set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)
+{
+  // The const_pointer_cast is OK because m_root_window is only used during initialization - aka, synchronous.
+  m_root_window = boost::const_pointer_cast<task::SynchronousWindow>(std::move(root_window));
+}
 
 char const* LogicalDevice::state_str_impl(state_type run_state) const
 {

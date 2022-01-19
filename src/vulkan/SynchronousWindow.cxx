@@ -10,6 +10,7 @@
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
+#include "vulkan/vk_format_utils.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
@@ -208,7 +209,8 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_pipeline_layout();
       create_graphics_pipeline();
       create_vertex_buffers();
-      create_imgui();
+      if (m_use_imgui)                  // Set in create_descriptor_set by the user.
+        create_imgui();
 
       set_state(SynchronousWindow_render_loop);
       // We already have a swapchain up there - but only now we can really render anything, so set it here.
@@ -230,6 +232,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           {
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
+            m_timer.update();   // Keep track of FPS and stuff.
             draw_frame();
             m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
@@ -364,7 +367,7 @@ void SynchronousWindow::create_imageless_framebuffers()
 void SynchronousWindow::create_imgui()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imgui()");
-  m_imgui.init(this);
+  m_imgui.init(this, m_swapchain.extent());
 }
 
 void SynchronousWindow::wait_for_all_fences() const
@@ -393,6 +396,8 @@ void SynchronousWindow::handle_window_size_changed()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
   uint32_t const layers = m_swapchain.image_kind()->array_layers;
   recreate_framebuffers(extent, layers);
+  if (m_use_imgui)
+    m_imgui.on_window_size_changed(extent);
   if (can_render(atomic_flags()))
     on_window_size_changed_post();
 }
@@ -723,11 +728,53 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   }
 }
 
+vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind
+    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const
+{
+  // Create image and image view.
+  vulkan::ImageParameters image_parameters = m_logical_device->create_image(width, height,
+      image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+      COMMA_CWDEBUG_ONLY(ambifix));
+
+  size_t const data_size = width * height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
+
+  // Create sampler.
+  //FIXME: why not move into LogicalDevice::create_image?
+  image_parameters.m_sampler = m_logical_device->create_sampler(sampler_kind
+      COMMA_CWDEBUG_ONLY(ambifix(".m_sampler")));
+
+  // Copy data.
+  {
+    vk_defaults::ImageSubresourceRange const image_subresource_range;
+    copy_data_to_image(data_size, texture_data, *image_parameters.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
+        vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
+        vk::PipelineStageFlagBits::eFragmentShader);
+  }
+
+  // Update descriptor set.
+  {
+    std::vector<vk::DescriptorImageInfo> image_infos = {
+      {
+        .sampler = *image_parameters.m_sampler,
+        .imageView = *image_parameters.m_image_view,
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+      }
+    };
+    m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+  }
+
+  return image_parameters;
+}
+
 void SynchronousWindow::start_frame()
 {
-  DoutEntering(dc::vkframe, "SynchronousWindow::start_frame(...)");
+  DoutEntering(dc::vkframe, "SynchronousWindow::start_frame()");
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
+
+  if (m_use_imgui)
+    m_imgui.start_frame(m_timer.get_delta_ms() * 0.001f);
 
   if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");
@@ -848,8 +895,6 @@ void SynchronousWindow::on_window_size_changed_post()
   // Should already be set.
   ASSERT(swapchain().extent().width > 0);
 
-//FIXME, add m_gui    m_gui.on_window_size_changed();
-
   // For all depth attachments.
 
 #if 0
@@ -879,7 +924,6 @@ void SynchronousWindow::on_window_size_changed_post()
       frame_resources_data->m_image_parameters[*attachment] = m_logical_device->create_image(
           swapchain().extent().width,
           swapchain().extent().height,
-          attachment->image_kind(),
           attachment->image_view_kind(),
           vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index++) +

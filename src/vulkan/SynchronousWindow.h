@@ -12,12 +12,14 @@
 #include "WindowEvents.h"
 #include "Concepts.h"
 #include "ImageKind.h"
+#include "SamplerKind.h"
 #include "ImGui.h"
 #include "ClearValue.h"
 #include "RenderPass.h"
 #include "Attachment.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
+#include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
 #include "xcb-task/XcbConnection.h"
@@ -138,6 +140,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::ClearValue m_default_color_clear_value;                         // Clear value that is used for color attachments by default (if they are cleared).
   vulkan::ClearValue m_default_depth_stencil_clear_value{1.f, 0};         // Clear value that is used for depth/stencil attachments by default (if they are cleared).
 
+ protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
+  bool m_use_imgui = false;
+  vulkan::DescriptorSetParameters m_descriptor_set;
+
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
@@ -182,6 +188,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
 
   // Initialized by create_imgui. Deinitialized by destruction.
+  vk_utils::TimerData m_timer;
   vulkan::ImGui m_imgui;                                                                // ImGui framework.
 
  protected:
@@ -327,7 +334,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
 
-  void handle_synchronous_task();
+  vulkan::ImageParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
 
  private:
   void acquire_queues();

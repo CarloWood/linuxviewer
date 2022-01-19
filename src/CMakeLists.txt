@@ -58,8 +58,6 @@ add_custom_target(resources ALL DEPENDS ${RESOURCES_TARGETS})
 add_executable(mytest
   TestApplication.cxx
   TestApplication.h
-  TimerData.cxx
-  TimerData.h
 )
 
 target_link_libraries(mytest

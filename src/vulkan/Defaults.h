@@ -143,43 +143,6 @@ VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
-VK_DEFAULTS_DECLARE(PhysicalDeviceFeatures)
-{
-  PhysicalDeviceFeatures()
-  {
-    setSamplerAnisotropy(VK_TRUE);
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
-VK_DEFAULTS_DECLARE(PhysicalDeviceFeatures2)
-{
-  PhysicalDeviceFeatures2()
-  {
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
-VK_DEFAULTS_DECLARE(PhysicalDeviceVulkan11Features)
-{
-  PhysicalDeviceVulkan11Features()
-  {
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
-VK_DEFAULTS_DECLARE(PhysicalDeviceVulkan12Features)
-{
-  PhysicalDeviceVulkan12Features()
-  {
-  }
-
-  VK_DEFAULTS_DEBUG_MEMBERS
-};
-
 VK_DEFAULTS_DECLARE(DeviceCreateInfo)
 {
   static constexpr utils::Array<vulkan::QueueRequest, 2> default_queue_requests = {{{

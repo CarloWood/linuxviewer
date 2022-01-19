@@ -32,9 +32,10 @@ class CommandBuffer;
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 class UnlockedCommandPool
 {
-  static_assert(details::is_transient_or_reset_v<pool_type>, "The only allowed values for create_flags are bits masks "
+  static_assert(details::is_transient_or_reset_v<pool_type>, "The only allowed values for create_flags are bit masks "
       "with zero or more VK_COMMAND_POOL_CREATE_TRANSIENT_BIT and/or VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT.");
 
+ public:
   constexpr static vk::CommandPoolCreateFlags create_flags = static_cast<vk::CommandPoolCreateFlags>(pool_type);
 
  private:

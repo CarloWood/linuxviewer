@@ -3,21 +3,7 @@
 #include "Defaults.h"
 #include "vk_utils/format.h"
 #include "utils/Badge.h"
-
-#define VULKAN_KIND_PRINT_ON_MEMBERS \
-  void print_on(std::ostream& os) const \
-  { \
-    os << '{'; \
-    print_members(os); \
-    os << '}'; \
-  } \
-  void print_members(std::ostream& os) const;
-
-#ifndef CWDEBUG
-#define VULKAN_KIND_DEBUG_MEMBERS
-#else
-#define VULKAN_KIND_DEBUG_MEMBERS VULKAN_KIND_PRINT_ON_MEMBERS
-#endif
+#include "debug/VULKAN_KIND_DEBUG_MEMBERS.h"
 
 // The *KindPOD structs are intended to be temporary constructed using C++20 designated initializers.
 // For example,
@@ -36,7 +22,7 @@ class PresentationSurface;
 class Swapchain;
 class SwapchainKind;
 
-// Contains all members ImageCreateInfo except extent.
+// Contains all members of ImageCreateInfo except extent.
 struct ImageKindPOD
 {
   vk::ImageCreateFlags    flags = {};
@@ -217,6 +203,3 @@ class SwapchainKind
 };
 
 } // namespace vulkan
-
-#undef VULKAN_KIND_PRINT_ON_MEMBERS
-#undef VULKAN_KIND_DEBUG_MEMBERS
