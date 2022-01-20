@@ -151,7 +151,7 @@ void Application::initialize(int argc, char** argv)
   // Set debug call back function to call the static DebugUtilsMessenger::debugCallback(nullptr);
   DebugUtilsMessengerCreateInfoEXT debug_create_info(&DebugUtilsMessenger::debugCallback, nullptr);
   // Add extension debug_create_info to use during Instance creation and destruction.
-  VkDebugUtilsMessengerCreateInfoEXT& debug_create_info_ref = debug_create_info;
+  VkDebugUtilsMessengerCreateInfoEXT& debug_create_info_ref = static_cast<VkDebugUtilsMessengerCreateInfoEXT&>(debug_create_info);
   instance_create_info.setPNext(&debug_create_info_ref);
 #endif
 
