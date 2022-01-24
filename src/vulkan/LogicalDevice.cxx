@@ -995,19 +995,19 @@ Swapchain::images_type LogicalDevice::get_swapchain_images(
 
 void* LogicalDevice::map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::map_memory(" << vh_memory << ", " << offset << ", " << size << ")");
+  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::map_memory(" << vh_memory << ", " << offset << ", " << size << ")");
   return m_device->mapMemory(vh_memory, offset, size);
 }
 
 void LogicalDevice::flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::flush_mapped_memory_ranges(" << mapped_memory_ranges << ")");
+  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::flush_mapped_memory_ranges(" << mapped_memory_ranges << ")");
   m_device->flushMappedMemoryRanges(mapped_memory_ranges);
 }
 
 void LogicalDevice::unmap_memory(vk::DeviceMemory vh_memory) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::unmap_memory(" << vh_memory << ")");
+  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::unmap_memory(" << vh_memory << ")");
   m_device->unmapMemory(vh_memory);
 }
 

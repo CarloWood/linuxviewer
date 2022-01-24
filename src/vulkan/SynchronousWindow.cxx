@@ -17,6 +17,12 @@
 #include "utils/at_scope_end.h"
 #endif
 
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+channel_ct renderloop("RENDERLOOP");
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
+
 namespace task {
 
 //static
@@ -125,11 +131,11 @@ struct RenderLoopEntered
   debug::Mark m_mark;
   RenderLoopEntered() : m_mark("renderloop ")
   {
-    Dout(dc::always, "ENTERING RENDERLOOP");
+    Dout(dc::renderloop, "ENTERING RENDERLOOP");
   }
   ~RenderLoopEntered()
   {
-    Dout(dc::always, "LEAVING RENDERLOOP");
+    Dout(dc::renderloop, "LEAVING RENDERLOOP");
   }
 };
 #endif

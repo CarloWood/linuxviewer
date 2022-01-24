@@ -375,6 +375,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window
 #endif
 }
 
+// Called from SynchronousWindow::handle_window_size_changed, so no need for locking.
 void ImGui::on_window_size_changed(vk::Extent2D extent)
 {
   ImGuiIO& io = GetIO();
@@ -453,6 +454,9 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
 
   if (draw_data->TotalVtxCount > 0)
   {
+    // Do not write the debug output to dc::vulkan (it is still written to dc::vkframe).
+    Debug(dc::vulkan.off());
+
     // Upload vertex and index data each into a single contiguous GPU buffer.
     ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(device.map_memory(*frame_resources.m_vertex_buffer.m_memory, 0, frame_resources.m_vertex_buffer.m_size));
     ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(device.map_memory(*frame_resources.m_index_buffer.m_memory, 0, frame_resources.m_index_buffer.m_size));
@@ -473,6 +477,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
 
     device.unmap_memory(*frame_resources.m_vertex_buffer.m_memory);
     device.unmap_memory(*frame_resources.m_index_buffer.m_memory);
+    Debug(dc::vulkan.on());
   }
 
   auto swapchain_extent = m_owning_window->swapchain().extent();
