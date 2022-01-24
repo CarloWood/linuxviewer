@@ -389,12 +389,17 @@ void ImGui::start_frame(float delta_s)
   NewFrame();
 
   Text("Hello world!");
+  bool show_demo_window = true;
+  ShowDemoWindow(&show_demo_window);
 }
 
 void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport)
 {
   // I did not want to forward declare ImDrawData in a header in global namespace.
   ImDrawData* draw_data = reinterpret_cast<ImDrawData*>(draw_data_void_ptr);
+
+  // Bind the pipeline.
+  command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
 
   // Bind vertex and index buffer.
   command_buffer_w->bindVertexBuffers(0, { *frame_resources.m_vertex_buffer.m_buffer }, { 0 });
