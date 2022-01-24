@@ -73,6 +73,7 @@ class LogicalDevice
   vk::UniqueDevice m_device;                            // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
+  vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
 
@@ -92,6 +93,7 @@ class LogicalDevice
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
   bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
+  vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;

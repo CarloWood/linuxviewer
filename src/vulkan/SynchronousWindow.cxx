@@ -367,7 +367,8 @@ void SynchronousWindow::create_imageless_framebuffers()
 void SynchronousWindow::create_imgui()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imgui()");
-  m_imgui.init(this, m_swapchain.extent());
+  m_imgui.init(this
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
 }
 
 void SynchronousWindow::wait_for_all_fences() const
@@ -729,7 +730,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
 }
 
 vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
-    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind
+    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const
 {
   // Create image and image view.
@@ -761,7 +762,7 @@ vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_da
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
       }
     };
-    m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+    m_logical_device->update_descriptor_set(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
   }
 
   return image_parameters;
@@ -934,7 +935,7 @@ void SynchronousWindow::on_window_size_changed_post()
 
 //virtual
 // Override this function to change this value.
-vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
+vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources(bool& use_imgui) const
 {
   return s_default_number_of_frame_resources;
 }
@@ -954,8 +955,9 @@ void SynchronousWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
-  m_frame_resources_list.resize(number_of_frame_resources().get_value());
-  Dout(dc::vulkan, "Creating " << m_frame_resources_list.size() << " frame resources.");
+  vulkan::FrameResourceIndex const number_of_frame_resources = this->number_of_frame_resources(m_use_imgui);
+  Dout(dc::vulkan, "Creating " << number_of_frame_resources.get_value() << " frame resources.");
+  m_frame_resources_list.resize(number_of_frame_resources.get_value());
   for (vulkan::FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
   {
 #ifdef CWDEBUG
@@ -985,6 +987,10 @@ void SynchronousWindow::create_frame_resources()
 
     } // Unlock command pool.
   }
+
+  if (m_use_imgui)
+    m_imgui.create_frame_resources(number_of_frame_resources
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
 
   // Initialize m_current_frame to point to frame resources index 0.
   m_current_frame = vulkan::CurrentFrameData{

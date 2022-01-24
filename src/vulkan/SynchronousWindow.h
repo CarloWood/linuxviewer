@@ -174,6 +174,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::vector<Attachment*> m_attachments;                                               // All render pass objects.
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
   utils::UniqueIDContext<vulkan::AttachmentIndex> m_render_graph_context;
+  RenderPass imgui_pass{this, "imgui_pass"};                                            // Must be constructed AFTER m_render_passes!
 
  public:
   void register_render_pass(RenderPass*);
@@ -316,6 +317,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     // cause another call to this function reading the same value of the extent.
   }
 
+  vk::RenderPass vh_imgui_render_pass() const { return imgui_pass.vh_render_pass(); }
+
   void handle_window_size_changed();
   bool handle_map_changed(int map_flags);
 
@@ -335,7 +338,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
 
   vulkan::ImageParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
-      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind
+      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
 
  private:
@@ -350,7 +353,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Optionally overridden by derived class.
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
+  virtual vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const;
   virtual void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil);
 
   // Implemented by most derived class.

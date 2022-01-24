@@ -4,6 +4,7 @@
 #include "LogicalDevice.h"
 #include "Application.h"
 #include "ImageKind.h"
+#include "Pipeline.h"
 #include "debug.h"
 #include <imgui.h>
 #include <backends/imgui_impl_vulkan.h>
@@ -19,13 +20,258 @@ namespace imgui = ImGui;
 
 namespace vulkan {
 
+//inline
+LogicalDevice const& ImGui::logical_device() const
+{
+  return m_owning_window->logical_device();
+}
+
 // Just this compilation unit.
 using namespace imgui;
 
-void ImGui::init(task::SynchronousWindow const* owning_window, vk::Extent2D extent)
+void ImGui::create_frame_resources(FrameResourceIndex number_of_frame_resources
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+{
+  m_frame_resources_list.resize(number_of_frame_resources.get_value());
+  for (FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
+  {
+#ifdef CWDEBUG
+    AmbifixOwner const list_ambifix = ambifix(".m_frame_resources_list[" + to_string(i) + "]");
+#endif
+  }
+}
+
+void ImGui::create_descriptor_set(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+{
+  DoutEntering(dc::vulkan, "ImGui::create_descriptor_set()");
+
+  std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
+    {
+      .binding = 0,
+      .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+      .descriptorCount = 1U,
+      .stageFlags = vk::ShaderStageFlagBits::eFragment,
+      .pImmutableSamplers = nullptr
+    }
+  };
+  std::vector<vk::DescriptorPoolSize> pool_sizes = {
+    {
+      .type = vk::DescriptorType::eCombinedImageSampler,
+      .descriptorCount = 1
+    }
+  };
+  m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
+      COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
+}
+
+void ImGui::create_pipeline_layout(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+{
+  DoutEntering(dc::vulkan, "ImGui::create_pipeline_layout()");
+
+  vk::PushConstantRange push_constant_ranges{
+    .stageFlags = vk::ShaderStageFlagBits::eVertex,
+    .offset = 0,
+    .size = 4 * sizeof(float)
+  };
+  m_pipeline_layout = logical_device().create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+      COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
+}
+
+static constexpr std::string_view imgui_vert_glsl = R"glsl(
+#version 450 core
+layout(location = 0) in vec2 aPos;
+layout(location = 1) in vec2 aUV;
+layout(location = 2) in vec4 aColor;
+layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
+out gl_PerVertex { vec4 gl_Position; };
+layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
+void main()
+{
+  Out.Color = aColor;
+  Out.UV = aUV;
+  gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
+}
+)glsl";
+
+static constexpr std::string_view imgui_frag_glsl = R"glsl(
+#version 450 core
+layout(location = 0) out vec4 fColor;
+layout(set=0, binding=0) uniform sampler2D sTexture;
+layout(location = 0) in struct { vec4 Color; vec2 UV; } In;
+void main()
+{
+  fColor = In.Color * texture(sTexture, In.UV.st);
+}
+)glsl";
+
+void ImGui::create_graphics_pipeline(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+{
+  DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline()");
+
+  Pipeline pipeline(m_owning_window);
+
+  {
+    using namespace vulkan::shaderbuilder;
+
+    ShaderCompiler compiler;
+    ShaderCompilerOptions options;
+
+    ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
+    shader_vert.set_name("imgui.vert.glsl").load(imgui_vert_glsl).compile(compiler, options);
+    pipeline.add(shader_vert COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
+
+    ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
+    shader_frag.set_name("imgui.frag.glsl").load(imgui_frag_glsl).compile(compiler, options);
+    pipeline.add(shader_frag COMMA_CWDEBUG_ONLY({ m_owning_window, "create_graphics_pipeline()::pipeline" }));
+  }
+
+  std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
+    {
+      .binding = 0,
+      .stride = sizeof(ImDrawVert),
+      .inputRate = vk::VertexInputRate::eVertex
+    }
+  };
+
+  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
+    {
+      .location = 0,
+      .binding = vertex_binding_description[0].binding,
+      .format = vk::Format::eR32G32Sfloat,
+      .offset = IM_OFFSETOF(ImDrawVert, pos)
+    },
+    {
+      .location = 1,
+      .binding = vertex_binding_description[0].binding,
+      .format = vk::Format::eR32G32Sfloat,
+      .offset = IM_OFFSETOF(ImDrawVert, uv)
+    },
+    {
+      .location = 2,
+      .binding = vertex_binding_description[0].binding,
+      .format = vk::Format::eR8G8B8A8Unorm,
+      .offset = IM_OFFSETOF(ImDrawVert, col)
+    }
+  };
+
+  vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
+    .flags = {},
+    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
+    .pVertexBindingDescriptions = vertex_binding_description.data(),
+    .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
+    .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
+  };
+
+  vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
+    .flags = {},
+    .topology = vk::PrimitiveTopology::eTriangleList
+  };
+
+  vk::Extent2D swapchain_extent = m_owning_window->swapchain().extent();
+
+  vk::Viewport viewport{
+    .x = 0.0f,
+    .y = 0.0f,
+    .width = (float)swapchain_extent.width,
+    .height = (float)swapchain_extent.height,
+    .minDepth = 0.0f,
+    .maxDepth = 1.0f
+  };
+
+  vk::Rect2D scissor{
+    .offset = {0, 0},
+    .extent = swapchain_extent
+  };
+
+  vk::PipelineViewportStateCreateInfo viewport_state_create_info{
+    .viewportCount = 1,
+    .pViewports = &viewport,
+    .scissorCount = 1,
+    .pScissors = &scissor
+  };
+
+  vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
+    .depthClampEnable = VK_FALSE,
+    .rasterizerDiscardEnable = VK_FALSE,
+    .polygonMode = vk::PolygonMode::eFill,
+    .cullMode = vk::CullModeFlagBits::eNone,
+    .frontFace = vk::FrontFace::eCounterClockwise,
+    .depthBiasEnable = VK_FALSE,
+    .depthBiasConstantFactor = 0.0f,
+    .depthBiasClamp = 0.0f,
+    .depthBiasSlopeFactor = 0.0f,
+    .lineWidth = 1.0f
+  };
+
+  vk::SampleCountFlagBits MSAASamples = vk::SampleCountFlagBits::e1; // FIXME
+  vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
+    .rasterizationSamples = MSAASamples,
+    .sampleShadingEnable = VK_FALSE,
+    .minSampleShading = 1.0f,           // FIXME: is this needed? imgui uses 0
+    .pSampleMask = nullptr,
+    .alphaToCoverageEnable = VK_FALSE,
+    .alphaToOneEnable = VK_FALSE
+  };
+
+  vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{};
+
+  vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
+    .blendEnable = VK_TRUE,
+    .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+    .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+    .colorBlendOp = vk::BlendOp::eAdd,
+    .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+    .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+    .alphaBlendOp = vk::BlendOp::eAdd,
+    .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+  };
+
+  vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
+    .attachmentCount = 1,
+    .pAttachments = &color_blend_attachment_state,
+  };
+
+  std::vector<vk::DynamicState> dynamic_states = {
+    vk::DynamicState::eViewport,
+    vk::DynamicState::eScissor
+  };
+
+  vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
+    .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+    .pDynamicStates = dynamic_states.data()
+  };
+
+  auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
+
+  vk::GraphicsPipelineCreateInfo pipeline_create_info{
+    .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
+    .pStages = shader_stage_create_infos.data(),
+    .pVertexInputState = &vertex_input_state_create_info,
+    .pInputAssemblyState = &input_assembly_state_create_info,
+    .pViewportState = &viewport_state_create_info,
+    .pRasterizationState = &rasterization_state_create_info,
+    .pMultisampleState = &multisample_state_create_info,
+    .pDepthStencilState = &depth_stencil_state_create_info,
+    .pColorBlendState = &color_blend_state_create_info,
+    .pDynamicState = &dynamic_state_create_info,
+    .layout = *m_pipeline_layout,
+    .renderPass = m_owning_window->vh_imgui_render_pass(),
+    .basePipelineHandle = vk::Pipeline{},
+    .basePipelineIndex = -1
+  };
+
+  m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
+      COMMA_CWDEBUG_ONLY(ambifix(".m_graphics_pipeline")));
+}
+
+void ImGui::init(task::SynchronousWindow const* owning_window
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ")");
   check_version();
+
+  // Remember which window is owning us.
+  m_owning_window = owning_window;
 
   using dt = vk::DescriptorType;
 
@@ -45,7 +291,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::Extent2D exte
     { dt::eInputAttachment, 1000 }
   };
 
-  auto imgui_pool = owning_window->logical_device().create_descriptor_pool(pool_sizes, 1000
+  auto imgui_pool = logical_device().create_descriptor_pool(pool_sizes, 1000
       COMMA_CWDEBUG_ONLY({owning_window, "ImGui::init()::imguiPool"}));
 
   // 2: Initialize imgui library.
@@ -54,7 +300,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::Extent2D exte
   CreateContext();
 
   // Set initial framebuffer size.
-  on_window_size_changed(extent);
+  on_window_size_changed(owning_window->swapchain().extent());
 
   // Setting configuration flags.
   ImGuiIO& io = GetIO();
@@ -70,8 +316,8 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::Extent2D exte
   gui_style.Colors[ImGuiCol_PlotHistogram] = ImVec4( 0.20f, 0.40f, 0.60f, 1.0f );
   gui_style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4( 0.20f, 0.45f, 0.90f, 1.0f );
 
-  // Short cut.
-  LogicalDevice const* logical_device = &owning_window->logical_device();
+  // Create imgui descriptor set and layout. This must be done before calling upload_texture below.
+  create_descriptor_set(CWDEBUG_ONLY(ambifix));
 
   // Build and load the texture atlas into a texture.
   uint32_t width;
@@ -90,17 +336,23 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::Extent2D exte
     .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
   });
   ImageViewKind const imgui_font_image_view_kind(imgui_font_image_kind, {});
-  SamplerKind const imgui_font_sampler_kind(logical_device, {});
-  m_font_texture = owning_window->upload_texture(texture_data, width, height, 0, imgui_font_image_view_kind, imgui_font_sampler_kind
-      COMMA_CWDEBUG_ONLY({owning_window, "m_imgui.m_font_texture"}));
-  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkImageView>(*m_font_texture.m_image_view)));
+  SamplerKind const imgui_font_sampler_kind(&logical_device(), {});
+  m_font_texture = owning_window->upload_texture(texture_data, width, height, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
+      COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
+  // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
+  ASSERT(sizeof(ImTextureID) == sizeof(void*));
+  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set.m_handle)));
   // Free memory allocated by GetTexDataAsRGBA32.
   io.Fonts->ClearTexData();
 
   // Short cuts.
   Application const& application = owning_window->application();
-  LogicalDevice const& device = *logical_device;
   Queue const& queue = owning_window->presentation_surface().graphics_queue();
+
+  // Create imgui pipeline layout.
+  create_pipeline_layout(CWDEBUG_ONLY(ambifix));
+  // Create imgui pipeline.
+  create_graphics_pipeline(CWDEBUG_ONLY(ambifix));
 
 #if 0
   // This initializes imgui for Vulkan.
@@ -139,11 +391,159 @@ void ImGui::start_frame(float delta_s)
   Text("Hello world!");
 }
 
-void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w)
+void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport)
+{
+  // I did not want to forward declare ImDrawData in a header in global namespace.
+  ImDrawData* draw_data = reinterpret_cast<ImDrawData*>(draw_data_void_ptr);
+
+  // Bind vertex and index buffer.
+  command_buffer_w->bindVertexBuffers(0, { *frame_resources.m_vertex_buffer.m_buffer }, { 0 });
+  command_buffer_w->bindIndexBuffer(*frame_resources.m_index_buffer.m_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+
+  // Set viewport again (is this really needed?).
+  command_buffer_w->setViewport(0, { viewport });
+
+  // Setup scale and translation.
+  std::array<float, 2> scale = { 2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y };
+  std::array<float, 2> translate = { -1.0f - draw_data->DisplayPos.x * scale[0], -1.0f - draw_data->DisplayPos.y * scale[1] };
+  command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
+  command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
+}
+
+void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, vk::PipelineLayout pipeline_layout, FrameResourceIndex index
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   EndFrame();
   Render();
   ImDrawData* draw_data = GetDrawData();
+  ImGui_FrameResourcesData& frame_resources = m_frame_resources_list[index];
+  LogicalDevice const& device = logical_device();
+
+  size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
+  size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+
+  bool initial_buffer_creation = !frame_resources.m_vertex_buffer.m_buffer;
+
+  if (AI_UNLIKELY(initial_buffer_creation) && draw_data->TotalVtxCount == 0)
+    vertex_size = index_size = 1;       // We're not allowed to create buffers with zero size.
+
+  if (AI_LIKELY(draw_data->TotalVtxCount > 0) || initial_buffer_creation)
+  {
+    // Create or resize the vertex buffer.
+    if (vertex_size > frame_resources.m_vertex_buffer.m_size)
+      frame_resources.m_vertex_buffer = device.create_buffer(
+          vertex_size,
+          vk::BufferUsageFlagBits::eVertexBuffer,
+          vk::MemoryPropertyFlagBits::eHostVisible
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")));
+
+    // Create or resize the index buffer.
+    if (index_size > frame_resources.m_index_buffer.m_size)
+      frame_resources.m_index_buffer = device.create_buffer(
+          index_size,
+          vk::BufferUsageFlagBits::eIndexBuffer,
+          vk::MemoryPropertyFlagBits::eHostVisible
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")));
+  }
+
+  if (draw_data->TotalVtxCount > 0)
+  {
+    // Upload vertex and index data each into a single contiguous GPU buffer.
+    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(device.map_memory(*frame_resources.m_vertex_buffer.m_memory, 0, frame_resources.m_vertex_buffer.m_size));
+    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(device.map_memory(*frame_resources.m_index_buffer.m_memory, 0, frame_resources.m_index_buffer.m_size));
+    for (int n = 0; n < draw_data->CmdListsCount; ++n)
+    {
+      ImDrawList const* cmd_list = draw_data->CmdLists[n];
+      memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+      memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+      vtx_dst += cmd_list->VtxBuffer.Size;
+      idx_dst += cmd_list->IdxBuffer.Size;
+    }
+
+    std::array<vk::MappedMemoryRange, 2> mapped_memory_ranges = {
+      vk::MappedMemoryRange{ .memory = *frame_resources.m_vertex_buffer.m_memory, .size = VK_WHOLE_SIZE },
+      vk::MappedMemoryRange{ .memory = *frame_resources.m_index_buffer.m_memory, .size = VK_WHOLE_SIZE }
+    };
+    device.flush_mapped_memory_ranges(mapped_memory_ranges);
+
+    device.unmap_memory(*frame_resources.m_vertex_buffer.m_memory);
+    device.unmap_memory(*frame_resources.m_index_buffer.m_memory);
+  }
+
+  auto swapchain_extent = m_owning_window->swapchain().extent();
+  vk::Viewport viewport{
+    .x = 0,
+    .y = 0,
+    .width = static_cast<float>(swapchain_extent.width),
+    .height = static_cast<float>(swapchain_extent.height),
+    .minDepth = 0.0f,
+    .maxDepth = 1.0f
+  };
+  setup_render_state(command_buffer_w, draw_data, frame_resources, viewport);
+
+  // Will project scissor/clipping rectangles into framebuffer space
+  ImVec2 clip_off = draw_data->DisplayPos;         // (0,0) unless using multi-viewports
+  ImVec2 clip_scale = draw_data->FramebufferScale; // (1,1) unless using retina display which are often (2,2); Note: A clip_scale other than (1,1) is currently NOT supported (elsewhere).
+
+  // Render command lists
+
+  // Because we merged all buffers into a single one, we maintain our own offset into them.
+  int global_vtx_offset = 0;
+  int global_idx_offset = 0;
+
+  for (int n = 0; n < draw_data->CmdListsCount; ++n)
+  {
+    ImDrawList const* cmd_list = draw_data->CmdLists[n];
+    for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; ++cmd_i)
+    {
+      ImDrawCmd const* pcmd = &cmd_list->CmdBuffer[cmd_i];
+      if (pcmd->UserCallback != nullptr)
+      {
+        // User callback, registered via ImDrawList::AddCallback().
+
+        // ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.
+        if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+          setup_render_state(command_buffer_w, draw_data, frame_resources, viewport);
+        else
+          pcmd->UserCallback(cmd_list, pcmd);
+      }
+      else
+      {
+        // Project scissor/clipping rectangles into framebuffer space.
+        ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
+        ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
+
+        // Clamp to viewport as vkCmdSetScissor() won't accept values that are off bounds.
+        if (clip_min.x < 0.0f) { clip_min.x = 0.0f; }
+        if (clip_min.y < 0.0f) { clip_min.y = 0.0f; }
+        if (clip_max.x > viewport.width) { clip_max.x = viewport.width; }
+        if (clip_max.y > viewport.height) { clip_max.y = viewport.height; }
+        if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
+          continue;
+
+        // Apply scissor/clipping rectangle.
+        vk::Rect2D scissor = {
+          .offset = {
+            .x = static_cast<int32_t>(clip_min.x),
+            .y = static_cast<int32_t>(clip_min.y) },
+          .extent = {
+            .width = static_cast<uint32_t>(clip_max.x - clip_min.x),
+            .height = static_cast<uint32_t>(clip_max.y - clip_min.y)
+          }
+        };
+        command_buffer_w->setScissor(0, 1, &scissor);
+
+        // Bind DescriptorSet with font or user texture.
+        std::array<vk::DescriptorSet, 1> desc_set = { static_cast<VkDescriptorSet>(pcmd->TextureId) };
+        command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, desc_set, {});
+
+        // Draw
+        command_buffer_w->drawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+      }
+    }
+    global_idx_offset += cmd_list->IdxBuffer.Size;
+    global_vtx_offset += cmd_list->VtxBuffer.Size;
+  }
 }
 
 ImGui::~ImGui()

@@ -238,7 +238,7 @@ class Window : public task::SynchronousWindow
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
+  vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const override
   {
     return vulkan::FrameResourceIndex{3};
   }
@@ -262,7 +262,6 @@ class Window : public task::SynchronousWindow
     if (++m_frame_count == 1)
       return;
 
-    ASSERT(m_current_frame.m_resource_count == number_of_frame_resources());
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 

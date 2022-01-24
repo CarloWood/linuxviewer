@@ -584,7 +584,11 @@ void MappedMemoryRange::print_members(std::ostream& os, char const* prefix) cons
 
   os << "memory:" << memory <<
       ", offset:" << offset <<
-      ", size:" << size;
+      ", size:";
+  if (size == VK_WHOLE_SIZE)
+    os << "VK_WHOLE_SIZE";
+  else
+    os << size;
 }
 
 void SubmitInfo::print_members(std::ostream& os, char const* prefix) const

@@ -398,14 +398,13 @@ void LogicalDevice::prepare(
     THROW_ALERT("Could not find a physical device (GPU) that supports vulkan with the following requirements: [CREATE_INFO]", AIArgs("[CREATE_INFO]", device_create_info));
 
   // Check for optional features.
-#ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Properties:");
   {
     debug::Mark mark;
     auto properties = m_vh_physical_device.getProperties();
     Dout(dc::vulkan, properties);
+    m_non_coherent_atom_size = properties.limits.nonCoherentAtomSize;
   }
-#endif
   Dout(dc::vulkan, "Physical Device Features:");
   {
 #ifdef CWDEBUG
@@ -918,6 +917,12 @@ BufferParameters LogicalDevice::create_buffer(
     vk::MemoryPropertyFlagBits memory_property
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
+  if (!(memory_property & vk::MemoryPropertyFlagBits::eHostCoherent))
+  {
+    // Allocate a multiple of m_non_coherent_atom_size bytes.
+    size = ((size - 1) / m_non_coherent_atom_size + 1) * m_non_coherent_atom_size;
+  }
+
   vk::UniqueBuffer buffer = create_buffer(size, usage
       COMMA_CWDEBUG_ONLY(ambifix(".m_buffer")));
 

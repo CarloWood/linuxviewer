@@ -8,8 +8,8 @@ namespace vulkan {
 struct DescriptorSetParameters
 {
   vk::UniqueDescriptorPool m_pool;
-  vk::UniqueDescriptorSetLayout m_layout;
   vk::UniqueDescriptorSet m_handle;
+  vk::UniqueDescriptorSetLayout m_layout;
 };
 
 } // namespace vulkan

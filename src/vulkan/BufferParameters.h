@@ -10,7 +10,7 @@ struct BufferParameters
 {
   vk::UniqueBuffer m_buffer;
   vk::UniqueDeviceMemory m_memory;
-  uint32_t m_size = {};
+  vk::DeviceSize m_size = {};
 };
 
 } // namespace vulkan

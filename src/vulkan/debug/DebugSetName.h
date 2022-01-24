@@ -59,13 +59,13 @@ std::string as_postfix(AIStatefulTask const* task);
 class AmbifixOwner : public Ambifix
 {
   task::SynchronousWindow const* m_owning_window;
-  LogicalDevice const* m_logical_device;
+  LogicalDevice const& m_logical_device;
 
  public:
   AmbifixOwner(task::SynchronousWindow const* owning_window, std::string prefix);
 
   // Accessors.
-  LogicalDevice const* logical_device() const { return m_logical_device; }
+  LogicalDevice const& logical_device() const { return m_logical_device; }
 
   // No infix.
   std::string object_name() const { return prefix() + postfix(); }
@@ -81,7 +81,7 @@ class AmbifixOwner : public Ambifix
 };
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const* device);
+void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const& device);
 
 template<ConceptVulkanHandle ObjectType>
 void debug_set_object_name(ObjectType const& object, AmbifixOwner const& ambifix);
@@ -102,14 +102,14 @@ void debug_set_object_name(UniqueObjectType const& object, AmbifixOwner const& a
 namespace vulkan {
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const* device)
+void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const& device)
 {
   vk::DebugUtilsObjectNameInfoEXT name_info = {
     .objectType = object.objectType,
     .objectHandle = reinterpret_cast<uint64_t>(static_cast<typename ObjectType::CType>(object)),
     .pObjectName = name.c_str()
   };
-  device->set_debug_name(name_info);
+  device.set_debug_name(name_info);
   Dout(dc::vulkan, "Created object \"" << name << "\" with handle 0x" << std::hex << name_info.objectHandle << " and type " << libcwd::type_info_of<ObjectType>().demangled_name());
 }
 

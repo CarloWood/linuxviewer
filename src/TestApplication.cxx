@@ -33,7 +33,6 @@ class Window : public task::SynchronousWindow
 
   // Define renderpass / attachment objects.
   RenderPass  main_pass{this, "main_pass"};
-  RenderPass imgui_pass{this, "imgui_pass"};       // FIXME: put this in the base class?
   Attachment      depth{this, "depth",    s_depth_image_view_kind};
   Attachment   position{this, "position", s_vector_image_view_kind};
   Attachment     normal{this, "normal",   s_vector_image_view_kind};
@@ -56,8 +55,9 @@ class Window : public task::SynchronousWindow
     return threadpool::Interval<50, std::chrono::milliseconds>{};
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
+  vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const override
   {
+    use_imgui = true;
     return vulkan::FrameResourceIndex{5};
   }
 
@@ -119,6 +119,9 @@ class Window : public task::SynchronousWindow
     m_current_frame.m_resource_count = Parameters.m_frame_resources_count;  // Slider value.
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+//    if (m_frame_count == 10)
+//      Debug(attach_gdb());
 
     // Start frame.
     start_frame();
@@ -191,15 +194,16 @@ class Window : public task::SynchronousWindow
       command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
       command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-      command_buffer_w->setViewport(0, { viewport });
-      command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
       command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
+      command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+      command_buffer_w->setScissor(0, { scissor });
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
       command_buffer_w->endRenderPass();
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      m_imgui.render_frame(command_buffer_w);
+      // command_buffer_w->setViewport(0, { viewport }); // Set viewport to full before calling m_imgui.render_frame.
+      m_imgui.render_frame(command_buffer_w, *m_pipeline_layout, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
@@ -279,12 +283,11 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 
-    m_use_imgui = true;
     std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
       {
-        .binding = 0,                                                   // imgui's shaders have a hardcoded binding of 0.
+        .binding = 0,
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-        .descriptorCount = m_use_imgui ? 1U : 0U,                       // 0 means this entry is unused.
+        .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
         .pImmutableSamplers = nullptr
       },
@@ -294,19 +297,12 @@ class Window : public task::SynchronousWindow
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
         .pImmutableSamplers = nullptr
-      },
-      {
-        .binding = 2,
-        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-        .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        .pImmutableSamplers = nullptr
       }
     };
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
     {
       .type = vk::DescriptorType::eCombinedImageSampler,
-      .descriptorCount = 3
+      .descriptorCount = 2
     }};
 
     m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
@@ -355,7 +351,7 @@ class Window : public task::SynchronousWindow
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
+        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
       }
     }
 
@@ -395,7 +391,7 @@ class Window : public task::SynchronousWindow
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 2, 0, image_infos);
+        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
       }
     }
   }
@@ -447,8 +443,8 @@ void main()
   static constexpr std::string_view intel_frag_glsl = R"glsl(
 #version 450
 
-layout(set=0, binding=1) uniform sampler2D u_BackgroundTexture;
-layout(set=0, binding=2) uniform sampler2D u_BenchmarkTexture;
+layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
+layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
 
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) in float v_Distance;
@@ -520,7 +516,6 @@ void main() {
     // Vertex input.
 
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
-      .flags = vk::PipelineVertexInputStateCreateFlags(0),
       .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
       .pVertexBindingDescriptions = vertex_binding_description.data(),
       .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
@@ -528,20 +523,16 @@ void main() {
     };
 
     vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
-      .flags = vk::PipelineInputAssemblyStateCreateFlags(0),
-      .topology = vk::PrimitiveTopology::eTriangleList,
-      .primitiveRestartEnable = VK_FALSE
+      .topology = vk::PrimitiveTopology::eTriangleList
     };
 
     vk::PipelineViewportStateCreateInfo viewport_state_create_info{
-      .flags = vk::PipelineViewportStateCreateFlags(0),
       .viewportCount = 1,
       .pViewports = nullptr,
       .scissorCount = 1,
       .pScissors = nullptr
     };
     vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
-      .flags = vk::PipelineRasterizationStateCreateFlags(0),
       .depthClampEnable = VK_FALSE,
       .rasterizerDiscardEnable = VK_FALSE,
       .polygonMode = vk::PolygonMode::eFill,
@@ -555,7 +546,6 @@ void main() {
     };
 
     vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
-      .flags = vk::PipelineMultisampleStateCreateFlags(0),
       .rasterizationSamples = vk::SampleCountFlagBits::e1,
       .sampleShadingEnable = VK_FALSE,
       .minSampleShading = 1.0f,
@@ -565,7 +555,6 @@ void main() {
     };
 
     vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
-      .flags = vk::PipelineDepthStencilStateCreateFlags(0),
       .depthTestEnable = VK_TRUE,
       .depthWriteEnable = VK_TRUE,
       .depthCompareOp = vk::CompareOp::eLessOrEqual
@@ -583,7 +572,6 @@ void main() {
     };
 
     vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
-      .flags = vk::PipelineColorBlendStateCreateFlags(0),
       .logicOpEnable = VK_FALSE,
       .logicOp = vk::LogicOp::eCopy,
       .attachmentCount = 1,
@@ -596,7 +584,6 @@ void main() {
     };
 
     vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
-      .flags = vk::PipelineDynamicStateCreateFlags(0),
       .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
       .pDynamicStates = dynamic_states.data()
     };
@@ -604,7 +591,6 @@ void main() {
     auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
-      .flags = vk::PipelineCreateFlags(0),
       .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
       .pStages = shader_stage_create_infos.data(),
       .pVertexInputState = &vertex_input_state_create_info,
