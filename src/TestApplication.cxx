@@ -23,6 +23,8 @@ using namespace linuxviewer;
 
 class Window : public task::SynchronousWindow
 {
+  using Directory = vulkan::Directory;
+
  public:
   using task::SynchronousWindow::SynchronousWindow;
 
@@ -316,7 +318,8 @@ class Window : public task::SynchronousWindow
     // Background texture.
     {
       int width = 0, height = 0, data_size = 0;
-      std::vector<std::byte> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/background.png", 4, &width, &height, nullptr, &data_size);
+      std::vector<std::byte> texture_data =
+        vk_utils::get_image_data(m_application->path_of(Directory::resources) / "textures/background.png", 4, &width, &height, nullptr, &data_size);
       // Create descriptor resources.
       {
         static vulkan::ImageKind const background_image_kind({
@@ -358,7 +361,8 @@ class Window : public task::SynchronousWindow
     // Sample texture.
     {
       int width = 0, height = 0, data_size = 0;
-      std::vector<std::byte> texture_data = vk_utils::get_image_data(m_application->resources_path() / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
+      std::vector<std::byte> texture_data =
+        vk_utils::get_image_data(m_application->path_of(Directory::resources) / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
       // Create descriptor resources.
       {
         static vulkan::ImageKind const sample_image_kind({

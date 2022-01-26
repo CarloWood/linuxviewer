@@ -57,3 +57,6 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/CarloWood/imgui.git
+[submodule "external/peelo-xdg"]
+	path = external/peelo-xdg
+	url = https://github.com/peelonet/peelo-xdg.git

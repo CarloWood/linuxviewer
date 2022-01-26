@@ -67,6 +67,8 @@ endif ()
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(vulkan_ObjLib
+  PRIVATE
+    "${CMAKE_SOURCE_DIR}/external/peelo-xdg/include"
   PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.

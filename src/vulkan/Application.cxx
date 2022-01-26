@@ -81,32 +81,13 @@ void Application::initialize(int argc, char** argv)
   try
   {
     // Parse command line parameters before doing any initialization, so the command line arguments can influence the initialization too.
-    // Get the directory that the executable resides in.
-    std::filesystem::path executable_path = argv[0];
-    auto directory_element_iterator = executable_path.end();
-    int n = 0;
-    bool in_directory_bin = false;
-    while (directory_element_iterator != executable_path.begin())
-    {
-      --directory_element_iterator;
-      if (++n == 2)
-      {
-        in_directory_bin = *directory_element_iterator == "bin";
-        break;
-      }
-    }
-    if (in_directory_bin)
-    {
-      std::filesystem::path prefix = executable_path.parent_path().remove_filename();
-      std::filesystem::path executable_name = executable_path.filename();
-      m_resources_path = prefix / "share" / executable_name / "resources";
-    }
-    else
-      m_resources_path = executable_path.remove_filename() / "data";
 
     // Allow the user to override stuff.
     if (argc > 0)
       parse_command_line_parameters(argc, argv);
+
+    // Initialize base directories.
+    m_directories.initialize(application_name(), argv[0]);
 
     // Initialize the thread pool.
     m_thread_pool.change_number_of_threads_to(thread_pool_number_of_worker_threads());

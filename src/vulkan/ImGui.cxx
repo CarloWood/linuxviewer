@@ -306,6 +306,9 @@ void ImGui::init(task::SynchronousWindow const* owning_window
   ImGuiIO& io = GetIO();
   // For all flags see https://github.com/ocornut/imgui/blob/master/imgui.h#L1530 (enum ImGuiConfigFlags_).
 //  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Master keyboard navigation enable flag. NewFrame() will automatically fill io.NavInputs[] based on io.AddKeyEvent() calls.
+  m_ini_filename = owning_window->application().path_of(Directory::state) / "imgui.ini";
+  io.IniFilename = m_ini_filename.c_str();
+  Dout(dc::notice, "io.IniFilename = \"" << io.IniFilename << "\".");
 
   // Set up ImGui style to use.
   StyleColorsDark();

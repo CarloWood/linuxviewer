@@ -33,6 +33,7 @@ class ImGui
   DescriptorSetParameters m_descriptor_set;
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::UniquePipeline m_graphics_pipeline;
+  std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
 
  private:
   inline LogicalDevice const& logical_device() const;

@@ -3,6 +3,7 @@
 #include "DispatchLoader.h"
 #include "LogicalDevice.h"
 #include "SynchronousWindow.h"
+#include "Directories.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -72,9 +73,6 @@ class Application
   // To stop the main thread from exiting until the last xcb connection is closed.
   mutable utils::threading::Gate m_until_terminated;
 
-  // Path with resources.
-  std::filesystem::path m_resources_path;
-
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::SynchronousWindow>>;
   using window_list_t = aithreadsafe::Wrapper<window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -100,6 +98,8 @@ class Application
   using logical_device_list_container_t = std::vector<std::unique_ptr<LogicalDevice>>;
   using logical_device_list_t = aithreadsafe::Wrapper<logical_device_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   logical_device_list_t m_logical_device_list;
+
+  Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
 
  private:
   friend class task::SynchronousWindow;
@@ -147,9 +147,9 @@ class Application
  public:
   void initialize(int argc = 0, char** argv = nullptr);
 
-  std::filesystem::path resources_path() const
+  std::filesystem::path path_of(Directory directory) const
   {
-    return m_resources_path;
+    return m_directories.path_of(directory);
   }
 
   template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW>

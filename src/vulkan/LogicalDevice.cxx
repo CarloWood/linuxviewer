@@ -822,8 +822,8 @@ DescriptorSetParameters LogicalDevice::create_descriptor_resources(
 
   return {
    .m_pool = std::move(descriptor_pool),
-   .m_layout = std::move(descriptor_set_layout),
-   .m_handle = std::move(descriptor_sets[0])
+   .m_handle = std::move(descriptor_sets[0]),
+   .m_layout = std::move(descriptor_set_layout)
   };
 }
 
