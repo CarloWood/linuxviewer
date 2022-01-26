@@ -87,6 +87,13 @@ class Window : public xcb::WindowBase
   {
     return m_extent;
   }
+
+  uint16_t convert(uint32_t modifiers) override final
+  {
+    // Convert xcb::ModifierMask to vulkan::ModifierMask.
+    return (modifiers & (xcb::ModifierMask::Shift|xcb::ModifierMask::Lock|xcb::ModifierMask::Ctrl|xcb::ModifierMask::Alt)) |
+           (modifiers & xcb::ModifierMask::Super) >> 2;
+  }
 };
 
 } // namespace linuxviewer::OS

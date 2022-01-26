@@ -5,6 +5,7 @@
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/shaderbuilder/ShaderModule.h"
 #include "vulkan/Pipeline.h"
+#include "vulkan/ModifierMask.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -564,14 +565,16 @@ void main()
 class WindowEvents : public vulkan::WindowEvents
 {
  private:
-  void MouseMove(int x, int y) override
+  void MouseMove(int x, int y, uint16_t mask) override
   {
-    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ")");
+    vulkan::ModifierMask modifiers{mask};
+    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ", " << modifiers << ")");
   }
 
-  void MouseClick(size_t button, bool pressed) override
+  void MouseClick(size_t button, bool pressed, uint16_t mask) override
   {
-    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ")");
+    vulkan::ModifierMask modifiers{mask};
+    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ", " << modifiers << ")");
   }
 
   void ResetMouse() override

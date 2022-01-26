@@ -8,6 +8,7 @@
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
+#include "vulkan/ModifierMask.h"
 #include "vk_utils/get_image_data.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
@@ -624,14 +625,16 @@ vulkan::ImageViewKind const Window::s_vector_image_view_kind{s_vector_image_kind
 class WindowEvents : public vulkan::WindowEvents
 {
  private:
-  void MouseMove(int x, int y) override
+  void MouseMove(int x, int y, uint16_t mask) override
   {
-    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ")");
+    vulkan::ModifierMask modifiers{mask};
+    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ", " << modifiers << ")");
   }
 
-  void MouseClick(size_t button, bool pressed) override
+  void MouseClick(size_t button, bool pressed, uint16_t mask) override
   {
-    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ")");
+    vulkan::ModifierMask modifiers{mask};
+    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ", " << modifiers << ")");
   }
 
   void ResetMouse() override
