@@ -152,6 +152,10 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       wait(connection_set_up);
       break;
     case SynchronousWindow_create:
+      // Allocate the ring buffer for input events.
+      m_input_event_buffer.reallocate_buffer(s_input_event_buffer_size);
+      // Register ourselves for input events.
+      m_window_events->register_input_event_buffer(&m_input_event_buffer);
       // Create a new xcb window using the established connection.
       m_window_events->set_xcb_connection(m_xcb_connection_task->connection());
       // We can't set a debug name for the surface yet, because there might not be logical device yet.
@@ -239,6 +243,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
             m_timer.update();   // Keep track of FPS and stuff.
+            consume_input_events();
             draw_frame();
             m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
@@ -375,6 +380,12 @@ void SynchronousWindow::create_imgui()
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imgui()");
   m_imgui.init(this
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+}
+
+void SynchronousWindow::consume_input_events()
+{
+  DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events()");
+  //FIXME
 }
 
 void SynchronousWindow::wait_for_all_fences() const

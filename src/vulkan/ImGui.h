@@ -54,6 +54,10 @@ class ImGui
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
   void on_window_size_changed(vk::Extent2D extent);
+  void on_focus_changed(bool in_focus) const;
+  bool on_mouse_move(int x, int y) const;
+  bool on_mouse_click(size_t button, bool pressed) const;
+  void on_mouse_enter(int x, int y, bool entered) const;
 
   void start_frame(float delta_s);
   void render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, vk::PipelineLayout pipeline_layout, FrameResourceIndex index

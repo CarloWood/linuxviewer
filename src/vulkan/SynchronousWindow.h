@@ -17,6 +17,7 @@
 #include "ClearValue.h"
 #include "RenderPass.h"
 #include "Attachment.h"
+#include "InputEvent.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "vk_utils/TimerData.h"
@@ -143,6 +144,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
   bool m_use_imgui = false;
   vulkan::DescriptorSetParameters m_descriptor_set;
+
+ private:
+  static constexpr int s_input_event_buffer_size = 32;                    // If the application is lagging more than 32 events behind then
+                                                                          // the user is having other problems then losing key strokes.
+  vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
@@ -342,30 +348,42 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
 
  private:
+  // SynchronousWindow_acquire_queues:
   void acquire_queues();
-  void prepare_swapchain();
-  void create_imageless_framebuffers();
-  void create_swapchain_images();
-  void recreate_framebuffers(vk::Extent2D extent, uint32_t layers);
-  void prepare_begin_info_chains();
-  void create_frame_resources();
-  void create_imgui();
 
-  // Optionally overridden by derived class.
-  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-  virtual vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const;
+  // SynchronousWindow_initialize_vukan:
+  // (virtual functions are implemented by most derived class)
   virtual void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil);
-
-  // Implemented by most derived class.
+  void prepare_swapchain();
   virtual void create_render_passes() = 0;
+  void create_swapchain_images();
+  void create_frame_resources();
+  void create_imageless_framebuffers();
   virtual void create_descriptor_set() = 0;
   virtual void create_textures() = 0;
   virtual void create_pipeline_layout() = 0;
   virtual void create_graphics_pipeline() = 0;
   virtual void create_vertex_buffers() = 0;
+  void create_imgui();
+
+  // SynchronousWindow_render_loop:
+  void consume_input_events();
   virtual void draw_frame() = 0;
 
+  // Called by create_imageless_framebuffers and handle_window_size_changed.
+  void recreate_framebuffers(vk::Extent2D extent, uint32_t layers);
+  // Called by create_imageless_framebuffers.
+  void prepare_begin_info_chains();
+
+  // Optionally overridden by derived class.
+
+  // Called by initialize_impl():
+  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
+  // Called by create_frame_resources():
+  virtual vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const;
+  // Called by handle_window_size_changed():
   virtual void on_window_size_changed_pre();
+  // Called by create_frame_resources() and handle_window_size_changed():
   virtual void on_window_size_changed_post();
 
  public:
@@ -400,11 +418,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   /// Close window.
   void finish_impl() override;
-
-  virtual bool is_slow() const
-  {
-    return false;
-  }
 };
 
 template<vulkan::ConceptWindowEvents WINDOW_EVENTS>

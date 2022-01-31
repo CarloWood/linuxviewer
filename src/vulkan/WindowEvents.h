@@ -2,6 +2,8 @@
 
 #include "OperatingSystem.h"
 #include "SpecialCircumstances.h"
+#include "InputEvent.h"
+#include "ImGui.h"
 
 namespace vulkan {
 
@@ -32,10 +34,24 @@ class AsyncAccessSpecialCircumstances
 class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCircumstances
 {
  private:
+  MouseButtons m_mouse_buttons;                         // Cache of current mouse button state.
+  MovedMousePosition m_mouse_position;                  // Last mouse position, also updated by mouse movement.
+  WheelOffset m_wheel_offset;                           // Accumulated mouse wheel events.
+  InputEventBuffer* m_input_event_buffer = {};
+
+ public:
+  void register_input_event_buffer(InputEventBuffer* input_event_buffer)
+  {
+    m_input_event_buffer = input_event_buffer;
+  }
+
+ private:
   // Called when the close button is clicked.
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
     DoutEntering(dc::notice, "SynchronousWindow::On_WM_DELETE_WINDOW(" << timestamp << ")");
+    // Lets not pass more event to a window that is going to destruct itself.
+    m_input_event_buffer = nullptr;
     // Set the must_close_bit.
     set_must_close();
     // We should have one boost::intrusive_ptr's left: the one in Application::m_window_list.
@@ -55,7 +71,126 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       set_mapped();
   }
 
+  void on_mouse_move(int16_t x, int16_t y, uint16_t UNUSED_ARG(converted_modifiers)) override final
+  {
+    //vulkan::ModifierMask modifiers{converted_modifiers};
+    //DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_move(" << x << ", " << y << ", " << modifiers << ")");
+
+    MovedMousePosition::wat(m_mouse_position)->set(x, y);
+
+//    if (!m_imgui.on_mouse_move(x, y))
+//      on_mouse_move(x, y, modifiers);
+  }
+
+  void on_key_event(int16_t x, int16_t y, uint16_t converted_modifiers, bool pressed, uint32_t keysym) override final
+  {
+    vulkan::ModifierMask modifiers{converted_modifiers};
+    DoutEntering(dc::notice, "vulkan::WindowEvents::on_key_event(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << std::hex << keysym << ")");
+    if (m_input_event_buffer)
+    {
+      // Queue event.
+      InputEvent event{
+        .mouse_position = { x, y },
+        .modifier_mask = modifiers,
+        .flags = { m_mouse_buttons, pressed ? EventType::key_press : EventType::key_release },
+        .keysym = keysym
+      };
+      if (!m_input_event_buffer->push(&event))
+        Dout(dc::warning, "Dumping input event because queue is full!");
+    }
+  }
+
+  void on_mouse_click(int16_t x, int16_t y, uint16_t converted_modifiers, bool pressed, uint8_t button) override final
+  {
+    vulkan::ModifierMask modifiers{converted_modifiers};
+    DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_click(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << (int)button << ")");
+
+    if (MouseButtons::is_wheel(button))
+    {
+      // The mouse wheel buttons are not handled as separate events (with an order and mouse coordinates),
+      // but merely accumulated. This means that the bits for them in m_mouse_buttons are always unset!
+      WheelOffset::wat wheel_offset_w(m_wheel_offset);
+      switch (button)
+      {
+        case MouseButtons::WheelUp:
+          wheel_offset_w->accumulate_x(0.5f);
+          break;
+        case MouseButtons::WheelDown:
+          wheel_offset_w->accumulate_x(-0.5f);
+          break;
+        case MouseButtons::WheelLeft:
+          wheel_offset_w->accumulate_y(-1.f);
+          break;
+        case MouseButtons::WheelRight:
+          wheel_offset_w->accumulate_y(1.f);
+          break;
+      }
+      return;
+    }
+
+    // Cache the last state of the modifiers and button.
+    m_mouse_buttons.update_button(button, pressed);
+
+    // Queue event.
+    if (m_input_event_buffer)
+    {
+      // Queue event.
+      InputEvent event{
+        .mouse_position = { x, y },
+        .modifier_mask = modifiers,
+        .flags = { m_mouse_buttons, pressed ? EventType::button_press : EventType::button_release },
+        .button = button
+      };
+      if (!m_input_event_buffer->push(&event))
+        Dout(dc::warning, "Dumping input event because queue is full!");
+    }
+
+//    if (!m_imgui.on_mouse_click(button, pressed))
+//      on_mouse_click(button, pressed, modifiers);
+  }
+
+  void on_mouse_enter(int16_t x, int16_t y, uint16_t converted_modifiers, bool entered) override final
+  {
+    vulkan::ModifierMask modifiers{converted_modifiers};
+    DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_enter(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << entered << ")");
+
+    // Queue event.
+    if (m_input_event_buffer)
+    {
+      // Queue event.
+      InputEvent event{
+        .mouse_position = { x, y },
+        .modifier_mask = modifiers,
+        .flags = { m_mouse_buttons, entered ? EventType::window_enter : EventType::window_leave },
+      };
+      if (!m_input_event_buffer->push(&event))
+        Dout(dc::warning, "Dumping input event because queue is full!");
+    }
+
+//    m_imgui.on_mouse_enter(x, y, entered);
+  }
+
+  virtual void on_focus_changed(bool in_focus) override final
+  {
+    DoutEntering(dc::notice, "vulkan::WindowEvents::on_focus_changed(" << std::boolalpha << in_focus << ")");
+
+    // Queue event.
+    if (m_input_event_buffer)
+    {
+      // Queue event.
+      InputEvent event{
+        .flags = { m_mouse_buttons, in_focus ? EventType::window_in_focus : EventType::window_out_focus },
+      };
+      if (!m_input_event_buffer->push(&event))
+        Dout(dc::warning, "Dumping input event because queue is full!");
+    }
+
+//    m_imgui.on_focus_changed(in_focus);
+  }
+
  public:
+  WindowEvents() = default;
+
   // The following functions are thread-safe (use a mutex and/or atomics).
 
   // Used to set the initial (desired) extent.

@@ -8,7 +8,6 @@
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
-#include "vulkan/ModifierMask.h"
 #include "vk_utils/get_image_data.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
@@ -617,6 +616,11 @@ void main() {
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
   }
+
+  virtual bool is_slow() const
+  {
+    return false;
+  }
 };
 
 vulkan::ImageKind const Window::s_vector_image_kind{{ .format = vk::Format::eR16G16B16A16Sfloat }};
@@ -624,23 +628,8 @@ vulkan::ImageViewKind const Window::s_vector_image_view_kind{s_vector_image_kind
 
 class WindowEvents : public vulkan::WindowEvents
 {
- private:
-  void MouseMove(int x, int y, uint16_t mask) override
-  {
-    vulkan::ModifierMask modifiers{mask};
-    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ", " << modifiers << ")");
-  }
-
-  void MouseClick(size_t button, bool pressed, uint16_t mask) override
-  {
-    vulkan::ModifierMask modifiers{mask};
-    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ", " << modifiers << ")");
-  }
-
-  void ResetMouse() override
-  {
-    DoutEntering(dc::notice, "WindowEvents::ResetMouse()");
-  }
+ public:
+  using vulkan::WindowEvents::WindowEvents;
 };
 
 class SlowWindow : public Window

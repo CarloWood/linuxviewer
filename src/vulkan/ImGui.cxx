@@ -386,6 +386,56 @@ void ImGui::on_window_size_changed(vk::Extent2D extent)
   io.DisplaySize.y = extent.height;
 }
 
+void ImGui::on_focus_changed(bool in_focus) const
+{
+//  ImGuiIO& io = GetIO();
+//  io.AddFocusEvent(in_focus);
+}
+
+bool ImGui::on_mouse_move(int x, int y) const
+{
+  ImGuiIO& io = GetIO();
+  io.AddMousePosEvent(x, y);
+  return io.WantCaptureMouse;
+}
+
+bool ImGui::on_mouse_click(size_t button, bool pressed) const
+{
+  ImGuiIO& io = GetIO();
+  if (button <= MouseButtons::Right)
+    io.AddMouseButtonEvent((3 - button) % 3, pressed);  // Swap button 1 and 2.
+  else
+  {
+    switch (button)
+    {
+      case MouseButtons::WheelDown:
+        io.AddMouseWheelEvent(0.f, -1.f);
+        break;
+      case MouseButtons::WheelUp:
+        io.AddMouseWheelEvent(0.f, 1.f);
+        break;
+      case MouseButtons::WheelLeft:
+        io.AddMouseWheelEvent(-1.f, 0.f);
+        break;
+      case MouseButtons::WheelRight:
+        io.AddMouseWheelEvent(1.f, 0.f);
+        break;
+      default:
+        break;
+    }
+  }
+  return io.WantCaptureMouse;
+}
+
+void ImGui::on_mouse_enter(int x, int y, bool entered) const
+{
+  ImGuiIO& io = GetIO();
+  if (entered)
+    io.AddMousePosEvent(x, y);
+  else
+    io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
+}
+
 void ImGui::start_frame(float delta_s)
 {
   ImGuiIO& io = GetIO();

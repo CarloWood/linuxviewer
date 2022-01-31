@@ -5,7 +5,6 @@
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/shaderbuilder/ShaderModule.h"
 #include "vulkan/Pipeline.h"
-#include "vulkan/ModifierMask.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -257,7 +256,7 @@ class Window : public task::SynchronousWindow
 
   void draw_frame() override
   {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "]");
 
     // Skip the first frame.
     if (++m_frame_count == 1)
@@ -564,23 +563,8 @@ void main()
 
 class WindowEvents : public vulkan::WindowEvents
 {
- private:
-  void MouseMove(int x, int y, uint16_t mask) override
-  {
-    vulkan::ModifierMask modifiers{mask};
-    DoutEntering(dc::notice, "WindowEvents::MouseMove(" << x << ", " << y << ", " << modifiers << ")");
-  }
-
-  void MouseClick(size_t button, bool pressed, uint16_t mask) override
-  {
-    vulkan::ModifierMask modifiers{mask};
-    DoutEntering(dc::notice, "WindowEvents::MouseClick(" << button << ", " << pressed << ", " << modifiers << ")");
-  }
-
-  void ResetMouse() override
-  {
-    DoutEntering(dc::notice, "WindowEvents::ResetMouse()");
-  }
+ public:
+  using vulkan::WindowEvents::WindowEvents;
 };
 
 class LogicalDevice : public vulkan::LogicalDevice
