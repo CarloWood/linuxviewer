@@ -5,6 +5,13 @@
 #include "InputEvent.h"
 #include "ImGui.h"
 
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+extern channel_ct xcb;
+extern channel_ct xcbmotion;
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
+
 namespace vulkan {
 
 // Gives asynchronous access to SpecialCircumstances.
@@ -35,9 +42,12 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
 {
  private:
   MouseButtons m_mouse_buttons;                         // Cache of current mouse button state.
-  MovedMousePosition m_mouse_position;                  // Last mouse position, also updated by mouse movement.
-  WheelOffset m_wheel_offset;                           // Accumulated mouse wheel events.
   InputEventBuffer* m_input_event_buffer = {};
+
+ public:
+  // Thread-safe.
+  MovedMousePosition m_mouse_position;                  // Last mouse position, also updated by mouse movement.
+  WheelOffset m_accumulated_wheel_offset;               // Accumulated mouse wheel events.
 
  public:
   void register_input_event_buffer(InputEventBuffer* input_event_buffer)
@@ -71,21 +81,17 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       set_mapped();
   }
 
-  void on_mouse_move(int16_t x, int16_t y, uint16_t UNUSED_ARG(converted_modifiers)) override final
+  void on_mouse_move(int16_t x, int16_t y, uint16_t CWDEBUG_ONLY(converted_modifiers)) override final
   {
-    //vulkan::ModifierMask modifiers{converted_modifiers};
-    //DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_move(" << x << ", " << y << ", " << modifiers << ")");
-
+    DoutEntering(dc::xcbmotion, "vulkan::WindowEvents::on_mouse_move(" << x << ", " << y << ", " << vulkan::ModifierMask{converted_modifiers} << ")");
     MovedMousePosition::wat(m_mouse_position)->set(x, y);
-
-//    if (!m_imgui.on_mouse_move(x, y))
-//      on_mouse_move(x, y, modifiers);
   }
 
   void on_key_event(int16_t x, int16_t y, uint16_t converted_modifiers, bool pressed, uint32_t keysym) override final
   {
     vulkan::ModifierMask modifiers{converted_modifiers};
     DoutEntering(dc::notice, "vulkan::WindowEvents::on_key_event(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << std::hex << keysym << ")");
+
     if (m_input_event_buffer)
     {
       // Queue event.
@@ -103,26 +109,28 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   void on_mouse_click(int16_t x, int16_t y, uint16_t converted_modifiers, bool pressed, uint8_t button) override final
   {
     vulkan::ModifierMask modifiers{converted_modifiers};
-    DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_click(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << (int)button << ")");
+    // Do not print mouse wheel events when xcb is off. Too noisy.
+    DoutEntering(dc::io(!MouseButtons::is_wheel(button))|dc::xcb, "vulkan::WindowEvents::on_mouse_click(" << x << ", " << y <<
+        ", " << modifiers << ", " << std::boolalpha << pressed << ", " << (int)button << ")");
 
     if (MouseButtons::is_wheel(button))
     {
       // The mouse wheel buttons are not handled as separate events (with an order and mouse coordinates),
       // but merely accumulated. This means that the bits for them in m_mouse_buttons are always unset!
-      WheelOffset::wat wheel_offset_w(m_wheel_offset);
+      WheelOffset::wat wheel_offset_w(m_accumulated_wheel_offset);
       switch (button)
       {
         case MouseButtons::WheelUp:
-          wheel_offset_w->accumulate_x(0.5f);
+          wheel_offset_w->accumulate_y(-0.5f);
           break;
         case MouseButtons::WheelDown:
-          wheel_offset_w->accumulate_x(-0.5f);
+          wheel_offset_w->accumulate_y(0.5f);
           break;
         case MouseButtons::WheelLeft:
-          wheel_offset_w->accumulate_y(-1.f);
+          wheel_offset_w->accumulate_x(-1.f);
           break;
         case MouseButtons::WheelRight:
-          wheel_offset_w->accumulate_y(1.f);
+          wheel_offset_w->accumulate_x(1.f);
           break;
       }
       return;
@@ -144,9 +152,6 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       if (!m_input_event_buffer->push(&event))
         Dout(dc::warning, "Dumping input event because queue is full!");
     }
-
-//    if (!m_imgui.on_mouse_click(button, pressed))
-//      on_mouse_click(button, pressed, modifiers);
   }
 
   void on_mouse_enter(int16_t x, int16_t y, uint16_t converted_modifiers, bool entered) override final
@@ -166,8 +171,6 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       if (!m_input_event_buffer->push(&event))
         Dout(dc::warning, "Dumping input event because queue is full!");
     }
-
-//    m_imgui.on_mouse_enter(x, y, entered);
   }
 
   virtual void on_focus_changed(bool in_focus) override final
@@ -184,8 +187,6 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       if (!m_input_event_buffer->push(&event))
         Dout(dc::warning, "Dumping input event because queue is full!");
     }
-
-//    m_imgui.on_focus_changed(in_focus);
   }
 
  public:

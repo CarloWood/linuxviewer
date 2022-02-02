@@ -385,7 +385,82 @@ void SynchronousWindow::create_imgui()
 void SynchronousWindow::consume_input_events()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events()");
-  //FIXME
+  // We are the consumer thread.
+  while (vulkan::InputEvent const* input_event = m_input_event_buffer.pop())
+  {
+    int16_t x = input_event->mouse_position.x();
+    int16_t y = input_event->mouse_position.y();
+    bool active = static_cast<uint16_t>(input_event->flags.event_type()) & 1;
+    using vulkan::EventType;
+    switch (input_event->flags.event_type())
+    {
+      case EventType::key_release:
+      case EventType::key_press:
+        if (m_use_imgui && m_imgui.on_mouse_move(x, y))
+        {
+          m_imgui.update_modifiers(input_event->modifier_mask.imgui());
+          m_imgui.on_key_event(input_event->keysym, active);
+          break;
+        }
+        //FIXME: pass key press/release to application here.
+        break;
+      case EventType::button_release:
+      case EventType::button_press:
+        if (m_use_imgui && m_imgui.on_mouse_move(x, y))
+        {
+          if (input_event->button <= 2)
+          {
+            m_imgui.update_modifiers(input_event->modifier_mask.imgui());
+            m_imgui.on_mouse_click(input_event->button, active);
+          }
+          break;
+        }
+        //FIXME: pass button press/release to application here.
+        break;
+      case EventType::window_leave:
+      case EventType::window_enter:
+        if (m_use_imgui)
+        {
+          m_imgui.on_mouse_enter(x, y, active);
+        }
+        //FIXME: pass enter/leave event to application here.
+        break;
+      case EventType::window_out_focus:
+      case EventType::window_in_focus:
+        m_in_focus = active;
+        if (m_use_imgui)
+        {
+          m_imgui.on_focus_changed(active);
+        }
+        //FIXME: pass focus/unfocus event to application here.
+        break;
+    }
+  }
+  // Consume mouse wheel offset.
+  float delta_x, delta_y;
+  {
+    vulkan::WheelOffset::wat wheel_offset_w(m_window_events->m_accumulated_wheel_offset);
+    wheel_offset_w->consume(delta_x, delta_y);
+  }
+  if (!m_in_focus)
+    return;
+  if (m_use_imgui)
+  {
+    // Pass most recent mouse position to imgui (for hovering effects).
+    int x, y;
+    {
+      vulkan::MovedMousePosition::wat moved_mouse_position_w(m_window_events->m_mouse_position);
+      x = moved_mouse_position_w->x();
+      y = moved_mouse_position_w->y();
+    }
+    if (m_imgui.on_mouse_move(x, y))            // Only process mouse wheel if the most recent mouse position is within an imgui window.
+    {
+      if (delta_x != 0.f || delta_y != 0.f)
+        m_imgui.on_mouse_wheel_event(delta_x, delta_y);
+      return;
+    }
+  }
+  //FIXME: handle delta_x, delta_y for the application here.
 }
 
 void SynchronousWindow::wait_for_all_fences() const
@@ -792,7 +867,10 @@ void SynchronousWindow::start_frame()
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
   if (m_use_imgui)
+  {
     m_imgui.start_frame(m_timer.get_delta_ms() * 0.001f);
+    draw_imgui();
+  }
 
   if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");

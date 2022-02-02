@@ -47,7 +47,7 @@ class Window : public task::SynchronousWindow
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
 
-  SampleParameters Parameters;
+  SampleParameters m_sample_parameters;
   int m_frame_count = 0;
 
  private:
@@ -67,6 +67,11 @@ class Window : public task::SynchronousWindow
   {
     // Use red as default clear color for this window.
 //    color = { 1.f, 0.f, 0.f, 1.f };
+  }
+
+  TestApplication const& application() const
+  {
+    return static_cast<TestApplication const&>(task::SynchronousWindow::application());
   }
 
   void PerformHardcoreCalculations(int duration) const
@@ -110,6 +115,62 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
+  void draw_imgui() override final
+  {
+    ImGuiIO& io = ImGui::GetIO();
+
+    //  bool show_demo_window = true;
+    //  ShowDemoWindow(&show_demo_window);
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
+    ImGui::SetNextWindowSize(ImVec2(100.0f, 100.0));
+    ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+
+    static bool show_fps = true;
+
+    if (ImGui::RadioButton("FPS", show_fps))
+    {
+      show_fps = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("ms", !show_fps))
+    {
+      show_fps = false;
+    }
+
+    if (show_fps)
+    {
+      ImGui::SetCursorPosX(20.0f);
+      ImGui::Text("%7.1f", m_timer.get_moving_average_FPS());
+
+      auto histogram = m_timer.get_FPS_histogram();
+      ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
+    }
+    else
+    {
+      ImGui::SetCursorPosX(20.0f);
+      ImGui::Text("%9.3f", m_timer.get_moving_average_ms());
+
+      auto histogram = m_timer.get_delta_ms_histogram();
+      ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
+    }
+
+    ImGui::End();
+
+    ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
+    ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
+    ImGui::Text("%s", hardware_name.c_str());
+    ImGui::NewLine();
+    ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);
+    ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, static_cast<int>(m_frame_resources_list.size()));
+    ImGui::SliderInt("Pre-submit CPU work time [ms]", &m_sample_parameters.PreSubmitCpuWorkTime, 0, 20);
+    ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
+    ImGui::Text("Frame generation time: %5.2f ms", m_sample_parameters.m_frame_generation_time);
+    ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
+
+    ImGui::End();
+  }
+
   void draw_frame() override
   {
     DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
@@ -118,7 +179,8 @@ class Window : public task::SynchronousWindow
     if (++m_frame_count == 1)
       return;
 
-    m_current_frame.m_resource_count = Parameters.m_frame_resources_count;  // Slider value.
+    ASSERT(m_sample_parameters.FrameResourcesCount >= 0);
+    m_current_frame.m_resource_count = vulkan::FrameResourceIndex{static_cast<size_t>(m_sample_parameters.FrameResourcesCount)};        // Slider value.
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 
@@ -136,17 +198,17 @@ class Window : public task::SynchronousWindow
       auto frame_generation_begin_time = std::chrono::high_resolution_clock::now();
 
       // Perform calculation influencing current frame.
-      PerformHardcoreCalculations(Parameters.PreSubmitCpuWorkTime);
+      PerformHardcoreCalculations(m_sample_parameters.PreSubmitCpuWorkTime);
 
       // Draw sample-specific data - includes command buffer submission!!
       DrawSample();
 
       // Perform calculations influencing rendering of a next frame.
-      PerformHardcoreCalculations(Parameters.PostSubmitCpuWorkTime);
+      PerformHardcoreCalculations(m_sample_parameters.PostSubmitCpuWorkTime);
 
       auto frame_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_generation_begin_time);
       float float_frame_generation_time = static_cast<float>(frame_generation_time.count() * 0.001f);
-      Parameters.FrameGenerationTime = Parameters.FrameGenerationTime * 0.99f + float_frame_generation_time * 0.01f;
+      m_sample_parameters.m_frame_generation_time = m_sample_parameters.m_frame_generation_time * 0.99f + float_frame_generation_time * 0.01f;
     }
 
     // Draw GUI and present swapchain image.
@@ -154,7 +216,7 @@ class Window : public task::SynchronousWindow
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
-    Parameters.TotalFrameTime = Parameters.TotalFrameTime * 0.99f + float_frame_time * 0.01f;
+    m_sample_parameters.m_total_frame_time = m_sample_parameters.m_total_frame_time * 0.99f + float_frame_time * 0.01f;
 
     Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
   }
@@ -201,7 +263,7 @@ class Window : public task::SynchronousWindow
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, Parameters.ObjectsCount, 0, 0);
+      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
       command_buffer_w->endRenderPass();
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       // command_buffer_w->setViewport(0, { viewport }); // Set viewport to full before calling m_imgui.render_frame.
@@ -265,7 +327,7 @@ class Window : public task::SynchronousWindow
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
 
     // Per instance data (position offsets and distance)
-    std::vector<float> instance_data(SampleParameters::s_max_objects_count * 4);
+    std::vector<float> instance_data(SampleParameters::s_max_object_count * 4);
     for (size_t i = 0; i < instance_data.size(); i += 4)
     {
       instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;

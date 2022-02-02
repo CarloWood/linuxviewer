@@ -32,6 +32,8 @@ struct ModifierMask
       Alt   == ImGuiKeyModFlags_Alt &&
       Super == ImGuiKeyModFlags_Super, "Modifier mapping needs fixing.");
 
+  static constexpr uint16_t imgui_mask = Ctrl|Shift|Alt|Super;
+
  private:
   uint16_t m_mask;
 
@@ -42,6 +44,7 @@ struct ModifierMask
   ModifierMask& operator=(ModifierMask const&) = default;
 
   uint16_t get_value() const { return m_mask; }
+  ImGuiKeyModFlags imgui() const { return m_mask & imgui_mask; }
 
 #ifdef CWDEBUG
   std::string to_string() const;
@@ -136,14 +139,15 @@ static_assert(std::is_trivially_copyable_v<MousePosition>, "MousePosition must b
 
 enum class EventType : uint16_t         // Uses 3 bits, see ButtonsEventType.
 {
-  key_press,
+  // The least significant bit means: pressed/clicked/entered/focus.
   key_release,
-  button_press,
+  key_press,
   button_release,
-  window_enter,
+  button_press,
   window_leave,
-  window_in_focus,
-  window_out_focus
+  window_enter,
+  window_out_focus,
+  window_in_focus
 };
 
 struct ButtonsEventType
@@ -189,11 +193,11 @@ struct UnlockedWheelOffset
     y += y_inc;
   }
 
-  std::pair<float, float> consume()
+  void consume(float& delta_x_out, float& delta_y_out)
   {
-    std::pair<float, float> result(x, y);
+    delta_x_out = x;
+    delta_y_out = y;
     x = y = 0.f;
-    return result;
   }
 };
 

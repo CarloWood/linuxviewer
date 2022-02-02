@@ -56,8 +56,11 @@ class ImGui
   void on_window_size_changed(vk::Extent2D extent);
   void on_focus_changed(bool in_focus) const;
   bool on_mouse_move(int x, int y) const;
-  bool on_mouse_click(size_t button, bool pressed) const;
+  void on_mouse_wheel_event(float delta_x, float delta_y) const;
+  void on_mouse_click(uint8_t button, bool pressed) const;
   void on_mouse_enter(int x, int y, bool entered) const;
+  void on_key_event(uint32_t keysym, bool pressed) const;
+  void update_modifiers(int modifiers) const;
 
   void start_frame(float delta_s);
   void render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, vk::PipelineLayout pipeline_layout, FrameResourceIndex index

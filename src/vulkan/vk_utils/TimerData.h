@@ -26,6 +26,9 @@ class TimerData
   float get_moving_average_FPS() const { return m_moving_average_FPS; }
   float get_delta_ms() const { return m_delta_ms; }
 
+  std::array<float, s_history_size - 1> get_FPS_histogram() const;
+  std::array<float, s_history_size - 1> get_delta_ms_histogram() const;
+
   void update();
 
   // Only the very first time m_current_index will be equal to zero. After that it falls in the range [0, s_history_size] inclusive.

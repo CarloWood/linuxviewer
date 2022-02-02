@@ -149,6 +149,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr int s_input_event_buffer_size = 32;                    // If the application is lagging more than 32 events behind then
                                                                           // the user is having other problems then losing key strokes.
   vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
+  bool m_in_focus;                                                        // Cache value of decoded input events.
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
@@ -368,6 +369,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // SynchronousWindow_render_loop:
   void consume_input_events();
+  virtual void draw_imgui() { }
   virtual void draw_frame() = 0;
 
   // Called by create_imageless_framebuffers and handle_window_size_changed.

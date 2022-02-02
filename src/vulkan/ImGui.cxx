@@ -7,7 +7,7 @@
 #include "Pipeline.h"
 #include "debug.h"
 #include <imgui.h>
-#include <backends/imgui_impl_vulkan.h>
+#include <xkbcommon/xkbcommon-keysyms.h>
 
 static void check_version()
 {
@@ -306,6 +306,8 @@ void ImGui::init(task::SynchronousWindow const* owning_window
   ImGuiIO& io = GetIO();
   // For all flags see https://github.com/ocornut/imgui/blob/master/imgui.h#L1530 (enum ImGuiConfigFlags_).
 //  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Master keyboard navigation enable flag. NewFrame() will automatically fill io.NavInputs[] based on io.AddKeyEvent() calls.
+  io.ConfigInputTrickleEventQueue = 0;          // Otherwise it takes seconds to digest a simple key repeat.
+
   m_ini_filename = owning_window->application().path_of(Directory::state) / "imgui.ini";
   io.IniFilename = m_ini_filename.c_str();
   Dout(dc::notice, "io.IniFilename = \"" << io.IniFilename << "\".");
@@ -388,8 +390,8 @@ void ImGui::on_window_size_changed(vk::Extent2D extent)
 
 void ImGui::on_focus_changed(bool in_focus) const
 {
-//  ImGuiIO& io = GetIO();
-//  io.AddFocusEvent(in_focus);
+  ImGuiIO& io = GetIO();
+  io.AddFocusEvent(in_focus);
 }
 
 bool ImGui::on_mouse_move(int x, int y) const
@@ -399,32 +401,18 @@ bool ImGui::on_mouse_move(int x, int y) const
   return io.WantCaptureMouse;
 }
 
-bool ImGui::on_mouse_click(size_t button, bool pressed) const
+void ImGui::on_mouse_wheel_event(float delta_x, float delta_y) const
 {
   ImGuiIO& io = GetIO();
-  if (button <= MouseButtons::Right)
-    io.AddMouseButtonEvent((3 - button) % 3, pressed);  // Swap button 1 and 2.
-  else
-  {
-    switch (button)
-    {
-      case MouseButtons::WheelDown:
-        io.AddMouseWheelEvent(0.f, -1.f);
-        break;
-      case MouseButtons::WheelUp:
-        io.AddMouseWheelEvent(0.f, 1.f);
-        break;
-      case MouseButtons::WheelLeft:
-        io.AddMouseWheelEvent(-1.f, 0.f);
-        break;
-      case MouseButtons::WheelRight:
-        io.AddMouseWheelEvent(1.f, 0.f);
-        break;
-      default:
-        break;
-    }
-  }
-  return io.WantCaptureMouse;
+  io.AddMouseWheelEvent(-delta_x, -delta_y);
+}
+
+void ImGui::on_mouse_click(uint8_t button, bool pressed) const
+{
+  ImGuiIO& io = GetIO();
+  // Only call for the first three buttons.
+  ASSERT(button <= 2);
+  io.AddMouseButtonEvent((3 - button) % 3, pressed);  // Swap button 1 and 2.
 }
 
 void ImGui::on_mouse_enter(int x, int y, bool entered) const
@@ -436,15 +424,358 @@ void ImGui::on_mouse_enter(int x, int y, bool entered) const
     io.AddMousePosEvent(-FLT_MAX, -FLT_MAX);
 }
 
+void ImGui::on_key_event(uint32_t keysym, bool pressed) const
+{
+  ImGuiIO& io = GetIO();
+  if (8 < keysym && keysym <= 127)
+  {
+    if (pressed)
+      io.AddInputCharacter(keysym);
+  }
+  else
+  {
+    ImGuiKey key;
+    switch (keysym)
+    {
+      case XKB_KEY_BackSpace:
+        key = ImGuiKey_Backspace;
+        break;
+      case XKB_KEY_Tab:
+        key = ImGuiKey_Tab;
+        break;
+#if 0
+      case XKB_KEY_Linefeed:
+        key = ;
+        break;
+      case XKB_KEY_Clear:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Return:
+        key = ImGuiKey_Enter;
+        break;
+      case XKB_KEY_Pause:
+        key = ImGuiKey_Pause;
+        break;
+      case XKB_KEY_Scroll_Lock:
+        key = ImGuiKey_ScrollLock;
+        break;
+#if 0
+      case XKB_KEY_Sys_Req:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Escape:
+        key = ImGuiKey_Escape;
+        break;
+      case XKB_KEY_Delete:
+        key = ImGuiKey_Delete;
+        break;
+      case XKB_KEY_Home:
+        key = ImGuiKey_Home;
+        break;
+      case XKB_KEY_Left:
+        key = ImGuiKey_LeftArrow;
+        break;
+      case XKB_KEY_Up:
+        key = ImGuiKey_UpArrow;
+        break;
+      case XKB_KEY_Right:
+        key = ImGuiKey_RightArrow;
+        break;
+      case XKB_KEY_Down:
+        key = ImGuiKey_DownArrow;
+        break;
+#if 0
+      case XKB_KEY_Prior:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Page_Up:
+        key = ImGuiKey_PageUp;
+        break;
+#if 0
+      case XKB_KEY_Next:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Page_Down:
+        key = ImGuiKey_PageDown;
+        break;
+      case XKB_KEY_End:
+        key = ImGuiKey_End;
+        break;
+#if 0
+      case XKB_KEY_Begin:
+        key =;
+        break;
+      case XKB_KEY_Select:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Print:
+        key = ImGuiKey_PrintScreen;
+        break;
+#if 0
+      case XKB_KEY_Execute:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Insert:
+        key = ImGuiKey_Insert;
+        break;
+#if 0
+      case XKB_KEY_Undo:
+        key = ;
+        break;
+      case XKB_KEY_Redo:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Menu:
+        key = ImGuiKey_Menu;
+        break;
+#if 0
+      case XKB_KEY_Find:
+        key = ;
+        break;
+      case XKB_KEY_Cancel:
+        key = ;
+        break;
+      case XKB_KEY_Help:
+        key = ;
+        break;
+      case XKB_KEY_Break:
+        key = ;
+        break;
+      case XKB_KEY_Mode_switch:
+        key = ;
+        break;
+      case XKB_KEY_script_switch:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Num_Lock:
+        key = ImGuiKey_NumLock;
+        break;
+#if 0
+      case XKB_KEY_KP_Space:
+        key = ;
+        break;
+      case XKB_KEY_KP_Tab:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_KP_Enter:
+        key = ImGuiKey_KeypadEnter;
+        break;
+#if 0
+      case XKB_KEY_KP_F1:
+        key = ;
+        break;
+      case XKB_KEY_KP_F2:
+        key = ;
+        break;
+      case XKB_KEY_KP_F3:
+        key = ;
+        break;
+      case XKB_KEY_KP_F4:
+        key = ;
+        break;
+      case XKB_KEY_KP_Home:
+        key = ;
+        break;
+      case XKB_KEY_KP_Left:
+        key = ;
+        break;
+      case XKB_KEY_KP_Up:
+        key = ;
+        break;
+      case XKB_KEY_KP_Right:
+        key = ;
+        break;
+      case XKB_KEY_KP_Down:
+        key = ;
+        break;
+      case XKB_KEY_KP_Prior:
+        key = ;
+        break;
+      case XKB_KEY_KP_Page_Up:
+        key = ;
+        break;
+      case XKB_KEY_KP_Next:
+        key = ;
+        break;
+      case XKB_KEY_KP_Page_Down:
+        key = ;
+        break;
+      case XKB_KEY_KP_End:
+        key = ;
+        break;
+      case XKB_KEY_KP_Begin:
+        key = ;
+        break;
+      case XKB_KEY_KP_Insert:
+        key = ;
+        break;
+      case XKB_KEY_KP_Delete:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_KP_Equal:
+        key = ImGuiKey_KeypadEqual;
+        break;
+      case XKB_KEY_KP_Multiply:
+        key = ImGuiKey_KeypadMultiply;
+        break;
+      case XKB_KEY_KP_Add:
+        key = ImGuiKey_KeypadAdd;
+        break;
+#if 0
+      case XKB_KEY_KP_Separator:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_KP_Subtract:
+        key = ImGuiKey_KeypadSubtract;
+        break;
+      case XKB_KEY_KP_Decimal:
+        key = ImGuiKey_KeypadDecimal;
+        break;
+      case XKB_KEY_KP_Divide:
+        key = ImGuiKey_KeypadDivide;
+        break;
+      case XKB_KEY_KP_0:
+        key = ImGuiKey_Keypad0;
+        break;
+      case XKB_KEY_KP_1:
+        key = ImGuiKey_Keypad1;
+        break;
+      case XKB_KEY_KP_2:
+        key = ImGuiKey_Keypad2;
+        break;
+      case XKB_KEY_KP_3:
+        key = ImGuiKey_Keypad3;
+        break;
+      case XKB_KEY_KP_4:
+        key = ImGuiKey_Keypad4;
+        break;
+      case XKB_KEY_KP_5:
+        key = ImGuiKey_Keypad5;
+        break;
+      case XKB_KEY_KP_6:
+        key = ImGuiKey_Keypad6;
+        break;
+      case XKB_KEY_KP_7:
+        key = ImGuiKey_Keypad7;
+        break;
+      case XKB_KEY_KP_8:
+        key = ImGuiKey_Keypad8;
+        break;
+      case XKB_KEY_KP_9:
+        key = ImGuiKey_Keypad9;
+        break;
+      case XKB_KEY_F1:
+        key = ImGuiKey_F1;
+        break;
+      case XKB_KEY_F2:
+        key = ImGuiKey_F2;
+        break;
+      case XKB_KEY_F3:
+        key = ImGuiKey_F3;
+        break;
+      case XKB_KEY_F4:
+        key = ImGuiKey_F4;
+        break;
+      case XKB_KEY_F5:
+        key = ImGuiKey_F5;
+        break;
+      case XKB_KEY_F6:
+        key = ImGuiKey_F6;
+        break;
+      case XKB_KEY_F7:
+        key = ImGuiKey_F7;
+        break;
+      case XKB_KEY_F8:
+        key = ImGuiKey_F8;
+        break;
+      case XKB_KEY_F9:
+        key = ImGuiKey_F9;
+        break;
+      case XKB_KEY_F10:
+        key = ImGuiKey_F10;
+        break;
+      case XKB_KEY_F11:
+        key = ImGuiKey_F11;
+        break;
+      case XKB_KEY_F12:
+        key = ImGuiKey_F12;
+        break;
+      case XKB_KEY_Shift_L:
+        key = ImGuiKey_LeftShift;
+        break;
+      case XKB_KEY_Shift_R:
+        key = ImGuiKey_RightShift;
+        break;
+      case XKB_KEY_Control_L:
+        key = ImGuiKey_LeftCtrl;
+        break;
+      case XKB_KEY_Control_R:
+        key = ImGuiKey_RightCtrl;
+        break;
+      case XKB_KEY_Caps_Lock:
+        key = ImGuiKey_CapsLock;
+        break;
+#if 0
+      case XKB_KEY_Shift_Lock:
+        key = ;
+        break;
+      case XKB_KEY_Meta_L:
+        key = ;
+        break;
+      case XKB_KEY_Meta_R:
+        key = ;
+        break;
+#endif
+      case XKB_KEY_Alt_L:
+        key = ImGuiKey_LeftAlt;
+        break;
+      case XKB_KEY_Alt_R:
+        key = ImGuiKey_RightAlt;
+        break;
+      case XKB_KEY_Super_L:
+        key = ImGuiKey_LeftSuper;
+        break;
+      case XKB_KEY_Super_R:
+        key = ImGuiKey_RightSuper;
+        break;
+#if 0
+      case XKB_KEY_Hyper_L:
+        key = ;
+        break;
+      case XKB_KEY_Hyper_R:
+        key = ;
+        break;
+#endif
+      default:
+        Dout(dc::warning, "Ignoring unhandled key input with value 0x" << std::hex << keysym);
+        return;
+    }
+    io.AddKeyEvent(key, pressed);
+  }
+}
+
+void ImGui::update_modifiers(int modifiers) const
+{
+  ImGuiIO& io = GetIO();
+  io.AddKeyModsEvent(modifiers);
+}
+
 void ImGui::start_frame(float delta_s)
 {
   ImGuiIO& io = GetIO();
   io.DeltaTime = delta_s;               // Time elapsed since the previous frame (in seconds).
   NewFrame();
-
-  Text("Hello world!");
-  bool show_demo_window = true;
-  ShowDemoWindow(&show_demo_window);
 }
 
 void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport)

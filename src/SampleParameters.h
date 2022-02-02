@@ -7,42 +7,23 @@
 // FIXME: move to user application.
 struct SampleParameters
 {
-  static constexpr int s_max_objects_count = 1000;
+  static constexpr int s_max_object_count = 1000;
   static constexpr int s_quad_tessellation = 40;
 
-  int                                         ObjectsCount;
-  int                                         PreSubmitCpuWorkTime;
-  int                                         PostSubmitCpuWorkTime;
-  float                                       FrameGenerationTime;
-  float                                       TotalFrameTime;
-  vulkan::FrameResourceIndex                  m_frame_resources_count;
-
-//  vk::UniqueRenderPass                        RenderPass;
-//  vk::UniqueRenderPass                        PostRenderPass;
-//  vulkan::DescriptorSetParameters                     DescriptorSet;
-//  vulkan::ImageParameters                             BackgroundTexture;
-//  vulkan::ImageParameters                             Texture;
-//  vk::UniquePipelineLayout                    PipelineLayout;
-//  vk::UniquePipeline                          GraphicsPipeline;
-//  vulkan::BufferParameters                            VertexBuffer;
-//  vulkan::BufferParameters                            InstanceBuffer;
+  int ObjectCount;
+  int PreSubmitCpuWorkTime;
+  int PostSubmitCpuWorkTime;
+  int FrameResourcesCount;
+  float m_frame_generation_time;
+  float m_total_frame_time;
 
   SampleParameters() :
-  ObjectsCount(100),
-  PreSubmitCpuWorkTime(0),
-  PostSubmitCpuWorkTime(0),
-  FrameGenerationTime(0),
-  TotalFrameTime(0),
-  m_frame_resources_count(1)
-//  RenderPass(),
-//  PostRenderPass(),
-//  DescriptorSet(),
-//  BackgroundTexture(),
-//  Texture(),
-//  PipelineLayout(),
-//  GraphicsPipeline(),
-//  VertexBuffer(),
-//  InstanceBuffer()
+    ObjectCount(100),
+    PreSubmitCpuWorkTime(0),
+    PostSubmitCpuWorkTime(0),
+    FrameResourcesCount(1),
+    m_frame_generation_time(0),
+    m_total_frame_time(0)
   {
   }
 };
