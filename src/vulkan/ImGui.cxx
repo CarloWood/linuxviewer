@@ -15,6 +15,10 @@ static void check_version()
   IMGUI_CHECKVERSION();
 }
 
+// Pointer to current ImGui context.
+// Must be updated at the start of each code block that calls imgui functions and that could be a new thread; meaning at the start of the render loop.
+thread_local ImGuiContext* lvImGuiTLS;
+
 // Use lower case for the imgui namespace because my class is already called ImGui.
 namespace imgui = ImGui;
 
@@ -297,7 +301,8 @@ void ImGui::init(task::SynchronousWindow const* owning_window
   // 2: Initialize imgui library.
 
   // This initializes the core structures of imgui.
-  CreateContext();
+  SetCurrentContext(nullptr);           // Otherwise CreateContext() will not replace it.
+  m_context = CreateContext();
 
   // Set initial framebuffer size.
   on_window_size_changed(owning_window->swapchain().extent());

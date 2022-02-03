@@ -12,6 +12,10 @@ project(imgui_ObjLib
 # BUILD PROJECT
 #
 
+add_compile_definitions(
+  IMGUI_USER_CONFIG="lvimconfig.h"
+)
+
 # This project is an OBJECT-library, used by the main project.
 add_library(imgui_ObjLib OBJECT)
 
@@ -36,6 +40,9 @@ target_include_directories(imgui_ObjLib
     # And when using imgui, we can't use #include <imgui/*> because backends/*.h use #include "imgui.h"; so we'll just
     # have to include this directory at all times.
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui"
+  PRIVATE:
+    # In order to find lvimconfig.h while compiling imgui.
+    "${CMAKE_SOURCE_DIR}"
 )
 
 # Create an ALIAS target.

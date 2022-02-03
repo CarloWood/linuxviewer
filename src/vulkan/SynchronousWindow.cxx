@@ -230,6 +230,11 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       [[fallthrough]];
     case SynchronousWindow_render_loop:
     {
+      if (m_use_imgui)
+      {
+        // Set a thread-local global variable that imgui uses to access its context.
+        m_imgui.set_current_context();
+      }
 #if CW_DEBUG
       RenderLoopEntered scoped;
 #endif

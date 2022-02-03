@@ -55,6 +55,10 @@ add_custom_target(resources ALL DEPENDS ${RESOURCES_TARGETS})
 
 #==============================================================================
 
+add_compile_definitions(
+  IMGUI_USER_CONFIG="lvimconfig.h"
+)
+
 add_executable(mytest
   TestApplication.cxx
   TestApplication.h

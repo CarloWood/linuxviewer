@@ -9,6 +9,7 @@
 
 #include "CommandBuffer.h"      // CommandBufferWriteAccessType
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
+#include "lvimconfig.h"         // lvImGuiTLS
 
 namespace task {
 class SynchronousWindow;
@@ -34,6 +35,7 @@ class ImGui
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::UniquePipeline m_graphics_pipeline;
   std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
+  ImGuiContext* m_context;                              // The ImGui context of this ImGui instance.
 
  private:
   inline LogicalDevice const& logical_device() const;
@@ -52,6 +54,9 @@ class ImGui
 
   void init(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+
+  // Called at the start of the render loop.
+  void set_current_context() { lvImGuiTLS = m_context; }
 
   void on_window_size_changed(vk::Extent2D extent);
   void on_focus_changed(bool in_focus) const;
