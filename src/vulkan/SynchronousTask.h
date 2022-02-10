@@ -15,12 +15,13 @@ class SynchronousTask : public AIStatefulTask
  private:
   SynchronousWindow* m_owner;                // The SynchronousWindow that this object is a member of.
 
+ public:
+  // Constructor.
+  SynchronousTask(SynchronousWindow* owner COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owner(owner) { }
+
  protected:
   /// The base class of this task.
   using direct_base_type = AIStatefulTask;
-
-  // Constructor.
-  SynchronousTask(SynchronousWindow* owner COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owner(owner) { }
 
   // Allow only yielding to the same engine.
   void yield() { AIStatefulTask::yield(); }

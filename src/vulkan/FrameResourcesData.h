@@ -13,7 +13,8 @@ struct FrameResourcesData
   utils::Vector<ImageParameters, AttachmentIndex> m_image_parameters;
 
   // Too specialized?
-  using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
+  static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  using command_pool_type = CommandPool<pool_type>;
   command_pool_type       m_command_pool;
 
   // Command buffers (currently only one).

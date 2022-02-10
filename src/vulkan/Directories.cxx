@@ -126,6 +126,7 @@ void Directories::initialize(std::string const& application_name, std::filesyste
     Dout(dc::notice, directory << " = " << m_paths[i]);
   }
 
+#ifdef CWDEBUG
   Dout(dc::notice, "All XDG data dirs:");
   {
     NAMESPACE_DEBUG::Mark mark;
@@ -141,6 +142,7 @@ void Directories::initialize(std::string const& application_name, std::filesyste
       Dout(dc::notice, dir);
   }
   Dout(dc::notice, "resources_path() = " << path_of(Directory::resources));
+#endif
 }
 
 std::filesystem::path Directories::path_of(Directory directory) const

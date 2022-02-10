@@ -19,7 +19,7 @@ class TimerData
   std::array<std::chrono::time_point<std::chrono::high_resolution_clock>, s_history_size + 1> m_time_history;     // Index [1...s_history_size] are used.
   float m_moving_average_ms = {};       // Delta time averaged over the last s_history_size frames.
   float m_moving_average_FPS = {};      // Frames Per Second, averaged over the last s_history_size frames.
-  float m_delta_ms = {};                // Delta time since last frame, in ms.
+  float m_delta_ms = 1.f / 60.f;        // Delta time since last frame, in ms. The 1/60 is only the initial value used for imgui (which demands a non-zero value).
 
  public:
   float get_moving_average_ms() const { return m_moving_average_ms; }

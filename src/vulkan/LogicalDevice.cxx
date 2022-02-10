@@ -400,7 +400,9 @@ void LogicalDevice::prepare(
   // Check for optional features.
   Dout(dc::vulkan, "Physical Device Properties:");
   {
+#ifdef CWDEBUG
     debug::Mark mark;
+#endif
     auto properties = m_vh_physical_device.getProperties();
     Dout(dc::vulkan, properties);
     m_non_coherent_atom_size = properties.limits.nonCoherentAtomSize;

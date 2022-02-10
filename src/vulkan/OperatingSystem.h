@@ -39,11 +39,18 @@ struct WindowParameters
 #if defined(VK_USE_PLATFORM_XCB_KHR)
   boost::intrusive_ptr<xcb::Connection> m_xcb_connection;
   xcb_window_t          m_handle;
+  xcb_window_t          m_parent_handle = {};
 
   vk::XcbSurfaceCreateInfoKHR get_surface_create_info() const
   {
     return vk::XcbSurfaceCreateInfoKHR{}.setConnection(*m_xcb_connection).setWindow(m_handle);
   }
+
+  void set_parent_window(WindowParameters const& parent_window)
+  {
+    m_parent_handle = parent_window.m_handle;
+  }
+
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
   Display*              m_display;
   Window                m_handle;
@@ -74,6 +81,13 @@ class Window : public xcb::WindowBase
   // Called from task state SynchronousWindow_create (initialization).
   void set_xcb_connection(boost::intrusive_ptr<xcb::Connection> xcb_connection) { m_parameters.m_xcb_connection = std::move(xcb_connection); }
 
+  // Set a parent window - if any.
+  void set_parent_window(Window* parent_window)
+  {
+    if (parent_window)
+      m_parameters.set_parent_window(parent_window->m_parameters);
+  }
+
   // Create an X Window on the screen and return a vulkan surface handle for it.
   // Called from task state SynchronousWindow_create (initialization).
   [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent);
@@ -82,7 +96,7 @@ class Window : public xcb::WindowBase
   void destroy();
 
   // Accessors.
-//  WindowParameters const& get_parameters() const { return m_parameters; }
+  WindowParameters const& get_window_parameters() const { return m_parameters; }
 
   WindowExtent const& locked_extent() const
   {

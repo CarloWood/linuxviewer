@@ -55,6 +55,55 @@ std::ostream& operator<<(std::ostream& os, MouseButtons mouse_buttons)
   os << mouse_buttons.to_string();
   return os;
 }
+
+std::ostream& operator<<(std::ostream& os, MousePosition mouse_position)
+{
+  os << '{';
+  os << mouse_position.x() << ", " << mouse_position.y();
+  return os << '}';
+}
+
+char const* to_string(EventType event_type)
+{
+  switch (event_type)
+  {
+    AI_CASE_RETURN(EventType::key_release);
+    AI_CASE_RETURN(EventType::key_press);
+    AI_CASE_RETURN(EventType::button_release);
+    AI_CASE_RETURN(EventType::button_press);
+    AI_CASE_RETURN(EventType::window_leave);
+    AI_CASE_RETURN(EventType::window_enter);
+    AI_CASE_RETURN(EventType::window_out_focus);
+    AI_CASE_RETURN(EventType::window_in_focus);
+  }
+}
+
+std::ostream& operator<<(std::ostream& os, EventType event_type)
+{
+  return os << to_string(event_type);
+}
+
+std::ostream& operator<<(std::ostream& os, ButtonsEventType button_events)
+{
+  os << '{';
+  os << "mouse_buttons:" << button_events.buttons() <<
+      ", event_type:" << button_events.event_type();
+  return os << '}';
+}
+
+std::ostream& operator<<(std::ostream& os, InputEvent const& input_event)
+{
+  os << '{';
+  os << "mouse_position:" << input_event.mouse_position <<
+      ", modifier_mask:" << input_event.modifier_mask <<
+      ", flags:" << input_event.flags;
+  if (input_event.flags.event_type() == EventType::key_release || input_event.flags.event_type() == EventType::key_press)
+    os << ", keysym:" << input_event.keysym;
+  else if (input_event.flags.event_type() == EventType::button_release || input_event.flags.event_type() == EventType::button_press)
+    os << ", button:" << (int)input_event.button;
+  return os << '}';
+}
+
 #endif
 
 } // namespace vulkan

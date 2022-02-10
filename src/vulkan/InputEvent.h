@@ -2,7 +2,6 @@
 
 #include "utils/threading/FIFOBuffer.h"
 #include "threadsafe/aithreadsafe.h"
-#include <imgui.h>
 #include <iosfwd>
 #include <cstdint>
 #include <atomic>
@@ -25,12 +24,14 @@ struct ModifierMask
 
   static constexpr uint32_t unused  = 1 << 5;        // First unused bit; used by AtomicInputState below.
 
+#if 0   // This assert was moved to ImGui.cxx because I don't want to #include <imgui.h> here.
   // vulkan::Window::convert should map XCB codes to our codes, which in turn must be equal to what imgui uses.
   static_assert(
       Ctrl  == ImGuiKeyModFlags_Ctrl &&
       Shift == ImGuiKeyModFlags_Shift &&
       Alt   == ImGuiKeyModFlags_Alt &&
       Super == ImGuiKeyModFlags_Super, "Modifier mapping needs fixing.");
+#endif
 
   static constexpr uint16_t imgui_mask = Ctrl|Shift|Alt|Super;
 
@@ -44,7 +45,7 @@ struct ModifierMask
   ModifierMask& operator=(ModifierMask const&) = default;
 
   uint16_t get_value() const { return m_mask; }
-  ImGuiKeyModFlags imgui() const { return m_mask & imgui_mask; }
+  uint16_t imgui() const { return m_mask & imgui_mask; }
 
 #ifdef CWDEBUG
   std::string to_string() const;
@@ -175,6 +176,10 @@ struct InputEvent
 };
 
 static_assert(std::is_trivially_copyable_v<InputEvent>, "InputEvent must be trivially copyable because we're going to use it in FIFOBuffer.");
+
+#ifdef CWDEBUG
+std::ostream& operator<<(std::ostream& os, InputEvent const& input_event);
+#endif
 
 using InputEventBuffer = utils::threading::FIFOBuffer<1, InputEvent>;
 

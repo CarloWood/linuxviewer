@@ -90,7 +90,7 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   void on_key_event(int16_t x, int16_t y, uint16_t converted_modifiers, bool pressed, uint32_t keysym) override final
   {
     vulkan::ModifierMask modifiers{converted_modifiers};
-    DoutEntering(dc::notice, "vulkan::WindowEvents::on_key_event(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << std::hex << keysym << ")");
+    DoutEntering(dc::xcb, "vulkan::WindowEvents::on_key_event(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << pressed << ", " << std::hex << keysym << ")");
 
     if (m_input_event_buffer)
     {

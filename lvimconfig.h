@@ -5,6 +5,7 @@ struct ImGuiContext;
 extern thread_local ImGuiContext* lvImGuiTLS;
 #define GImGui lvImGuiTLS
 
+#include "sys.h"
 #include "debug.h"
 #define IM_ASSERT(_EXPR) ASSERT(_EXPR)
 

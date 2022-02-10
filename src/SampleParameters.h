@@ -16,6 +16,7 @@ struct SampleParameters
   int FrameResourcesCount;
   float m_frame_generation_time;
   float m_total_frame_time;
+  bool m_show_fps = true;
 
   SampleParameters() :
     ObjectCount(100),

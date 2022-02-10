@@ -7,6 +7,7 @@
 #include "VertexData.h"
 #include "StagingBufferParameters.h"
 #include "Exceptions.h"
+#include "SynchronousTask.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
@@ -96,6 +97,7 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
   {
     AI_CASE_RETURN(SynchronousWindow_xcb_connection);
     AI_CASE_RETURN(SynchronousWindow_create);
+    AI_CASE_RETURN(SynchronousWindow_parents_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_acquire_queues);
     AI_CASE_RETURN(SynchronousWindow_initialize_vukan);
@@ -129,7 +131,7 @@ void SynchronousWindow::initialize_impl()
 struct RenderLoopEntered
 {
   debug::Mark m_mark;
-  RenderLoopEntered() : m_mark("renderloop ")
+  RenderLoopEntered(char const* utf8_m) : m_mark(utf8_m)
   {
     Dout(dc::renderloop, "ENTERING RENDERLOOP");
   }
@@ -171,11 +173,30 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         wait(logical_device_index_available);
         break;
       }
+      else if (m_parent_window_task)
+      {
+        // Apparently we're a child window that was created before the parent window had its logical device index.
+        // Wait until the parent has its logical device, so we can just copy that.
+        m_parent_window_task->m_logical_device_index_available_event.register_task(this, logical_device_index_available);
+        set_state(SynchronousWindow_parents_logical_device_index_available);
+        wait(logical_device_index_available);
+        break;
+      }
       // Otherwise we can continue with acquiring the swapchain queues.
       set_state(SynchronousWindow_acquire_queues);
       // But wait until the logical_device_index is set, if it wasn't already.
       if (m_logical_device_index.load(std::memory_order::relaxed) == -1)
+      {
+        // Wait until set_logical_device_index is called, which is called from Application::create_device called from
+        // the logical device task state LogicalDevice_create for the root window that was passed to Application::create_logical_device.
         wait(logical_device_index_available);
+      }
+      break;
+    case SynchronousWindow_parents_logical_device_index_available:
+      // The logical device index is available on the parent. Copy it.
+      set_logical_device_index(m_parent_window_task->get_logical_device_index());
+      // Create the swapchain.
+      set_state(SynchronousWindow_acquire_queues);
       break;
     case SynchronousWindow_logical_device_index_available:
       // The logical device index is available. Copy it.
@@ -236,7 +257,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         m_imgui.set_current_context();
       }
 #if CW_DEBUG
-      RenderLoopEntered scoped;
+      RenderLoopEntered scoped(m_title.c_str());
 #endif
       int special_circumstances = atomic_flags();
       for (;;)  // So that we can use continue.
@@ -389,10 +410,12 @@ void SynchronousWindow::create_imgui()
 
 void SynchronousWindow::consume_input_events()
 {
-  DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events()");
+  DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events() [" << static_cast<AIStatefulTask*>(this) << "]");
   // We are the consumer thread.
+  Dout(dc::vkframe|continued_cf, "Calling m_input_event_buffer.pop() = ");
   while (vulkan::InputEvent const* input_event = m_input_event_buffer.pop())
   {
+    Dout(dc::finish, '{' << *input_event << '}');
     int16_t x = input_event->mouse_position.x();
     int16_t y = input_event->mouse_position.y();
     bool active = static_cast<uint16_t>(input_event->flags.event_type()) & 1;
@@ -401,24 +424,28 @@ void SynchronousWindow::consume_input_events()
     {
       case EventType::key_release:
       case EventType::key_press:
-        if (m_use_imgui && m_imgui.on_mouse_move(x, y))
+        if (m_use_imgui)
         {
+          m_imgui.on_mouse_move(x, y);
           m_imgui.update_modifiers(input_event->modifier_mask.imgui());
           m_imgui.on_key_event(input_event->keysym, active);
-          break;
+          if (m_imgui.want_capture_keyboard())  // Inaccurate; this value corresponds to *previous* frame.
+            break;                              // So it is possible that events are lost or duplicated. FIXME
         }
         //FIXME: pass key press/release to application here.
         break;
       case EventType::button_release:
       case EventType::button_press:
-        if (m_use_imgui && m_imgui.on_mouse_move(x, y))
+        if (m_use_imgui)
         {
+          m_imgui.on_mouse_move(x, y);
           if (input_event->button <= 2)
           {
             m_imgui.update_modifiers(input_event->modifier_mask.imgui());
             m_imgui.on_mouse_click(input_event->button, active);
           }
-          break;
+          if (m_imgui.want_capture_mouse())     // Inaccurate; this value corresponds to the mouse position during the *previous* frame.
+            break;                              // So it is possible that events are lost or duplicated. FIXME
         }
         //FIXME: pass button press/release to application here.
         break;
@@ -440,7 +467,9 @@ void SynchronousWindow::consume_input_events()
         //FIXME: pass focus/unfocus event to application here.
         break;
     }
+    Dout(dc::vkframe|continued_cf, "Calling m_input_event_buffer.pop() = ");
   }
+  Dout(dc::finish, "nullptr");
   // Consume mouse wheel offset.
   float delta_x, delta_y;
   {
@@ -458,12 +487,11 @@ void SynchronousWindow::consume_input_events()
       x = moved_mouse_position_w->x();
       y = moved_mouse_position_w->y();
     }
-    if (m_imgui.on_mouse_move(x, y))            // Only process mouse wheel if the most recent mouse position is within an imgui window.
-    {
-      if (delta_x != 0.f || delta_y != 0.f)
-        m_imgui.on_mouse_wheel_event(delta_x, delta_y);
+    m_imgui.on_mouse_move(x, y);
+    if (delta_x != 0.f || delta_y != 0.f)
+      m_imgui.on_mouse_wheel_event(delta_x, delta_y);
+    if (m_imgui.want_capture_mouse())
       return;
-    }
   }
   //FIXME: handle delta_x, delta_y for the application here.
 }
@@ -865,6 +893,11 @@ vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_da
   return image_parameters;
 }
 
+void SynchronousWindow::detect_if_imgui_is_used()
+{
+  m_use_imgui = imgui_pass.vh_render_pass();
+}
+
 void SynchronousWindow::start_frame()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::start_frame()");
@@ -1035,7 +1068,7 @@ void SynchronousWindow::on_window_size_changed_post()
 
 //virtual
 // Override this function to change this value.
-vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources(bool& use_imgui) const
+vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
 {
   return s_default_number_of_frame_resources;
 }
@@ -1055,7 +1088,7 @@ void SynchronousWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
-  vulkan::FrameResourceIndex const number_of_frame_resources = this->number_of_frame_resources(m_use_imgui);
+  vulkan::FrameResourceIndex const number_of_frame_resources = this->number_of_frame_resources();
   Dout(dc::vulkan, "Creating " << number_of_frame_resources.get_value() << " frame resources.");
   m_frame_resources_list.resize(number_of_frame_resources.get_value());
   for (vulkan::FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
@@ -1101,6 +1134,23 @@ void SynchronousWindow::create_frame_resources()
 
   // Initialize all attachments (images, image views, memory).
   on_window_size_changed_post();
+}
+
+void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::FrameResourcesData::pool_type>& command_buffer_w)
+{
+  vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+  vk::SubmitInfo submit_info{
+    .waitSemaphoreCount = 1,
+    .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
+    .pWaitDstStageMask = &wait_dst_stage_mask,
+    .commandBufferCount = 1,
+    .pCommandBuffers = command_buffer_w,
+    .signalSemaphoreCount = 1,
+    .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
+  };
+
+  Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *m_current_frame.m_frame_resources->m_command_buffers_completed << ")");
+  presentation_surface().vh_graphics_queue().submit( { submit_info }, *m_current_frame.m_frame_resources->m_command_buffers_completed );
 }
 
 #ifdef CWDEBUG

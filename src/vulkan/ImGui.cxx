@@ -5,9 +5,16 @@
 #include "Application.h"
 #include "ImageKind.h"
 #include "Pipeline.h"
+#include "InputEvent.h"
 #include "debug.h"
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
+
+#if defined(CWDEBUG) && !defined(DOXYGEN)
+NAMESPACE_DEBUG_CHANNELS_START
+channel_ct imgui("IMGUI");
+NAMESPACE_DEBUG_CHANNELS_END
+#endif
 
 static void check_version()
 {
@@ -23,6 +30,13 @@ thread_local ImGuiContext* lvImGuiTLS;
 namespace imgui = ImGui;
 
 namespace vulkan {
+
+// vulkan::Window::convert should map XCB codes to our codes, which in turn must be equal to what imgui uses.
+static_assert(
+    ModifierMask::Ctrl  == ImGuiKeyModFlags_Ctrl &&
+    ModifierMask::Shift == ImGuiKeyModFlags_Shift &&
+    ModifierMask::Alt   == ImGuiKeyModFlags_Alt &&
+    ModifierMask::Super == ImGuiKeyModFlags_Super, "Modifier mapping needs fixing.");
 
 //inline
 LogicalDevice const& ImGui::logical_device() const
@@ -311,7 +325,6 @@ void ImGui::init(task::SynchronousWindow const* owning_window
   ImGuiIO& io = GetIO();
   // For all flags see https://github.com/ocornut/imgui/blob/master/imgui.h#L1530 (enum ImGuiConfigFlags_).
 //  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Master keyboard navigation enable flag. NewFrame() will automatically fill io.NavInputs[] based on io.AddKeyEvent() calls.
-  io.ConfigInputTrickleEventQueue = 0;          // Otherwise it takes seconds to digest a simple key repeat.
 
   m_ini_filename = owning_window->application().path_of(Directory::state) / "imgui.ini";
   io.IniFilename = m_ini_filename.c_str();
@@ -388,32 +401,41 @@ void ImGui::init(task::SynchronousWindow const* owning_window
 // Called from SynchronousWindow::handle_window_size_changed, so no need for locking.
 void ImGui::on_window_size_changed(vk::Extent2D extent)
 {
+  DoutEntering(dc::imgui, "ImGui::on_window_size_changed(" << extent << ")");
   ImGuiIO& io = GetIO();
   io.DisplaySize.x = extent.width;
   io.DisplaySize.y = extent.height;
+  Dout(dc::imgui, "io.DisplaySize set to (" << io.DisplaySize.x << ", " << io.DisplaySize.y << ")");
 }
 
 void ImGui::on_focus_changed(bool in_focus) const
 {
+  DoutEntering(dc::imgui, "ImGui::on_focus_changed(" << in_focus << ")");
   ImGuiIO& io = GetIO();
   io.AddFocusEvent(in_focus);
 }
 
-bool ImGui::on_mouse_move(int x, int y) const
+void ImGui::on_mouse_move(int x, int y)
 {
+  DoutEntering(dc::imgui(x != m_last_x || y != m_last_y), "ImGui::on_mouse_move(" << x << ", " << y << ")");
+#ifdef CWDEBUG
+  m_last_x = x;
+  m_last_y = y;
+#endif
   ImGuiIO& io = GetIO();
   io.AddMousePosEvent(x, y);
-  return io.WantCaptureMouse;
 }
 
 void ImGui::on_mouse_wheel_event(float delta_x, float delta_y) const
 {
+  DoutEntering(dc::imgui, "ImGui::on_wheel_event(" << delta_x << ", " << delta_y << ")");
   ImGuiIO& io = GetIO();
   io.AddMouseWheelEvent(-delta_x, -delta_y);
 }
 
 void ImGui::on_mouse_click(uint8_t button, bool pressed) const
 {
+  DoutEntering(dc::imgui, "ImGui::on_mouse_click(" << (int)button << ", " << pressed << ")");
   ImGuiIO& io = GetIO();
   // Only call for the first three buttons.
   ASSERT(button <= 2);
@@ -422,6 +444,7 @@ void ImGui::on_mouse_click(uint8_t button, bool pressed) const
 
 void ImGui::on_mouse_enter(int x, int y, bool entered) const
 {
+  DoutEntering(dc::imgui, "ImGui::on_mouse_enter(" << x << ", " << y << ", " << entered << ")");
   ImGuiIO& io = GetIO();
   if (entered)
     io.AddMousePosEvent(x, y);
@@ -431,6 +454,7 @@ void ImGui::on_mouse_enter(int x, int y, bool entered) const
 
 void ImGui::on_key_event(uint32_t keysym, bool pressed) const
 {
+  DoutEntering(dc::imgui, "ImGui::on_key_event(" << keysym << ", " << pressed << ")");
   ImGuiIO& io = GetIO();
   if (8 < keysym && keysym <= 127)
   {
@@ -772,8 +796,25 @@ void ImGui::on_key_event(uint32_t keysym, bool pressed) const
 
 void ImGui::update_modifiers(int modifiers) const
 {
+  DoutEntering(dc::imgui, "ImGui::update_modifiers(" << modifiers << ")");
   ImGuiIO& io = GetIO();
   io.AddKeyModsEvent(modifiers);
+}
+
+bool ImGui::want_capture_keyboard() const
+{
+  ImGuiIO& io = GetIO();
+  bool res = io.WantCaptureKeyboard;
+  Dout(dc::imgui, "ImGui::want_capture_keyboard() = " << res);
+  return res;
+}
+
+bool ImGui::want_capture_mouse() const
+{
+  ImGuiIO& io = GetIO();
+  bool res = io.WantCaptureMouse;
+  Dout(dc::imgui, "ImGui::want_capture_mouse() = " << res);
+  return res;
 }
 
 void ImGui::start_frame(float delta_s)
@@ -805,7 +846,7 @@ void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_
   command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
 }
 
-void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, vk::PipelineLayout pipeline_layout, FrameResourceIndex index
+void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, FrameResourceIndex index
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   EndFrame();

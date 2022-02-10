@@ -238,7 +238,7 @@ class Window : public task::SynchronousWindow
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
     return vulkan::FrameResourceIndex{3};
   }

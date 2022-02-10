@@ -18,6 +18,7 @@
 
 #include "vulkan/ClearValue.h"
 #include "vulkan/ImageKind.h"
+#include <imgui.h>
 
 using namespace linuxviewer;
 
@@ -53,13 +54,12 @@ class Window : public task::SynchronousWindow
  private:
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
-    // Limit the frame rate of this window to 10 frames per second.
+    // Limit the frame rate of this window to 20 frames per second.
     return threadpool::Interval<50, std::chrono::milliseconds>{};
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
-    use_imgui = true;
     return vulkan::FrameResourceIndex{5};
   }
 
@@ -125,19 +125,17 @@ class Window : public task::SynchronousWindow
     ImGui::SetNextWindowSize(ImVec2(100.0f, 100.0));
     ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
 
-    static bool show_fps = true;
-
-    if (ImGui::RadioButton("FPS", show_fps))
+    if (ImGui::RadioButton("FPS", m_sample_parameters.m_show_fps))
     {
-      show_fps = true;
+      m_sample_parameters.m_show_fps = true;
     }
     ImGui::SameLine();
-    if (ImGui::RadioButton("ms", !show_fps))
+    if (ImGui::RadioButton("ms", !m_sample_parameters.m_show_fps))
     {
-      show_fps = false;
+      m_sample_parameters.m_show_fps = false;
     }
 
-    if (show_fps)
+    if (m_sample_parameters.m_show_fps)
     {
       ImGui::SetCursorPosX(20.0f);
       ImGui::Text("%7.1f", m_timer.get_moving_average_FPS());
@@ -266,25 +264,12 @@ class Window : public task::SynchronousWindow
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
       command_buffer_w->endRenderPass();
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      // command_buffer_w->setViewport(0, { viewport }); // Set viewport to full before calling m_imgui.render_frame.
-      m_imgui.render_frame(command_buffer_w, *m_pipeline_layout, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer_w->endRenderPass();
       command_buffer_w->end();
       Dout(dc::vkframe, "End recording command buffer.");
 
-      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-      vk::SubmitInfo submit_info{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
-        .pWaitDstStageMask = &wait_dst_stage_mask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = command_buffer_w,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
-      };
-
-      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
-      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
+      submit(command_buffer_w);
     } // Unlock command pool.
 
     Dout(dc::vkframe, "Leaving Window::DrawSample.");

@@ -384,6 +384,8 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
         render_pass->create(owning_window);
         return false;
       });
+
+  owning_window->detect_if_imgui_is_used();
 }
 
 void RenderGraph::operator=(RenderPassStream& sink)

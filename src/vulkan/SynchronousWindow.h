@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VULKAN_SYNCHRONOUS_WINDOW_H
+#define VULKAN_SYNCHRONOUS_WINDOW_H
 
 #include "QueueReply.h"
 #include "PresentationSurface.h"
@@ -96,7 +97,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 {
  public:
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
-  using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
+  using xcb_connection_broker_type = Broker<XcbConnection>;
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
@@ -121,7 +122,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   std::string m_title;
   // set_logical_device_task
   LogicalDevice const* m_logical_device_task = nullptr;                   // Cache valued of the task::LogicalDevice const* that was passed to
-  // set_xcb_connection_broker_and_key                                    // Application::create_root_window, if any. That can be nullptr so don't use it.
+  // set_xcb_connection_broker_and_key                                    // Application::create_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
   // create_window_events
@@ -129,7 +130,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // run
   window_cookie_type m_window_cookie = {};                                // Unique bit for the creation event of this window (as determined by the user).
-  boost::intrusive_ptr<task::XcbConnection const> m_xcb_connection_task;  // Initialized in SynchronousWindow_start.
+  boost::intrusive_ptr<XcbConnection const> m_xcb_connection_task;        // Initialized in SynchronousWindow_start.
   std::atomic_int m_logical_device_index = -1;                            // Index into Application::m_logical_device_list.
                                                                           // Initialized in LogicalDevice_create by call to Application::create_device.
   vulkan::PresentationSurface m_presentation_surface;                     // The presentation surface information (surface-, graphics- and presentation queue handles).
@@ -151,6 +152,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
   bool m_in_focus;                                                        // Cache value of decoded input events.
 
+  SynchronousWindow const* m_parent_window_task;                          // A pointer to the parent window, or nullptr when this is a root window.
+                                                                          // It is NOT thread-safe to access the parent window without knowing what you are doing.
+
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
@@ -167,6 +171,14 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::ClearValue get_default_clear_value(bool is_depth_stencil) const
   {
     return is_depth_stencil ? m_default_depth_stencil_clear_value : m_default_color_clear_value;
+  }
+
+  statefultask::TaskEvent m_logical_device_index_available_event;         // Triggered when m_logical_device_index is set.
+
+  //FIXME: hack
+  void close()
+  {
+    static_cast<xcb::WindowBase*>(m_window_events.get())->On_WM_DELETE_WINDOW(0);
   }
 
  protected:
@@ -207,6 +219,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   enum vulkan_window_state_type {
     SynchronousWindow_xcb_connection = direct_base_type::state_end,
     SynchronousWindow_create,
+    SynchronousWindow_parents_logical_device_index_available,
     SynchronousWindow_logical_device_index_available,
     SynchronousWindow_acquire_queues,
     SynchronousWindow_initialize_vukan,
@@ -233,27 +246,41 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
     // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
     { m_broker = std::move(broker); m_broker_key = broker_key; }
+//  void set_parent_window(linuxviewer::OS::Window* parent_window) { m_window_events->set_parent_window(parent_window); }
+  void set_parent_window_task(SynchronousWindow const* parent_window_task) { m_parent_window_task = parent_window_task; }
 
   // Called by Application::create_device or SynchronousWindow_logical_device_index_available.
   void set_logical_device_index(int index)
   {
-    // Do not pass a root_window to Application::create_logical_device that was already associated with a logical device
-    // by passing a logical device to Application::create_root_window that created it.
+    // Old comment for this ASSERT:
     //
-    // You either call:
+    //  Do not pass a root_window to Application::create_logical_device that was already associated with a logical device
+    //  by passing a logical device to Application::create_root_window that created it.
     //
-    // auto root_window1 = application.create_root_window(std::make_unique<Window>(), {400, 400}, LogicalDevice::window_cookie1);
-    // auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), root_window1);
+    //  You either call:
     //
-    // OR
+    //  auto root_window1 = application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::window_cookie1);
+    //  auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
     //
-    // auto root_window2 = application.create_root_window(std::make_unique<Window>(), {400, 400}, LogicalDevice::window_cookie2, *logical_device);
-    // // Do not pass root_window2 to create_logical_device.
+    //  OR
     //
+    //  application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::window_cookie2, *logical_device);
+    //
+    // It should no longer be possible for this assert to fire since the last call doesn't return an intrusive pointer anymore.
     ASSERT(m_logical_device_index.load(std::memory_order::relaxed) == -1);
+
     m_logical_device_index.store(index, std::memory_order::relaxed);
     signal(logical_device_index_available);
+    m_logical_device_index_available_event.trigger();
   }
+
+  // Create and run a new window task that will run a child window of this window.
+  template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
+  void create_child_window(
+      std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
+      vk::Extent2D extent,
+      task::SynchronousWindow::window_cookie_type window_cookie,
+      std::string&& title = {}) const;
 
   // Called from LogicalDevice_create.
   void cache_logical_device() { m_logical_device = get_logical_device(); }
@@ -262,11 +289,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vk::SurfaceKHR vh_surface() const
   {
     return m_presentation_surface.vh_surface();
-  }
-
-  window_cookie_type window_cookie() const
-  {
-    return m_window_cookie;
   }
 
   vulkan::Application const& application() const
@@ -328,6 +350,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   void handle_window_size_changed();
   bool handle_map_changed(int map_flags);
+  void add_synchronous_task(std::function<void(SynchronousWindow*)> lambda);
 
   void set_image_memory_barrier(
     vulkan::ResourceState const& source,
@@ -347,6 +370,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::ImageParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
+
+  void detect_if_imgui_is_used();
 
  private:
   // SynchronousWindow_acquire_queues:
@@ -382,7 +407,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Called by initialize_impl():
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
   // Called by create_frame_resources():
-  virtual vulkan::FrameResourceIndex number_of_frame_resources(bool& use_imgui) const;
+  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
   // Called by handle_window_size_changed():
   virtual void on_window_size_changed_pre();
   // Called by create_frame_resources() and handle_window_size_changed():
@@ -398,6 +423,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   void start_frame();
+  void submit(vulkan::CommandBufferWriteAccessType<vulkan::FrameResourcesData::pool_type>& command_buffer_w);
   void finish_frame();
   void acquire_image();
 
@@ -431,3 +457,28 @@ void SynchronousWindow::create_window_events(vk::Extent2D extent)
 }
 
 } // namespace task
+
+#include "Application.h"
+#endif // VULKAN_SYNCHRONOUS_WINDOW_H
+
+#ifndef VULKAN_SYNCHRONOUS_WINDOW_defs_H
+#define VULKAN_SYNCHRONOUS_WINDOW_defs_H
+
+namespace task {
+
+template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
+void SynchronousWindow::create_child_window(
+    std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
+    vk::Extent2D extent,
+    task::SynchronousWindow::window_cookie_type window_cookie,
+    std::string&& title) const
+{
+  auto child_window = m_application->create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(
+      std::move(window_constructor_args), extent, window_cookie, std::move(title),
+      m_logical_device_task, this);
+  // idem
+}
+
+} // namespace task
+
+#endif // VULKAN_SYNCHRONOUS_WINDOW_defs_H
