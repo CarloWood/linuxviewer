@@ -45,5 +45,14 @@ target_include_directories(imgui_ObjLib
     "${CMAKE_SOURCE_DIR}"
 )
 
+# This is needed to add debug output to Dear ImGui itself (branch libcwd).
+# It is not necessary for imgui's master branch - but shouldn't hurt either.
+if (OptionEnableLibcwd)
+  target_link_libraries(imgui_ObjLib
+    PRIVATE
+      ${libcwd_r_TARGET}
+)
+endif ()
+
 # Create an ALIAS target.
 add_library(ImGui::imgui ALIAS imgui_ObjLib)
