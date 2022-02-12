@@ -26,7 +26,7 @@ class SwapchainKind;
 struct ImageKindPOD
 {
   vk::ImageCreateFlags    flags = {};
-  vk::ImageType           image_type = vk::ImageType::e2D;                      // Default matches vk::Extend2D.
+  vk::ImageType           image_type = vk::ImageType::e2D;                      // Default matches vk::Extent2D.
   vk::Format              format = vk::Format::eB8G8R8A8Srgb;                   // Also most prefered format in Swapchain.cxx:choose_surface_format.
   uint32_t                mip_levels = 1;                                       // Also vk_defaults::ImageSubresourceRange.
   uint32_t                array_layers = 1;                                     // Also vk_defaults::ImageSubresourceRange.

@@ -15,9 +15,9 @@ Window::~Window()
   destroy();
 }
 
-vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent, Window const* parent_window)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Rect2D geometry, Window const* parent_window)
 {
-  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(vh_instance, \"" << title << "\", " << extent << ", " << parent_window << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(vh_instance, \"" << title << "\", " << geometry << ", " << parent_window << ") [" << this << "]");
 
   m_parameters.m_handle = m_parameters.m_xcb_connection->generate_id();
   Dout(dc::vulkan, "Generated window handle: " << m_parameters.m_handle);
@@ -40,10 +40,10 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
 //    XCB_COPY_FROM_PARENT,                     // depth
     m_parameters.m_handle,                      // window handle
     parent_handle,                              // parent window
-    20,                                         // x offset
-    20,                                         // y offset
-    extent.width,                               // width
-    extent.height,                              // height
+    geometry.offset.x,                          // top-left x-coordinate
+    geometry.offset.y,                          // top-left y-coordinate
+    geometry.extent.width,                      // width
+    geometry.extent.height,                     // height
     title,
     0,                                          // border_width
     XCB_WINDOW_CLASS_INPUT_OUTPUT,              // window class

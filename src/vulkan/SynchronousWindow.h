@@ -121,6 +121,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  private:
   // set_title
   std::string m_title;
+  // set_offset
+  vk::Offset2D m_offset;                                                  // Initial position of the top-left corner of the window, relative to the parent window.
   // set_logical_device_task
   LogicalDevice const* m_logical_device_task = nullptr;                   // Cache valued of the task::LogicalDevice const* that was passed to
   // set_xcb_connection_broker_and_key                                    // Application::create_window, if any. That can be nullptr so don't use it.
@@ -245,9 +247,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // which should be members of the derived class.
   vulkan::rendergraph::RenderGraph& render_graph() { return m_render_graph; }
 
-  // Called from Application::create_root_window.
+  // Called from Application::create_window.
   template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
   void set_title(std::string&& title) { m_title = std::move(title); }
+  void set_offset(vk::Offset2D offset) { m_offset = offset; }
   void set_window_cookie(window_cookie_type window_cookie) { m_window_cookie = window_cookie; }
   void set_logical_device_task(LogicalDevice const* logical_device_task) { m_logical_device_task = logical_device_task; }
   void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
@@ -310,7 +313,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
   void create_child_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
-      vk::Extent2D extent,
+      vk::Rect2D geometry,
       task::SynchronousWindow::window_cookie_type window_cookie,
       std::string&& title = {}) const;
 
@@ -516,12 +519,12 @@ namespace task {
 template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
 void SynchronousWindow::create_child_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
-    vk::Extent2D extent,
+    vk::Rect2D geometry,
     task::SynchronousWindow::window_cookie_type window_cookie,
     std::string&& title) const
 {
   auto child_window = m_application->create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(
-      std::move(window_constructor_args), extent, window_cookie, std::move(title),
+      std::move(window_constructor_args), geometry, window_cookie, std::move(title),
       m_logical_device_task, this);
   // idem
 }

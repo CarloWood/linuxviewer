@@ -417,7 +417,7 @@ void ImGui::on_focus_changed(bool in_focus) const
 
 void ImGui::on_mouse_move(int x, int y)
 {
-  DoutEntering(dc::imgui(x != m_last_x || y != m_last_y), "ImGui::on_mouse_move(" << x << ", " << y << ")");
+  DoutEntering(dc::imgui(dc::vkframe.is_on() && (x != m_last_x || y != m_last_y)), "ImGui::on_mouse_move(" << x << ", " << y << ")");
 #ifdef CWDEBUG
   m_last_x = x;
   m_last_y = y;

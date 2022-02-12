@@ -225,7 +225,6 @@ class Window : public task::SynchronousWindow
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
     m_imgui_stats_window.draw(io, m_timer);
 
-#if 0
     ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
@@ -239,7 +238,6 @@ class Window : public task::SynchronousWindow
     ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
 
     ImGui::End();
-#endif
   }
 
   void draw_frame() override
@@ -850,9 +848,9 @@ int main(int argc, char* argv[])
           }
         ),
 #if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
-        {150, 150},
+        {0, 0, 150, 150},
 #else
-        {150, 50},
+        {0, 0, 150, 50},
 #endif
         LogicalDevice::root_window_cookie1,
         "Button");

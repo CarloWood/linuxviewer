@@ -77,7 +77,7 @@ class Window : public xcb::WindowBase
 
   // Create an X Window on the screen and return a vulkan surface handle for it.
   // Called from task state SynchronousWindow_create (initialization).
-  [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent, Window const* parent_window);
+  [[nodiscard]] vk::UniqueSurfaceKHR create(vk::Instance vh_instance, std::string_view const& title, vk::Rect2D geometry, Window const* parent_window);
 
   // Close the X Window on the screen and decrease the reference count of the xcb connection.
   void destroy();

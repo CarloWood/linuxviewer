@@ -170,7 +170,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       // Create a new xcb window using the established connection.
       m_window_events->set_xcb_connection(m_xcb_connection_task->connection());
       // We can't set a debug name for the surface yet, because there might not be a logical device yet.
-      m_presentation_surface = m_window_events->create(m_application->vh_instance(), m_title, get_extent(),
+      m_presentation_surface = m_window_events->create(m_application->vh_instance(), m_title, { m_offset, get_extent() },
           m_parent_window_task ? m_parent_window_task->window_events() : nullptr);
       // Trigger the "window created" event.
       m_window_created_event.trigger();
@@ -920,8 +920,15 @@ void SynchronousWindow::start_frame()
     draw_imgui();
   }
 
+#if defined(CWDEBUG) && defined(NON_FATAL_LONG_FENCE_DELAY)
+  // You might want to use this if a time out happens while debugging (for example stepping through code with a debugger).
+  while (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+    Dout(dc::warning, "WAITING FOR A FENCE TOOK TOO LONG!");
+#else
+  // Normally, this is an error.
   if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");
+#endif
 }
 
 void SynchronousWindow::finish_frame()
