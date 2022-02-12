@@ -1,3 +1,5 @@
+#pragma once
+
 #include <array>
 #include <chrono>
 #include <iosfwd>
@@ -14,8 +16,8 @@ class TimerData
   static constexpr int s_history_size = 16;
 
  private:
-  int m_first_index;
-  int m_current_index;
+  int m_first_index;                    // The index of the oldest value in m_time_history. Starts a 1 because that is the first position that a time is written into.
+  int m_current_index;                  // The last index (of m_time_history) that the current time was written into, or zero when there was no previous time.
   std::array<std::chrono::time_point<std::chrono::high_resolution_clock>, s_history_size + 1> m_time_history;     // Index [1...s_history_size] are used.
   float m_moving_average_ms = {};       // Delta time averaged over the last s_history_size frames.
   float m_moving_average_FPS = {};      // Frames Per Second, averaged over the last s_history_size frames.
@@ -31,7 +33,7 @@ class TimerData
 
   void update();
 
-  // Only the very first time m_current_index will be equal to zero. After that it falls in the range [0, s_history_size] inclusive.
+  // Only the very first time m_current_index will be equal to zero. After that it falls in the range [1, s_history_size] inclusive.
   TimerData() : m_first_index(1), m_current_index(0) { }
 
   void print_on(std::ostream& os) const;

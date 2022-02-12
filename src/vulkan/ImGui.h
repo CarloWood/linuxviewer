@@ -10,6 +10,7 @@
 #include "CommandBuffer.h"      // CommandBufferWriteAccessType
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
+#include "vk_utils/TimerData.h"
 
 namespace task {
 class SynchronousWindow;
@@ -81,3 +82,17 @@ class ImGui
 };
 
 } // namespace vulkan
+
+struct ImGuiIO;
+
+namespace imgui {
+
+class StatsWindow
+{
+  bool m_show_fps = true;       // To show FPS or ms.
+
+ public:
+  void draw(ImGuiIO& io, vk_utils::TimerData const& timer);
+};
+
+} // namespace imgui

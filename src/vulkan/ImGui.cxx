@@ -26,8 +26,8 @@ static void check_version()
 // Must be updated at the start of each code block that calls imgui functions and that could be a new thread; meaning at the start of the render loop.
 thread_local ImGuiContext* lvImGuiTLS;
 
-// Use lower case for the imgui namespace because my class is already called ImGui.
-namespace imgui = ImGui;
+// Use imgui_ns because the class inside vulkan is already called ImGui.
+namespace imgui_ns = ImGui;
 
 namespace vulkan {
 
@@ -45,7 +45,7 @@ LogicalDevice const& ImGui::logical_device() const
 }
 
 // Just this compilation unit.
-using namespace imgui;
+using namespace imgui_ns;
 
 void ImGui::create_frame_resources(FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
@@ -428,7 +428,7 @@ void ImGui::on_mouse_move(int x, int y)
 
 void ImGui::on_mouse_wheel_event(float delta_x, float delta_y) const
 {
-  DoutEntering(dc::imgui, "ImGui::on_wheel_event(" << delta_x << ", " << delta_y << ")");
+  DoutEntering(dc::imgui, "ImGui::on_mouse_wheel_event(" << delta_x << ", " << delta_y << ")");
   ImGuiIO& io = GetIO();
   io.AddMouseWheelEvent(-delta_x, -delta_y);
 }
@@ -813,7 +813,7 @@ bool ImGui::want_capture_mouse() const
 {
   ImGuiIO& io = GetIO();
   bool res = io.WantCaptureMouse;
-  Dout(dc::imgui, "ImGui::want_capture_mouse() = " << res);
+  Dout(dc::imgui(dc::vkframe.is_on()), "ImGui::want_capture_mouse() = " << res);
   return res;
 }
 
@@ -988,8 +988,47 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
 
 ImGui::~ImGui()
 {
-  if (imgui::GetCurrentContext())
-    imgui::DestroyContext();
+  if (GetCurrentContext())
+    DestroyContext();
 }
 
 } // namespace vulkan
+
+namespace imgui {
+
+void StatsWindow::draw(ImGuiIO& io, vk_utils::TimerData const& timer)
+{
+  ImGui::SetNextWindowSize(ImVec2(100.0f, 100.0));
+  ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+
+  if (ImGui::RadioButton("FPS", m_show_fps))
+  {
+    m_show_fps = true;
+  }
+  ImGui::SameLine();
+  if (ImGui::RadioButton("ms", !m_show_fps))
+  {
+    m_show_fps = false;
+  }
+
+  if (m_show_fps)
+  {
+    ImGui::SetCursorPosX(20.0f);
+    ImGui::Text("%7.1f", timer.get_moving_average_FPS());
+
+    auto histogram = timer.get_FPS_histogram();
+    ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
+  }
+  else
+  {
+    ImGui::SetCursorPosX(20.0f);
+    ImGui::Text("%9.3f", timer.get_moving_average_ms());
+
+    auto histogram = timer.get_delta_ms_histogram();
+    ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
+  }
+
+  ImGui::End();
+}
+
+} // namespace imgui

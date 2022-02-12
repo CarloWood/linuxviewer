@@ -59,7 +59,7 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   // Called when the close button is clicked.
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
-    DoutEntering(dc::notice, "SynchronousWindow::On_WM_DELETE_WINDOW(" << timestamp << ")");
+    DoutEntering(dc::notice, "SynchronousWindow::On_WM_DELETE_WINDOW(" << timestamp << ") [" << this << "]");
     // Lets not pass more event to a window that is going to destruct itself.
     m_input_event_buffer = nullptr;
     // Set the must_close_bit.
@@ -120,6 +120,8 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
       WheelOffset::wat wheel_offset_w(m_accumulated_wheel_offset);
       switch (button)
       {
+        // The reasoning for the direction is that I see Left as going to the left on the screen (obviously) which is the negative x direction.
+        // Therefore I chose Up as going up on the screen (which is debatable) and that means going in the negative y direction.
         case MouseButtons::WheelUp:
           wheel_offset_w->accumulate_y(-0.5f);
           break;

@@ -15,9 +15,9 @@ Window::~Window()
   destroy();
 }
 
-vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Extent2D extent, Window const* parent_window)
 {
-  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(\"" << title << "\", " << extent << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(vh_instance, \"" << title << "\", " << extent << ", " << parent_window << ") [" << this << "]");
 
   m_parameters.m_handle = m_parameters.m_xcb_connection->generate_id();
   Dout(dc::vulkan, "Generated window handle: " << m_parameters.m_handle);
@@ -34,10 +34,12 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view c
     XCB_EVENT_MASK_FOCUS_CHANGE | XCB_EVENT_MASK_STRUCTURE_NOTIFY
   };
 
-  m_parameters.m_xcb_connection->create_main_window(
+  xcb_window_t const parent_handle = parent_window ? parent_window->window_parameters().m_handle : xcb_window_t{};
+
+  m_parameters.m_xcb_connection->create_window(
 //    XCB_COPY_FROM_PARENT,                     // depth
     m_parameters.m_handle,                      // window handle
-//    screen->root,                             // parent window
+    parent_handle,                              // parent window
     20,                                         // x offset
     20,                                         // y offset
     extent.width,                               // width
@@ -63,6 +65,16 @@ void Window::destroy()
     m_parameters.m_xcb_connection->destroy_window(m_parameters.m_handle);
     m_parameters.m_xcb_connection.reset();
   }
+  // Only now it is safe to destroy the parent window (now that we called `destroy_window`).
+  // The reason for that is that when the parent window calls `xcb_destroy_window` that
+  // causes a `XCB_DESTROY_NOTIFY` for all of its children which in turn will remove
+  // the window handle of that message from the list of known handles. If we'd do a
+  // call to `destroy_window` afterwards then we wouldn't find that handle in the
+  // list which causes an assert (it is debatable if the assert is correct).
+
+  // By returning from this function the intrusive_ptr to the parent window is
+  // destroyed. Or put differently: the child window must destroy this Window
+  // before it destroys the intrusive_ptr to the parent window.
 }
 
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)

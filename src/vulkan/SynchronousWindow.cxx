@@ -55,6 +55,8 @@ SynchronousWindow::~SynchronousWindow()
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::~SynchronousWindow() [" << (void*)this << "]");
   m_frame_rate_limiter.stop();
+  if (m_parent_window_task)
+    m_parent_window_task->remove_child_window_task(this);
 }
 
 vulkan::LogicalDevice* SynchronousWindow::get_logical_device() const
@@ -96,6 +98,7 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
   switch (run_state)
   {
     AI_CASE_RETURN(SynchronousWindow_xcb_connection);
+    AI_CASE_RETURN(SynchronousWindow_create_child);
     AI_CASE_RETURN(SynchronousWindow_create);
     AI_CASE_RETURN(SynchronousWindow_parents_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
@@ -149,9 +152,15 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
     case SynchronousWindow_xcb_connection:
       // Get the- or create a task::XcbConnection object that is associated with m_broker_key (ie DISPLAY).
       m_xcb_connection_task = m_broker->run(*m_broker_key, [this](bool success){ Dout(dc::notice, "xcb_connection finished!"); signal(connection_set_up); });
-      // Wait until the connection with the X server is established, then continue with SynchronousWindow_create.
-      set_state(SynchronousWindow_create);
+      // Wait until the connection with the X server is established, then continue with SynchronousWindow_create or SynchronousWindow_create_child.
+      set_state(!m_parent_window_task ? SynchronousWindow_create : SynchronousWindow_create_child);
       wait(connection_set_up);
+      break;
+    case SynchronousWindow_create_child:
+      // This is a child window. Wait until the parent window was created so that we can obtain its window handle.
+      m_parent_window_task->m_window_created_event.register_task(this, parent_window_created);
+      set_state(SynchronousWindow_create);
+      wait(parent_window_created);
       break;
     case SynchronousWindow_create:
       // Allocate the ring buffer for input events.
@@ -160,8 +169,9 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       m_window_events->register_input_event_buffer(&m_input_event_buffer);
       // Create a new xcb window using the established connection.
       m_window_events->set_xcb_connection(m_xcb_connection_task->connection());
-      // We can't set a debug name for the surface yet, because there might not be logical device yet.
-      m_presentation_surface = m_window_events->create(m_application->vh_instance(), m_title, get_extent());
+      // We can't set a debug name for the surface yet, because there might not be a logical device yet.
+      m_presentation_surface = m_window_events->create(m_application->vh_instance(), m_title, get_extent(),
+          m_parent_window_task ? m_parent_window_task->window_events() : nullptr);
       // Trigger the "window created" event.
       m_window_created_event.trigger();
       // If a logical device was passed then we need to copy its index as soon as that becomes available.
@@ -410,7 +420,7 @@ void SynchronousWindow::create_imgui()
 
 void SynchronousWindow::consume_input_events()
 {
-  DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events() [" << static_cast<AIStatefulTask*>(this) << "]");
+  DoutEntering(dc::vkframe, "SynchronousWindow::consume_input_events() [" << this << "]");
   // We are the consumer thread.
   Dout(dc::vkframe|continued_cf, "Calling m_input_event_buffer.pop() = ");
   while (vulkan::InputEvent const* input_event = m_input_event_buffer.pop())
@@ -1001,12 +1011,20 @@ void SynchronousWindow::acquire_image()
 void SynchronousWindow::finish_impl()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::finish_impl() [" << this << "]");
-  // Not doing anything here, finishing the task causes us to leave the run()
-  // function and then leave the scope of the boost::intrusive_ptr that keeps
-  // this task alive. When it gets destructed, also Window will be destructed
-  // and it's destructor does the work required to close the window.
+  // Finishing the task causes us to leave the run() function and then leave the scope
+  // of the boost::intrusive_ptr that keeps this task alive. When it gets destructed,
+  // also Window will be destructed and its destructor does the work required to close
+  // the window.
   //
-  // However, remove us from Application::window_list_t, or else this SynchronousWindow
+  // However, we need to destroy all child windows because each has a
+  // boost::intrusive_ptr<task::SynchronousWindow const> that points to us.
+  {
+    child_window_list_t::rat child_window_list_r(m_child_window_list);
+    for (auto child_window : *child_window_list_r)
+      child_window->close();
+  }
+
+  // Finally, remove us from Application::window_list_t or else this SynchronousWindow
   // won't be destructed as the list stores boost::intrusive_ptr<task::SynchronousWindow>'s.
   m_application->remove(this);
 }
@@ -1151,6 +1169,13 @@ void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::Fram
 
   Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *m_current_frame.m_frame_resources->m_command_buffers_completed << ")");
   presentation_surface().vh_graphics_queue().submit( { submit_info }, *m_current_frame.m_frame_resources->m_command_buffers_completed );
+}
+
+void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindow*)> lambda)
+{
+  DoutEntering(dc::vulkan, "SynchronousWindow::add_synchronous_task(...)");
+  auto synchronize_task = new SynchronousTask(this COMMA_CWDEBUG_ONLY(true));
+  synchronize_task->run([=](bool){ lambda(this); });
 }
 
 #ifdef CWDEBUG

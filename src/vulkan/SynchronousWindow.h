@@ -111,6 +111,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr condition_type connection_set_up = 1;
   static constexpr condition_type frame_timer = 2;
   static constexpr condition_type logical_device_index_available = 4;
+  static constexpr condition_type parent_window_created = 8;
 
  protected:
   // Constructor
@@ -125,6 +126,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // set_xcb_connection_broker_and_key                                    // Application::create_window, if any. That can be nullptr so don't use it.
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
+
+  // This must come *before* m_window_events in order to get the corect order of destruction (destroy window events first).
+  boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;     // A pointer to the parent window, or nullptr when this is a root window.
+                                                                          // It is NOT thread-safe to access the parent window without knowing what you are doing.
   // create_window_events
   std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Point to the asynchronous object `WindowEvents`.
 
@@ -152,8 +157,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
   bool m_in_focus;                                                        // Cache value of decoded input events.
 
-  SynchronousWindow const* m_parent_window_task;                          // A pointer to the parent window, or nullptr when this is a root window.
-                                                                          // It is NOT thread-safe to access the parent window without knowing what you are doing.
+  using child_window_list_container_t = std::vector<SynchronousWindow*>;
+  using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  mutable child_window_list_t m_child_window_list;                        // List with child windows.
 
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
@@ -218,6 +224,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   /// The different states of the stateful task.
   enum vulkan_window_state_type {
     SynchronousWindow_xcb_connection = direct_base_type::state_end,
+    SynchronousWindow_create_child,
     SynchronousWindow_create,
     SynchronousWindow_parents_logical_device_index_available,
     SynchronousWindow_logical_device_index_available,
@@ -246,8 +253,33 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
     // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
     { m_broker = std::move(broker); m_broker_key = broker_key; }
-//  void set_parent_window(linuxviewer::OS::Window* parent_window) { m_window_events->set_parent_window(parent_window); }
-  void set_parent_window_task(SynchronousWindow const* parent_window_task) { m_parent_window_task = parent_window_task; }
+  void set_parent_window_task(SynchronousWindow const* parent_window_task)
+  {
+    // set_parent_window_task should only be called once (from Application::create_window).
+    ASSERT(!m_parent_window_task);
+    // Child windows should be destructed before the parent window.
+    m_parent_window_task = parent_window_task;
+    // This function is always called, also when there isn't a parent window.
+    if (m_parent_window_task)
+      m_parent_window_task->add_child_window_task(this);
+  }
+
+  // The const on this method means that it is a thread-safe function. It still alters m_child_window_list.
+  void add_child_window_task(SynchronousWindow* child_window_task) const
+  {
+    child_window_list_t::wat child_window_list_w(m_child_window_list);
+    child_window_list_w->push_back(child_window_task);
+  }
+
+  // The const on this method means that it is a thread-safe function. It still alters m_child_window_list.
+  void remove_child_window_task(SynchronousWindow* child_window_task) const
+  {
+    child_window_list_t::wat child_window_list_w(m_child_window_list);
+    auto child_window = std::find(child_window_list_w->begin(), child_window_list_w->end(), child_window_task);
+    // Bug in this library: a child window should ALWAYS call add_child_window_task/remove_child_window_task in pairs and in that order.
+    ASSERT(child_window != child_window_list_w->end());
+    child_window_list_w->erase(child_window);
+  }
 
   // Called by Application::create_device or SynchronousWindow_logical_device_index_available.
   void set_logical_device_index(int index)
@@ -294,6 +326,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::Application const& application() const
   {
     return *m_application;
+  }
+
+  vulkan::WindowEvents const* window_events() const
+  {
+    return m_window_events.get();
   }
 
   int get_logical_device_index() const
@@ -451,10 +488,20 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 template<vulkan::ConceptWindowEvents WINDOW_EVENTS>
 void SynchronousWindow::create_window_events(vk::Extent2D extent)
 {
+  DoutEntering(dc::notice, "SynchronousWindow::create_window_events(" << extent << ") [" << this << " : \"" << m_title << "\"]");
   m_window_events = std::make_unique<WINDOW_EVENTS>();
+  Dout(dc::notice, "m_window_events = " << m_window_events.get());
   m_window_events->set_special_circumstances(this);
   m_window_events->set_extent(extent);
 }
+
+#ifdef CWDEBUG
+// Make sure to print SynchronousWindow tasks by their AIStatefulTask* - so that we can see who is who also in statefultask debug output.
+inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
+{
+  return os << static_cast<AIStatefulTask const*>(ptr);
+}
+#endif
 
 } // namespace task
 

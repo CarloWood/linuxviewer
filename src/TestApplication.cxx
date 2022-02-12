@@ -20,7 +20,107 @@
 #include "vulkan/ImageKind.h"
 #include <imgui.h>
 
+#define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
+
 using namespace linuxviewer;
+
+class SingleButtonWindow : public task::SynchronousWindow
+{
+  std::function<void(SingleButtonWindow&)> m_callback;
+
+#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
+  imgui::StatsWindow m_imgui_stats_window;
+#endif
+
+ public:
+  SingleButtonWindow(std::function<void(SingleButtonWindow&)> callback, vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
+    task::SynchronousWindow(application COMMA_CWDEBUG_ONLY(debug)), m_callback(callback) { }
+
+ private:
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    // Limit the frame rate of this window to 11.111 frames per second.
+    return threadpool::Interval<90, std::chrono::milliseconds>{};
+  }
+
+  void create_render_passes() override
+  {
+    DoutEntering(dc::vulkan, "SingleButtonWindow::create_render_passes() [" << this << "]");
+
+    // This must be a reference.
+    auto& output = swapchain().presentation_attachment();
+
+    // This window draws nothing but an ImGui window.
+    m_render_graph = imgui_pass->stores(~output);
+
+    // Generate everything.
+    m_render_graph.generate(this);
+  }
+
+  void create_vertex_buffers() override { }
+  void create_descriptor_set() override { }
+  void create_textures() override { }
+  void create_pipeline_layout() override { }
+  void create_graphics_pipeline() override { }
+
+  void draw_imgui() override final
+  {
+    ImGuiIO& io = ImGui::GetIO();
+
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("SingleButton", nullptr,
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings);
+
+    if (ImGui::Button("Trigger Event", ImVec2(150.f - 16.f, 50.f - 16.f)))
+    {
+      Dout(dc::notice, "SingleButtonWindow: calling m_callback() [" << this << "]");
+      m_callback(*this);
+    }
+
+    ImGui::End();
+
+#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
+    m_imgui_stats_window.draw(io, m_timer);
+#endif
+  }
+
+  void draw_frame() override
+  {
+    DoutEntering(dc::vkframe, "SingleButtonWindow::draw_frame() [" << this << "]");
+
+    start_frame();
+    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
+
+    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
+    imgui_pass.update_image_views(swapchain(), frame_resources);
+
+    m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+
+      // Get access to the command buffer.
+      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
+
+      Dout(dc::vkframe, "Start recording command buffer.");
+      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+      command_buffer_w->endRenderPass();
+      command_buffer_w->end();
+      Dout(dc::vkframe, "End recording command buffer.");
+
+      submit(command_buffer_w);
+    } // Unlock command pool.
+
+    // Draw GUI and present swapchain image.
+    finish_frame();
+  }
+};
 
 class Window : public task::SynchronousWindow
 {
@@ -48,6 +148,7 @@ class Window : public task::SynchronousWindow
   vulkan::ImageParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
 
+  imgui::StatsWindow m_imgui_stats_window;
   SampleParameters m_sample_parameters;
   int m_frame_count = 0;
 
@@ -122,38 +223,9 @@ class Window : public task::SynchronousWindow
     //  bool show_demo_window = true;
     //  ShowDemoWindow(&show_demo_window);
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    ImGui::SetNextWindowSize(ImVec2(100.0f, 100.0));
-    ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar);
+    m_imgui_stats_window.draw(io, m_timer);
 
-    if (ImGui::RadioButton("FPS", m_sample_parameters.m_show_fps))
-    {
-      m_sample_parameters.m_show_fps = true;
-    }
-    ImGui::SameLine();
-    if (ImGui::RadioButton("ms", !m_sample_parameters.m_show_fps))
-    {
-      m_sample_parameters.m_show_fps = false;
-    }
-
-    if (m_sample_parameters.m_show_fps)
-    {
-      ImGui::SetCursorPosX(20.0f);
-      ImGui::Text("%7.1f", m_timer.get_moving_average_FPS());
-
-      auto histogram = m_timer.get_FPS_histogram();
-      ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
-    }
-    else
-    {
-      ImGui::SetCursorPosX(20.0f);
-      ImGui::Text("%9.3f", m_timer.get_moving_average_ms());
-
-      auto histogram = m_timer.get_delta_ms_histogram();
-      ImGui::PlotHistogram("", histogram.data(), static_cast<int>(histogram.size()), 0, nullptr, 0.0f, FLT_MAX, ImVec2(85.0f, 30.0f));
-    }
-
-    ImGui::End();
-
+#if 0
     ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
@@ -167,6 +239,7 @@ class Window : public task::SynchronousWindow
     ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
 
     ImGui::End();
+#endif
   }
 
   void draw_frame() override
@@ -767,6 +840,22 @@ int main(int argc, char* argv[])
 
     // Create a window.
     auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_cookie1);
+
+    // Create a child window of root_window1. This has to be done before calling
+    // `application.create_logical_device` below, which gobbles up the root_window1 pointer.
+    root_window1->create_child_window<WindowEvents, SingleButtonWindow>(
+        std::make_tuple([](SingleButtonWindow& window)
+          {
+            Dout(dc::always, "TRIGGERED!");
+          }
+        ),
+#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
+        {150, 150},
+#else
+        {150, 50},
+#endif
+        LogicalDevice::root_window_cookie1,
+        "Button");
 
     // Create a logical device that supports presenting to root_window1.
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));

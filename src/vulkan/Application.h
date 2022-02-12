@@ -303,9 +303,12 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
   // The key passed to set_xcb_connection_broker_and_key MUST be canonicalized!
   m_main_display_broker_key.canonicalize();
   window_task->set_xcb_connection_broker_and_key(m_xcb_connection_broker, &m_main_display_broker_key);
-  // Note that in this case we'll use the logical device of the parent, but logical_device_task
-  // can be null because this function might be called before the logical device (or parent window)
-  // was created. The task will have to take this into account if this value is non-null.
+  // Note that in the case of creating a child window we use the logical device of the parent.
+  // However, logical_device_task can be null here because this function might be called before
+  // the logical device (or parent window) was created. The SynchronousWindow task takes this
+  // into account in state SynchronousWindow_create: where m_logical_device_task is null and
+  // m_parent_window_task isn't, it registers with m_parent_window_task->m_logical_device_index_available_event
+  // to pick up the correct value of m_logical_device_task.
   window_task->set_parent_window_task(parent_window_task);
 
   // Create window and start rendering loop.
