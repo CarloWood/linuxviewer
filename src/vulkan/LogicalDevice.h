@@ -74,6 +74,7 @@ class LogicalDevice
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
+  float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
 
@@ -94,6 +95,7 @@ class LogicalDevice
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
   bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
+  float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;
@@ -146,10 +148,10 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueSampler create_sampler(SamplerKind const& sampler_kind
+  vk::UniqueSampler create_sampler(SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const { return create_sampler({this, std::move(sampler_kind)} COMMA_CWDEBUG_ONLY(ambifix)); }
+  vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const { return create_sampler({this, std::move(sampler_kind)}, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass

@@ -239,6 +239,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       set_state(SynchronousWindow_initialize_vukan);
       [[fallthrough]];
     case SynchronousWindow_initialize_vukan:
+      copy_graphics_settings();
       set_default_clear_values(m_default_color_clear_value, m_default_depth_stencil_clear_value);
       prepare_swapchain();
       create_render_passes();
@@ -877,7 +878,7 @@ vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_da
 
   // Create sampler.
   //FIXME: why not move into LogicalDevice::create_image?
-  image_parameters.m_sampler = m_logical_device->create_sampler(sampler_kind
+  image_parameters.m_sampler = m_logical_device->create_sampler(sampler_kind, m_graphics_settings
       COMMA_CWDEBUG_ONLY(ambifix(".m_sampler")));
 
   // Copy data.
@@ -1176,6 +1177,12 @@ void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::Fram
 
   Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *m_current_frame.m_frame_resources->m_command_buffers_completed << ")");
   presentation_surface().vh_graphics_queue().submit( { submit_info }, *m_current_frame.m_frame_resources->m_command_buffers_completed );
+}
+
+void SynchronousWindow::copy_graphics_settings()
+{
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_graphics_settings()");
+  m_application->copy_graphics_settings_to(&m_graphics_settings, m_logical_device);
 }
 
 void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindow*)> lambda)

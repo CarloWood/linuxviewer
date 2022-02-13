@@ -19,6 +19,7 @@
 #include "RenderPass.h"
 #include "Attachment.h"
 #include "InputEvent.h"
+#include "GraphicsSettings.h"
 #include "rendergraph/RenderGraph.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "vk_utils/TimerData.h"
@@ -163,12 +164,18 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable child_window_list_t m_child_window_list;                        // List with child windows.
 
+  vulkan::GraphicsSettingsPOD m_graphics_settings;                        // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
+
 #ifdef CWDEBUG
   bool const mVWDebug;                                                    // A copy of mSMDebug.
 #endif
 
   // Needs access to the protected SynchronousEngine base class.
   friend class SynchronousTask;
+
+ protected:
+  // Only provide read access to derive class, because m_graphics_settings is only a local cache and is overwritten when Application::m_graphics_settings is changed.
+  vulkan::GraphicsSettingsPOD const& graphics_settings() const { return m_graphics_settings; }
 
  public:
   // Accessed by Swapchain.
@@ -390,6 +397,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   void handle_window_size_changed();
   bool handle_map_changed(int map_flags);
+  void copy_graphics_settings();
   void add_synchronous_task(std::function<void(SynchronousWindow*)> lambda);
 
   void set_image_memory_barrier(

@@ -7,6 +7,7 @@
 namespace vulkan {
 
 class LogicalDevice;
+struct GraphicsSettingsPOD;
 
 // Contains all members of SamplerCreateInfo.
 struct SamplerKindPOD
@@ -25,7 +26,6 @@ struct SamplerKindPOD
   // See sampler.bias on https://www.khronos.org/registry/vulkan/specs/1.2/html/vkspec.html#textures-level-of-detail-operation
   float                    mipLodBias       = {};
   vk::Bool32               anisotropyEnable = {};       // Set constructor.
-  float                    maxAnisotropy    = 1.f;      // FIXME: must be between 1.0 and VkPhysicalDeviceLimits::maxSamplerAnisotropy
   vk::Bool32               compareEnable    = VK_FALSE;
   vk::CompareOp            compareOp        = {};
   // See https://www.khronos.org/registry/vulkan/specs/1.2/html/vkspec.html#textures-level-of-detail-operation
@@ -44,7 +44,7 @@ class SamplerKind
   SamplerKind(LogicalDevice const* logical_device, SamplerKindPOD data);
 
   // Convert into an ImageCreateInfo.
-  vk::SamplerCreateInfo operator()() const;
+  vk::SamplerCreateInfo operator()(GraphicsSettingsPOD const& graphics_settings) const;
 
   // Accessor.
   SamplerKindPOD const* operator->() const { return &m_data; }

@@ -177,6 +177,24 @@ int Application::create_device(std::unique_ptr<LogicalDevice>&& logical_device, 
   return logical_device_index;
 }
 
+void Application::synchronize_graphics_settings() const
+{
+  DoutEntering(dc::vulkan, "vulkan::Application::synchronize_graphics_settings()");
+  window_list_t::crat window_list_r(m_window_list);
+  for (auto&& window : *window_list_r)
+    window->add_synchronous_task([](task::SynchronousWindow* window_task){ window_task->copy_graphics_settings(); });
+}
+
+// This function is executed synchronous with the window that owns target, from SynchronousWindow::copy_graphics_settings.
+void Application::copy_graphics_settings_to(vulkan::GraphicsSettingsPOD* target, LogicalDevice const* logical_device) const
+{
+  DoutEntering(dc::vulkan, "vulkan::Application::copy_graphics_settings_to(" << target << ")");
+  *target = GraphicsSettings::crat(m_graphics_settings)->pod();
+  Dout(dc::warning(logical_device->max_sampler_anisotropy() < target->maxAnisotropy),
+      "Attempting to set a max. anisotropy larger than the logical device (\"" << logical_device->debug_name() << "\") supports.");
+  target->maxAnisotropy = std::clamp(target->maxAnisotropy, 1.f, logical_device->max_sampler_anisotropy());
+}
+
 void Application::add(task::SynchronousWindow* window_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::add(" << window_task << ")");

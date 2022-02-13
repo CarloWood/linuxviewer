@@ -13,13 +13,16 @@ char const* SynchronousTask::state_str_impl(state_type run_state) const
   return "UNKNOWN STATE";
 }
 
+void SynchronousTask::initialize_impl()
+{
+  // If there is a derived class immediately start with its first state; otherwise start with our first state.
+  set_state(typeid(SynchronousTask) == typeid(*this) ? SynchronousTask_start : state_end);
+}
+
 void SynchronousTask::multiplex_impl(state_type run_state)
 {
-  // We should be starting directly with the state of the derived class.
-  DoutEntering(dc::warning, "Running SynchronousTask::multiplex_impl");
-
-  // This engine isn't really doing anything. Just continue with the derived task.
-  set_state(state_end);
+  // We're not derived from: just call the callback and we're done.
+  finish();
 }
 
 } // namespace task

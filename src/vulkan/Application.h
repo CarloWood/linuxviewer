@@ -5,6 +5,7 @@
 #include "LogicalDevice.h"
 #include "Directories.h"
 #include "Concepts.h"
+#include "GraphicsSettings.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -113,9 +114,14 @@ class Application
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
 
  private:
+  vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
+
+ private:
   friend class task::SynchronousWindow;
   void add(task::SynchronousWindow* window_task);
   void remove(task::SynchronousWindow* window_task);
+  void copy_graphics_settings_to(vulkan::GraphicsSettingsPOD* target, LogicalDevice const* logical_device) const;
+  void synchronize_graphics_settings() const;           // Call this after changing m_graphics_settings, to synchronize it with the SynchronousWindow objects.
 
   // Counts the number of `boost::intrusive_ptr<Application>` objects.
   // When the last one such object is destructed, the application is terminated.
@@ -228,6 +234,13 @@ class Application
   }
 
   void run();
+
+  void set_max_anisotropy(float max_anisotropy)
+  {
+    DoutEntering(dc::notice, "Application::set_max_anisotropy(" << max_anisotropy << ")");
+    if (GraphicsSettings::wat(m_graphics_settings)->set_max_anisotropy({}, max_anisotropy))
+      synchronize_graphics_settings();
+  }
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).

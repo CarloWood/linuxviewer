@@ -453,7 +453,7 @@ class Window : public task::SynchronousWindow
 
         m_background_texture.m_sampler = m_logical_device->create_sampler({
             .mipmapMode = vk::SamplerMipmapMode::eNearest,
-            .anisotropyEnable = VK_FALSE }
+            .anisotropyEnable = VK_FALSE }, graphics_settings()
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
       }
       // Copy data.
@@ -494,7 +494,7 @@ class Window : public task::SynchronousWindow
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
         m_texture.m_sampler = m_logical_device->create_sampler({
             .mipmapMode = vk::SamplerMipmapMode::eNearest,
-            .anisotropyEnable = VK_FALSE }
+            .anisotropyEnable = VK_FALSE }, graphics_settings()
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
       }
       // Copy data.
@@ -842,9 +842,10 @@ int main(int argc, char* argv[])
     // Create a child window of root_window1. This has to be done before calling
     // `application.create_logical_device` below, which gobbles up the root_window1 pointer.
     root_window1->create_child_window<WindowEvents, SingleButtonWindow>(
-        std::make_tuple([](SingleButtonWindow& window)
+        std::make_tuple([&](SingleButtonWindow& window)
           {
             Dout(dc::always, "TRIGGERED!");
+            application.set_max_anisotropy(window.logical_device().max_sampler_anisotropy());
           }
         ),
 #if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
@@ -859,7 +860,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
+    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
 
     // Run the application.
     application.run();

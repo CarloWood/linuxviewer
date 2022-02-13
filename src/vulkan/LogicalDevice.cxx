@@ -406,6 +406,7 @@ void LogicalDevice::prepare(
     auto properties = m_vh_physical_device.getProperties();
     Dout(dc::vulkan, properties);
     m_non_coherent_atom_size = properties.limits.nonCoherentAtomSize;
+    m_max_sampler_anisotropy = properties.limits.maxSamplerAnisotropy;
   }
   Dout(dc::vulkan, "Physical Device Features:");
   {
@@ -663,12 +664,12 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
 }
 
 vk::UniqueSampler LogicalDevice::create_sampler(
-    SamplerKind const& sampler_kind
+    SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << sampler_kind << ")");
 
-  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_kind());
+  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_kind(graphics_settings));
   DebugSetName(sampler, debug_name);
   return sampler;
 }

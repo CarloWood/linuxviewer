@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "SamplerKind.h"
 #include "LogicalDevice.h"
+#include "GraphicsSettings.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_flags.h"
 #endif
@@ -13,7 +14,7 @@ SamplerKind::SamplerKind(LogicalDevice const* logical_device, SamplerKindPOD dat
   m_data.anisotropyEnable = logical_device->supports_sampler_anisotropy() ? VK_TRUE : VK_FALSE;
 }
 
-vk::SamplerCreateInfo SamplerKind::operator()() const
+vk::SamplerCreateInfo SamplerKind::operator()(GraphicsSettingsPOD const& graphics_settings) const
 {
   return {
     .flags                   = m_data.flags,
@@ -25,7 +26,7 @@ vk::SamplerCreateInfo SamplerKind::operator()() const
     .addressModeW            = m_data.addressModeW,
     .mipLodBias              = m_data.mipLodBias,
     .anisotropyEnable        = m_data.anisotropyEnable,
-    .maxAnisotropy           = m_data.maxAnisotropy,
+    .maxAnisotropy           = graphics_settings.maxAnisotropy,
     .compareEnable           = m_data.compareEnable,
     .compareOp               = m_data.compareOp,
     .minLod                  = m_data.minLod,
@@ -48,7 +49,6 @@ void SamplerKind::print_members(std::ostream& os) const
       ", addressModeW:" << m_data.addressModeW <<
       ", mipLodBias:" << m_data.mipLodBias <<
       ", anisotropyEnable:" << m_data.anisotropyEnable <<
-      ", maxAnisotropy:" << m_data.maxAnisotropy <<
       ", compareEnable:" << m_data.compareEnable <<
       ", compareOp:" << m_data.compareOp <<
       ", minLod:" << m_data.minLod <<
