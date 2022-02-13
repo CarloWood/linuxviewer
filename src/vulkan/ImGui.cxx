@@ -225,7 +225,7 @@ void ImGui::create_graphics_pipeline(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
     .rasterizationSamples = MSAASamples,
     .sampleShadingEnable = VK_FALSE,
-    .minSampleShading = 1.0f,           // FIXME: is this needed? imgui uses 0
+    .minSampleShading = 0.0f,
     .pSampleMask = nullptr,
     .alphaToCoverageEnable = VK_FALSE,
     .alphaToOneEnable = VK_FALSE
