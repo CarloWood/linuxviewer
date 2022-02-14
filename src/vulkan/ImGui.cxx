@@ -7,6 +7,7 @@
 #include "Pipeline.h"
 #include "InputEvent.h"
 #include "debug.h"
+#include "vk_utils/print_flags.h"
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 
@@ -122,9 +123,9 @@ void main()
 }
 )glsl";
 
-void ImGui::create_graphics_pipeline(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
-  DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline()");
+  DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
 
   Pipeline pipeline(m_owning_window);
 
@@ -221,7 +222,6 @@ void ImGui::create_graphics_pipeline(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
     .lineWidth = 1.0f
   };
 
-  vk::SampleCountFlagBits MSAASamples = vk::SampleCountFlagBits::e1; // FIXME
   vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
     .rasterizationSamples = MSAASamples,
     .sampleShadingEnable = VK_FALSE,
@@ -282,7 +282,7 @@ void ImGui::create_graphics_pipeline(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
       COMMA_CWDEBUG_ONLY(ambifix(".m_graphics_pipeline")));
 }
 
-void ImGui::init(task::SynchronousWindow const* owning_window
+void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ")");
@@ -375,27 +375,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window
   // Create imgui pipeline layout.
   create_pipeline_layout(CWDEBUG_ONLY(ambifix));
   // Create imgui pipeline.
-  create_graphics_pipeline(CWDEBUG_ONLY(ambifix));
-
-#if 0
-  // This initializes imgui for Vulkan.
-  ImGui_ImplVulkan_InitInfo init_info{
-    .Instance = application.vh_instance(),
-    .PhysicalDevice = device.vh_physical_device(),
-    .Device = device.vh_logical_device({}),
-    .QueueFamily = static_cast<uint32_t>(queue.queue_family().get_value()),
-    .Queue = static_cast<vk::Queue const&>(queue),
-    //.PipelineCache = ...
-    .DescriptorPool = *imgui_pool,
-    .MinImageCount = 2,
-    .ImageCount = 2,
-    .MSAASamples = VK_SAMPLE_COUNT_1_BIT
-    //.Allocator = ...
-    //.CheckVkResultFn = ...
-  };
-
-  ImGui_ImplVulkan_Init(&init_info, owning_window->swapchain().vh_render_pass());       // FIXME: use imgui_pass (move that to base class).
-#endif
+  create_graphics_pipeline(MSAASamples, CWDEBUG_ONLY(ambifix));
 }
 
 // Called from SynchronousWindow::handle_window_size_changed, so no need for locking.

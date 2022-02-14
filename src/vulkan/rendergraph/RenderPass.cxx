@@ -229,7 +229,7 @@ vk::ImageLayout RenderPass::get_final_layout(Attachment const* attachment, bool 
     return get_optimal_layout(*node, supports_separate_depth_stencil_layouts);
   if (node->is_present())
     return vk::ImageLayout::ePresentSrcKHR;
-  // Couldn't figure out the final layout.
+  DoutFatal(dc::core, "Couldn't figure out the final layout of \"" << attachment->name() << "\".");
   ASSERT(false);
   return vk::ImageLayout::eGeneral;
 }

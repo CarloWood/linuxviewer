@@ -14,8 +14,12 @@ std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attach
 {
   os << '{';
   vulkan::rendergraph::pAttachmentsIndex attachment{attachment_reference.attachment};
-  os << "attachment:" << attachment <<
-      ", layout:" << to_string(attachment_reference.layout);
+  os << "attachment:";
+  if (attachment_reference.attachment == VK_ATTACHMENT_UNUSED)
+    os << "VK_ATTACHMENT_UNUSED";
+  else
+    os << attachment;
+  os << ", layout:" << to_string(attachment_reference.layout);
   os << '}';
   return os;
 }

@@ -30,7 +30,7 @@ struct ImageKindPOD
   vk::Format              format = vk::Format::eB8G8R8A8Srgb;                   // Also most prefered format in Swapchain.cxx:choose_surface_format.
   uint32_t                mip_levels = 1;                                       // Also vk_defaults::ImageSubresourceRange.
   uint32_t                array_layers = 1;                                     // Also vk_defaults::ImageSubresourceRange.
-  vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;
+  vk::SampleCountFlagBits samples = vk::SampleCountFlagBits::e1;                // This must be the default (we rely on that by not specifying it when it needs to be e1).
   vk::ImageTiling         tiling = vk::ImageTiling::eOptimal;
   vk::ImageUsageFlags     usage = vk::ImageUsageFlagBits::eColorAttachment;
   vk::SharingMode         sharing_mode = vk::SharingMode::eExclusive;

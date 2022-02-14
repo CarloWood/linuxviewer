@@ -50,14 +50,14 @@ class ImGui
       CWDEBUG_ONLY(AmbifixOwner const& ambifix));
   void create_pipeline_layout(
       CWDEBUG_ONLY(AmbifixOwner const& ambifix));
-  void create_graphics_pipeline(
-      CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+  void create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
  public:
   void create_frame_resources(FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
-  void init(task::SynchronousWindow const* owning_window
+  void init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
   // Called at the start of the render loop.

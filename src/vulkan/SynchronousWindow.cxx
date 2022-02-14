@@ -415,7 +415,37 @@ void SynchronousWindow::create_imageless_framebuffers()
 void SynchronousWindow::create_imgui()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_imgui()");
-  m_imgui.init(this
+  // ImGui uses `layout(location = 0) out vec4 fColor;` in its imgui_frag_glsl.
+  //
+  // And it does draw calls while inside a beginRenderPass with vk::SubpassContents::eInline.
+  // Therefore location = 0 corresponds to the image that corresponds to attachment #0 in the .pColorAttachments array of
+  // subpass description #0 in the .pSubpasses array of the vk::RenderPassCreateInfo used to create the render pass of imgui_pass.
+#if CW_DEBUG
+  auto const& subpass_descriptions = imgui_pass.subpass_descriptions();
+  ASSERT(subpass_descriptions.size() == 1);
+  auto const only_subpass = subpass_descriptions.ibegin();              // subpass description #0
+  auto const& subpass_description = subpass_descriptions[only_subpass];
+#endif
+  //
+  // Where .pColorAttachments, is set to be a list of all "known" color attachments used in the render graph (see vulkan::rendergraph::RenderPass::create).
+  // If `colorAttachmentCount` isn't 1 then there were more than one "known" color attachments;
+  // which is nonsense and causes `location = 0` to refer to a "random" attachment (the order that known color attachments are added is not defined).
+  //
+  // For example, when you'd do:  imgui_pass[~color1].store(color2).
+  //
+  // Don't do that. imgui_pass is only allowed to see one color attachment (an no depth attachments).
+  ASSERT(subpass_description.colorAttachmentCount == 1);
+  // Make sure no depth attachment was passed because that isn't used.
+  ASSERT(subpass_description.pDepthStencilAttachment == nullptr ||
+         subpass_description.pDepthStencilAttachment->attachment == VK_ATTACHMENT_UNUSED);
+
+  auto const& attachment_descriptions = imgui_pass.attachment_descriptions();
+  // If the above two asserts hold, then this one should also hold (because all we have are color and depth attachments?)
+  ASSERT(attachment_descriptions.size() == 1);  // There is only one known attachment.
+  auto const only_attachment = attachment_descriptions.ibegin();        // attachment description #0
+  auto const& attachment_description = attachment_descriptions[only_attachment];
+
+  m_imgui.init(this, attachment_description.samples
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
 }
 
