@@ -190,11 +190,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   statefultask::TaskEvent m_logical_device_index_available_event;         // Triggered when m_logical_device_index is set.
 
-  //FIXME: hack
-  void close()
-  {
-    static_cast<xcb::WindowBase*>(m_window_events.get())->On_WM_DELETE_WINDOW(0);
-  }
+  void close() { set_must_close(); }
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;

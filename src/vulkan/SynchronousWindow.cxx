@@ -271,7 +271,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       RenderLoopEntered scoped(m_title.c_str());
 #endif
       int special_circumstances = atomic_flags();
-      for (;;)  // So that we can use continue.
+      for (;;)  // So that we can use continue to try and render again, break to close the window and return when we're done until the next frame.
       {
         if (AI_LIKELY(!special_circumstances))
         {

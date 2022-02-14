@@ -21,11 +21,10 @@ class AsyncAccessSpecialCircumstances
   SpecialCircumstances* m_special_circumstances = nullptr;      // Final value is set with set_special_circumstances.
 
  protected:
-  void set_extent_changed() const { m_special_circumstances->m_flags.fetch_or(SpecialCircumstances::extent_changed_bit, std::memory_order::relaxed); }
-  void set_must_close() const { m_special_circumstances->m_flags.store(SpecialCircumstances::must_close_bit, std::memory_order::relaxed); }
-  void set_have_synchronous_task() const { m_special_circumstances->m_flags.fetch_or(SpecialCircumstances::have_synchronous_task_bit, std::memory_order::relaxed); }
-  void set_mapped() const { m_special_circumstances->set_mapped(); }
-  void set_unmapped() const { m_special_circumstances->set_unmapped(); }
+  void set_extent_changed() const        { m_special_circumstances->set_extent_changed(); }
+  void set_must_close() const            { m_special_circumstances->set_must_close(); }
+  void set_mapped() const                { m_special_circumstances->set_mapped(); }
+  void set_unmapped() const              { m_special_circumstances->set_unmapped(); }
 
  public:
   // Called one time, immediately after (default) construction.
@@ -60,7 +59,8 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
     DoutEntering(dc::notice, "SynchronousWindow::On_WM_DELETE_WINDOW(" << timestamp << ") [" << this << "]");
-    // Lets not pass more event to a window that is going to destruct itself.
+    // Lets not pass more events to a window that is going to destruct itself.
+    // That is, any XCB events received after this WM_DELETE_WINDOW message will be ignored.
     m_input_event_buffer = nullptr;
     // Set the must_close_bit.
     set_must_close();

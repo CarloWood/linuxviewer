@@ -125,6 +125,9 @@ class SpecialCircumstances
   // Called when vk::Result::eErrorOutOfDateKHR happens in SynchronousWindow::acquire_image or SynchronousWindow::finish_frame.
   void set_extent_changed() const { m_flags.fetch_or(extent_changed_bit, std::memory_order::relaxed); }
 
+  // Control the must_close_bit bit.
+  void set_must_close() const { m_flags.fetch_or(must_close_bit, std::memory_order::relaxed); }
+
   // Called when the swapchain is being (re)created. Called from Swapchain::prepare and Swapchain::recreate.
   void no_swapchain() const { m_flags.fetch_or(have_no_swapchain_bit, std::memory_order::relaxed); }
   // Called when the swapchain creation finished and we can render again. Called from 
