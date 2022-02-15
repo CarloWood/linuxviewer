@@ -1,9 +1,5 @@
 #pragma once
 
-#include "DescriptorSetParameters.h"
-#include "ImageParameters.h"
-#include "BufferParameters.h"
-
 // FIXME: move to user application.
 struct SampleParameters
 {

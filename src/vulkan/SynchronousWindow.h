@@ -6,7 +6,7 @@
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
 #include "DescriptorSetParameters.h"
-#include "ImageParameters.h"
+#include "TextureParameters.h"
 #include "BufferParameters.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
@@ -411,7 +411,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
 
-  vulkan::ImageParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+  vulkan::TextureParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
 

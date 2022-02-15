@@ -5,8 +5,8 @@
 
 namespace vulkan {
 
-// Vulkan Image's parameters container class.
-struct ImageParameters
+// Data collection used for textures.
+struct TextureParameters
 {
   vk::UniqueImage               m_image;
   vk::UniqueImageView           m_image_view;
@@ -14,7 +14,7 @@ struct ImageParameters
   vk::UniqueDeviceMemory        m_memory;
 };
 
-// Index for storing ImageParameters as function of Attachment.
-using AttachmentIndex = utils::VectorIndex<ImageParameters>;
+// Index for storing TextureParameters as function of Attachment.
+using AttachmentIndex = utils::VectorIndex<TextureParameters>;
 
 } // namespace vulkan

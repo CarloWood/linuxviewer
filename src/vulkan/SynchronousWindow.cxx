@@ -895,26 +895,21 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   }
 }
 
-vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+vulkan::TextureParameters SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const
 {
-  // Create image and image view.
-  vulkan::ImageParameters image_parameters = m_logical_device->create_image(width, height,
-      image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+  // Create texture parameters.
+  vulkan::TextureParameters texture_parameters = m_logical_device->create_texture(width, height,
+      image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
       COMMA_CWDEBUG_ONLY(ambifix));
 
   size_t const data_size = width * height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 
-  // Create sampler.
-  //FIXME: why not move into LogicalDevice::create_image?
-  image_parameters.m_sampler = m_logical_device->create_sampler(sampler_kind, m_graphics_settings
-      COMMA_CWDEBUG_ONLY(ambifix(".m_sampler")));
-
   // Copy data.
   {
     vk_defaults::ImageSubresourceRange const image_subresource_range;
-    copy_data_to_image(data_size, texture_data, *image_parameters.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
+    copy_data_to_image(data_size, texture_data, *texture_parameters.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
         vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
         vk::PipelineStageFlagBits::eFragmentShader);
   }
@@ -923,15 +918,15 @@ vulkan::ImageParameters SynchronousWindow::upload_texture(void const* texture_da
   {
     std::vector<vk::DescriptorImageInfo> image_infos = {
       {
-        .sampler = *image_parameters.m_sampler,
-        .imageView = *image_parameters.m_image_view,
+        .sampler = *texture_parameters.m_sampler,
+        .imageView = *texture_parameters.m_image_view,
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
       }
     };
     m_logical_device->update_descriptor_set(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
   }
 
-  return image_parameters;
+  return texture_parameters;
 }
 
 void SynchronousWindow::detect_if_imgui_is_used()
@@ -1111,14 +1106,19 @@ void SynchronousWindow::on_window_size_changed_post()
       if (attachment->index().undefined())      // Skip swapchain attachments.
         continue;
       Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
-      frame_resources_data->m_image_parameters[*attachment] = m_logical_device->create_image(
+      vulkan::TextureParameters& texture_parameters = frame_resources_data->m_texture_parameters[*attachment];
+      texture_parameters = m_logical_device->create_texture(
           swapchain().extent().width,
           swapchain().extent().height,
           attachment->image_view_kind(),
-          vk::MemoryPropertyFlagBits::eDeviceLocal
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index++) +
+          vk::MemoryPropertyFlagBits::eDeviceLocal,
+          std::move(texture_parameters.m_sampler)
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index) +
               "]->m_image_parameters[" + to_string(attachment->index()) + "]")));
     }
+#ifdef CWDEBUG
+    ++frame_resource_index;
+#endif
   }
 }
 

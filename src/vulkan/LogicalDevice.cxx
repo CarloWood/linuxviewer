@@ -624,11 +624,23 @@ vk::UniqueImageView LogicalDevice::create_image_view(
   return image_view;
 }
 
-ImageParameters LogicalDevice::create_image(
+vk::UniqueSampler LogicalDevice::create_sampler(
+    SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << sampler_kind << ")");
+
+  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_kind(graphics_settings));
+  DebugSetName(sampler, debug_name);
+  return sampler;
+}
+
+TextureParameters LogicalDevice::create_texture(
     uint32_t width,
     uint32_t height,
     vulkan::ImageViewKind const& image_view_kind,
-    vk::MemoryPropertyFlagBits property
+    vk::MemoryPropertyFlagBits property,
+    vk::UniqueSampler&& sampler
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
 {
   vk::UniqueImage tmp_image = create_image({ width, height }, image_view_kind.image_kind()
@@ -645,6 +657,7 @@ ImageParameters LogicalDevice::create_image(
   return {
    .m_image = std::move(tmp_image),
    .m_image_view = std::move(tmp_view),
+   .m_sampler = std::move(sampler),
    .m_memory = std::move(tmp_memory)
   };
 }
@@ -661,17 +674,6 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
   vk::UniqueShaderModule shader_module = m_device->createShaderModuleUnique(shader_module_create_info);
   DebugSetName(shader_module, debug_name);
   return shader_module;
-}
-
-vk::UniqueSampler LogicalDevice::create_sampler(
-    SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
-{
-  DoutEntering(dc::vulkan, "LogicalDevice::create_sampler(" << sampler_kind << ")");
-
-  vk::UniqueSampler sampler = m_device->createSamplerUnique(sampler_kind(graphics_settings));
-  DebugSetName(sampler, debug_name);
-  return sampler;
 }
 
 vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(

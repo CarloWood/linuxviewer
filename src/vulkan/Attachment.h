@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rendergraph/Attachment.h"
-#include "ImageParameters.h"
+#include "TextureParameters.h"          // AttachmentIndex
 #include "ClearValue.h"
 
 namespace vulkan {

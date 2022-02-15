@@ -25,7 +25,7 @@ struct SamplerKindPOD
   vk::SamplerAddressMode   addressModeW     = vk::SamplerAddressMode::eClampToEdge;
   // See sampler.bias on https://www.khronos.org/registry/vulkan/specs/1.2/html/vkspec.html#textures-level-of-detail-operation
   float                    mipLodBias       = {};
-  vk::Bool32               anisotropyEnable = {};       // Set constructor.
+  vk::Bool32               anisotropyEnable = {};       // Set by constructor of SamplerKind: true if supported, false otherwise.
   vk::Bool32               compareEnable    = VK_FALSE;
   vk::CompareOp            compareOp        = {};
   // See https://www.khronos.org/registry/vulkan/specs/1.2/html/vkspec.html#textures-level-of-detail-operation

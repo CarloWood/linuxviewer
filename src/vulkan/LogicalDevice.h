@@ -6,7 +6,7 @@
 #include "QueueReply.h"
 #include "RenderPassAttachmentData.h"
 #include "Queue.h"
-#include "ImageParameters.h"
+#include "TextureParameters.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
@@ -140,18 +140,38 @@ class LogicalDevice
     image_index_out = SwapchainIndex(new_image_index);
     return result;
   }
-  vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  ImageParameters create_image(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
-  vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+
+  // Create a Sampler.
   vk::UniqueSampler create_sampler(SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  // Create a Sampler, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
   vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const { return create_sampler({this, std::move(sampler_kind)}, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
+
+  vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+
+  // Create all texture parameters at once.
+  // Use sampler as-is.
+  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+      vk::MemoryPropertyFlagBits property, vk::UniqueSampler&& sampler
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+  // Create sampler too.
+  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+      vk::MemoryPropertyFlagBits property, SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
+      { return create_texture(width, height, image_view_kind, property, create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)) COMMA_CWDEBUG_ONLY(ambifix)); }
+  // Create sampler too, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
+  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+      vk::MemoryPropertyFlagBits property, SamplerKindPOD const&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
+      { return create_texture(width, height, image_view_kind, property, { this, std::move(sampler_kind) }, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
+
+  vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
+
+  vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass

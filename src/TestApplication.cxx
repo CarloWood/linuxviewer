@@ -144,8 +144,8 @@ class Window : public task::SynchronousWindow
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
-  vulkan::ImageParameters m_background_texture;
-  vulkan::ImageParameters m_texture;
+  vulkan::TextureParameters m_background_texture;
+  vulkan::TextureParameters m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -448,13 +448,13 @@ class Window : public task::SynchronousWindow
         static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
         m_background_texture =
-          m_logical_device->create_image(width, height, background_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+          m_logical_device->create_texture(
+              width, height, background_image_view_kind,
+              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+                .anisotropyEnable = VK_FALSE },
+              graphics_settings()
               COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
-
-        m_background_texture.m_sampler = m_logical_device->create_sampler({
-            .mipmapMode = vk::SamplerMipmapMode::eNearest,
-            .anisotropyEnable = VK_FALSE }, graphics_settings()
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture.m_sampler")));
       }
       // Copy data.
       {
@@ -490,12 +490,13 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_texture = m_logical_device->create_image(width, height, sample_image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal
+        m_texture = m_logical_device->create_texture(
+            width, height, sample_image_view_kind,
+            vk::MemoryPropertyFlagBits::eDeviceLocal,
+            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+              .anisotropyEnable = VK_FALSE },
+            graphics_settings()
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-        m_texture.m_sampler = m_logical_device->create_sampler({
-            .mipmapMode = vk::SamplerMipmapMode::eNearest,
-            .anisotropyEnable = VK_FALSE }, graphics_settings()
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture.m_sampler")));
       }
       // Copy data.
       {
