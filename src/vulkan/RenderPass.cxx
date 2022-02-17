@@ -38,7 +38,7 @@ std::vector<vk::ClearValue> RenderPass::clear_values() const
   {
     rendergraph::AttachmentNode const& node = attachment_nodes[i];
     // Paranoia check. We're going to push them in order to result.
-    ASSERT(i == node.index());
+    ASSERT(i == node.render_pass_attachment_index());
     // All rendergraph::Attachment objects are (base classes of) vulkan::Attachment's.
     Attachment const* attachment = static_cast<Attachment const*>(node.attachment());
     Dout(dc::vulkan, i << " : " << attachment->get_clear_value());
@@ -71,7 +71,7 @@ void RenderPass::update_image_views(Swapchain const& swapchain, FrameResourcesDa
   // Run over all known attachments and push the corresponding image views of the current frame resources in order to the result vector.
   for (auto i = attachment_nodes.ibegin(); i != attachment_nodes.iend(); ++i)
   {
-    AttachmentIndex attachment_index = static_cast<Attachment const*>(attachment_nodes[i].attachment())->index();
+    rendergraph::AttachmentIndex attachment_index = attachment_nodes[i].attachment()->rendergraph_attachment_index();
     vk::ImageView vh_image_view = attachment_index.undefined() ? swapchain.vh_current_image_view() : *frame_resources->m_texture_parameters[attachment_index].m_image_view;
 #ifdef CWDEBUG
     vk::Image vh_image = attachment_index.undefined() ? swapchain.images()[swapchain.current_index()] : *frame_resources->m_texture_parameters[attachment_index].m_image;

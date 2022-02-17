@@ -8,13 +8,13 @@ namespace vulkan::rendergraph {
 #ifdef CWDEBUG
 void AttachmentNode::print_on(std::ostream& os) const
 {
-  os << m_render_pass << '/' << m_attachment << ' ' << m_index;
+  os << m_render_pass << '/' << m_attachment << ' ' << m_render_pass_attachment_index;
 }
 #endif
 
-utils::UniqueID<int> AttachmentNode::id() const
+utils::UniqueID<AttachmentIndex> AttachmentNode::rendergraph_attachment_index() const
 {
-  return m_attachment->id();
+  return m_attachment->rendergraph_attachment_index();
 }
 
 void AttachmentNode::set_load()

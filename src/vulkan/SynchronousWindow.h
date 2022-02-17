@@ -99,6 +99,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  public:
   using window_cookie_type = vulkan::QueueReply::window_cookies_type;
   using xcb_connection_broker_type = Broker<XcbConnection>;
+  using AttachmentIndex = vulkan::rendergraph::AttachmentIndex;
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
@@ -178,9 +179,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::GraphicsSettingsPOD const& graphics_settings() const { return m_graphics_settings; }
 
  public:
+  // Accessed by vulkan::rendergraph::Attachment::assign_unique_index().
+  utils::UniqueIDContext<AttachmentIndex> attachment_index_context;       // Provides an unique index for registered attachments (through register_attachment).
+
   // Accessed by Swapchain.
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
-  utils::UniqueIDContext<int> attachment_id_context;                                    // Provides an unique ID for attachments.
 
   // Called from constructor of Attachment.
   vulkan::ClearValue get_default_clear_value(bool is_depth_stencil) const
@@ -201,16 +204,14 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   using Attachment = vulkan::Attachment;                                                // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
   std::vector<RenderPass*> m_render_passes;                                             // All render pass objects.
-  std::vector<Attachment*> m_attachments;                                               // All render pass objects.
+  std::vector<Attachment const*> m_attachments;                                         // All known attachments, except the swapchain attachment (if any).
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
-  utils::UniqueIDContext<vulkan::AttachmentIndex> m_render_graph_context;
   RenderPass imgui_pass{this, "imgui_pass"};                                            // Must be constructed AFTER m_render_passes!
 
  public:
   void register_render_pass(RenderPass*);
-  void register_attachment(Attachment*);
-  utils::UniqueIDContext<vulkan::AttachmentIndex>& render_graph_context() { return m_render_graph_context; }
-  size_t number_of_attachments() const { return m_attachments.size(); }
+  void register_attachment(Attachment const*);
+  size_t number_of_registered_attachments() const { return m_attachments.size(); }
   auto attachments_begin() const { return m_attachments.begin(); }
   auto attachments_end() const { return m_attachments.end(); }
 

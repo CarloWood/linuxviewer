@@ -45,7 +45,7 @@ vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_i
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
-  m_render_graph_context(vulkan::AttachmentIndex{0})
+  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0})
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
@@ -78,11 +78,11 @@ void SynchronousWindow::register_render_pass(SynchronousWindow::RenderPass* rend
   m_render_passes.emplace_back(render_pass);
 }
 
-void SynchronousWindow::register_attachment(SynchronousWindow::Attachment* attachment)
+void SynchronousWindow::register_attachment(SynchronousWindow::Attachment const* attachment)
 {
 #if CW_DEBUG
   std::string const& name = attachment->name();
-  auto res = std::find_if(m_attachments.begin(), m_attachments.end(), [&name](Attachment* attachment){ return attachment->name() == name; });
+  auto res = std::find_if(m_attachments.begin(), m_attachments.end(), [&name](Attachment const* attachment){ return attachment->name() == name; });
   // Please use a unique name for each attachment.
   ASSERT(res == m_attachments.end());
 #endif
@@ -1101,7 +1101,7 @@ void SynchronousWindow::on_window_size_changed_post()
   for (std::unique_ptr<vulkan::FrameResourcesData> const& frame_resources_data : m_frame_resources_list)
   {
     // Run over all attachments.
-    for (Attachment* attachment : m_attachments)
+    for (Attachment const* attachment : m_attachments)
     {
       if (attachment->index().undefined())      // Skip swapchain attachments.
         continue;

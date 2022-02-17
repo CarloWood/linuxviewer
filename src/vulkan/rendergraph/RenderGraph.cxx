@@ -252,28 +252,28 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
     return;
 
 #ifdef CWDEBUG
-  size_t number_of_constructed_attachments = owning_window->number_of_attachments();
-  // It should be impossible that this fails (paranoia check).
-  ASSERT(number_of_constructed_attachments >= all_attachments.size());
-  if (number_of_constructed_attachments > all_attachments.size())
-    Dout(dc::warning, "You have unused attachments!");
+  size_t number_of_registered_attachments = owning_window->number_of_registered_attachments();
+  // It should be impossible that this fails (paranoia check). The -1 case holds if we have a swapchain image, which isn't registered.
+  ASSERT(number_of_registered_attachments == all_attachments.size() - 1 || number_of_registered_attachments == all_attachments.size());
 
   for (auto iter = owning_window->attachments_begin(); iter != owning_window->attachments_end(); ++iter)
   {
     vulkan::Attachment const* attachment = *iter;
-    Dout(dc::notice, "Attachment \"" << attachment->name() << "\" with ID " << attachment->index() << ".");
+    Dout(dc::notice, "Attachment \"" << attachment->name() << "\" with index " << attachment->index() << ".");
   }
 #endif
 
   // Before we can create the render passes, we have to mark any attachment that is used for presentation.
   // Currently we only support one such attachment: the Swapchain::m_presentation_attachment
   // of the owning window.
-  utils::UniqueID<int> presentation_attachment_id = owning_window->swapchain().presentation_attachment().id();
+  auto presentation_attachment_index = owning_window->swapchain().presentation_attachment().index();
+  // The swapchain attachment is expected to have an undefined index (paranoia check).
+  ASSERT(presentation_attachment_index.undefined());
   // Run over all render passes and mark the attachment with the same id as "presentation" when it is a sink.
   for_each_render_pass(search_forwards,
-      [presentation_attachment_id](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
+      [presentation_attachment_index](RenderPass* render_pass, std::vector<RenderPass*>& UNUSED_ARG(path))
       {
-        render_pass->set_is_present_on_attachment_sink_with_id(presentation_attachment_id);
+        render_pass->set_is_present_on_attachment_sink_with_index(presentation_attachment_index);
         return false;
       });
 
@@ -316,7 +316,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
   Swapchain& swapchain = owning_window->swapchain();
   Attachment const& presentation_attachment = swapchain.presentation_attachment();
   auto iter = std::find_if(all_attachments.begin(), all_attachments.end(),
-      [id = presentation_attachment.id()](Attachment const* candidate){ return candidate->id() == id; });
+      [index = presentation_attachment.rendergraph_attachment_index()](Attachment const* candidate){ return candidate->rendergraph_attachment_index() == index; });
   // Does this render graph know about the swapchain attachment?
   if (iter != all_attachments.end())
   {
@@ -508,9 +508,8 @@ void RenderGraph::testsuite()
 
   vulkan::ImageKind const k1{{}};
   vulkan::ImageViewKind const v1{k1, {}};
-  utils::UniqueIDContext<int> context;
-  Attachment const specular{context, "specular", v1};
-  Attachment const output{context, "output", v1};
+  Attachment const specular{"specular", v1};
+  Attachment const output{"output", v1};
 
   {
     TEST(render_pass->stores(output));                        // attachment not used.

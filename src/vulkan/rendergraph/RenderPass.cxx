@@ -79,6 +79,10 @@ void RenderPass::store_attachment(Attachment::OpClear mod_attachment)
 
 AttachmentNode& RenderPass::get_node(Attachment const* attachment)
 {
+  // If we get here for 'attachment' it is used and we assign a unique ID.
+  if (attachment->undefined_index())
+    attachment->assign_unique_index();
+
   // Search if attachment is already know.
   auto iter = find_by_ID(m_known_attachments, attachment);
 
@@ -101,7 +105,7 @@ AttachmentNode& RenderPass::get_node(Attachment const* attachment)
 bool RenderPass::is_known(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.id() == attachment->id())
+    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
       return true;
   return false;
 }
@@ -109,7 +113,7 @@ bool RenderPass::is_known(Attachment const* attachment) const
 bool RenderPass::is_load(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.id() == attachment->id())
+    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
       return node.is_load();
   return false;
 }
@@ -117,7 +121,7 @@ bool RenderPass::is_load(Attachment const* attachment) const
 bool RenderPass::is_clear(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.id() == attachment->id())
+    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
       return node.is_clear();
   return false;
 }
@@ -125,7 +129,7 @@ bool RenderPass::is_clear(Attachment const* attachment) const
 bool RenderPass::is_store(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.id() == attachment->id())
+    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
       return node.is_store();
   return false;
 }
@@ -283,10 +287,10 @@ void RenderPass::add_attachments_to(std::set<Attachment const*, Attachment::Comp
     attachments.insert(node.attachment());
 }
 
-void RenderPass::set_is_present_on_attachment_sink_with_id(utils::UniqueID<int> id)
+void RenderPass::set_is_present_on_attachment_sink_with_index(AttachmentIndex index)
 {
   for (AttachmentNode& node : m_known_attachments)
-    if (node.is_sink() &&  node.id() == id)
+    if (node.is_sink() &&  node.rendergraph_attachment_index() == index)
       node.set_is_present();
 }
 
@@ -324,7 +328,7 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
     attachment_description.setInitialLayout(get_initial_layout(attachment, supports_separate_depth_stencil_layouts));
     attachment_description.setFinalLayout(get_final_layout(attachment, supports_separate_depth_stencil_layouts));
 
-    Dout(dc::notice, "attachment_description " << node.index() << " = " << attachment_description);
+    Dout(dc::notice, "attachment_description " << node.render_pass_attachment_index() << " = " << attachment_description);
     m_attachment_descriptions.push_back(attachment_description);
   }
 
@@ -344,7 +348,7 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
     }
     else
       THROW_ALERT("Don't know how to create a SubpassDescription for image view kind of [ATTACHMENT].", AIArgs("[ATTACHMENT]", attachment));
-    attachment_reference_ptr->setAttachment(static_cast<uint32_t>(node.index().get_value()))
+    attachment_reference_ptr->setAttachment(static_cast<uint32_t>(node.render_pass_attachment_index().get_value()))
       .setLayout(get_optimal_layout(node, false /* layout may not be DEPTH_ATTACHMENT_OPTIMAL|DEPTH_READ_ONLY_OPTIMAL|STENCIL_ATTACHMENT_OPTIMAL|STENCIL_READ_ONLY_OPTIMAL */));
   }
   // If we did not encounter a depth/stencil attachment then apparently we're not using it.

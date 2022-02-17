@@ -12,6 +12,12 @@ class Attachment;
 class RenderPass;
 class AttachmentNode;
 
+// AttachmentsIndex.
+//
+// A wrapper around a size_t that can be used into a vector of attachments known by the render graph.
+//
+using AttachmentIndex = utils::VectorIndex<Attachment>;
+
 // pAttachmentsIndex.
 //
 // A wrapper around a size_t that can be used into a vector of attachments known by given render pass.
@@ -27,7 +33,7 @@ class AttachmentNode
  private:
   RenderPass const* m_render_pass;                                      // The render pass this node falls under.
   Attachment const* m_attachment;                                       // A pointer to the associated Attachment description.
-  pAttachmentsIndex m_index;                                            // The render pass specific index (index into pAttachments).
+  pAttachmentsIndex m_render_pass_attachment_index;                     // The render pass specific index (index into pAttachments).
   LoadStoreOps m_ops;                                                   // Encodes the [DCL][DS] code for this attachment/render_pass.
   bool m_is_source = false;
   bool m_is_sink = false;
@@ -35,9 +41,9 @@ class AttachmentNode
 
  public:
   AttachmentNode(RenderPass const* render_pass, Attachment const* attachment, pAttachmentsIndex index) :
-    m_render_pass(render_pass), m_attachment(attachment), m_index(index) { }
+    m_render_pass(render_pass), m_attachment(attachment), m_render_pass_attachment_index(index) { }
 
-  utils::UniqueID<int> id() const;
+  utils::UniqueID<AttachmentIndex> rendergraph_attachment_index() const;
   Attachment const* attachment() const { return m_attachment; }
 
   void set_load();
@@ -62,7 +68,7 @@ class AttachmentNode
 
   // Accessor.
   RenderPass const* render_pass() const { return m_render_pass; }
-  pAttachmentsIndex index() const { return m_index; }
+  pAttachmentsIndex render_pass_attachment_index() const { return m_render_pass_attachment_index; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

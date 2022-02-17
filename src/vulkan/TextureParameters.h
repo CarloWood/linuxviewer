@@ -14,7 +14,4 @@ struct TextureParameters
   vk::UniqueDeviceMemory        m_memory;
 };
 
-// Index for storing TextureParameters as function of Attachment.
-using AttachmentIndex = utils::VectorIndex<TextureParameters>;
-
 } // namespace vulkan

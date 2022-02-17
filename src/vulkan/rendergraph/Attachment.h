@@ -2,12 +2,16 @@
 
 #include "ImageKind.h"
 #include "utils/UniqueID.h"
+#include "utils/Vector.h"
 
 namespace task {
 class SynchronousWindow;
 } // namespace task
 
 namespace vulkan::rendergraph {
+
+class Attachment;
+using AttachmentIndex = utils::VectorIndex<Attachment>;
 
 // Attachment.
 //
@@ -17,18 +21,28 @@ namespace vulkan::rendergraph {
 class Attachment
 {
  private:
-  ImageViewKind const& m_image_view_kind;       // Static description of the image view related to this attachment.
-  utils::UniqueID<int> const m_id;              // Unique in the context of a given task::SynchronousWindow.
-  std::string const m_name;                     // Human readable name of the attachment; e.g. "depth" or "output".
+  task::SynchronousWindow* m_owning_window;
+  ImageViewKind const& m_image_view_kind;               // Static description of the image view related to this attachment.
+
+  // Index into vectors with all attachments known to the render graph (excluding the swapchain attachment).
+  //
+  // Mutable because it is late-assigned, just in time for use, by assign_unique_index() const.
+  // The function assign_unique_index is const because it is called from a point where we really only have const access.
+  // Since m_rendergraph_attachment_index is never read before it is assigned, it is ok to pretend that it was already assigned and thus
+  // that assign_unique_index() isn't really doing anything and thus can be const.
+  // The std::optional is used to keep track of whether or not the index was already assigned a unique value or not.
+  mutable std::optional<utils::UniqueID<AttachmentIndex>> m_rendergraph_attachment_index;
+
+  std::string const m_name;                             // Human readable name of the attachment; e.g. "depth" or "output".
   mutable vk::ImageLayout m_final_layout = {};
 
  public:
 #ifdef CWDEBUG
-  Attachment(utils::UniqueIDContext<int>& context, std::string const& name, ImageViewKind const& image_view_kind) :
-    m_image_view_kind(image_view_kind), m_id(context.get_id()), m_name(name) { }
+  Attachment(std::string const& name, ImageViewKind const& image_view_kind) :
+    m_owning_window(nullptr), m_image_view_kind(image_view_kind), m_name(name) { }
 #endif
 
-  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind);
+  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind, bool is_swapchain_image);
   Attachment(Attachment const&) = delete;
 
   // The result type of ~attachment.
@@ -72,13 +86,20 @@ class Attachment
   ImageKind const& image_kind() const { return m_image_view_kind.image_kind(); }
   ImageViewKind const& image_view_kind() const { return m_image_view_kind; }
 
-  utils::UniqueID<int> id() const { return m_id; }
+  utils::UniqueID<AttachmentIndex> rendergraph_attachment_index() const
+  {
+    ASSERT(m_rendergraph_attachment_index.has_value());
+    return m_rendergraph_attachment_index.value();
+  }
+  bool undefined_index() const { return !m_rendergraph_attachment_index.has_value(); }
+  void assign_swapchain_index() const { m_rendergraph_attachment_index.emplace(utils::UniqueIDContext<AttachmentIndex>{{}}.get_id()); }
+  void assign_unique_index() const;
 
   struct CompareIDLessThan
   {
     bool operator()(Attachment const* attachment1, Attachment const* attachment2) const
     {
-      return attachment1->m_id < attachment2->m_id;
+      return attachment1->rendergraph_attachment_index() < attachment2->rendergraph_attachment_index();
     }
   };
 

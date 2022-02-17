@@ -134,7 +134,7 @@ class RenderPass
   void for_all_render_passes_until(int traversal_id, std::function<bool(RenderPass*, std::vector<RenderPass*>&)> const& lambda,
       SearchType search_type, std::vector<RenderPass*>& path, bool skip_lambda = false);
   void add_attachments_to(std::set<Attachment const*, Attachment::CompareIDLessThan>& attachments);
-  void set_is_present_on_attachment_sink_with_id(utils::UniqueID<int> id);
+  void set_is_present_on_attachment_sink_with_index(AttachmentIndex index);
 
  private:
   void preceding_render_pass_stores(Attachment const* attachment);
@@ -165,8 +165,8 @@ auto RenderPass::find_by_ID(AttachmentNodes& container, Attachment const* attach
   {
     Attachment const* m_attachment;
     CompareEqualID(Attachment const* attachment) : m_attachment(attachment) { }
-    bool operator()(AttachmentNode const& node) { return m_attachment->id() == node.id(); }
-    bool operator()(Attachment const* attachment) { return m_attachment->id() == attachment->id(); }
+    bool operator()(AttachmentNode const& node) { return m_attachment->rendergraph_attachment_index() == node.rendergraph_attachment_index(); }
+    bool operator()(Attachment const* attachment) { return m_attachment->rendergraph_attachment_index() == attachment->rendergraph_attachment_index(); }
   };
 
   return std::find_if(container.begin(), container.end(), CompareEqualID{attachment});
@@ -180,7 +180,7 @@ auto RenderPass::find_by_ID(AttachmentNodes& container, AttachmentNode const& no
   {
     AttachmentNode const& m_node;
     CompareEqualID(AttachmentNode const& node) : m_node(node) { }
-    bool operator()(AttachmentNode const& node) { return m_node.id() == node.id(); }
+    bool operator()(AttachmentNode const& node) { return m_node.rendergraph_attachment_index() == node.rendergraph_attachment_index(); }
   };
 
   return std::find_if(container.begin(), container.end(), CompareEqualID{node});

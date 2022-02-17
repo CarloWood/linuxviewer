@@ -1,7 +1,6 @@
 #pragma once
 
 #include "rendergraph/Attachment.h"
-#include "TextureParameters.h"          // AttachmentIndex
 #include "ClearValue.h"
 
 namespace vulkan {
@@ -10,8 +9,6 @@ class Attachment : public rendergraph::Attachment
 {
  private:
   ClearValue m_clear_value;             // Default color or depth/stencil clear value.
-  AttachmentIndex m_index;              // Index/id that is unique within the render graph context of owning_window. For use with per-attachment arrays.
-                                        // The index will be undefined() when this attachment is the color attachment of a swapchain image.
 
  private:
   Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind, bool is_swapchain_image);
@@ -33,14 +30,14 @@ class Attachment : public rendergraph::Attachment
     return m_clear_value;
   }
 
-  AttachmentIndex index() const
+  rendergraph::AttachmentIndex index() const
   {
-    return m_index;
+    return rendergraph_attachment_index();
   }
 
-  operator AttachmentIndex() const
+  operator rendergraph::AttachmentIndex() const
   {
-    return m_index;
+    return rendergraph_attachment_index();
   }
 };
 
