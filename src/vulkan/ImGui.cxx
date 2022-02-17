@@ -375,7 +375,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
   // Create imgui pipeline layout.
   create_pipeline_layout(CWDEBUG_ONLY(ambifix));
   // Create imgui pipeline.
-  create_graphics_pipeline(MSAASamples, CWDEBUG_ONLY(ambifix));
+  create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));
 }
 
 // Called from SynchronousWindow::handle_window_size_changed, so no need for locking.
