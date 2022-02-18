@@ -15,12 +15,11 @@
 #include "ImageKind.h"
 #include "SamplerKind.h"
 #include "ImGui.h"
-#include "ClearValue.h"
 #include "RenderPass.h"
-#include "Attachment.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
 #include "rendergraph/RenderGraph.h"
+#include "rendergraph/Attachment.h"
 #include "shaderbuilder/ShaderModule.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
@@ -148,9 +147,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
-  vulkan::ClearValue m_default_color_clear_value;                         // Clear value that is used for color attachments by default (if they are cleared).
-  vulkan::ClearValue m_default_depth_stencil_clear_value{1.f, 0};         // Clear value that is used for depth/stencil attachments by default (if they are cleared).
-
  protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
   bool m_use_imgui = false;
   vulkan::DescriptorSetParameters m_descriptor_set;
@@ -185,12 +181,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Accessed by Swapchain.
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
 
-  // Called from constructor of Attachment.
-  vulkan::ClearValue get_default_clear_value(bool is_depth_stencil) const
-  {
-    return is_depth_stencil ? m_default_depth_stencil_clear_value : m_default_color_clear_value;
-  }
-
   statefultask::TaskEvent m_logical_device_index_available_event;         // Triggered when m_logical_device_index is set.
 
   void close() { set_must_close(); }
@@ -201,7 +191,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Render graph nodes.
   using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
-  using Attachment = vulkan::Attachment;                                                // Use to define attachments in derived Window class.
+  using Attachment = vulkan::rendergraph::Attachment;                                   // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
   std::vector<RenderPass*> m_render_passes;                                             // All render pass objects.
   utils::Vector<Attachment const*> m_attachments;                                       // All known attachments, except the swapchain attachment (if any).
@@ -426,7 +416,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // SynchronousWindow_initialize_vukan:
   // (virtual functions are implemented by most derived class)
-  virtual void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil);
+  virtual void set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil);
   void prepare_swapchain();
   virtual void create_render_passes() = 0;
   void create_swapchain_images();

@@ -6,7 +6,7 @@
 #include "debug/vulkan_print_on.h"
 #endif
 
-namespace vulkan {
+namespace vulkan::rendergraph {
 
 class ClearValue
 {
@@ -84,4 +84,4 @@ class ClearValue
 #endif
 };
 
-} // namespace vulkan
+} // namespace vulkan::rendergraph

@@ -12,9 +12,9 @@ void AttachmentNode::print_on(std::ostream& os) const
 }
 #endif
 
-utils::UniqueID<AttachmentIndex> AttachmentNode::rendergraph_attachment_index() const
+utils::UniqueID<AttachmentIndex> AttachmentNode::render_graph_attachment_index() const
 {
-  return m_attachment->rendergraph_attachment_index();
+  return m_attachment->render_graph_attachment_index();
 }
 
 void AttachmentNode::set_load()

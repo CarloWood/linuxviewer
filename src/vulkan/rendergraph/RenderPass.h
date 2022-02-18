@@ -165,8 +165,8 @@ auto RenderPass::find_by_ID(AttachmentNodes& container, Attachment const* attach
   {
     Attachment const* m_attachment;
     CompareEqualID(Attachment const* attachment) : m_attachment(attachment) { }
-    bool operator()(AttachmentNode const& node) { return m_attachment->rendergraph_attachment_index() == node.rendergraph_attachment_index(); }
-    bool operator()(Attachment const* attachment) { return m_attachment->rendergraph_attachment_index() == attachment->rendergraph_attachment_index(); }
+    bool operator()(AttachmentNode const& node) { return m_attachment->render_graph_attachment_index() == node.render_graph_attachment_index(); }
+    bool operator()(Attachment const* attachment) { return m_attachment->render_graph_attachment_index() == attachment->render_graph_attachment_index(); }
   };
 
   return std::find_if(container.begin(), container.end(), CompareEqualID{attachment});
@@ -180,7 +180,7 @@ auto RenderPass::find_by_ID(AttachmentNodes& container, AttachmentNode const& no
   {
     AttachmentNode const& m_node;
     CompareEqualID(AttachmentNode const& node) : m_node(node) { }
-    bool operator()(AttachmentNode const& node) { return m_node.rendergraph_attachment_index() == node.rendergraph_attachment_index(); }
+    bool operator()(AttachmentNode const& node) { return m_node.render_graph_attachment_index() == node.render_graph_attachment_index(); }
   };
 
   return std::find_if(container.begin(), container.end(), CompareEqualID{node});

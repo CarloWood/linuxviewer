@@ -16,7 +16,7 @@
 #endif
 #include "shaderbuilder/ShaderModule.h"
 
-#include "vulkan/ClearValue.h"
+#include "vulkan/rendergraph/ClearValue.h"
 #include "vulkan/ImageKind.h"
 #include <imgui.h>
 
@@ -164,7 +164,7 @@ class Window : public task::SynchronousWindow
     return vulkan::FrameResourceIndex{5};
   }
 
-  void set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil) override
+  void set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil) override
   {
     // Use red as default clear color for this window.
 //    color = { 1.f, 0.f, 0.f, 1.f };

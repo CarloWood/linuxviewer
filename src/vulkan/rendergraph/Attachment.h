@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ImageKind.h"
+#include "ClearValue.h"
 #include "utils/UniqueID.h"
 #include "utils/Vector.h"
 
@@ -22,27 +23,37 @@ class Attachment
 {
  private:
   task::SynchronousWindow* m_owning_window;
-  ImageViewKind const& m_image_view_kind;               // Static description of the image view related to this attachment.
+  ImageViewKind const& m_image_view_kind;       // Static description of the image view related to this attachment.
+  ClearValue m_clear_value;                     // Default color or depth/stencil clear value.
 
   // Index into vectors with all attachments known to the render graph (excluding the swapchain attachment).
   //
   // Mutable because it is late-assigned, just in time for use, by assign_unique_index() const.
   // The function assign_unique_index is const because it is called from a point where we really only have const access.
-  // Since m_rendergraph_attachment_index is never read before it is assigned, it is ok to pretend that it was already assigned and thus
+  // Since m_render_graph_attachment_index is never read before it is assigned, it is ok to pretend that it was already assigned and thus
   // that assign_unique_index() isn't really doing anything and thus can be const.
   // The std::optional is used to keep track of whether or not the index was already assigned a unique value or not.
-  mutable std::optional<utils::UniqueID<AttachmentIndex>> m_rendergraph_attachment_index;
+  mutable std::optional<utils::UniqueID<AttachmentIndex>> m_render_graph_attachment_index;
 
   std::string const m_name;                             // Human readable name of the attachment; e.g. "depth" or "output".
   mutable vk::ImageLayout m_final_layout = {};
 
+ private:
+  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind, bool is_swapchain_image);
+
  public:
+  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind) :
+    Attachment(owning_window, name, image_view_kind, false) { }
+
+  Attachment(utils::Badge<Swapchain>, task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind) :
+    Attachment(owning_window, name, image_view_kind, true) { }
+
 #ifdef CWDEBUG
+  // Used by testsuite.
   Attachment(std::string const& name, ImageViewKind const& image_view_kind) :
     m_owning_window(nullptr), m_image_view_kind(image_view_kind), m_name(name) { }
 #endif
 
-  Attachment(task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind, bool is_swapchain_image);
   Attachment(Attachment const&) = delete;
 
   // The result type of ~attachment.
@@ -86,20 +97,20 @@ class Attachment
   ImageKind const& image_kind() const { return m_image_view_kind.image_kind(); }
   ImageViewKind const& image_view_kind() const { return m_image_view_kind; }
 
-  utils::UniqueID<AttachmentIndex> rendergraph_attachment_index() const
+  utils::UniqueID<AttachmentIndex> render_graph_attachment_index() const
   {
-    ASSERT(m_rendergraph_attachment_index.has_value());
-    return m_rendergraph_attachment_index.value();
+    ASSERT(m_render_graph_attachment_index.has_value());
+    return m_render_graph_attachment_index.value();
   }
-  bool undefined_index() const { return !m_rendergraph_attachment_index.has_value(); }
-  void assign_swapchain_index() const { m_rendergraph_attachment_index.emplace(utils::UniqueIDContext<AttachmentIndex>{{}}.get_id()); }
+  bool undefined_index() const { return !m_render_graph_attachment_index.has_value(); }
+  void assign_swapchain_index() const { m_render_graph_attachment_index.emplace(utils::UniqueIDContext<AttachmentIndex>{{}}.get_id()); }
   void assign_unique_index() const;
 
   struct CompareIDLessThan
   {
     bool operator()(Attachment const* attachment1, Attachment const* attachment2) const
     {
-      return attachment1->rendergraph_attachment_index() < attachment2->rendergraph_attachment_index();
+      return attachment1->render_graph_attachment_index() < attachment2->render_graph_attachment_index();
     }
   };
 
@@ -113,6 +124,29 @@ class Attachment
   vk::ImageLayout get_final_layout() const
   {
     return m_final_layout;
+  }
+
+  // These used to be part of vulkan::Attachment, when that was still derived from this class.
+  // Its more of a usage interface - not a rendergraph generation interface.
+
+  void set_clear_value(ClearValue clear_value)
+  {
+    m_clear_value = clear_value;
+  }
+
+  ClearValue const& get_clear_value() const
+  {
+    return m_clear_value;
+  }
+
+  AttachmentIndex index() const
+  {
+    return render_graph_attachment_index();
+  }
+
+  operator AttachmentIndex() const
+  {
+    return render_graph_attachment_index();
   }
 
   void print_on(std::ostream& os) const;

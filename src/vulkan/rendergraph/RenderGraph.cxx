@@ -258,7 +258,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
 
   for (auto iter = owning_window->attachments_begin(); iter != owning_window->attachments_end(); ++iter)
   {
-    vulkan::Attachment const* attachment = *iter;
+    Attachment const* attachment = *iter;
     Dout(dc::notice, "Attachment \"" << attachment->name() << "\" with index " << attachment->index() << ".");
   }
 #endif
@@ -316,7 +316,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
   Swapchain& swapchain = owning_window->swapchain();
   Attachment const& presentation_attachment = swapchain.presentation_attachment();
   auto iter = std::find_if(all_attachments.begin(), all_attachments.end(),
-      [index = presentation_attachment.rendergraph_attachment_index()](Attachment const* candidate){ return candidate->rendergraph_attachment_index() == index; });
+      [index = presentation_attachment.render_graph_attachment_index()](Attachment const* candidate){ return candidate->render_graph_attachment_index() == index; });
   // Does this render graph know about the swapchain attachment?
   if (iter != all_attachments.end())
   {

@@ -43,7 +43,7 @@ class AttachmentNode
   AttachmentNode(RenderPass const* render_pass, Attachment const* attachment, pAttachmentsIndex index) :
     m_render_pass(render_pass), m_attachment(attachment), m_render_pass_attachment_index(index) { }
 
-  utils::UniqueID<AttachmentIndex> rendergraph_attachment_index() const;
+  utils::UniqueID<AttachmentIndex> render_graph_attachment_index() const;
   Attachment const* attachment() const { return m_attachment; }
 
   void set_load();

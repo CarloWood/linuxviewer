@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RenderPass.h"
+#include "ClearValue.h"
 #include <map>
 
 namespace vulkan::rendergraph {
@@ -19,6 +20,11 @@ class RenderGraph
   mutable int m_traversal_id = {};                      // Unique ID to identify which RenderPass nodes have already visited.
                                                         // Incremented every call to for_each_render_pass.
   bool m_have_incoming_outgoing = false;                // Set to true after m_sources was fixed to point to real sources and all RenderPass nodes have correct m_outgoing_vertices.
+
+ public:
+  // Filled by SynchronousWindow.
+  ClearValue m_default_color_clear_value;                       // Clear value that is used for color attachments by default (if they are cleared).
+  ClearValue m_default_depth_stencil_clear_value{1.f, 0};       // Clear value that is used for depth/stencil attachments by default (if they are cleared).
 
  public:
   void operator=(RenderPassStream& sink);

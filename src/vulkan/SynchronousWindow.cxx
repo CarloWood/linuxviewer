@@ -242,7 +242,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       [[fallthrough]];
     case SynchronousWindow_initialize_vukan:
       copy_graphics_settings();
-      set_default_clear_values(m_default_color_clear_value, m_default_depth_stencil_clear_value);
+      set_default_clear_values(m_render_graph.m_default_color_clear_value, m_render_graph.m_default_depth_stencil_clear_value);
       prepare_swapchain();
       create_render_passes();
       create_swapchain_images();
@@ -1133,7 +1133,7 @@ vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
 
 //virtual
 // Override this function to change these values.
-void SynchronousWindow::set_default_clear_values(vulkan::ClearValue& color, vulkan::ClearValue& depth_stencil)
+void SynchronousWindow::set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil)
 {
   Dout(dc::vulkan, "Using default clear values; color: " << color << ", depth_stencil: " << depth_stencil);
   // These are already the default.

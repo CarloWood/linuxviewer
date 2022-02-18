@@ -2,7 +2,7 @@
 
 #include "ResourceState.h"
 #include "ImageKind.h"
-#include "Attachment.h"
+#include "rendergraph/Attachment.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <thread>
@@ -94,7 +94,7 @@ class Swapchain
   vk::UniqueSemaphore       m_acquire_semaphore;        // Semaphore used to acquire the next image.
   vk::PresentModeKHR        m_present_mode;
   // prepare:
-  std::optional<Attachment> m_presentation_attachment;  // The presentation attachment ("optional" because it is initialized during prepare).
+  std::optional<rendergraph::Attachment> m_presentation_attachment;     // The presentation attachment ("optional" because it is initialized during prepare).
   // RenderGraph::generate:
   RenderPass*               m_render_pass_output_sink = nullptr;        // The render pass that stores to presentation attachment as a sink.
 
@@ -123,12 +123,12 @@ class Swapchain
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
-  Attachment const& presentation_attachment() const
+  rendergraph::Attachment const& presentation_attachment() const
   {
     return m_presentation_attachment.value();
   }
 
-  void set_clear_value_presentation_attachment(ClearValue clear_value)
+  void set_clear_value_presentation_attachment(rendergraph::ClearValue clear_value)
   {
     m_presentation_attachment.value().set_clear_value(clear_value);
   }

@@ -5,7 +5,7 @@
 #include <iostream>
 #endif
 
-namespace vulkan {
+namespace vulkan::rendergraph {
 
 ClearValue& ClearValue::operator=(std::initializer_list<double> ilist)
 {
@@ -91,4 +91,4 @@ void ClearValue::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan
+} // namespace vulkan::rendergraph

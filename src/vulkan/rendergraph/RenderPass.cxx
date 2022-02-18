@@ -105,7 +105,7 @@ AttachmentNode& RenderPass::get_node(Attachment const* attachment)
 bool RenderPass::is_known(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
+    if (node.render_graph_attachment_index() == attachment->render_graph_attachment_index())
       return true;
   return false;
 }
@@ -113,7 +113,7 @@ bool RenderPass::is_known(Attachment const* attachment) const
 bool RenderPass::is_load(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
+    if (node.render_graph_attachment_index() == attachment->render_graph_attachment_index())
       return node.is_load();
   return false;
 }
@@ -121,7 +121,7 @@ bool RenderPass::is_load(Attachment const* attachment) const
 bool RenderPass::is_clear(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
+    if (node.render_graph_attachment_index() == attachment->render_graph_attachment_index())
       return node.is_clear();
   return false;
 }
@@ -129,7 +129,7 @@ bool RenderPass::is_clear(Attachment const* attachment) const
 bool RenderPass::is_store(Attachment const* attachment) const
 {
   for (AttachmentNode const& node : m_known_attachments)
-    if (node.rendergraph_attachment_index() == attachment->rendergraph_attachment_index())
+    if (node.render_graph_attachment_index() == attachment->render_graph_attachment_index())
       return node.is_store();
   return false;
 }
@@ -290,7 +290,7 @@ void RenderPass::add_attachments_to(std::set<Attachment const*, Attachment::Comp
 void RenderPass::set_is_present_on_attachment_sink_with_index(AttachmentIndex index)
 {
   for (AttachmentNode& node : m_known_attachments)
-    if (node.is_sink() &&  node.rendergraph_attachment_index() == index)
+    if (node.is_sink() &&  node.render_graph_attachment_index() == index)
       node.set_is_present();
 }
 
