@@ -1157,7 +1157,7 @@ void SynchronousWindow::create_frame_resources()
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
         // The total number of attachments used in the rendergraph, excluding the swapchain attachment.
         number_of_registered_attachments(),
-        // Constructor arguments for m_command_pool. Too specialized? (should this be part of a derived class?)
+        // Constructor arguments for m_command_pool.
         m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
 
