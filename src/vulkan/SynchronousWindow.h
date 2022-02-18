@@ -418,7 +418,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // (virtual functions are implemented by most derived class)
   virtual void set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil);
   void prepare_swapchain();
-  virtual void create_render_passes() = 0;
+  virtual void create_render_graph() = 0;
   void create_swapchain_images();
   void create_frame_resources();
   void create_imageless_framebuffers();

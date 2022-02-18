@@ -471,7 +471,7 @@ class TestWindow : public task::SynchronousWindow
   }
 
  private:
-  void create_render_passes() override { }
+  void create_render_graph() override { }
   void create_descriptor_set() override { }
   void create_textures() override { }
   void create_pipeline_layout() override { }

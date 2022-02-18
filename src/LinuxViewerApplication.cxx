@@ -232,20 +232,10 @@ class Window : public task::SynchronousWindow
 
   int m_frame_count = 0;
 
-  threadpool::Timer::Interval get_frame_rate_interval() const override
+ private:
+  void create_render_graph() override
   {
-    // Limit the frame rate of this window to 10 frames per second.
-    return threadpool::Interval<100, std::chrono::milliseconds>{};
-  }
-
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
-  {
-    return vulkan::FrameResourceIndex{3};
-  }
-
-  void create_render_passes() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_render_graph() [" << this << "]");
 
     // These must be references.
     auto& output = swapchain().presentation_attachment();
@@ -254,112 +244,13 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  void draw_frame() override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "]");
-
-    // Skip the first frame.
-    if (++m_frame_count == 1)
-      return;
-
-    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
-    auto frame_begin_time = std::chrono::high_resolution_clock::now();
-
-    // Start frame - calculate times and prepare GUI.
-    start_frame();
-
-    // Acquire swapchain image.
-    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
-
-    // Draw scene/prepare scene's command buffers.
-    {
-      // Draw sample-specific data - includes command buffer submission!!
-      DrawSample();
-    }
-
-    // Draw GUI and present swapchain image.
-    finish_frame();
-
-    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
-
-    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+    return vulkan::FrameResourceIndex{3};
   }
 
-  void DrawSample()
-  {
-    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
-    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
-
-    auto swapchain_extent = swapchain().extent();
-    final_pass.update_image_views(swapchain(), frame_resources);
-
-    vk::Viewport viewport{
-      .x = 0,
-      .y = 0,
-      .width = static_cast<float>(swapchain_extent.width),
-      .height = static_cast<float>(swapchain_extent.height),
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f
-    };
-
-    vk::Rect2D scissor{
-      .offset = vk::Offset2D(),
-      .extent = swapchain_extent
-    };
-
-//    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
-
-    m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
-
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
-
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
-      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-      command_buffer_w->setViewport(0, { viewport });
-      command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->draw(3, 1, 0, 0);
-      command_buffer_w->endRenderPass();
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
-
-      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-      vk::SubmitInfo submit_info{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
-        .pWaitDstStageMask = &wait_dst_stage_mask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = command_buffer_w,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
-      };
-
-      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
-      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
-    } // Unlock command pool.
-
-    Dout(dc::vkframe, "Leaving Window::DrawSample.");
-  }
-
-  void create_vertex_buffers() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
-  }
-
-  void create_descriptor_set() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
-  }
-
-  void create_textures() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
-  }
+  void create_descriptor_set() override { }
+  void create_textures() override { }
 
   void create_pipeline_layout() override
   {
@@ -558,6 +449,119 @@ void main()
 
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
+  }
+
+  void create_vertex_buffers() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+  }
+
+  //===========================================================================
+  //
+  // Called from initialize_impl.
+  //
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    // Limit the frame rate of this window to 10 frames per second.
+    return threadpool::Interval<100, std::chrono::milliseconds>{};
+  }
+
+  //===========================================================================
+  //
+  // Frame code (called every frame)
+  //
+  //===========================================================================
+
+  void draw_frame() override
+  {
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "]");
+
+    // Skip the first frame.
+    if (++m_frame_count == 1)
+      return;
+
+    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
+    auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+    // Start frame - calculate times and prepare GUI.
+    start_frame();
+
+    // Acquire swapchain image.
+    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
+
+    // Draw scene/prepare scene's command buffers.
+    {
+      // Draw sample-specific data - includes command buffer submission!!
+      DrawSample();
+    }
+
+    // Draw GUI and present swapchain image.
+    finish_frame();
+
+    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
+
+    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+  }
+
+  void DrawSample()
+  {
+    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
+    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
+
+    auto swapchain_extent = swapchain().extent();
+    final_pass.update_image_views(swapchain(), frame_resources);
+
+    vk::Viewport viewport{
+      .x = 0,
+      .y = 0,
+      .width = static_cast<float>(swapchain_extent.width),
+      .height = static_cast<float>(swapchain_extent.height),
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f
+    };
+
+    vk::Rect2D scissor{
+      .offset = vk::Offset2D(),
+      .extent = swapchain_extent
+    };
+
+//    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+
+    m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+
+      // Get access to the command buffer.
+      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
+
+      Dout(dc::vkframe, "Start recording command buffer.");
+      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+      command_buffer_w->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer_w->setViewport(0, { viewport });
+      command_buffer_w->setScissor(0, { scissor });
+      command_buffer_w->draw(3, 1, 0, 0);
+      command_buffer_w->endRenderPass();
+      command_buffer_w->end();
+      Dout(dc::vkframe, "End recording command buffer.");
+
+      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+      vk::SubmitInfo submit_info{
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
+        .pWaitDstStageMask = &wait_dst_stage_mask,
+        .commandBufferCount = 1,
+        .pCommandBuffers = command_buffer_w,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
+      };
+
+      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
+      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
+    } // Unlock command pool.
+
+    Dout(dc::vkframe, "Leaving Window::DrawSample.");
   }
 };
 

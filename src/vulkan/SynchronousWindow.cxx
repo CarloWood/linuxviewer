@@ -244,7 +244,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       copy_graphics_settings();
       set_default_clear_values(m_render_graph.m_default_color_clear_value, m_render_graph.m_default_depth_stencil_clear_value);
       prepare_swapchain();
-      create_render_passes();
+      create_render_graph();
       create_swapchain_images();
       create_frame_resources();
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!

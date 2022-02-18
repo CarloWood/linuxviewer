@@ -37,15 +37,9 @@ class SingleButtonWindow : public task::SynchronousWindow
     task::SynchronousWindow(application COMMA_CWDEBUG_ONLY(debug)), m_callback(callback) { }
 
  private:
-  threadpool::Timer::Interval get_frame_rate_interval() const override
+  void create_render_graph() override
   {
-    // Limit the frame rate of this window to 11.111 frames per second.
-    return threadpool::Interval<90, std::chrono::milliseconds>{};
-  }
-
-  void create_render_passes() override
-  {
-    DoutEntering(dc::vulkan, "SingleButtonWindow::create_render_passes() [" << this << "]");
+    DoutEntering(dc::vulkan, "SingleButtonWindow::create_render_graph() [" << this << "]");
 
     // This must be a reference.
     auto& output = swapchain().presentation_attachment();
@@ -57,36 +51,27 @@ class SingleButtonWindow : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  void create_vertex_buffers() override { }
   void create_descriptor_set() override { }
   void create_textures() override { }
   void create_pipeline_layout() override { }
   void create_graphics_pipeline() override { }
+  void create_vertex_buffers() override { }
 
-  void draw_imgui() override final
+  //===========================================================================
+  //
+  // Called from initialize_impl.
+  //
+  threadpool::Timer::Interval get_frame_rate_interval() const override
   {
-    ImGuiIO& io = ImGui::GetIO();
-
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("SingleButton", nullptr,
-        ImGuiWindowFlags_NoDecoration |
-        ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_NoSavedSettings);
-
-    if (ImGui::Button("Trigger Event", ImVec2(150.f - 16.f, 50.f - 16.f)))
-    {
-      Dout(dc::notice, "SingleButtonWindow: calling m_callback() [" << this << "]");
-      m_callback(*this);
-    }
-
-    ImGui::End();
-
-#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
-    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    m_imgui_stats_window.draw(io, m_timer);
-#endif
+    // Limit the frame rate of this window to 11.111 frames per second.
+    return threadpool::Interval<90, std::chrono::milliseconds>{};
   }
+
+  //===========================================================================
+  //
+  // Frame code (called every frame)
+  //
+  //===========================================================================
 
   void draw_frame() override
   {
@@ -119,6 +104,37 @@ class SingleButtonWindow : public task::SynchronousWindow
 
     // Draw GUI and present swapchain image.
     finish_frame();
+  }
+
+  //===========================================================================
+  //
+  // ImGui
+  //
+  //===========================================================================
+
+  void draw_imgui() override final
+  {
+    ImGuiIO& io = ImGui::GetIO();
+
+    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+    ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::Begin("SingleButton", nullptr,
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings);
+
+    if (ImGui::Button("Trigger Event", ImVec2(150.f - 16.f, 50.f - 16.f)))
+    {
+      Dout(dc::notice, "SingleButtonWindow: calling m_callback() [" << this << "]");
+      m_callback(*this);
+    }
+
+    ImGui::End();
+
+#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
+    m_imgui_stats_window.draw(io, m_timer);
+#endif
   }
 };
 
@@ -153,50 +169,16 @@ class Window : public task::SynchronousWindow
   int m_frame_count = 0;
 
  private:
-  threadpool::Timer::Interval get_frame_rate_interval() const override
-  {
-    // Limit the frame rate of this window to 20 frames per second.
-    return threadpool::Interval<50, std::chrono::milliseconds>{};
-  }
-
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
-  {
-    return vulkan::FrameResourceIndex{5};
-  }
-
   void set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil) override
   {
+    DoutEntering(dc::vulkan, "Window::set_default_clear_values() [" << this << "]");
     // Use red as default clear color for this window.
 //    color = { 1.f, 0.f, 0.f, 1.f };
   }
 
-  TestApplication const& application() const
+  void create_render_graph() override
   {
-    return static_cast<TestApplication const&>(task::SynchronousWindow::application());
-  }
-
-  void PerformHardcoreCalculations(int duration) const
-  {
-    auto start_time = std::chrono::high_resolution_clock::now();
-    long long calculations_time = 0;
-    float m = 300.5678;
-
-    do
-    {
-      asm volatile ("" : "+r" (m));
-      float _sin = std::sin(std::cos(m));
-      float _pow = std::pow(m, _sin);
-      float _cos = std::cos(std::sin(_pow));
-      asm volatile ("" :: "r" (_cos));
-
-      calculations_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
-    }
-    while (calculations_time < 1000 * duration);
-  }
-
-  void create_render_passes() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_render_passes() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_render_graph() [" << this << "]");
 
 #ifdef CWDEBUG
 //    vulkan::rendergraph::RenderGraph::testsuite();
@@ -216,187 +198,10 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  void draw_imgui() override final
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
-    ImGuiIO& io = ImGui::GetIO();
-
-    //  bool show_demo_window = true;
-    //  ShowDemoWindow(&show_demo_window);
-    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    m_imgui_stats_window.draw(io, m_timer);
-
-    ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
-    ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
-    ImGui::Text("%s", hardware_name.c_str());
-    ImGui::NewLine();
-    ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);
-    ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, static_cast<int>(m_frame_resources_list.size()));
-    ImGui::SliderInt("Pre-submit CPU work time [ms]", &m_sample_parameters.PreSubmitCpuWorkTime, 0, 20);
-    ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
-    ImGui::Text("Frame generation time: %5.2f ms", m_sample_parameters.m_frame_generation_time);
-    ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
-
-    ImGui::End();
-  }
-
-  void draw_frame() override
-  {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
-
-    // Skip the first frame.
-    if (++m_frame_count == 1)
-      return;
-
-    ASSERT(m_sample_parameters.FrameResourcesCount >= 0);
-    m_current_frame.m_resource_count = vulkan::FrameResourceIndex{static_cast<size_t>(m_sample_parameters.FrameResourcesCount)};        // Slider value.
-    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
-    auto frame_begin_time = std::chrono::high_resolution_clock::now();
-
-//    if (m_frame_count == 10)
-//      Debug(attach_gdb());
-
-    // Start frame.
-    start_frame();
-
-    // Acquire swapchain image.
-    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
-
-    // Draw scene/prepare scene's command buffers.
-    {
-      auto frame_generation_begin_time = std::chrono::high_resolution_clock::now();
-
-      // Perform calculation influencing current frame.
-      PerformHardcoreCalculations(m_sample_parameters.PreSubmitCpuWorkTime);
-
-      // Draw sample-specific data - includes command buffer submission!!
-      DrawSample();
-
-      // Perform calculations influencing rendering of a next frame.
-      PerformHardcoreCalculations(m_sample_parameters.PostSubmitCpuWorkTime);
-
-      auto frame_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_generation_begin_time);
-      float float_frame_generation_time = static_cast<float>(frame_generation_time.count() * 0.001f);
-      m_sample_parameters.m_frame_generation_time = m_sample_parameters.m_frame_generation_time * 0.99f + float_frame_generation_time * 0.01f;
-    }
-
-    // Draw GUI and present swapchain image.
-    finish_frame();
-
-    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
-    float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
-    m_sample_parameters.m_total_frame_time = m_sample_parameters.m_total_frame_time * 0.99f + float_frame_time * 0.01f;
-
-    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
-  }
-
-  void DrawSample()
-  {
-    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
-    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
-
-    auto swapchain_extent = swapchain().extent();
-    main_pass.update_image_views(swapchain(), frame_resources);
-    imgui_pass.update_image_views(swapchain(), frame_resources);
-
-    vk::Viewport viewport{
-      .x = 0,
-      .y = 0,
-      .width = static_cast<float>(swapchain_extent.width),
-      .height = static_cast<float>(swapchain_extent.height),
-      .minDepth = 0.0f,
-      .maxDepth = 1.0f
-    };
-
-    vk::Rect2D scissor{
-      .offset = vk::Offset2D(),
-      .extent = swapchain_extent
-    };
-
-    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
-
-    m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
-
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
-
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
-      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-      command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
-      command_buffer_w->setViewport(0, { viewport });
-      command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
-      command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
-      command_buffer_w->endRenderPass();
-      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer_w->endRenderPass();
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
-
-      submit(command_buffer_w);
-    } // Unlock command pool.
-
-    Dout(dc::vkframe, "Leaving Window::DrawSample.");
-  }
-
-  void create_vertex_buffers() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
-
-    // 3D model
-    std::vector<vulkan::VertexData> vertex_data;
-
-    float const size = 0.12f;
-    float step       = 2.0f * size / SampleParameters::s_quad_tessellation;
-    for (int x = 0; x < SampleParameters::s_quad_tessellation; ++x)
-    {
-      for (int y = 0; y < SampleParameters::s_quad_tessellation; ++y)
-      {
-        float pos_x = -size + x * step;
-        float pos_y = -size + y * step;
-
-        vertex_data.push_back({{pos_x, pos_y, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-        vertex_data.push_back(
-            {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-        vertex_data.push_back(
-            {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-        vertex_data.push_back(
-            {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
-        vertex_data.push_back(
-            {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-        vertex_data.push_back(
-            {{pos_x + step, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
-      }
-    }
-
-    m_vertex_buffer = logical_device().create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
-        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffer")));
-    copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
-        vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
-
-    // Per instance data (position offsets and distance)
-    std::vector<float> instance_data(SampleParameters::s_max_object_count * 4);
-    for (size_t i = 0; i < instance_data.size(); i += 4)
-    {
-      instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
-      instance_data[i + 1] = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
-      instance_data[i + 2] = static_cast<float>(std::rand() % 513) / 512.0f;
-      instance_data[i + 3] = 0.0f;
-    }
-
-    m_instance_buffer = logical_device().create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
-        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
-    copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
-        vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
+    DoutEntering(dc::vulkan, "Window::number_of_frame_resources() [" << this << "]");
+    return vulkan::FrameResourceIndex{5};
   }
 
   void create_descriptor_set() override
@@ -734,6 +539,238 @@ void main() {
 
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
+  }
+
+  void create_vertex_buffers() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+
+    // 3D model
+    std::vector<vulkan::VertexData> vertex_data;
+
+    float const size = 0.12f;
+    float step       = 2.0f * size / SampleParameters::s_quad_tessellation;
+    for (int x = 0; x < SampleParameters::s_quad_tessellation; ++x)
+    {
+      for (int y = 0; y < SampleParameters::s_quad_tessellation; ++y)
+      {
+        float pos_x = -size + x * step;
+        float pos_y = -size + y * step;
+
+        vertex_data.push_back({{pos_x, pos_y, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
+        vertex_data.push_back(
+            {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
+        vertex_data.push_back(
+            {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
+        vertex_data.push_back(
+            {{pos_x + step, pos_y, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y) / (SampleParameters::s_quad_tessellation)}});
+        vertex_data.push_back(
+            {{pos_x, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
+        vertex_data.push_back(
+            {{pos_x + step, pos_y + step, 0.0f, 1.0f}, {static_cast<float>(x + 1) / (SampleParameters::s_quad_tessellation), static_cast<float>(y + 1) / (SampleParameters::s_quad_tessellation)}});
+      }
+    }
+
+    m_vertex_buffer = logical_device().create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData),
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffer")));
+    copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(vulkan::VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
+        vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
+
+    // Per instance data (position offsets and distance)
+    std::vector<float> instance_data(SampleParameters::s_max_object_count * 4);
+    for (size_t i = 0; i < instance_data.size(); i += 4)
+    {
+      instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
+      instance_data[i + 1] = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
+      instance_data[i + 2] = static_cast<float>(std::rand() % 513) / 512.0f;
+      instance_data[i + 3] = 0.0f;
+    }
+
+    m_instance_buffer = logical_device().create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
+        vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
+    copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
+        vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
+  }
+
+  //===========================================================================
+  //
+  // Called from initialize_impl.
+  //
+  threadpool::Timer::Interval get_frame_rate_interval() const override
+  {
+    DoutEntering(dc::vulkan, "Window::get_frame_rate_interval() [" << this << "]");
+    // Limit the frame rate of this window to 20 frames per second.
+    return threadpool::Interval<50, std::chrono::milliseconds>{};
+  }
+
+  //===========================================================================
+  //
+  // Frame code (called every frame)
+  //
+  //===========================================================================
+
+  void PerformHardcoreCalculations(int duration) const
+  {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    long long calculations_time = 0;
+    float m = 300.5678;
+
+    do
+    {
+      asm volatile ("" : "+r" (m));
+      float _sin = std::sin(std::cos(m));
+      float _pow = std::pow(m, _sin);
+      float _cos = std::cos(std::sin(_pow));
+      asm volatile ("" :: "r" (_cos));
+
+      calculations_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - start_time).count();
+    }
+    while (calculations_time < 1000 * duration);
+  }
+
+  void draw_frame() override
+  {
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+
+    // Skip the first frame.
+    if (++m_frame_count == 1)
+      return;
+
+    ASSERT(m_sample_parameters.FrameResourcesCount >= 0);
+    m_current_frame.m_resource_count = vulkan::FrameResourceIndex{static_cast<size_t>(m_sample_parameters.FrameResourcesCount)};        // Slider value.
+    Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
+    auto frame_begin_time = std::chrono::high_resolution_clock::now();
+
+//    if (m_frame_count == 10)
+//      Debug(attach_gdb());
+
+    // Start frame.
+    start_frame();
+
+    // Acquire swapchain image.
+    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
+
+    // Draw scene/prepare scene's command buffers.
+    {
+      auto frame_generation_begin_time = std::chrono::high_resolution_clock::now();
+
+      // Perform calculation influencing current frame.
+      PerformHardcoreCalculations(m_sample_parameters.PreSubmitCpuWorkTime);
+
+      // Draw sample-specific data - includes command buffer submission!!
+      DrawSample();
+
+      // Perform calculations influencing rendering of a next frame.
+      PerformHardcoreCalculations(m_sample_parameters.PostSubmitCpuWorkTime);
+
+      auto frame_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_generation_begin_time);
+      float float_frame_generation_time = static_cast<float>(frame_generation_time.count() * 0.001f);
+      m_sample_parameters.m_frame_generation_time = m_sample_parameters.m_frame_generation_time * 0.99f + float_frame_generation_time * 0.01f;
+    }
+
+    // Draw GUI and present swapchain image.
+    finish_frame();
+
+    auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
+    float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
+    m_sample_parameters.m_total_frame_time = m_sample_parameters.m_total_frame_time * 0.99f + float_frame_time * 0.01f;
+
+    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+  }
+
+  void DrawSample()
+  {
+    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
+    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
+
+    auto swapchain_extent = swapchain().extent();
+    main_pass.update_image_views(swapchain(), frame_resources);
+    imgui_pass.update_image_views(swapchain(), frame_resources);
+
+    vk::Viewport viewport{
+      .x = 0,
+      .y = 0,
+      .width = static_cast<float>(swapchain_extent.width),
+      .height = static_cast<float>(swapchain_extent.height),
+      .minDepth = 0.0f,
+      .maxDepth = 1.0f
+    };
+
+    vk::Rect2D scissor{
+      .offset = vk::Offset2D(),
+      .extent = swapchain_extent
+    };
+
+    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+
+    m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
+    {
+      // Lock command pool.
+      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+
+      // Get access to the command buffer.
+      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
+
+      Dout(dc::vkframe, "Start recording command buffer.");
+      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+      command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
+      command_buffer_w->setViewport(0, { viewport });
+      command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+      command_buffer_w->setScissor(0, { scissor });
+      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+      command_buffer_w->endRenderPass();
+      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+      command_buffer_w->endRenderPass();
+      command_buffer_w->end();
+      Dout(dc::vkframe, "End recording command buffer.");
+
+      submit(command_buffer_w);
+    } // Unlock command pool.
+
+    Dout(dc::vkframe, "Leaving Window::DrawSample.");
+  }
+
+  //===========================================================================
+  //
+  // ImGui
+  //
+  //===========================================================================
+
+  TestApplication const& application() const
+  {
+    return static_cast<TestApplication const&>(task::SynchronousWindow::application());
+  }
+
+  void draw_imgui() override final
+  {
+    DoutEntering(dc::vkframe, "Window::draw_imgui() [" << this << "]");
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    //  bool show_demo_window = true;
+    //  ShowDemoWindow(&show_demo_window);
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
+    m_imgui_stats_window.draw(io, m_timer);
+
+    ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
+    ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
+    ImGui::Text("%s", hardware_name.c_str());
+    ImGui::NewLine();
+    ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);
+    ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, static_cast<int>(m_frame_resources_list.size()));
+    ImGui::SliderInt("Pre-submit CPU work time [ms]", &m_sample_parameters.PreSubmitCpuWorkTime, 0, 20);
+    ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
+    ImGui::Text("Frame generation time: %5.2f ms", m_sample_parameters.m_frame_generation_time);
+    ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
+
+    ImGui::End();
   }
 
   virtual bool is_slow() const
