@@ -7,6 +7,7 @@
 #include "RenderPassAttachmentData.h"
 #include "Queue.h"
 #include "Texture.h"
+#include "Attachment.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
@@ -151,7 +152,7 @@ class LogicalDevice
   vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 
-  // Create all texture parameters at once.
+  // Create all texture objects at once.
   // Use sampler as-is.
   Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
       vk::MemoryPropertyFlagBits property, vk::UniqueSampler&& sampler
@@ -166,6 +167,9 @@ class LogicalDevice
       vk::MemoryPropertyFlagBits property, SamplerKindPOD const&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
       { return create_texture(width, height, image_view_kind, property, { this, std::move(sampler_kind) }, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
+  // Create all attachment objects at once.
+  Attachment create_attachment(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
 
   vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;

@@ -635,6 +635,31 @@ vk::UniqueSampler LogicalDevice::create_sampler(
   return sampler;
 }
 
+Attachment LogicalDevice::create_attachment(
+    uint32_t width,
+    uint32_t height,
+    vulkan::ImageViewKind const& image_view_kind,
+    vk::MemoryPropertyFlagBits property
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
+{
+  vk::UniqueImage tmp_image = create_image({ width, height }, image_view_kind.image_kind()
+      COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
+
+  vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
+      COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
+
+  m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
+
+  vk::UniqueImageView tmp_view = create_image_view(*tmp_image, image_view_kind
+      COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")));
+
+  return {
+   .m_image = std::move(tmp_image),
+   .m_image_view = std::move(tmp_view),
+   .m_memory = std::move(tmp_memory)
+  };
+}
+
 Texture LogicalDevice::create_texture(
     uint32_t width,
     uint32_t height,

@@ -4,12 +4,10 @@
 
 namespace vulkan {
 
-// Data collection used for textures.
-struct Texture
+struct Attachment
 {
   vk::UniqueImage               m_image;
   vk::UniqueImageView           m_image_view;
-  vk::UniqueSampler             m_sampler;
   vk::UniqueDeviceMemory        m_memory;
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Texture.h"
+#include "Attachment.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "utils/Vector.h"
@@ -10,7 +10,7 @@ namespace vulkan {
 
 struct FrameResourcesData
 {
-  utils::Vector<Texture, rendergraph::AttachmentIndex> m_texture_parameters;
+  utils::Vector<Attachment, rendergraph::AttachmentIndex> m_attachments;
 
   // Too specialized?
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -29,7 +29,7 @@ struct FrameResourcesData
       LogicalDevice const* logical_device,
       QueueFamilyPropertiesIndex queue_family
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& command_pool_debug_name)) :
-    m_texture_parameters(number_of_attachments),
+    m_attachments(number_of_attachments),
     m_command_pool(logical_device, queue_family COMMA_CWDEBUG_ONLY(command_pool_debug_name)) { }
 
   ~FrameResourcesData()

@@ -1108,15 +1108,14 @@ void SynchronousWindow::on_window_size_changed_post()
       if (attachment->index().undefined())      // Skip swapchain attachment.
         continue;
       Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
-      vulkan::Texture& texture = frame_resources_data->m_texture_parameters[*attachment];
-      texture = m_logical_device->create_texture(
+      vulkan::Attachment& attachment_ref = frame_resources_data->m_attachments[*attachment];
+      attachment_ref = m_logical_device->create_attachment(
           swapchain().extent().width,
           swapchain().extent().height,
           attachment->image_view_kind(),
-          vk::MemoryPropertyFlagBits::eDeviceLocal,
-          std::move(texture.m_sampler)
+          vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index) +
-              "]->m_image_parameters[" + to_string(attachment->index()) + "]")));
+              "]->m_attachments[" + to_string(attachment->index()) + "]")));
     }
 #ifdef CWDEBUG
     ++frame_resource_index;

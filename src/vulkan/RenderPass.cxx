@@ -71,9 +71,9 @@ void RenderPass::update_image_views(Swapchain const& swapchain, FrameResourcesDa
   for (auto i = attachment_nodes.ibegin(); i != attachment_nodes.iend(); ++i)
   {
     rendergraph::AttachmentIndex attachment_index = attachment_nodes[i].attachment()->render_graph_attachment_index();
-    vk::ImageView vh_image_view = attachment_index.undefined() ? swapchain.vh_current_image_view() : *frame_resources->m_texture_parameters[attachment_index].m_image_view;
+    vk::ImageView vh_image_view = attachment_index.undefined() ? swapchain.vh_current_image_view() : *frame_resources->m_attachments[attachment_index].m_image_view;
 #ifdef CWDEBUG
-    vk::Image vh_image = attachment_index.undefined() ? swapchain.images()[swapchain.current_index()] : *frame_resources->m_texture_parameters[attachment_index].m_image;
+    vk::Image vh_image = attachment_index.undefined() ? swapchain.images()[swapchain.current_index()] : *frame_resources->m_attachments[attachment_index].m_image;
 #endif
     Dout(dc::vkframe, i << " : " << vh_image_view << " (image: " << vh_image << ")");
     m_attachment_image_views[i] = vh_image_view;
