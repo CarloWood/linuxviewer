@@ -805,18 +805,20 @@ class LogicalDevice : public vulkan::LogicalDevice
         .max_number_of_queues = 13,
         .priority = 1.0})
     // {1}
-//    .combineQueueRequest({
-    .addQueueRequest({
+    .combineQueueRequest({
+//    .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 8,                      // Only used when it can not be combined.
         .priority = 0.8,                                // Only used when it can not be combined.
         .windows = root_window_cookie1})                // This may only be used for window1.
+#if 0
     // {2}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 2,
         .priority = 0.2,
         .windows = root_window_cookie2})
+#endif
 #ifdef CWDEBUG
     .setDebugName("LogicalDevice");
 #endif
@@ -861,7 +863,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
+//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
 
     // Run the application.
     application.run();
