@@ -159,7 +159,8 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   void on_mouse_enter(int16_t x, int16_t y, uint16_t converted_modifiers, bool entered) override final
   {
     vulkan::ModifierMask modifiers{converted_modifiers};
-    DoutEntering(dc::notice, "vulkan::WindowEvents::on_mouse_enter(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << entered << ")");
+    // Use dc::xcbmotion - because this is just a bit too verbose.
+    DoutEntering(dc::xcbmotion, "vulkan::WindowEvents::on_mouse_enter(" << x << ", " << y << ", " << modifiers << ", " << std::boolalpha << entered << ")");
 
     // Queue event.
     if (m_input_event_buffer)
