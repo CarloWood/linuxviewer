@@ -14,6 +14,10 @@ RenderPass& RenderPass::operator[](Attachment::OpRemoveOrDontCare mod_attachment
   Dout(dc::renderpass, this << "[" << mod_attachment << "]");
   Attachment const* attachment = mod_attachment.m_attachment;
 
+  // Make sure that attachment has an index.
+  if (attachment->undefined_index())
+    attachment->assign_unique_index();
+
 #ifdef CWDEBUG
   // Search if attachment is already know.
   auto known_attachment = find_by_ID(m_known_attachments, attachment);

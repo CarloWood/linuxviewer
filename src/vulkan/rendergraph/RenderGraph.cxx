@@ -447,8 +447,6 @@ class TestWindow : public task::SynchronousWindow
     Attachment const a10{this, "a10", v1};
     Attachment const a11{this, "a11", v1};
     Attachment const a12{this, "a12", v1};
-    RenderPass pass1(this, "pass1");
-    RenderPass pass2(this, "pass2");
     RenderPass pass3(this, "pass3");
     RenderPass pass4(this, "pass4");
     RenderPass pass5(this, "pass5");
@@ -482,6 +480,8 @@ class TestWindow : public task::SynchronousWindow
 
 #define TEST(test) \
     TestWindow window; \
+    Attachment const specular{&window, "specular", v1}; \
+    Attachment const output{&window, "output", v1}; \
     RenderGraph& render_graph(window.render_graph()); \
     RenderPass& lighting = window.lighting; \
     RenderPass& pass1 = window.pass1; \
@@ -508,11 +508,11 @@ void RenderGraph::testsuite()
 
   vulkan::ImageKind const k1{{}};
   vulkan::ImageViewKind const v1{k1, {}};
-  Attachment const specular{"specular", v1};
-  Attachment const output{"output", v1};
 
   {
     TEST(render_pass->stores(output));                        // attachment not used.
+    // specular wasn't used AT ALL - so assign it an index or else has_with will assert.
+    specular.assign_unique_index();
     render_graph.has_with(none, specular);
   }
   {
@@ -715,7 +715,7 @@ void RenderGraph::has_with(char, Attachment const& attachment) const
   RenderPass const* render_pass = m_sinks[0];
   // Attachment not used.
   ASSERT(!render_pass->is_known(&attachment));
-  // Nothing should be listen in m_remove_or_dontcare_attachments.
+  // Nothing should be listed in m_remove_or_dontcare_attachments.
   ASSERT(render_pass->remove_or_dontcare_attachments_empty());
 }
 

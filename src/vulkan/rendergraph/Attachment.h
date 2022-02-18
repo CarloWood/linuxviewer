@@ -48,12 +48,6 @@ class Attachment
   Attachment(utils::Badge<Swapchain>, task::SynchronousWindow* owning_window, std::string const& name, ImageViewKind const& image_view_kind) :
     Attachment(owning_window, name, image_view_kind, true) { }
 
-#ifdef CWDEBUG
-  // Used by testsuite.
-  Attachment(std::string const& name, ImageViewKind const& image_view_kind) :
-    m_owning_window(nullptr), m_image_view_kind(image_view_kind), m_name(name) { }
-#endif
-
   Attachment(Attachment const&) = delete;
 
   // The result type of ~attachment.
