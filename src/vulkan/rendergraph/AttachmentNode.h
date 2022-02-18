@@ -16,7 +16,7 @@ class AttachmentNode;
 //
 // A wrapper around a size_t that can be used into a vector of attachments known by the render graph.
 //
-using AttachmentIndex = utils::VectorIndex<Attachment>;
+using AttachmentIndex = utils::VectorIndex<Attachment const*>;
 
 // pAttachmentsIndex.
 //

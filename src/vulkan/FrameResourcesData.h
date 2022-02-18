@@ -1,6 +1,6 @@
 #pragma once
 
-#include "TextureParameters.h"
+#include "Texture.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "utils/Vector.h"
@@ -10,7 +10,7 @@ namespace vulkan {
 
 struct FrameResourcesData
 {
-  utils::Vector<TextureParameters, rendergraph::AttachmentIndex> m_texture_parameters;
+  utils::Vector<Texture, rendergraph::AttachmentIndex> m_texture_parameters;
 
   // Too specialized?
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;

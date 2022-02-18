@@ -6,7 +6,7 @@
 namespace vulkan {
 
 // Data collection used for textures.
-struct TextureParameters
+struct Texture
 {
   vk::UniqueImage               m_image;
   vk::UniqueImageView           m_image_view;

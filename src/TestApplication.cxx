@@ -144,8 +144,8 @@ class Window : public task::SynchronousWindow
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
-  vulkan::TextureParameters m_background_texture;
-  vulkan::TextureParameters m_texture;
+  vulkan::Texture m_background_texture;
+  vulkan::Texture m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
 
   imgui::StatsWindow m_imgui_stats_window;

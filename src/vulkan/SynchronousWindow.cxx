@@ -88,9 +88,11 @@ void SynchronousWindow::register_attachment(SynchronousWindow::Attachment const*
 #endif
   m_attachments.emplace_back(attachment);
   // Paranoia check: if the attachment isn't swapchain, then the attachment index will be used in an array of size m_attachments.size().
-  // If UniqueID isn't changed then this should always hold.
-  ASSERT(attachment->index().undefined() ||     // swapchain
-      (0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size()));
+  // Since we don't get here for the swapchain attachment.
+  ASSERT(!attachment->index().undefined());     // not swapchain
+  // This should always hold (in fact, since this function is called immediately after assigning the index,
+  // it will be the case that attachment->index().get_value() == m_attachments.size() - 1).
+  ASSERT(0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size());
 }
 
 char const* SynchronousWindow::state_str_impl(state_type run_state) const
@@ -895,12 +897,12 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   }
 }
 
-vulkan::TextureParameters SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const
 {
   // Create texture parameters.
-  vulkan::TextureParameters texture_parameters = m_logical_device->create_texture(width, height,
+  vulkan::Texture texture = m_logical_device->create_texture(width, height,
       image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
       COMMA_CWDEBUG_ONLY(ambifix));
 
@@ -909,7 +911,7 @@ vulkan::TextureParameters SynchronousWindow::upload_texture(void const* texture_
   // Copy data.
   {
     vk_defaults::ImageSubresourceRange const image_subresource_range;
-    copy_data_to_image(data_size, texture_data, *texture_parameters.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
+    copy_data_to_image(data_size, texture_data, *texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
         vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
         vk::PipelineStageFlagBits::eFragmentShader);
   }
@@ -918,15 +920,15 @@ vulkan::TextureParameters SynchronousWindow::upload_texture(void const* texture_
   {
     std::vector<vk::DescriptorImageInfo> image_infos = {
       {
-        .sampler = *texture_parameters.m_sampler,
-        .imageView = *texture_parameters.m_image_view,
+        .sampler = *texture.m_sampler,
+        .imageView = *texture.m_image_view,
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
       }
     };
     m_logical_device->update_descriptor_set(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
   }
 
-  return texture_parameters;
+  return texture;
 }
 
 void SynchronousWindow::detect_if_imgui_is_used()
@@ -1103,16 +1105,16 @@ void SynchronousWindow::on_window_size_changed_post()
     // Run over all attachments.
     for (Attachment const* attachment : m_attachments)
     {
-      if (attachment->index().undefined())      // Skip swapchain attachments.
+      if (attachment->index().undefined())      // Skip swapchain attachment.
         continue;
       Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
-      vulkan::TextureParameters& texture_parameters = frame_resources_data->m_texture_parameters[*attachment];
-      texture_parameters = m_logical_device->create_texture(
+      vulkan::Texture& texture = frame_resources_data->m_texture_parameters[*attachment];
+      texture = m_logical_device->create_texture(
           swapchain().extent().width,
           swapchain().extent().height,
           attachment->image_view_kind(),
           vk::MemoryPropertyFlagBits::eDeviceLocal,
-          std::move(texture_parameters.m_sampler)
+          std::move(texture.m_sampler)
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index) +
               "]->m_image_parameters[" + to_string(attachment->index()) + "]")));
     }
@@ -1154,8 +1156,8 @@ void SynchronousWindow::create_frame_resources()
 #endif
     // Create a new vulkan::FrameResourcesData object.
     m_frame_resources_list[i] = std::make_unique<vulkan::FrameResourcesData>(
-        // The number of attachments.
-        m_attachments.size(),
+        // The total number of attachments used in the rendergraph, excluding the swapchain attachment.
+        number_of_registered_attachments(),
         // Constructor arguments for m_command_pool. Too specialized? (should this be part of a derived class?)
         m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));

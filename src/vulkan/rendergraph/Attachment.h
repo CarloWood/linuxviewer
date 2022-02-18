@@ -11,7 +11,7 @@ class SynchronousWindow;
 namespace vulkan::rendergraph {
 
 class Attachment;
-using AttachmentIndex = utils::VectorIndex<Attachment>;
+using AttachmentIndex = utils::VectorIndex<Attachment const*>;
 
 // Attachment.
 //

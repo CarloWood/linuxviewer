@@ -635,7 +635,7 @@ vk::UniqueSampler LogicalDevice::create_sampler(
   return sampler;
 }
 
-TextureParameters LogicalDevice::create_texture(
+Texture LogicalDevice::create_texture(
     uint32_t width,
     uint32_t height,
     vulkan::ImageViewKind const& image_view_kind,

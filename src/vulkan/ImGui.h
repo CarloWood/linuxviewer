@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CurrentFrameData.h"
-#include "TextureParameters.h"
+#include "Texture.h"
 #include "BufferParameters.h"
 #include "DescriptorSetParameters.h"
 #include "debug/DebugSetName.h"
@@ -30,7 +30,7 @@ class ImGui
   static constexpr auto pool_type = static_cast<vk::CommandPoolCreateFlags::MaskType>(vulkan::FrameResourcesData::command_pool_type::data_type::create_flags);
 
   task::SynchronousWindow const* m_owning_window;
-  TextureParameters m_font_texture;
+  Texture m_font_texture;
   utils::Vector<ImGui_FrameResourcesData, FrameResourceIndex> m_frame_resources_list;
   DescriptorSetParameters m_descriptor_set;
   vk::UniquePipelineLayout m_pipeline_layout;

@@ -6,7 +6,7 @@
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
 #include "DescriptorSetParameters.h"
-#include "TextureParameters.h"
+#include "Texture.h"
 #include "BufferParameters.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
@@ -204,7 +204,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   using Attachment = vulkan::Attachment;                                                // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
   std::vector<RenderPass*> m_render_passes;                                             // All render pass objects.
-  std::vector<Attachment const*> m_attachments;                                         // All known attachments, except the swapchain attachment (if any).
+  utils::Vector<Attachment const*> m_attachments;                                       // All known attachments, except the swapchain attachment (if any).
   vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
   RenderPass imgui_pass{this, "imgui_pass"};                                            // Must be constructed AFTER m_render_passes!
 
@@ -212,8 +212,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void register_render_pass(RenderPass*);
   void register_attachment(Attachment const*);
   size_t number_of_registered_attachments() const { return m_attachments.size(); }
+#ifdef CWDEBUG
   auto attachments_begin() const { return m_attachments.begin(); }
   auto attachments_end() const { return m_attachments.end(); }
+#endif
 
  protected:
   utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
@@ -412,7 +414,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
     vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
 
-  vulkan::TextureParameters upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+  vulkan::Texture upload_texture(void const* texture_data, uint32_t width, uint32_t height,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
 

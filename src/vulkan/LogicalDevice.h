@@ -6,7 +6,7 @@
 #include "QueueReply.h"
 #include "RenderPassAttachmentData.h"
 #include "Queue.h"
-#include "TextureParameters.h"
+#include "Texture.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
@@ -153,16 +153,16 @@ class LogicalDevice
 
   // Create all texture parameters at once.
   // Use sampler as-is.
-  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
       vk::MemoryPropertyFlagBits property, vk::UniqueSampler&& sampler
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const;
   // Create sampler too.
-  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
       vk::MemoryPropertyFlagBits property, SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
       { return create_texture(width, height, image_view_kind, property, create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)) COMMA_CWDEBUG_ONLY(ambifix)); }
   // Create sampler too, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
-  TextureParameters create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
+  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
       vk::MemoryPropertyFlagBits property, SamplerKindPOD const&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix)) const
       { return create_texture(width, height, image_view_kind, property, { this, std::move(sampler_kind) }, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
