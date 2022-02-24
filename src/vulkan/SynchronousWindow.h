@@ -199,6 +199,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  public:
   void register_render_pass(RenderPass*);
+  void unregister_render_pass(RenderPass*);
   void register_attachment(Attachment const*);
   size_t number_of_registered_attachments() const { return m_attachments.size(); }
 #ifdef CWDEBUG

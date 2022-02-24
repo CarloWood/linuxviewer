@@ -16,6 +16,7 @@
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"
 #endif
+#include <algorithm>
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -75,6 +76,11 @@ void SynchronousWindow::register_render_pass(SynchronousWindow::RenderPass* rend
   ASSERT(res == m_render_passes.end());
 #endif
   m_render_passes.emplace_back(render_pass);
+}
+
+void SynchronousWindow::unregister_render_pass(SynchronousWindow::RenderPass* render_pass)
+{
+  m_render_passes.erase(std::remove(m_render_passes.begin(), m_render_passes.end(), render_pass), m_render_passes.end());
 }
 
 void SynchronousWindow::register_attachment(SynchronousWindow::Attachment const* attachment)
@@ -933,6 +939,8 @@ vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint
 void SynchronousWindow::detect_if_imgui_is_used()
 {
   m_use_imgui = imgui_pass.vh_render_pass();
+  if (!m_use_imgui)
+    unregister_render_pass(&imgui_pass);
 }
 
 void SynchronousWindow::start_frame()
