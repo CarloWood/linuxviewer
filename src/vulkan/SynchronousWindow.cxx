@@ -4,7 +4,6 @@
 #include "LogicalDevice.h"
 #include "Application.h"
 #include "FrameResourcesData.h"
-#include "VertexData.h"
 #include "StagingBufferParameters.h"
 #include "Exceptions.h"
 #include "SynchronousTask.h"

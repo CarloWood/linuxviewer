@@ -7,7 +7,6 @@
 #include "CurrentFrameData.h"
 #include "DescriptorSetParameters.h"
 #include "Texture.h"
-#include "BufferParameters.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
 #include "WindowEvents.h"

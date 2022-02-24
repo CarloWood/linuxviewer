@@ -5,6 +5,8 @@ include(AICxxProject)
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 
@@ -27,6 +29,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
 )
@@ -35,6 +38,7 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
 )
@@ -100,6 +104,7 @@ target_link_libraries(vulkan_ObjLib
     ${CMAKE_DL_LIBS}
     PkgConfig::Shaderc
     ImGui::imgui
+    Eigen3::Eigen
 )
 
 # Create an ALIAS target.
@@ -108,3 +113,7 @@ add_library(LinuxViewer::vulkan ALIAS vulkan_ObjLib)
 # Test executable.
 add_executable(allocator_test tests/allocator_test.cxx)
 target_link_libraries(allocator_test ${AICXX_OBJECTS_LIST})
+
+# Math library.
+add_subdirectory(math)
+

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ShaderCompiler.h"
+#include "VertexAttribute.h"
 #include <vulkan/vulkan.hpp>
 #include <shaderc/shaderc.h>    // shaderc_shader_kind, shaderc_glsl_infer_from_source
 #include <cstdint>
@@ -8,6 +9,8 @@
 #include <filesystem>
 #include <vector>
 #include <concepts>
+#include <set>
+#include <cstring>
 #include "debug.h"
 #ifdef CWDEBUG
 #include <iosfwd>
@@ -30,11 +33,15 @@ class ShaderModule
   std::string m_name;                           // Shader name, used for diagnostics.
   std::string m_glsl_source_code;               // GLSL source code; loaded with load().
   std::vector<uint32_t> m_spirv_code;           // Cached, compiled SPIR-V code.
+  std::set<VertexAttribute> m_attributes;       // Added attributes.
 
  public:
   // Construct an empty ShaderModule object to be used for the specified stage.
   // A name can be specified at construction or later with set_name. Note that a call to reset() does NOT reset the name.
   ShaderModule(vk::ShaderStageFlagBits stage, std::string name = "uninitialized shader") : m_stage(stage), m_name(std::move(name)) { }
+
+  template<typename T>
+  ShaderModule& add();
 
   // Set name of this object (for diagnostics).
   ShaderModule& set_name(std::string name)
@@ -48,11 +55,7 @@ class ShaderModule
   ShaderModule& load(std::same_as<std::filesystem::path> auto const& filename);
 
   // Load source code from a string.
-  ShaderModule& load(std::string_view source)
-  {
-    m_glsl_source_code = source;
-    return *this;
-  }
+  ShaderModule& load(std::string_view source, LocationContext& context);
 
   // Compile the code in m_glsl_source_code and cache it in m_spirv_code.
   void compile(ShaderCompiler const& compiler, ShaderCompilerOptions const& options);
@@ -66,6 +69,8 @@ class ShaderModule
   vk::UniqueShaderModule create(utils::Badge<vulkan::Pipeline>, task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
+  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions();
+
   // Free resources.
   void reset();
 
@@ -76,10 +81,33 @@ class ShaderModule
 
   shaderc_shader_kind get_shader_kind() const;
 
+  std::vector<vk::VertexInputBindingDescription> vertex_binding_description();
+  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions(LocationContext const& location_context);
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
 };
+
+template<typename T>
+struct VertexAttributes
+{
+};
+
+template<typename T>
+ShaderModule& ShaderModule::add()
+{
+  // Call add() before load().
+  ASSERT(m_glsl_source_code.empty());
+  for (auto&& attribute : VertexAttributes<T>::attributes)
+  {
+    auto res = m_attributes.insert(attribute);
+    // All used names must be unique.
+    if (!res.second)
+      THROW_ALERT("Duplicated vertex attribute id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", attribute.m_glsl_id_str));
+  }
+  return *this;
+}
 
 } // namespace shaderbuilder
 } // namespace vulkan

@@ -4,9 +4,11 @@
 #include "SynchronousWindow.h"
 #include "utils/AIAlert.h"
 #include "utils/at_scope_end.h"
+#include "utils/malloc_size.h"
 #include <shaderc/shaderc.hpp>
 #include <magic_enum.hpp>
 #include <fstream>
+#include <functional>
 #include "debug.h"
 #ifdef CWDEBUG
 #include <sstream>
@@ -121,6 +123,61 @@ ShaderModule& ShaderModule::load(std::same_as<std::filesystem::path> auto const&
   return *this;
 }
 
+ShaderModule& ShaderModule::load(std::string_view source, LocationContext& context)
+{
+  // Remove leading white space.
+  auto pos = source.find_first_not_of(" \n\t");
+  if (pos != std::string_view::npos)
+    source.remove_prefix(pos);
+
+  if (source.starts_with("#version"))
+  {
+    m_glsl_source_code = source;
+    return *this;
+  }
+
+  m_glsl_source_code.reserve(utils::malloc_size(15 + 64 * m_attributes.size() + source.length()) - 1);
+  m_glsl_source_code = "#version 450\n\n";
+
+  // Add declarations.
+  for (auto&& attribute : m_attributes)
+    m_glsl_source_code += attribute.declaration(context);
+
+  if (!m_attributes.empty())
+    m_glsl_source_code += '\n';
+
+  // m_attributes contains a number of strings that we need to find in source.
+  // They may occur zero or more times.
+
+  // Store each position where a string occurs, together with an iterator to the corresponding VertexAttribute.
+  std::map<size_t, std::set<VertexAttribute>::const_iterator> positions;
+  for (auto attribute_iter = m_attributes.begin(); attribute_iter != m_attributes.end(); ++attribute_iter)
+  {
+    char const* str = attribute_iter->m_glsl_id_str;
+    for (size_t pos = 0; (pos = source.find(str, pos)) != std::string_view::npos; pos += std::strlen(str))
+      positions[pos] = attribute_iter;
+  }
+
+  // Next copy alternating, the characters in between the strings and the replacements of the substrings.
+  size_t start = 0;
+  for (auto&& p : positions)
+  {
+    // Copy the characters leading up to the string at position p.
+    m_glsl_source_code += source.substr(start, p.first - start);
+    // Advance start to just after the found string.
+    start = p.first + strlen(p.second->m_glsl_id_str);
+    // Append the replacement string.
+    m_glsl_source_code += p.second->name();
+  }
+  // Copy the remaining characters.
+  m_glsl_source_code += source.substr(start);
+  m_glsl_source_code.shrink_to_fit();
+
+  Dout(dc::always, "m_glsl_source_code = \"" << m_glsl_source_code << "\".");
+
+  return *this;
+}
+
 void ShaderModule::reset()
 {
   DoutEntering(dc::vulkan, "ShaderModule::reset() for shader \"" << m_name << "\".");
@@ -158,6 +215,35 @@ vk::UniqueShaderModule ShaderModule::create(utils::Badge<Pipeline>, task::Synchr
   return owning_window->logical_device().create_shader_module(
       m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
       COMMA_CWDEBUG_ONLY(debug_name));
+}
+
+std::vector<vk::VertexInputBindingDescription> ShaderModule::vertex_binding_description()
+{
+  std::vector<vk::VertexInputBindingDescription> descriptions;
+  return descriptions;
+}
+
+std::vector<vk::VertexInputAttributeDescription> ShaderModule::vertex_attribute_descriptions(LocationContext const& location_context)
+{
+  std::vector<vk::VertexInputAttributeDescription> descriptions;
+  for (auto&& attribute : m_attributes)
+  {
+    VertexAttribute const* attribute_ptr = &attribute;
+    auto loc = location_context.locations.find(attribute_ptr);
+    ASSERT(loc != location_context.locations.end());
+    int location = loc->second;
+    Dout(dc::always, "ShaderModule::vertex_attribute_descriptions: location = " << location);
+#if 0
+    auto iter = 
+    descriptions.emplace_back({
+        .location = location,
+        .binding =,
+        .format =,
+        .offset = attribute.m_offset
+        });
+#endif
+  }
+  return descriptions;
 }
 
 #ifdef CWDEBUG
