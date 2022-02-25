@@ -6,140 +6,218 @@
 
 namespace vulkan::shaderbuilder {
 
-TypeInfo::TypeInfo(Type type)
+namespace {
+
+#define AI_TYPE_CASE_RETURN(x) do { case Type::x: return #x; } while(0)
+
+char const* type2name(Type type)
 {
   switch (type)
   {
-    case Type::Bool:
-      name = "bool";
-      size = sizeof(bool);
+    case Type::Float: return "float";
+    AI_TYPE_CASE_RETURN(vec2);
+    AI_TYPE_CASE_RETURN(vec3);
+    AI_TYPE_CASE_RETURN(vec4);
+    AI_TYPE_CASE_RETURN(mat2);
+    AI_TYPE_CASE_RETURN(mat3x2);
+    AI_TYPE_CASE_RETURN(mat4x2);
+    AI_TYPE_CASE_RETURN(mat2x3);
+    AI_TYPE_CASE_RETURN(mat3);
+    AI_TYPE_CASE_RETURN(mat4x3);
+    AI_TYPE_CASE_RETURN(mat2x4);
+    AI_TYPE_CASE_RETURN(mat3x4);
+    AI_TYPE_CASE_RETURN(mat4);
+
+    case Type::Double: return "double";
+    AI_TYPE_CASE_RETURN(dvec2);
+    AI_TYPE_CASE_RETURN(dvec3);
+    AI_TYPE_CASE_RETURN(dvec4);
+    AI_TYPE_CASE_RETURN(dmat2);
+    AI_TYPE_CASE_RETURN(dmat3x2);
+    AI_TYPE_CASE_RETURN(dmat4x2);
+    AI_TYPE_CASE_RETURN(dmat2x3);
+    AI_TYPE_CASE_RETURN(dmat3);
+    AI_TYPE_CASE_RETURN(dmat4x3);
+    AI_TYPE_CASE_RETURN(dmat2x4);
+    AI_TYPE_CASE_RETURN(dmat3x4);
+    AI_TYPE_CASE_RETURN(dmat4);
+
+    case Type::Bool: return "bool";
+    AI_TYPE_CASE_RETURN(bvec2);
+    AI_TYPE_CASE_RETURN(bvec3);
+    AI_TYPE_CASE_RETURN(bvec4);
+
+    case Type::Int: return "int";
+    AI_TYPE_CASE_RETURN(ivec2);
+    AI_TYPE_CASE_RETURN(ivec3);
+    AI_TYPE_CASE_RETURN(ivec4);
+
+    case Type::Uint: return "uint";
+    AI_TYPE_CASE_RETURN(uvec2);
+    AI_TYPE_CASE_RETURN(uvec3);
+    AI_TYPE_CASE_RETURN(uvec4);
+  }
+}
+
+#undef AI_TYPE_CASE_RETURN
+
+size_t type2size(Type type)
+{
+  return decode_rows(type) * decode_cols(type) * decode_typesize(type);
+}
+
+// The following format must be supported by Vulkan (so no test is necessary):
+//
+// VK_FORMAT_R8_UNORM
+// VK_FORMAT_R8_SNORM
+// VK_FORMAT_R8_UINT
+// VK_FORMAT_R8_SINT
+// VK_FORMAT_R8G8_UNORM
+// VK_FORMAT_R8G8_SNORM
+// VK_FORMAT_R8G8_UINT
+// VK_FORMAT_R8G8_SINT
+// VK_FORMAT_R8G8B8A8_UNORM
+// VK_FORMAT_R8G8B8A8_SNORM
+// VK_FORMAT_R8G8B8A8_UINT
+// VK_FORMAT_R8G8B8A8_SINT
+// VK_FORMAT_B8G8R8A8_UNORM
+// VK_FORMAT_A8B8G8R8_UNORM_PACK32
+// VK_FORMAT_A8B8G8R8_SNORM_PACK32
+// VK_FORMAT_A8B8G8R8_UINT_PACK32
+// VK_FORMAT_A8B8G8R8_SINT_PACK32
+// VK_FORMAT_A2B10G10R10_UNORM_PACK32
+// VK_FORMAT_R16_UNORM
+// VK_FORMAT_R16_SNORM
+// VK_FORMAT_R16_UINT
+// VK_FORMAT_R16_SINT
+// VK_FORMAT_R16_SFLOAT
+// VK_FORMAT_R16G16_UNORM
+// VK_FORMAT_R16G16_SNORM
+// VK_FORMAT_R16G16_UINT
+// VK_FORMAT_R16G16_SINT
+// VK_FORMAT_R16G16_SFLOAT
+// VK_FORMAT_R16G16B16A16_UNORM
+// VK_FORMAT_R16G16B16A16_SNORM
+// VK_FORMAT_R16G16B16A16_UINT
+// VK_FORMAT_R16G16B16A16_SINT
+// VK_FORMAT_R16G16B16A16_SFLOAT
+// VK_FORMAT_R32_UINT
+// VK_FORMAT_R32_SINT
+// VK_FORMAT_R32_SFLOAT
+// VK_FORMAT_R32G32_UINT
+// VK_FORMAT_R32G32_SINT
+// VK_FORMAT_R32G32_SFLOAT
+// VK_FORMAT_R32G32B32_UINT
+// VK_FORMAT_R32G32B32_SINT
+// VK_FORMAT_R32G32B32_SFLOAT
+// VK_FORMAT_R32G32B32A32_UINT
+// VK_FORMAT_R32G32B32A32_SINT
+// VK_FORMAT_R32G32B32A32_SFLOAT
+
+vk::Format type2format(Type type)
+{
+  vk::Format format;
+  int rows = decode_rows(type);
+  switch (decode_typemask(type))
+  {
+    case float_mask:
+      // 32_SFLOAT
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR32Sfloat;
+          break;
+        case 2:
+          format = vk::Format::eR32G32Sfloat;
+          break;
+        case 3:
+          format = vk::Format::eR32G32B32Sfloat;
+          break;
+        case 4:
+          format = vk::Format::eR32G32B32A32Sfloat;
+          break;
+      }
       break;
-    case Type::Int:
-      name = "int";
-      size = sizeof(int32_t);
+    case double_mask:
+      // 64_SFLOAT
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR64Sfloat;
+          break;
+        case 2:
+          format = vk::Format::eR64G64Sfloat;
+          break;
+        case 3:
+          format = vk::Format::eR64G64B64Sfloat;
+          break;
+        case 4:
+          format = vk::Format::eR64G64B64A64Sfloat;
+          break;
+      }
       break;
-    case Type::Uint:
-      name = "uint";
-      size = sizeof(uint32_t);
+    case bool_mask:
+      // 8_UINT
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR8Uint;
+          break;
+        case 2:
+          format = vk::Format::eR8G8Uint;
+          break;
+        case 3:
+          format = vk::Format::eR8G8B8Uint;
+          break;
+        case 4:
+          format = vk::Format::eR8G8B8A8Uint;
+          break;
+      }
       break;
-    case Type::Float:
-      name = "float";
-      size = sizeof(float);
+    case int32_mask:
+      // 32_SINT
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR32Sint;
+          break;
+        case 2:
+          format = vk::Format::eR32G32Sint;
+          break;
+        case 3:
+          format = vk::Format::eR32G32B32Sint;
+          break;
+        case 4:
+          format = vk::Format::eR32G32B32A32Sint;
+          break;
+      }
       break;
-    case Type::Double:
-      name = "double";
-      size = sizeof(double);
-      break;
-    case Type::bvec2:
-      name = "bvec2";
-      size = 2 * sizeof(bool);
-      break;
-    case Type::bvec3:
-      name = "bvec3";
-      size = 3 * sizeof(bool);
-      break;
-    case Type::bvec4:
-      name = "bvec4";
-      size = 4 * sizeof(bool);
-      break;
-    case Type::ivec2:
-      name = "ivec2";
-      size = 2 * sizeof(int32_t);
-      break;
-    case Type::ivec3:
-      name = "ivec3";
-      size = 3 * sizeof(int32_t);
-      break;
-    case Type::ivec4:
-      name = "ivec4";
-      size = 4 * sizeof(int32_t);
-      break;
-    case Type::uvec2:
-      name = "uvec2";
-      size = 2 * sizeof(uint32_t);
-      break;
-    case Type::uvec3:
-      name = "uvec3";
-      size = 3 * sizeof(uint32_t);
-      break;
-    case Type::uvec4:
-      name = "uvec4";
-      size = 4 * sizeof(uint32_t);
-      break;
-    case Type::vec2:
-      name = "vec2";
-      size = 2 * sizeof(float);
-      break;
-    case Type::vec3:
-      name = "vec3";
-      size = 3 * sizeof(float);
-      break;
-    case Type::vec4:
-      name = "vec4";
-      size = 4 * sizeof(float);
-      break;
-    case Type::dvec2:
-      name = "dvec2";
-      size = 2 * sizeof(double);
-      break;
-    case Type::dvec3:
-      name = "dvec3";
-      size = 3 * sizeof(double);
-      break;
-    case Type::dvec4:
-      name = "dvec4";
-      size = 4 * sizeof(double);
-      break;
-    case Type::mat2:
-      name = "mat2";
-      size = 4 * sizeof(float);
-      break;
-    case Type::mat2x3:
-      name = "mat2x3";
-      size = 6 * sizeof(float);
-      break;
-    case Type::mat2x4:
-      name = "mat2x4";
-      size = 8 * sizeof(float);
-      break;
-    case Type::mat3:
-      name = "mat3";
-      size = 9 * sizeof(float);
-      break;
-    case Type::mat3x4:
-      name = "mat3x4";
-      size = 12 * sizeof(float);
-      break;
-    case Type::mat4:
-      name = "mat4";
-      size = 16 * sizeof(float);
-      break;
-    case Type::dmat2:
-      name = "dmat2";
-      size = 4 * sizeof(double);
-      break;
-    case Type::dmat2x3:
-      name = "dmat2x3";
-      size = 6 * sizeof(double);
-      break;
-    case Type::dmat2x4:
-      name = "dmat2x4";
-      size = 8 * sizeof(double);
-      break;
-    case Type::dmat3:
-      name = "dmat3";
-      size = 9 * sizeof(double);
-      break;
-    case Type::dmat3x4:
-      name = "dmat3x4";
-      size = 12 * sizeof(double);
-      break;
-    case Type::dmat4:
-      name = "dmat4";
-      size = 16 * sizeof(double);
+    case uint32_mask:
+      // 32_UINT
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR32Uint;
+          break;
+        case 2:
+          format = vk::Format::eR32G32Uint;
+          break;
+        case 3:
+          format = vk::Format::eR32G32B32Uint;
+          break;
+        case 4:
+          format = vk::Format::eR32G32B32A32Uint;
+          break;
+      }
       break;
   }
-  number_of_attribute_indices = (size - 1) / 16 + 1;
+  return format;
+}
+
+} // namespace
+
+TypeInfo::TypeInfo(Type type) : name(type2name(type)), size(type2size(type)), number_of_attribute_indices((size - 1) / 16 + 1), format(type2format(type))
+{
 }
 
 void LocationContext::update_location(VertexAttribute const* vertex_attribute)

@@ -231,17 +231,15 @@ std::vector<vk::VertexInputAttributeDescription> ShaderModule::vertex_attribute_
     VertexAttribute const* attribute_ptr = &attribute;
     auto loc = location_context.locations.find(attribute_ptr);
     ASSERT(loc != location_context.locations.end());
-    int location = loc->second;
-    Dout(dc::always, "ShaderModule::vertex_attribute_descriptions: location = " << location);
-#if 0
-    auto iter = 
-    descriptions.emplace_back({
+    uint32_t location = loc->second;
+    TypeInfo type_info(attribute_ptr->m_type);
+    descriptions.push_back({
         .location = location,
-        .binding =,
-        .format =,
+        .binding = 0,
+        .format = type_info.format,
         .offset = attribute.m_offset
         });
-#endif
+    Dout(dc::always, "ShaderModule::vertex_attribute_descriptions: description = " << descriptions.back());
   }
   return descriptions;
 }
