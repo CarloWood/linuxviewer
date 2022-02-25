@@ -69,7 +69,7 @@ struct VertexAttribute
 
   bool operator<(VertexAttribute const& other) const
   {
-    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0 ;
+    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
   }
 
   std::string name() const;
