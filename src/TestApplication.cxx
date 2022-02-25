@@ -501,8 +501,6 @@ void main()
 )glsl";
 
   static constexpr std::string_view intel_frag_glsl = R"glsl(
-#version 450
-
 layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
 layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
 
