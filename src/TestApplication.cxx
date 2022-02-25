@@ -522,6 +522,10 @@ void main() {
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
+    // Define the pipeline.
+    m_pipeline.bind(m_heavy_rectangle);
+    m_pipeline.bind(m_random_positions);
+
     vulkan::Pipeline pipeline(this);
 
     {
@@ -672,6 +676,10 @@ void main() {
 
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
+
+    // Generate everything.
+    m_pipeline.generate(this
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
   }
 
   void create_vertex_buffers() override
