@@ -136,7 +136,6 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     ShaderCompilerOptions options;
     LocationContext location_context;
 
-#if 0 // FIXME: uncomment
     ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
     shader_vert.set_name("imgui.vert.glsl").load(imgui_vert_glsl, location_context).compile(compiler, options);
     pipeline.add(shader_vert COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
@@ -144,7 +143,6 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
     shader_frag.set_name("imgui.frag.glsl").load(imgui_frag_glsl, location_context).compile(compiler, options);
     pipeline.add(shader_frag COMMA_CWDEBUG_ONLY({ m_owning_window, "create_graphics_pipeline()::pipeline" }));
-#endif
   }
 
   std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
