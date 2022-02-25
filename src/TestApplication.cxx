@@ -470,12 +470,6 @@ class Window : public task::SynchronousWindow
   }
 
   static constexpr std::string_view intel_vert_glsl = R"glsl(
-#version 450
-
-layout(location = 0) in vec4 i_Position;
-layout(location = 1) in vec2 i_Texcoord;
-layout(location = 2) in vec4 i_PerInstanceData;
-
 layout( push_constant ) uniform Scaling {
   float AspectScale;
 } PushConstant;
@@ -490,13 +484,13 @@ layout(location = 1) out float v_Distance;
 
 void main()
 {
-  v_Texcoord = i_Texcoord;
-  v_Distance = 1.0 - i_PerInstanceData.z;       // Darken with distance
+  v_Texcoord = VertexData::m_texture_coordinates;
+  v_Distance = 1.0 - InstanceData::m_position.z;        // Darken with distance
 
-  vec4 position = i_Position;
-  position.y *= PushConstant.AspectScale;      // Adjust to screen aspect ration
-  position.xy *= pow( v_Distance, 0.5 );       // Scale with distance
-  gl_Position = position + i_PerInstanceData;
+  vec4 position = VertexData::m_position;
+  position.y *= PushConstant.AspectScale;               // Adjust to screen aspect ration
+  position.xy *= pow( v_Distance, 0.5 );                // Scale with distance
+  gl_Position = position + InstanceData::m_position;
 }
 )glsl";
 
