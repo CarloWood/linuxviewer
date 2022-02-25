@@ -520,6 +520,7 @@ void main() {
 
     vulkan::Pipeline pipeline(this);
 
+    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions;
     {
       using namespace vulkan::shaderbuilder;
 
@@ -532,12 +533,17 @@ void main() {
 
       shader_vert.add<VertexData>().add<InstanceData>().set_name("intel.vert.glsl").load(intel_vert_glsl, location_context).compile(compiler, options);
       pipeline.add(shader_vert COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
+      vertex_attribute_descriptions = shader_vert.vertex_attribute_descriptions(location_context);
 
       shader_frag.set_name("intel.frag.glsl").load(intel_frag_glsl, location_context).compile(compiler, options);
       pipeline.add(shader_frag COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
     }
 
-    std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
+    std::vector<vk::VertexInputBindingDescription> vertex_binding_description =
+#if 0   // FIXME: vertex_binding_description() isn't implemented yet.
+      shader_vert.vertex_binding_description();
+#else
+    {
       {
         .binding = 0,
         .stride = sizeof(VertexData),
@@ -549,7 +555,11 @@ void main() {
         .inputRate = vk::VertexInputRate::eInstance
       }
     };
-    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
+#endif
+
+#if 0
+    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions =
+    {
       {
         .location = 1,
         .binding = vertex_binding_description[0].binding,
@@ -569,6 +579,7 @@ void main() {
         .offset = offsetof(InstanceData, m_position)
       }
     };
+#endif
 
     //=========================================================================
     // Vertex input.
