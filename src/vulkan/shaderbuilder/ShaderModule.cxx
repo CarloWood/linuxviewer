@@ -140,8 +140,16 @@ ShaderModule& ShaderModule::load(std::string_view source, LocationContext& conte
   m_glsl_source_code = "#version 450\n\n";
 
   // Add declarations.
+  //FIXME: the order should not matter.
   for (auto&& attribute : m_attributes)
-    m_glsl_source_code += attribute.declaration(context);
+    if (strcmp(attribute.m_glsl_id_str, "VertexData::m_position") == 0)
+      m_glsl_source_code += attribute.declaration(context);
+  for (auto&& attribute : m_attributes)
+    if (strcmp(attribute.m_glsl_id_str, "VertexData::m_texture_coordinates") == 0)
+      m_glsl_source_code += attribute.declaration(context);
+  for (auto&& attribute : m_attributes)
+    if (strcmp(attribute.m_glsl_id_str, "InstanceData::m_position") == 0)
+      m_glsl_source_code += attribute.declaration(context);
 
   if (!m_attributes.empty())
     m_glsl_source_code += '\n';
