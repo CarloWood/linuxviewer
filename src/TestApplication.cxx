@@ -1,13 +1,16 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "SampleParameters.h"
-#include "vulkan/FrameResourcesData.h"
 #include "VertexData.h"
+#include "InstanceData.h"
+#include "vulkan/FrameResourcesData.h"
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
+#include "vulkan/pipeline/Pipeline.h"
+#include "vulkan/pipeline/VertexShaderInputSet.h"
 #include "vk_utils/get_image_data.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
@@ -19,6 +22,8 @@
 #include "vulkan/rendergraph/ClearValue.h"
 #include "vulkan/ImageKind.h"
 #include <imgui.h>
+#include <Eigen/Geometry>
+#include <random>
 
 #define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
 #define ENABLE_IMGUI 0
@@ -136,6 +141,123 @@ class SingleButtonWindow : public task::SynchronousWindow
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
     m_imgui_stats_window.draw(io, m_timer);
 #endif
+  }
+};
+
+class HeavyRectangle final : public vulkan::pipeline::VertexShaderInputSet<VertexData>
+{
+  using Vector2f = Eigen::Vector2f;
+  using Transform = Eigen::Affine2f;
+
+  // Each batch exists of two triangles that form a square with coordinates (pos_x, pos_y) where
+  // both pos_x and pos_y run from -size to +size in SampleParameters::s_quad_tessellation steps.
+  //
+  //                                  __ iside = 4
+  //                                 /
+  //                                v
+  //    y=0 ┬─────┬─────┬─────┬─────┐
+  //        │     │     │     │     │
+  //        │     │     │     │     │  x runs from 0..iside-1
+  //      1 ┼─────A─────B─────┼─────┤    y runs from 0..iside-1
+  //        │     │   .🮠│     │     │       first triangle: A C B
+  //        │     │🮣    │     │     │      second triangle: B C D, both counter clockwise.
+  //      2 ┼─────C─────D─────┼─────┤
+  //        │     │     │     │     │  Shown are the triangles that belong to x,y = 1,1 (A).
+  //        │     │     │     │     │
+  //      3 ┼─────┼─────┼─────┼─────┤
+  //        │     │     │     │     │
+  //        │     │     │     │     │
+  //        ├─────┼─────┼─────┼─────┘
+  //      x=0     1     2     3
+  //        |                       |
+  // pos: -size         0          +size
+  //  uv:   0                       1
+  //
+  // At the same time (u, v) correspond with the texture coordinates and run from (0, 0) till (1, 1).
+  //
+  // Internally we use integer coordinates x and y that run from 0 till SampleParameters::s_quad_tessellation.
+  //
+  static constexpr int iside       = SampleParameters::s_quad_tessellation;
+  static constexpr float size      = 0.12f;
+  static constexpr float pos_scale = 2 * size / iside;
+  static constexpr float uv_scale  = 1.0f / iside;
+  static constexpr int batch_size  = 6;
+
+  static Transform const xy_to_position;
+  static Transform const xy_to_uv;
+  static Vector2f const offset[6];
+
+  Vector2f xy = {};             // Integer coordinates x,y.
+
+  // Convert xy to one of the six corners of the two triangles.
+  auto position_at(int vertex)
+  {
+    glsl::vec4 position;
+    position << xy_to_position * (xy + offset[vertex]), 0.0f, 1.0f;     // Homogeneous coordinates.
+    return position;
+  }
+
+  auto texture_coordinates_at(int vertex)
+  {
+    glsl::vec2 coords;
+    coords << xy_to_uv * (xy + offset[vertex]);
+    return coords;
+  }
+
+  int count() const override
+  {
+    return batch_size * iside * iside;
+  }
+
+  int next_batch() const override
+  {
+    return batch_size;
+  }
+
+  void create_entry(VertexData* input_entry_ptr) override
+  {
+    for (int vertex = 0; vertex < batch_size; ++vertex)
+    {
+      input_entry_ptr[vertex].m_position = position_at(vertex);
+      input_entry_ptr[vertex].m_texture_coordinates = texture_coordinates_at(vertex);
+    }
+
+    // Advance to the next square.
+    if (++xy.x() == iside) { xy.x() = 0; ++xy.y(); }
+  }
+};
+
+// static transformation matrices.
+HeavyRectangle::Transform const HeavyRectangle::xy_to_position = Transform(Eigen::Translation2f{-size, size}).scale(pos_scale);
+HeavyRectangle::Transform const HeavyRectangle::xy_to_uv       = Transform{Transform::Identity()}.scale(uv_scale);
+HeavyRectangle::Vector2f const HeavyRectangle::offset[batch_size] = {
+  { 0.0f, 0.0f },   // A
+  { 0.0f, 1.0f },   // C
+  { 1.0f, 0.0f },   // B
+  { 1.0f, 0.0f },   // B
+  { 0.0f, 1.0f },   // C
+  { 1.0f, 1.0f },   // D
+};
+
+class RandomPositions final : public vulkan::pipeline::VertexShaderInputSet<InstanceData>
+{
+  std::random_device m_random_device;
+  std::mt19937 m_generator;
+  std::uniform_real_distribution<float> m_distribution_xy;
+  std::uniform_real_distribution<float> m_distribution_z;
+
+ public:
+  RandomPositions() : m_generator(m_random_device()), m_distribution_xy(-1.0f, 1.0f), m_distribution_z(0.0f, 1.0f) { }
+
+ private:
+  int count() const override
+  {
+    return SampleParameters::s_max_object_count;
+  }
+
+  void create_entry(InstanceData* input_entry_ptr) override final
+  {
+    input_entry_ptr->m_position << m_distribution_xy(m_generator), m_distribution_xy(m_generator), m_distribution_z(m_generator), 1.0f; // Homogeneous coordinates.
   }
 };
 
