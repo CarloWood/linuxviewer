@@ -551,19 +551,19 @@ void main() {
     };
     std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
       {
-        .location = 0,
+        .location = 1,
         .binding = vertex_binding_description[0].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
         .offset = offsetof(VertexData, m_position)
       },
       {
-        .location = 1,
+        .location = 2,
         .binding = vertex_binding_description[0].binding,
         .format = vk::Format::eR32G32Sfloat,
         .offset = offsetof(VertexData, m_texture_coordinates)
       },
       {
-        .location = 2,
+        .location = 0,
         .binding = vertex_binding_description[1].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
         .offset = offsetof(InstanceData, m_position)
