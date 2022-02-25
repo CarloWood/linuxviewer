@@ -280,6 +280,11 @@ class Window : public task::SynchronousWindow
   Attachment     normal{this, "normal",   s_vector_image_view_kind};
   Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
+  // Define pipeline objects.
+  vulkan::pipeline::Pipeline m_pipeline;
+  HeavyRectangle m_heavy_rectangle;             // A rectangle with many vertices.
+  RandomPositions m_random_positions;           // Where to put those rectangles.
+
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
