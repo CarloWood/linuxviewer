@@ -548,7 +548,7 @@ void main() {
       },
       {
         .binding = 1,
-        .stride = 4 * sizeof(float),
+        .stride = sizeof(InstanceData),
         .inputRate = vk::VertexInputRate::eInstance
       }
     };
@@ -557,7 +557,7 @@ void main() {
         .location = 0,
         .binding = vertex_binding_description[0].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
-        .offset = 0
+        .offset = offsetof(VertexData, m_position)
       },
       {
         .location = 1,
@@ -569,7 +569,7 @@ void main() {
         .location = 2,
         .binding = vertex_binding_description[1].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
-        .offset = 0
+        .offset = offsetof(InstanceData, m_position)
       }
     };
 
