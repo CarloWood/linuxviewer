@@ -1,16 +1,13 @@
 #include "sys.h"
 #include "TestApplication.h"
 #include "SampleParameters.h"
-#include "VertexData.h"
-#include "InstanceData.h"
 #include "vulkan/FrameResourcesData.h"
+#include "VertexData.h"
 #include "vulkan/LogicalDevice.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/Pipeline.h"
-#include "vulkan/pipeline/Pipeline.h"
-#include "vulkan/pipeline/VertexShaderInputSet.h"
 #include "vk_utils/get_image_data.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
@@ -22,10 +19,9 @@
 #include "vulkan/rendergraph/ClearValue.h"
 #include "vulkan/ImageKind.h"
 #include <imgui.h>
-#include <Eigen/Geometry>
-#include <random>
 
 #define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
+#define ENABLE_IMGUI 0
 
 using namespace linuxviewer;
 
@@ -143,123 +139,6 @@ class SingleButtonWindow : public task::SynchronousWindow
   }
 };
 
-class HeavyRectangle final : public vulkan::pipeline::VertexShaderInputSet<VertexData>
-{
-  using Vector2f = Eigen::Vector2f;
-  using Transform = Eigen::Affine2f;
-
-  // Each batch exists of two triangles that form a square with coordinates (pos_x, pos_y) where
-  // both pos_x and pos_y run from -size to +size in SampleParameters::s_quad_tessellation steps.
-  //
-  //                                  __ iside = 4
-  //                                 /
-  //                                v
-  //    y=0 ┬─────┬─────┬─────┬─────┐
-  //        │     │     │     │     │
-  //        │     │     │     │     │  x runs from 0..iside-1
-  //      1 ┼─────A─────B─────┼─────┤    y runs from 0..iside-1
-  //        │     │   .🮠│     │     │       first triangle: A C B
-  //        │     │🮣    │     │     │      second triangle: B C D, both counter clockwise.
-  //      2 ┼─────C─────D─────┼─────┤
-  //        │     │     │     │     │  Shown are the triangles that belong to x,y = 1,1 (A).
-  //        │     │     │     │     │
-  //      3 ┼─────┼─────┼─────┼─────┤
-  //        │     │     │     │     │
-  //        │     │     │     │     │
-  //        ├─────┼─────┼─────┼─────┘
-  //      x=0     1     2     3
-  //        |                       |
-  // pos: -size         0          +size
-  //  uv:   0                       1
-  //
-  // At the same time (u, v) correspond with the texture coordinates and run from (0, 0) till (1, 1).
-  //
-  // Internally we use integer coordinates x and y that run from 0 till SampleParameters::s_quad_tessellation.
-  //
-  static constexpr int iside       = SampleParameters::s_quad_tessellation;
-  static constexpr float size      = 0.12f;
-  static constexpr float pos_scale = 2 * size / iside;
-  static constexpr float uv_scale  = 1.0f / iside;
-  static constexpr int batch_size  = 6;
-
-  static Transform const xy_to_position;
-  static Transform const xy_to_uv;
-  static Vector2f const offset[6];
-
-  Vector2f xy = {};             // Integer coordinates x,y.
-
-  // Convert xy to one of the six corners of the two triangles.
-  auto position_at(int vertex)
-  {
-    glsl::vec4 position;
-    position << xy_to_position * (xy + offset[vertex]), 0.0f, 1.0f;     // Homogeneous coordinates.
-    return position;
-  }
-
-  auto texture_coordinates_at(int vertex)
-  {
-    glsl::vec2 coords;
-    coords << xy_to_uv * (xy + offset[vertex]);
-    return coords;
-  }
-
-  int count() const override
-  {
-    return batch_size * iside * iside;
-  }
-
-  int next_batch() const override
-  {
-    return batch_size;
-  }
-
-  void create_entry(VertexData* input_entry_ptr) override
-  {
-    for (int vertex = 0; vertex < batch_size; ++vertex)
-    {
-      input_entry_ptr[vertex].m_position = position_at(vertex);
-      input_entry_ptr[vertex].m_texture_coordinates = texture_coordinates_at(vertex);
-    }
-
-    // Advance to the next square.
-    if (++xy.x() == iside) { xy.x() = 0; ++xy.y(); }
-  }
-};
-
-// static transformation matrices.
-HeavyRectangle::Transform const HeavyRectangle::xy_to_position = Transform(Eigen::Translation2f{-size, size}).scale(pos_scale);
-HeavyRectangle::Transform const HeavyRectangle::xy_to_uv       = Transform{Transform::Identity()}.scale(uv_scale);
-HeavyRectangle::Vector2f const HeavyRectangle::offset[batch_size] = {
-  { 0.0f, 0.0f },   // A
-  { 0.0f, 1.0f },   // C
-  { 1.0f, 0.0f },   // B
-  { 1.0f, 0.0f },   // B
-  { 0.0f, 1.0f },   // C
-  { 1.0f, 1.0f },   // D
-};
-
-class RandomPositions final : public vulkan::pipeline::VertexShaderInputSet<InstanceData>
-{
-  std::random_device m_random_device;
-  std::mt19937 m_generator;
-  std::uniform_real_distribution<float> m_distribution_xy;
-  std::uniform_real_distribution<float> m_distribution_z;
-
- public:
-  RandomPositions() : m_generator(m_random_device()), m_distribution_xy(-1.0f, 1.0f), m_distribution_z(0.0f, 1.0f) { }
-
- private:
-  int count() const override
-  {
-    return SampleParameters::s_max_object_count;
-  }
-
-  void create_entry(InstanceData* input_entry_ptr) override final
-  {
-    input_entry_ptr->m_position << m_distribution_xy(m_generator), m_distribution_xy(m_generator), m_distribution_z(m_generator), 1.0f; // Homogeneous coordinates.
-  }
-};
-
 class Window : public task::SynchronousWindow
 {
   using Directory = vulkan::Directory;
@@ -279,13 +158,7 @@ class Window : public task::SynchronousWindow
   Attachment     normal{this, "normal",   s_vector_image_view_kind};
   Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
-  // Define pipeline objects.
-  vulkan::pipeline::Pipeline m_pipeline;
-  HeavyRectangle m_heavy_rectangle;             // A rectangle with many vertices.
-  RandomPositions m_random_positions;           // Where to put those rectangles.
-
   vk::UniquePipeline m_graphics_pipeline;
-  //FIXME: remove these two lines.
   vulkan::BufferParameters m_vertex_buffer;
   vulkan::BufferParameters m_instance_buffer;
   vulkan::Texture m_background_texture;
@@ -320,8 +193,11 @@ class Window : public task::SynchronousWindow
 //    swapchain().set_clear_value_presentation_attachment({0.f, 1.f, 1.f, 1.f});
 
     // Define the render graph.
-    //m_render_graph = main_pass[~depth]->stores(~output) >> imgui_pass->stores(output);
-    m_render_graph = main_pass[~depth]->stores(~output);
+    m_render_graph = main_pass[~depth]->stores(~output)
+#if ENABLE_IMGUI
+      >> imgui_pass->stores(output)
+#endif
+      ;
 
     // Generate everything.
     m_render_graph.generate(this);
@@ -467,6 +343,12 @@ class Window : public task::SynchronousWindow
   }
 
   static constexpr std::string_view intel_vert_glsl = R"glsl(
+#version 450
+
+layout(location = 0) in vec4 i_Position;
+layout(location = 1) in vec2 i_Texcoord;
+layout(location = 2) in vec4 i_PerInstanceData;
+
 layout( push_constant ) uniform Scaling {
   float AspectScale;
 } PushConstant;
@@ -481,17 +363,19 @@ layout(location = 1) out float v_Distance;
 
 void main()
 {
-  v_Texcoord = VertexData::m_texture_coordinates;
-  v_Distance = 1.0 - InstanceData::m_position.z;        // Darken with distance
+  v_Texcoord = i_Texcoord;
+  v_Distance = 1.0 - i_PerInstanceData.z;       // Darken with distance
 
-  vec4 position = VertexData::m_position;
-  position.y *= PushConstant.AspectScale;               // Adjust to screen aspect ration
-  position.xy *= pow( v_Distance, 0.5 );                // Scale with distance
-  gl_Position = position + InstanceData::m_position;
+  vec4 position = i_Position;
+  position.y *= PushConstant.AspectScale;      // Adjust to screen aspect ration
+  position.xy *= pow( v_Distance, 0.5 );       // Scale with distance
+  gl_Position = position + i_PerInstanceData;
 }
 )glsl";
 
   static constexpr std::string_view intel_frag_glsl = R"glsl(
+#version 450
+
 layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
 layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
 
@@ -511,36 +395,25 @@ void main() {
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    // Define the pipeline.
-    m_pipeline.bind(m_heavy_rectangle);
-    m_pipeline.bind(m_random_positions);
-
     vulkan::Pipeline pipeline(this);
 
-//    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions;
     {
       using namespace vulkan::shaderbuilder;
-
-      ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
-      ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
 
       ShaderCompiler compiler;
       ShaderCompilerOptions options;
       LocationContext location_context;
 
-      shader_vert.add<VertexData>().add<InstanceData>().set_name("intel.vert.glsl").load(intel_vert_glsl, location_context).compile(compiler, options);
+      ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
+      shader_vert.set_name("intel.vert.glsl").load(intel_vert_glsl, location_context).compile(compiler, options);
       pipeline.add(shader_vert COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
-//      vertex_attribute_descriptions = shader_vert.vertex_attribute_descriptions(location_context);
 
+      ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
       shader_frag.set_name("intel.frag.glsl").load(intel_frag_glsl, location_context).compile(compiler, options);
       pipeline.add(shader_frag COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
     }
 
-    std::vector<vk::VertexInputBindingDescription> vertex_binding_description =
-#if 0
-      shader_vert.vertex_binding_description();
-#else
-    {
+    std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
       {
         .binding = 0,
         .stride = sizeof(VertexData),
@@ -548,20 +421,16 @@ void main() {
       },
       {
         .binding = 1,
-        .stride = sizeof(InstanceData),
+        .stride = 4 * sizeof(float),
         .inputRate = vk::VertexInputRate::eInstance
       }
     };
-#endif
-
-#if 1
-    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions =
-    {
+    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
       {
         .location = 0,
         .binding = vertex_binding_description[0].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
-        .offset = offsetof(VertexData, m_position)
+        .offset = 0
       },
       {
         .location = 1,
@@ -573,10 +442,9 @@ void main() {
         .location = 2,
         .binding = vertex_binding_description[1].binding,
         .format = vk::Format::eR32G32B32A32Sfloat,
-        .offset = offsetof(InstanceData, m_position)
+        .offset = 0
       }
     };
-#endif
 
     //=========================================================================
     // Vertex input.
@@ -677,16 +545,10 @@ void main() {
 
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
-
-    // Generate everything.
-//    m_pipeline.generate(this
-//        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
   }
 
-//FIXME: remove this function
   void create_vertex_buffers() override
   {
-#if 1
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
 
     // 3D model
@@ -715,27 +577,27 @@ void main() {
       }
     }
 
-    m_vertex_buffer = logical_device().create_buffer(vertex_data.size() * sizeof(VertexData),
+    m_vertex_buffer = logical_device().create_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(VertexData),
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffer")));
-    copy_data_to_buffer(vertex_data.size() * sizeof(VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
+    copy_data_to_buffer(static_cast<uint32_t>(vertex_data.size()) * sizeof(VertexData), vertex_data.data(), *m_vertex_buffer.m_buffer, 0, vk::AccessFlags(0),
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
 
-    // Per instance data (position offsets and distance).
-    std::vector<InstanceData> instance_data;
+    // Per instance data (position offsets and distance)
+    std::vector<float> instance_data(SampleParameters::s_max_object_count * 4);
+    for (size_t i = 0; i < instance_data.size(); i += 4)
+    {
+      instance_data[i]     = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
+      instance_data[i + 1] = static_cast<float>(std::rand() % 513) / 256.0f - 1.0f;
+      instance_data[i + 2] = static_cast<float>(std::rand() % 513) / 512.0f;
+      instance_data[i + 3] = 0.0f;
+    }
 
-    for (int i = 0; i < SampleParameters::s_max_object_count; ++i)
-      instance_data.push_back({{ static_cast<float>(std::rand() % 513) / 256.0f - 1.0f,
-                                 static_cast<float>(std::rand() % 513) / 256.0f - 1.0f,
-                                 static_cast<float>(std::rand() % 513) / 512.0f,
-                                 0.0f }});
-
-    m_instance_buffer = logical_device().create_buffer(instance_data.size() * sizeof(InstanceData),
+    m_instance_buffer = logical_device().create_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float),
         vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_instance_buffer")));
-    copy_data_to_buffer(instance_data.size() * sizeof(InstanceData), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
+    copy_data_to_buffer(static_cast<uint32_t>(instance_data.size()) * sizeof(float), instance_data.data(), *m_instance_buffer.m_buffer, 0, vk::AccessFlags(0),
         vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
-#endif
   }
 
   //===========================================================================
@@ -831,7 +693,9 @@ void main() {
 
     auto swapchain_extent = swapchain().extent();
     main_pass.update_image_views(swapchain(), frame_resources);
+#if ENABLE_IMGUI
     imgui_pass.update_image_views(swapchain(), frame_resources);
+#endif
 
     vk::Viewport viewport{
       .x = 0,
@@ -862,14 +726,13 @@ void main() {
       command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
       command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-//      command_buffer_w->bindVertexBuffers(0, m_pipeline.vhv_buffers(), { 0, 0 });
       command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->setScissor(0, { scissor });
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
       command_buffer_w->endRenderPass();
-#if 0
+#if ENABLE_IMGUI
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer_w->endRenderPass();
