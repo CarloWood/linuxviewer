@@ -4,7 +4,7 @@
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/shaderbuilder/ShaderModule.h"
-#include "vulkan/Pipeline.h"
+#include "vulkan/pipeline/Pipeline.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -300,7 +300,8 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vulkan::Pipeline pipeline(this);
+    vulkan::pipeline::Pipeline pipeline;
+    pipeline.set_window(this);
 
     {
       using namespace vulkan::shaderbuilder;
@@ -448,11 +449,6 @@ void main()
 
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
-  }
-
-  void create_vertex_buffers() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
   }
 
   //===========================================================================

@@ -426,7 +426,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   virtual void create_textures() = 0;
   virtual void create_pipeline_layout() = 0;
   virtual void create_graphics_pipeline() = 0;
-  virtual void create_vertex_buffers() = 0;
   void create_imgui();
 
   // SynchronousWindow_render_loop:

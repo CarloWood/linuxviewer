@@ -257,7 +257,6 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_textures();
       create_pipeline_layout();
       create_graphics_pipeline();
-      create_vertex_buffers();
       if (m_use_imgui)                  // Set in create_descriptor_set by the user.
         create_imgui();
 

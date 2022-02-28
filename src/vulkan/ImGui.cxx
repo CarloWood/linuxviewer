@@ -4,9 +4,9 @@
 #include "LogicalDevice.h"
 #include "Application.h"
 #include "ImageKind.h"
-#include "Pipeline.h"
 #include "InputEvent.h"
 #include "debug.h"
+#include "pipeline/Pipeline.h"
 #include "vk_utils/print_flags.h"
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -127,7 +127,8 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
 
-  Pipeline pipeline(m_owning_window);
+  pipeline::Pipeline pipeline;
+  pipeline.owning_window(m_owning_window);
 
   {
     using namespace vulkan::shaderbuilder;
@@ -136,6 +137,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     ShaderCompilerOptions options;
     LocationContext location_context;
 
+#if 0 // FIXME: uncomment and fix
     ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
     shader_vert.set_name("imgui.vert.glsl").load(imgui_vert_glsl, location_context).compile(compiler, options);
     pipeline.add(shader_vert COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
@@ -143,6 +145,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
     shader_frag.set_name("imgui.frag.glsl").load(imgui_frag_glsl, location_context).compile(compiler, options);
     pipeline.add(shader_frag COMMA_CWDEBUG_ONLY({ m_owning_window, "create_graphics_pipeline()::pipeline" }));
+#endif
   }
 
   std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {

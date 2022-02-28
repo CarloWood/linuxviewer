@@ -10,9 +10,9 @@ namespace {
 
 #define AI_TYPE_CASE_RETURN(x) do { case Type::x: return #x; } while(0)
 
-char const* type2name(Type type)
+char const* type2name(Type glsl_type)
 {
-  switch (type)
+  switch (glsl_type)
   {
     case Type::Float: return "float";
     AI_TYPE_CASE_RETURN(vec2);
@@ -61,9 +61,9 @@ char const* type2name(Type type)
 
 #undef AI_TYPE_CASE_RETURN
 
-size_t type2size(Type type)
+size_t type2size(Type glsl_type)
 {
-  return decode_rows(type) * decode_cols(type) * decode_typesize(type);
+  return decode_rows(glsl_type) * decode_cols(glsl_type) * decode_typesize(glsl_type);
 }
 
 // The following format must be supported by Vulkan (so no test is necessary):
@@ -114,11 +114,11 @@ size_t type2size(Type type)
 // VK_FORMAT_R32G32B32A32_SINT
 // VK_FORMAT_R32G32B32A32_SFLOAT
 
-vk::Format type2format(Type type)
+vk::Format type2format(Type glsl_type)
 {
   vk::Format format;
-  int rows = decode_rows(type);
-  switch (decode_typemask(type))
+  int rows = decode_rows(glsl_type);
+  switch (decode_typemask(glsl_type))
   {
     case float_mask:
       // 32_SFLOAT
@@ -216,14 +216,14 @@ vk::Format type2format(Type type)
 
 } // namespace
 
-TypeInfo::TypeInfo(Type type) : name(type2name(type)), size(type2size(type)), number_of_attribute_indices((size - 1) / 16 + 1), format(type2format(type))
+TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(type2size(glsl_type)), number_of_attribute_indices((size - 1) / 16 + 1), format(type2format(glsl_type))
 {
 }
 
 void LocationContext::update_location(VertexAttribute const* vertex_attribute)
 {
   locations[vertex_attribute] = next_location;
-  next_location += TypeInfo{vertex_attribute->m_type}.number_of_attribute_indices;
+  next_location += TypeInfo{vertex_attribute->m_glsl_type}.number_of_attribute_indices;
 }
 
 std::string VertexAttribute::name() const
@@ -236,8 +236,8 @@ std::string VertexAttribute::name() const
 std::string VertexAttribute::declaration(LocationContext& context) const
 {
   std::ostringstream oss;
-  TypeInfo type_info(m_type);
-  oss << "layout(location = " << context.next_location << ") in " << type_info.name << ' ' << name() << ";\t// " << m_glsl_id_str << "\n";
+  TypeInfo glsl_type_info(m_glsl_type);
+  oss << "layout(location = " << context.next_location << ") in " << glsl_type_info.name << ' ' << name() << ";\t// " << m_glsl_id_str << "\n";
   context.update_location(this);
   return oss.str();
 }
@@ -249,7 +249,7 @@ void VertexAttribute::print_on(std::ostream& os) const
 
   os << '{';
 
-  os << "m_type:" << m_type <<
+  os << "m_glsl_type:" << m_glsl_type <<
       ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
       ", m_offset:" << m_offset;
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "shaderbuilder/VertexShaderInputSet.h"      // VertexAttributes
+#include "shaderbuilder/VertexAttribute.h"
 #include "math/glsl.h"
 
 // Struct describing data type and format of instance attributes.

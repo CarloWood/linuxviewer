@@ -1,11 +1,15 @@
 #pragma once
 
-#include "shaderbuilder/ShaderModule.h"
 #include <vector>
 #include <type_traits>
 #include <vulkan/vulkan.hpp>
 
-namespace vulkan::pipeline {
+namespace vulkan::shaderbuilder {
+
+template<typename T>
+struct VertexAttributes
+{
+};
 
 class VertexShaderInputSetBase
 {
@@ -15,6 +19,9 @@ class VertexShaderInputSetBase
  public:
   VertexShaderInputSetBase(vk::VertexInputRate input_rate) : m_input_rate(input_rate) { }
 
+  // Accessor. The input rate of this set.
+  vk::VertexInputRate input_rate() const { return m_input_rate; }
+
   // The total number of input entries (the number of times that get_input_entry will be called).
   virtual int count() const = 0;
 
@@ -23,7 +30,7 @@ class VertexShaderInputSetBase
 
   // The size of one input entry.
   // The returned size must be a multiple of the required alignment.
-  virtual size_t size() const = 0;
+  virtual uint32_t size() const = 0;
 
   // This is called count() times to fill in the information of one input entry, where input_entry_index
   // will run from 0 till count() (exclusive) and input_entry_ptr is incremented in steps of size().
@@ -69,10 +76,11 @@ template<typename ENTRY>
 class VertexShaderInputSet : public VertexShaderInputSetBase
 {
  public:
-  VertexShaderInputSet() : VertexShaderInputSetBase(vulkan::shaderbuilder::VertexAttributes<ENTRY>::input_rate) { }
+  // Constructor. Pass the input rate to the base class, extracting that info from ENTRY.
+  VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::VertexAttributes<ENTRY>::input_rate) { }
 
  private:
-  size_t size() const override final
+  uint32_t size() const override final
   {
     return sizeof(ENTRY);
   }
@@ -91,4 +99,4 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
   }
 };
 
-} // namespace vulkan::pipeline
+} // namespace vulkan::shaderbuilder

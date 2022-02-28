@@ -1,12 +1,15 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include "utils/Vector.h"
 #include <cstring>
 #include <iosfwd>
 #include <map>
 #include <cstdint>
 
 namespace vulkan::shaderbuilder {
+
+class VertexShaderInputSetBase;
 
 // Bit encoding of Type:
 //
@@ -111,19 +114,14 @@ struct LocationContext
   uint32_t next_location = 0;
   std::map<VertexAttribute const*, uint32_t> locations;
 
-  void update_location(VertexAttribute const* vertex_attribute);
+  void update_location(VertexAttribute const* vertex_attribute_entry);
 };
 
 struct VertexAttribute
 {
-  Type const m_type;                            // The glsl type of the variable.
-  char const* const m_glsl_id_str;              // The glsl name of the variable.
-  uint32_t const m_offset;                      // The offset of the attribute inside its C++ InputObject struct.
-
-  bool operator<(VertexAttribute const& other) const
-  {
-    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
-  }
+  Type const m_glsl_type;                       // The glsl type of the variable.
+  char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
+  uint32_t const m_offset;                      // The offset of the attribute inside its C++ ENTRY struct.
 
   std::string name() const;
   std::string declaration(LocationContext& context) const;
@@ -131,6 +129,23 @@ struct VertexAttribute
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
+};
+
+using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
+
+struct VertexAttributeEntry
+{
+  BindingIndex binding;
+  VertexAttribute vertex_attribute;
+
+  VertexAttributeEntry(BindingIndex binding_, VertexAttribute const& vertex_attribute_) :
+    binding(binding_), vertex_attribute(vertex_attribute_) { }
+
+  // VertexAttributeEntry are put in a std::set. Provide a sorting function.
+  bool operator<(VertexAttributeEntry const& other) const
+  {
+    return strcmp(vertex_attribute.m_glsl_id_str, other.vertex_attribute.m_glsl_id_str) < 0;
+  }
 };
 
 } // namespace vulkan::shaderbuilder

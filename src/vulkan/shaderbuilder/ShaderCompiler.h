@@ -18,6 +18,7 @@ class AmbifixOwner;
 namespace vulkan::shaderbuilder {
 
 class ShaderModule;
+class ShaderInfo;
 namespace {
 struct Compiler;
 } // namespace
@@ -45,6 +46,21 @@ class ShaderCompilerOptions
   ShaderCompilerOptions(ShaderCompilerOptions&& compiler_options) : m_options(nullptr)
   {
     std::swap(m_options, compiler_options.m_options);
+  }
+
+  ShaderCompilerOptions& operator=(ShaderCompilerOptions const& compiler_options)
+  {
+    shaderc_compile_options_release(m_options);
+    m_options = shaderc_compile_options_clone(compiler_options.m_options);
+    return *this;
+  }
+
+  ShaderCompilerOptions& operator=(ShaderCompilerOptions&& compiler_options)
+  {
+    shaderc_compile_options_release(m_options);
+    m_options = compiler_options.m_options;
+    compiler_options.m_options = nullptr;
+    return *this;
   }
 
   ~ShaderCompilerOptions()
@@ -233,13 +249,10 @@ class ShaderCompiler
   }
 
   // Calls to compile are thread-safe.
-  std::vector<uint32_t> compile(utils::Badge<ShaderModule>, ShaderModule const& shader_module, ShaderCompilerOptions options) const;
+  std::vector<uint32_t> compile(utils::Badge<ShaderModule>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const;
 
-  vk::UniqueShaderModule create(utils::Badge<ShaderModule>, vulkan::LogicalDevice const& logical_device, ShaderModule const& shader_module, ShaderCompilerOptions options
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
-
- private:
-  shaderc_compilation_result_t compile(ShaderModule const& shader_module, ShaderCompilerOptions options, uint32_t const*& data_out, size_t& data_size_out);
+  vk::UniqueShaderModule compile_and_create(utils::Badge<ShaderModule>, vulkan::LogicalDevice const& logical_device, ShaderInfo const& shader_info, std::string_view glsl_source_code
+      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
 };
 
 } // namespace vulkan::shaderbuilder
