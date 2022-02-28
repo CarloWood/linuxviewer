@@ -291,9 +291,6 @@ class Window : public task::SynchronousWindow
   RandomPositions m_random_positions;           // Where to put those rectangles.
 
   vk::UniquePipeline m_graphics_pipeline;
-  //FIXME: remove these two lines.
-//  vulkan::BufferParameters m_vertex_buffer;
-//  vulkan::BufferParameters m_instance_buffer;
   vulkan::Texture m_background_texture;
   vulkan::Texture m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
@@ -544,11 +541,8 @@ void main() {
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
     }
 
-    std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions =
-      m_pipeline.vertex_binding_descriptions();
-
-    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions =
-      m_pipeline.vertex_attribute_descriptions();
+    auto vertex_binding_descriptions = m_pipeline.vertex_binding_descriptions();
+    auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
 
     //=========================================================================
     // Vertex input.

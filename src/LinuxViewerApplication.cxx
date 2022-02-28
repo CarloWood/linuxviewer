@@ -227,6 +227,9 @@ class Window : public task::SynchronousWindow
   RenderPass final_pass{this, "final_pass"};
   Attachment depth{this, "depth", s_depth_image_view_kind};
 
+  // Define pipeline objects.
+  vulkan::pipeline::Pipeline m_pipeline;
+
   vk::UniquePipeline m_graphics_pipeline;
   vk::UniquePipelineLayout m_pipeline_layout;
 
@@ -300,30 +303,28 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    vulkan::pipeline::Pipeline pipeline;
-    pipeline.set_window(this);
+    // The pipeline needs to know who owns it.
+    m_pipeline.owning_window(this);
 
     {
       using namespace vulkan::shaderbuilder;
 
+      ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "triangle.vert.glsl");
+      ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "triangle.frag.glsl");
+
+      shader_vert.load(triangle_vert_glsl);
+      shader_frag.load(triangle_frag_glsl);
+
       ShaderCompiler compiler;
-      ShaderCompilerOptions options;
-      LocationContext location_context;
 
-      ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
-      shader_vert.set_name("triangle.vert.glsl").load(triangle_vert_glsl, location_context).compile(compiler, options);
-      pipeline.add(shader_vert COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
-
-      ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
-      shader_frag.set_name("triangle.frag.glsl").load(triangle_frag_glsl, location_context).compile(compiler, options);
-      pipeline.add(shader_frag COMMA_CWDEBUG_ONLY(debug_name_prefix("create_graphics_pipeline()::pipeline")));
+      m_pipeline.build_shader(shader_vert, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
+      m_pipeline.build_shader(shader_frag, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
     }
 
-    std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
-    };
-
-    std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
-    };
+    auto vertex_binding_description = m_pipeline.vertex_binding_descriptions();
+    auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
 
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
       .flags = {},
@@ -425,7 +426,7 @@ void main()
       .pDynamicStates = dynamic_states.data()
     };
 
-    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
+    auto const& shader_stage_create_infos = m_pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .flags = vk::PipelineCreateFlags(0),

@@ -75,32 +75,32 @@ target_link_libraries(mytest
     dns::dns
 )
 
-#add_executable(linuxviewer 
-#  LinuxViewerApplication.cxx
-#  LinuxViewerApplication.h
-#  LinuxViewerMenuEntries.cxx
-#  LinuxViewerMenuEntries.h
-#  LinuxViewerMenuBar.h
-#)
-#
-#target_link_libraries(linuxviewer
-#  PRIVATE
-#    LinuxViewer::protocols
-#    LinuxViewer::xmlrpc
-#    LinuxViewer::data_types
-#    LinuxViewer::vulkan
-#    AICxx::socket-task
-#    AICxx::resolver-task
-#    AICxx::xmlrpc-task
-#    AICxx::xcb-task
-#    AICxx::xcb-task::OrgFreedesktopXcbError
-#    ImGui::imgui
-#    ${AICXX_OBJECTS_LIST}
-#    dns::dns
-#    farmhash::farmhash
-#    blaze::blaze
-#    Boost::serialization
-#)
+add_executable(linuxviewer 
+  LinuxViewerApplication.cxx
+  LinuxViewerApplication.h
+  LinuxViewerMenuEntries.cxx
+  LinuxViewerMenuEntries.h
+  LinuxViewerMenuBar.h
+)
+
+target_link_libraries(linuxviewer
+  PRIVATE
+    LinuxViewer::protocols
+    LinuxViewer::xmlrpc
+    LinuxViewer::data_types
+    LinuxViewer::vulkan
+    AICxx::socket-task
+    AICxx::resolver-task
+    AICxx::xmlrpc-task
+    AICxx::xcb-task
+    AICxx::xcb-task::OrgFreedesktopXcbError
+    ImGui::imgui
+    ${AICXX_OBJECTS_LIST}
+    dns::dns
+    farmhash::farmhash
+    blaze::blaze
+    Boost::serialization
+)
 
 add_subdirectory(protocols)
 add_subdirectory(data_types)
