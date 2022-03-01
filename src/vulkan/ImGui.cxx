@@ -97,18 +97,14 @@ void ImGui::create_pipeline_layout(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 }
 
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
-#version 450 core
-layout(location = 0) in vec2 aPos;
-layout(location = 1) in vec2 aUV;
-layout(location = 2) in vec4 aColor;
 layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
 out gl_PerVertex { vec4 gl_Position; };
 layout(location = 0) out struct { vec4 Color; vec2 UV; } Out;
 void main()
 {
-  Out.Color = aColor;
-  Out.UV = aUV;
-  gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
+  Out.Color = ImDrawVert::col;
+  Out.UV = ImDrawVert::uv;
+  gl_Position = vec4(ImDrawVert::pos * pc.uScale + pc.uTranslate, 0, 1);
 }
 )glsl";
 
@@ -127,60 +123,36 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
 
-  pipeline::Pipeline pipeline;
-  pipeline.owning_window(m_owning_window);
+  // The pipeline needs to know who owns it.
+  m_pipeline.owning_window(m_owning_window);
+
+  // Define the pipeline.
+  m_pipeline.add_vertex_input_binding(m_ui);
 
   {
     using namespace vulkan::shaderbuilder;
 
+    ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "imgui.vert.glsl");
+    ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "imgui.frag.glsl");
+
+    shader_vert.load(imgui_vert_glsl);
+    shader_frag.load(imgui_frag_glsl);
+
     ShaderCompiler compiler;
-    ShaderCompilerOptions options;
-    LocationContext location_context;
 
-#if 0 // FIXME: uncomment and fix
-    ShaderModule shader_vert(vk::ShaderStageFlagBits::eVertex);
-    shader_vert.set_name("imgui.vert.glsl").load(imgui_vert_glsl, location_context).compile(compiler, options);
-    pipeline.add(shader_vert COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
-
-    ShaderModule shader_frag(vk::ShaderStageFlagBits::eFragment);
-    shader_frag.set_name("imgui.frag.glsl").load(imgui_frag_glsl, location_context).compile(compiler, options);
-    pipeline.add(shader_frag COMMA_CWDEBUG_ONLY({ m_owning_window, "create_graphics_pipeline()::pipeline" }));
-#endif
+    m_pipeline.build_shader(shader_vert, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "m_imgui.m_pipeline" }));
+    m_pipeline.build_shader(shader_frag, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "m_imgui.m_pipeline" }));
   }
 
-  std::vector<vk::VertexInputBindingDescription> vertex_binding_description = {
-    {
-      .binding = 0,
-      .stride = sizeof(ImDrawVert),
-      .inputRate = vk::VertexInputRate::eVertex
-    }
-  };
-
-  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions = {
-    {
-      .location = 0,
-      .binding = vertex_binding_description[0].binding,
-      .format = vk::Format::eR32G32Sfloat,
-      .offset = IM_OFFSETOF(ImDrawVert, pos)
-    },
-    {
-      .location = 1,
-      .binding = vertex_binding_description[0].binding,
-      .format = vk::Format::eR32G32Sfloat,
-      .offset = IM_OFFSETOF(ImDrawVert, uv)
-    },
-    {
-      .location = 2,
-      .binding = vertex_binding_description[0].binding,
-      .format = vk::Format::eR8G8B8A8Unorm,
-      .offset = IM_OFFSETOF(ImDrawVert, col)
-    }
-  };
+  auto vertex_binding_descriptions = m_pipeline.vertex_binding_descriptions();
+  auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
 
   vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
     .flags = {},
-    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
-    .pVertexBindingDescriptions = vertex_binding_description.data(),
+    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descriptions.size()),
+    .pVertexBindingDescriptions = vertex_binding_descriptions.data(),
     .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
     .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
   };
@@ -263,7 +235,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .pDynamicStates = dynamic_states.data()
   };
 
-  auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
+  auto const& shader_stage_create_infos = m_pipeline.shader_stage_create_infos();
 
   vk::GraphicsPipelineCreateInfo pipeline_create_info{
     .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),

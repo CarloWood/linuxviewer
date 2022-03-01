@@ -56,6 +56,26 @@ char const* type2name(Type glsl_type)
     AI_TYPE_CASE_RETURN(uvec2);
     AI_TYPE_CASE_RETURN(uvec3);
     AI_TYPE_CASE_RETURN(uvec4);
+
+    case Type::Int8: return "float";
+    case Type::i8vec2: return "vec2";
+    case Type::i8vec3: return "vec3";
+    case Type::i8vec4: return "vec4";
+
+    case Type::Uint8: return "float";
+    case Type::u8vec2: return "vec2";
+    case Type::u8vec3: return "vec3";
+    case Type::u8vec4: return "vec4";
+
+    case Type::Int16: return "float";
+    case Type::i16vec2: return "vec2";
+    case Type::i16vec3: return "vec3";
+    case Type::i16vec4: return "vec4";
+
+    case Type::Uint16: return "float";
+    case Type::u16vec2: return "vec2";
+    case Type::u16vec3: return "vec3";
+    case Type::u16vec4: return "vec4";
   }
 }
 
@@ -207,6 +227,78 @@ vk::Format type2format(Type glsl_type)
           break;
         case 4:
           format = vk::Format::eR32G32B32A32Uint;
+          break;
+      }
+      break;
+    case snorm8_mask:
+      // int8_t
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR8Snorm;
+          break;
+        case 2:
+          format = vk::Format::eR8G8Snorm;
+          break;
+        case 3:
+          format = vk::Format::eR8G8B8Snorm;
+          break;
+        case 4:
+          format = vk::Format::eR8G8B8A8Snorm;
+          break;
+      }
+      break;
+    case unorm8_mask:
+      // uint8_t
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR8Unorm;
+          break;
+        case 2:
+          format = vk::Format::eR8G8Unorm;
+          break;
+        case 3:
+          format = vk::Format::eR8G8B8Unorm;
+          break;
+        case 4:
+          format = vk::Format::eR8G8B8A8Unorm;
+          break;
+      }
+      break;
+    case snorm16_mask:
+      // int16_t
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR16Snorm;
+          break;
+        case 2:
+          format = vk::Format::eR16G16Snorm;
+          break;
+        case 3:
+          format = vk::Format::eR16G16B16Snorm;
+          break;
+        case 4:
+          format = vk::Format::eR16G16B16A16Snorm;
+          break;
+      }
+      break;
+    case unorm16_mask:
+      // uint16_t
+      switch (rows)
+      {
+        case 1:
+          format = vk::Format::eR16Unorm;
+          break;
+        case 2:
+          format = vk::Format::eR16G16Unorm;
+          break;
+        case 3:
+          format = vk::Format::eR16G16B16Unorm;
+          break;
+        case 4:
+          format = vk::Format::eR16G16B16A16Unorm;
           break;
       }
       break;

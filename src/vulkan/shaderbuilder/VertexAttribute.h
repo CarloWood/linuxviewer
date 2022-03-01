@@ -13,12 +13,12 @@ class VertexShaderInputSetBase;
 
 // Bit encoding of Type:
 //
-// tttsssrrrccc
+// ttttsssrrrccc
 //
-// where ttt: the underlaying type.
-//       sss: the size of the underlaying C++ type of one element.
-//       rrr: the number of rows.
-//       ccc: the number of columns.
+// where tttt: the underlaying type.
+//        sss: the size of the underlaying C++ type of one element.
+//        rrr: the number of rows.
+//        ccc: the number of columns.
 //
 static constexpr inline int encode(int rows, int cols, int typesize, int typemask)
 {
@@ -30,6 +30,10 @@ static constexpr int double_mask  = 1;
 static constexpr int bool_mask    = 2;
 static constexpr int int32_mask   = 3;
 static constexpr int uint32_mask  = 4;
+static constexpr int snorm8_mask  = 5;
+static constexpr int unorm8_mask  = 6;
+static constexpr int snorm16_mask  = 7;
+static constexpr int unorm16_mask  = 8;
 
 enum class Type
 {
@@ -74,7 +78,27 @@ enum class Type
   Uint  = encode(1, 1, sizeof(uint32_t), uint32_mask),
   uvec2 = encode(2, 1, sizeof(uint32_t), uint32_mask),
   uvec3 = encode(3, 1, sizeof(uint32_t), uint32_mask),
-  uvec4 = encode(4, 1, sizeof(uint32_t), uint32_mask)
+  uvec4 = encode(4, 1, sizeof(uint32_t), uint32_mask),
+
+  Int8  =  encode(1, 1, sizeof(int8_t), snorm8_mask),
+  i8vec2 = encode(2, 1, sizeof(int8_t), snorm8_mask),
+  i8vec3 = encode(3, 1, sizeof(int8_t), snorm8_mask),
+  i8vec4 = encode(4, 1, sizeof(int8_t), snorm8_mask),
+
+  Uint8  = encode(1, 1, sizeof(uint8_t), unorm8_mask),
+  u8vec2 = encode(2, 1, sizeof(uint8_t), unorm8_mask),
+  u8vec3 = encode(3, 1, sizeof(uint8_t), unorm8_mask),
+  u8vec4 = encode(4, 1, sizeof(uint8_t), unorm8_mask),
+
+  Int16  =  encode(1, 1, sizeof(int16_t), snorm16_mask),
+  i16vec2 = encode(2, 1, sizeof(int16_t), snorm16_mask),
+  i16vec3 = encode(3, 1, sizeof(int16_t), snorm16_mask),
+  i16vec4 = encode(4, 1, sizeof(int16_t), snorm16_mask),
+
+  Uint16  = encode(1, 1, sizeof(uint16_t), unorm16_mask),
+  u16vec2 = encode(2, 1, sizeof(uint16_t), unorm16_mask),
+  u16vec3 = encode(3, 1, sizeof(uint16_t), unorm16_mask),
+  u16vec4 = encode(4, 1, sizeof(uint16_t), unorm16_mask)
 };
 
 inline int decode_rows(Type type)

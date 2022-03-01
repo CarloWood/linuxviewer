@@ -4,13 +4,66 @@
 #include "Texture.h"
 #include "BufferParameters.h"
 #include "DescriptorSetParameters.h"
+#include "pipeline/Pipeline.h"
 #include "debug/DebugSetName.h"
 #include "debug.h"
 
 #include "CommandBuffer.h"      // CommandBufferWriteAccessType
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
+#include "math/glsl.h"          // glsl::vec2
 #include "vk_utils/TimerData.h"
+
+// Theoretically we should include imgui.h to get the definition of ImDrawVert.
+// However - I think that any other class will do here, as long as it has the
+// same memory layout. We can even put this dummy struct in a namespace.
+
+namespace imgui {
+
+struct ImDrawVert
+{
+  glsl::vec2 pos;
+  glsl::vec2 uv;
+  uint32_t col;
+};
+
+} // namespace imgui
+
+// Describe the ImDrawVert's vertex attributes in terms of this dummy struct,
+// since it only uses things like sizeof and offsetof.
+namespace vulkan::shaderbuilder {
+
+template<>
+struct VertexAttributes<imgui::ImDrawVert>
+{
+  static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
+  static constexpr std::array<VertexAttribute, 3> attributes = {{
+    { Type::vec2, "ImDrawVert::pos", offsetof(imgui::ImDrawVert, pos) },
+    { Type::vec2, "ImDrawVert::uv", offsetof(imgui::ImDrawVert, uv) },
+    { Type::u8vec4, "ImDrawVert::col", offsetof(imgui::ImDrawVert, col) }
+  }};
+};
+
+} // namespace vulkan::shaderbuilder
+
+namespace imgui {
+
+class UI final : public vulkan::shaderbuilder::VertexShaderInputSet<ImDrawVert>
+{
+  int count() const override
+  {
+    // This should never be called because the backend writes directly to the vertex buffer. See ImGui::render_frame.
+    // Currently this means we simply don't call Pipeline::generate.
+    ASSERT(false);
+    return 0;
+  }
+
+  void create_entry(ImDrawVert* input_entry_ptr) override
+  {
+  }
+};
+
+} // namespace imgui
 
 namespace task {
 class SynchronousWindow;
@@ -41,6 +94,10 @@ class ImGui
   int m_last_x = {};
   int m_last_y = {};
 #endif
+
+  // Define pipeline objects.
+  pipeline::Pipeline m_pipeline;
+  imgui::UI m_ui;                                       // UI vertex attributes.
 
  private:
   inline LogicalDevice const& logical_device() const;

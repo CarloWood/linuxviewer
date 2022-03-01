@@ -26,7 +26,7 @@
 #include <random>
 
 #define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
-#define ENABLE_IMGUI 0
+#define ENABLE_IMGUI 1
 
 using namespace linuxviewer;
 
