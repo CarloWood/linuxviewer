@@ -3,7 +3,6 @@
 #include "LinuxViewerMenuBar.h"
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/shaderbuilder/ShaderModule.h"
 #include "vulkan/pipeline/Pipeline.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"

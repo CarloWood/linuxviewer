@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "ShaderCompiler.h"
-#include "ShaderModule.h"
+#include "SPIRVCache.h"
 #include "LogicalDevice.h"
 #include "utils/at_scope_end.h"
 
@@ -41,19 +41,19 @@ Compiler::Compiler(ShaderInfo const& shader_info, std::string_view glsl_source_c
 
 } // namespace
 
-std::vector<uint32_t> ShaderCompiler::compile(utils::Badge<ShaderModule>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const
+std::vector<uint32_t> ShaderCompiler::compile(utils::Badge<SPIRVCache>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const
 {
   Compiler compiler(shader_info, glsl_source_code, m_compiler);
   // Cache resulting SPIR-V code in a vector.
   return { compiler.data_out, compiler.data_out + compiler.data_size_out / sizeof(uint32_t) };
 }
 
-vk::UniqueShaderModule ShaderCompiler::compile_and_create(utils::Badge<ShaderModule>,
+vk::UniqueShaderModule ShaderCompiler::compile_and_create(utils::Badge<ShaderInfo>,
     vulkan::LogicalDevice const& logical_device, ShaderInfo const& shader_info, std::string_view glsl_source_code
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
   Compiler compiler(shader_info, glsl_source_code, m_compiler);
-  // Create the vk::UniqueShaderModule. This is the same as ShaderModule::create() except that it uses what we just compiled instead of the cached SPIR-V code.
+  // Create the vk::UniqueShaderModule. This is the same as SPIRVCache::create_module() except that it uses what we just compiled instead of the cached SPIR-V code.
   return logical_device.create_shader_module(compiler.data_out, compiler.data_size_out
       COMMA_CWDEBUG_ONLY(debug_name));
 }

@@ -25,7 +25,10 @@ namespace shaderbuilder {
 
 class ShaderCompiler;
 
-class ShaderModule
+// Objects of this type should be used to keep a cache of compiled SPIR-V code
+// when for whatever reason you need to recreate a ShaderModule but don't want
+// to recompile the shader.
+class SPIRVCache
 {
  private:
   std::vector<uint32_t> m_spirv_code;           // Cached, compiled SPIR-V code.
@@ -35,14 +38,9 @@ class ShaderModule
   void compile(std::string_view glsl_source_code, ShaderCompiler const& compiler, ShaderInfo const& shader_info);
 
   // Create handle from cached SPIR-V code.
-  vk::UniqueShaderModule create(
+  vk::UniqueShaderModule create_module(
       utils::Badge<vulkan::pipeline::Pipeline>, // Use vulkan::pipeline::Pipeline::build_shader(shader_info, compiler) instead of this function.
       task::SynchronousWindow const* owning_window
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
-
-  // Compile and forget. This does not store the result in m_spirv_code. FIXME: then shouldn't it be a member function ShaderInfo?
-  vk::UniqueShaderModule compile_and_create(task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler,
-      ShaderInfo const& shader_info, std::string_view glsl_source_code
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
   // Free resources.

@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "ShaderModule.h"
+#include "SPIRVCache.h"
 #include "LogicalDevice.h"
 #include "SynchronousWindow.h"
 #include "pipeline/Pipeline.h"
@@ -22,7 +22,7 @@ std::ostream& operator<<(std::ostream& os, shaderc_shader_kind kind)
 namespace vulkan::shaderbuilder {
 
 #if 0
-shaderc_shader_kind ShaderModule::filename_to_shader_kind(std::filesystem::path filename, bool force) const
+shaderc_shader_kind SPIRVCache::filename_to_shader_kind(std::filesystem::path filename, bool force) const
 {
   if (filename.extension() == ".glsl")
     filename = filename.stem();
@@ -60,43 +60,30 @@ shaderc_shader_kind ShaderModule::filename_to_shader_kind(std::filesystem::path 
 }
 #endif
 
-void ShaderModule::reset()
+void SPIRVCache::reset()
 {
-  DoutEntering(dc::vulkan, "ShaderModule::reset() [" << this << "]");
+  DoutEntering(dc::vulkan, "SPIRVCache::reset() [" << this << "]");
   m_spirv_code.clear();
 }
 
-void ShaderModule::compile(std::string_view glsl_source_code, ShaderCompiler const& compiler, ShaderInfo const& shader_info)
+void SPIRVCache::compile(std::string_view glsl_source_code, ShaderCompiler const& compiler, ShaderInfo const& shader_info)
 {
-  DoutEntering(dc::vulkan, "ShaderModule::compile(...)");
+  DoutEntering(dc::vulkan, "SPIRVCache::compile(...)");
 
-  // Call reset() before reusing a ShaderModule.
+  // Call reset() before reusing a SPIRVCache.
   ASSERT(m_spirv_code.empty());
   m_spirv_code = compiler.compile({}, shader_info, glsl_source_code);
 }
 
-vk::UniqueShaderModule ShaderModule::create(utils::Badge<vulkan::pipeline::Pipeline>, task::SynchronousWindow const* owning_window
+vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::Pipeline>, task::SynchronousWindow const* owning_window
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "ShaderModule::create({}, " << owning_window << ")");
+  DoutEntering(dc::vulkan, "SPIRVCache::create({}, " << owning_window << ")");
 
   // Call compile() before calling this create().
   ASSERT(!m_spirv_code.empty());
   return owning_window->logical_device().create_shader_module(
       m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
-      COMMA_CWDEBUG_ONLY(debug_name));
-}
-
-vk::UniqueShaderModule ShaderModule::compile_and_create(
-    task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler,
-    ShaderInfo const& shader_info, std::string_view glsl_source_code
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
-{
-  DoutEntering(dc::vulkan, "ShaderModule::compile_and_create(" << owning_window << ", ...)");
-
-  // Call reset() before reusing a ShaderModule.
-  ASSERT(m_spirv_code.empty());
-  return compiler.compile_and_create({}, owning_window->logical_device(), shader_info, glsl_source_code
       COMMA_CWDEBUG_ONLY(debug_name));
 }
 

@@ -101,16 +101,13 @@ std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_attribute_desc
         .binding = static_cast<uint32_t>(vertex_attribute_entry.binding.get_value()),
         .format = type_info.format,
         .offset = vertex_attribute_entry.vertex_attribute.m_offset});
-    Dout(dc::always, "ShaderModule::vertex_attribute_descriptions: added " << vertex_attribute_descriptions.back());
   }
   return vertex_attribute_descriptions;
 }
 
-void Pipeline::build_shader(shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler
+void Pipeline::build_shader(shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
-  shaderbuilder::ShaderModule shader_module;
-
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
   switch (shader_info.stage())
@@ -124,8 +121,8 @@ void Pipeline::build_shader(shaderbuilder::ShaderInfo const& shader_info, shader
   }
 
   // Add a shader module to this pipeline.
-  shader_module.compile(glsl_source_code, compiler, shader_info);
-  m_unique_handles.push_back(shader_module.create({}, m_owning_window
+  spirv_cache.compile(glsl_source_code, compiler, shader_info);
+  m_unique_handles.push_back(spirv_cache.create_module({}, m_owning_window
       COMMA_CWDEBUG_ONLY(ambifix(".m_unique_handles[" + std::to_string(m_unique_handles.size()) + "]"))));
   m_shader_stage_create_infos.push_back(
     {

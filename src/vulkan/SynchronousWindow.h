@@ -19,7 +19,7 @@
 #include "GraphicsSettings.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
-#include "shaderbuilder/ShaderModule.h"
+#include "shaderbuilder/SPIRVCache.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
@@ -54,7 +54,7 @@ class Swapchain;
 using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 
 namespace shaderbuilder {
-class ShaderModule;
+class SPIRVCache;
 } // shaderbuilder
 
 namespace detail {

@@ -17,7 +17,6 @@
 #ifdef CWDEBUG
 #include "utils/debug_ostream_operators.h"
 #endif
-#include "shaderbuilder/ShaderModule.h"
 
 #include "vulkan/rendergraph/ClearValue.h"
 #include "vulkan/ImageKind.h"

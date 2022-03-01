@@ -10,6 +10,10 @@
 #include <iosfwd>
 #endif
 
+namespace task {
+class SynchronousWindow;
+} // namespace task
+
 namespace vulkan::shaderbuilder {
 
 class ShaderCompilerOptions;
@@ -72,6 +76,11 @@ class ShaderInfo
   // Clean up resources.
   void cleanup_source_code();
   void reset();
+
+  // Compile and forget. This does not store the resulting SPIR-V code.
+  vk::UniqueShaderModule compile_and_create_module(
+      task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, std::string_view glsl_source_code
+      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
 #ifdef CWDEBUG
   static void print_source_code_on(std::ostream& os, std::string const& source_code);
