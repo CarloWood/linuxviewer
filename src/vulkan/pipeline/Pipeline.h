@@ -20,8 +20,6 @@ class Pipeline
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
   std::set<shaderbuilder::VertexAttributeEntry> m_vertex_attributes;                    // All existing attributes of the above input sets.
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for m_vertex_attributes.
-
-  // FIXME: these don't belong in this object, or do they?
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
 

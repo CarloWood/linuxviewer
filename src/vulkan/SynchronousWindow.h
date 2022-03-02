@@ -146,8 +146,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
- protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
   bool m_use_imgui = false;
+
+ protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
   vulkan::DescriptorSetParameters m_descriptor_set;
 
  private:
