@@ -96,7 +96,6 @@ class ImGui
 #endif
 
   // Define pipeline objects.
-  pipeline::Pipeline m_pipeline;
   imgui::UI m_ui;                                       // UI vertex attributes.
 
  private:

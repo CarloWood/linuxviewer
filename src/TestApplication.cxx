@@ -285,7 +285,6 @@ class Window : public task::SynchronousWindow
   Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
   // Define pipeline objects.
-  vulkan::pipeline::Pipeline m_pipeline;
   HeavyRectangle m_heavy_rectangle;             // A rectangle with many vertices.
   RandomPositions m_random_positions;           // Where to put those rectangles.
 
@@ -519,12 +518,11 @@ void main() {
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
-    // The pipeline needs to know who owns it.
-    m_pipeline.owning_window(this);
+    vulkan::pipeline::Pipeline pipeline;
 
     // Define the pipeline.
-    m_pipeline.add_vertex_input_binding(m_heavy_rectangle);
-    m_pipeline.add_vertex_input_binding(m_random_positions);
+    pipeline.add_vertex_input_binding(m_heavy_rectangle);
+    pipeline.add_vertex_input_binding(m_random_positions);
 
     {
       using namespace vulkan::shaderbuilder;
@@ -537,14 +535,14 @@ void main() {
 
       ShaderCompiler compiler;
 
-      m_pipeline.build_shader(shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
-      m_pipeline.build_shader(shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
+      pipeline.build_shader(this, shader_vert, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+      pipeline.build_shader(this, shader_frag, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
     }
 
-    auto vertex_binding_descriptions = m_pipeline.vertex_binding_descriptions();
-    auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+    auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
+    auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
 
     //=========================================================================
     // Vertex input.
@@ -622,7 +620,7 @@ void main() {
       .pDynamicStates = dynamic_states.data()
     };
 
-    auto const& shader_stage_create_infos = m_pipeline.shader_stage_create_infos();
+    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
@@ -647,7 +645,7 @@ void main() {
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
 
     // Generate vertex buffers.
-    create_vertex_buffers(m_pipeline);
+    create_vertex_buffers(pipeline);
   }
 
   void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)

@@ -105,7 +105,8 @@ std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_attribute_desc
   return vertex_attribute_descriptions;
 }
 
-void Pipeline::build_shader(shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
+void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
+    shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   std::string glsl_source_code_buffer;
@@ -122,7 +123,7 @@ void Pipeline::build_shader(shaderbuilder::ShaderInfo const& shader_info, shader
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
-  m_unique_handles.push_back(spirv_cache.create_module({}, m_owning_window
+  m_unique_handles.push_back(spirv_cache.create_module({}, owning_window->logical_device()
       COMMA_CWDEBUG_ONLY(ambifix(".m_unique_handles[" + std::to_string(m_unique_handles.size()) + "]"))));
   m_shader_stage_create_infos.push_back(
     {

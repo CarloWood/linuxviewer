@@ -40,7 +40,7 @@ class SPIRVCache
   // Create handle from cached SPIR-V code.
   vk::UniqueShaderModule create_module(
       utils::Badge<vulkan::pipeline::Pipeline>, // Use vulkan::pipeline::Pipeline::build_shader(shader_info, compiler) instead of this function.
-      task::SynchronousWindow const* owning_window
+      LogicalDevice const& logical_device
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 
   // Free resources.

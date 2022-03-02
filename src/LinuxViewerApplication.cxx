@@ -226,9 +226,6 @@ class Window : public task::SynchronousWindow
   RenderPass final_pass{this, "final_pass"};
   Attachment depth{this, "depth", s_depth_image_view_kind};
 
-  // Define pipeline objects.
-  vulkan::pipeline::Pipeline m_pipeline;
-
   vk::UniquePipeline m_graphics_pipeline;
   vk::UniquePipelineLayout m_pipeline_layout;
 
@@ -303,7 +300,7 @@ void main()
     DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
 
     // The pipeline needs to know who owns it.
-    m_pipeline.owning_window(this);
+    vulkan::pipeline::Pipeline pipeline;
 
     {
       using namespace vulkan::shaderbuilder;
@@ -316,14 +313,14 @@ void main()
 
       ShaderCompiler compiler;
 
-      m_pipeline.build_shader(shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
-      m_pipeline.build_shader(shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
+      pipeline.build_shader(this, shader_vert, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+      pipeline.build_shader(this, shader_frag, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
     }
 
-    auto vertex_binding_description = m_pipeline.vertex_binding_descriptions();
-    auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+    auto vertex_binding_description = pipeline.vertex_binding_descriptions();
+    auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
 
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
       .flags = {},
@@ -425,7 +422,7 @@ void main()
       .pDynamicStates = dynamic_states.data()
     };
 
-    auto const& shader_stage_create_infos = m_pipeline.shader_stage_create_infos();
+    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .flags = vk::PipelineCreateFlags(0),

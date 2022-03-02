@@ -124,10 +124,10 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
 
   // The pipeline needs to know who owns it.
-  m_pipeline.owning_window(m_owning_window);
+  pipeline::Pipeline pipeline;
 
   // Define the pipeline.
-  m_pipeline.add_vertex_input_binding(m_ui);
+  pipeline.add_vertex_input_binding(m_ui);
 
   {
     using namespace vulkan::shaderbuilder;
@@ -140,14 +140,14 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 
     ShaderCompiler compiler;
 
-    m_pipeline.build_shader(shader_vert, compiler
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "m_imgui.m_pipeline" }));
-    m_pipeline.build_shader(shader_frag, compiler
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "m_imgui.m_pipeline" }));
+    pipeline.build_shader(m_owning_window, shader_vert, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
+    pipeline.build_shader(m_owning_window, shader_frag, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
   }
 
-  auto vertex_binding_descriptions = m_pipeline.vertex_binding_descriptions();
-  auto vertex_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+  auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
+  auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
 
   vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
     .flags = {},
@@ -235,7 +235,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .pDynamicStates = dynamic_states.data()
   };
 
-  auto const& shader_stage_create_infos = m_pipeline.shader_stage_create_infos();
+  auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
   vk::GraphicsPipelineCreateInfo pipeline_create_info{
     .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),

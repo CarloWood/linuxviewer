@@ -22,29 +22,22 @@ class Pipeline
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for m_vertex_attributes.
 
   // FIXME: these don't belong in this object, or do they?
-  task::SynchronousWindow const* m_owning_window = {};
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
 
  public:
-  void owning_window(task::SynchronousWindow const* owning_window)
-  {
-    // Only call set_window once.
-    ASSERT(!m_owning_window);
-    m_owning_window = owning_window;
-  }
-
   template<typename ENTRY>
   void add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
 
-  void build_shader(shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
+  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler,
+      shaderbuilder::SPIRVCache& spirv_cache
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
-  void build_shader(shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler
+  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   {
     shaderbuilder::SPIRVCache tmp_spirv_cache;
-    build_shader(shader_info, compiler, tmp_spirv_cache COMMA_CWDEBUG_ONLY(ambifix));
+    build_shader(owning_window, shader_info, compiler, tmp_spirv_cache COMMA_CWDEBUG_ONLY(ambifix));
   }
 
   // Create glsl code from template source code.
