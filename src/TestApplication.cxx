@@ -289,6 +289,9 @@ class Window : public task::SynchronousWindow
   HeavyRectangle m_heavy_rectangle;             // A rectangle with many vertices.
   RandomPositions m_random_positions;           // Where to put those rectangles.
 
+  // Vertex buffers.
+  std::vector<vulkan::BufferParameters> m_vertex_buffers;
+
   vk::UniquePipeline m_graphics_pipeline;
   vulkan::Texture m_background_texture;
   vulkan::Texture m_texture;
@@ -643,9 +646,37 @@ void main() {
     m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
 
-    // Generate everything.
-    m_pipeline.generate(this
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline")));
+    // Generate vertex buffers.
+    create_vertex_buffers(m_pipeline);
+  }
+
+  void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)
+  {
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+
+    for (vulkan::shaderbuilder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline.vertex_shader_input_sets())
+    {
+      size_t entry_size = vertex_shader_input_set->size();
+      int count = vertex_shader_input_set->count();
+      size_t buffer_size = count * entry_size;
+
+      // FIXME: write directly into allocated vulkan buffer?
+      std::vector<std::byte> buf(buffer_size);
+      std::byte const* const end = buf.data() + buffer_size;
+      int batch_size;
+      for (std::byte* ptr = buf.data(); ptr != end; ptr += batch_size * entry_size)
+      {
+        batch_size = vertex_shader_input_set->next_batch();
+        vertex_shader_input_set->get_input_entry(ptr);
+      }
+
+      m_vertex_buffers.emplace_back(logical_device().create_buffer(buffer_size,
+          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
+
+      copy_data_to_buffer(buffer_size, buf.data(), *m_vertex_buffers.back().m_buffer, 0, vk::AccessFlags(0),
+          vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
+    }
   }
 
   //===========================================================================
@@ -774,8 +805,7 @@ void main() {
       command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
       command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
       command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-      command_buffer_w->bindVertexBuffers(0, m_pipeline.vhv_buffers(), { 0, 0 });
-//      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffer.m_buffer, *m_instance_buffer.m_buffer }, { 0, 0 });
+      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffers[0].m_buffer, *m_vertex_buffers[1].m_buffer }, { 0, 0 });
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->setScissor(0, { scissor });

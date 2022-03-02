@@ -25,9 +25,6 @@ class Pipeline
   task::SynchronousWindow const* m_owning_window = {};
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
-  // FIXME: these two don't belong in this object.
-  std::vector<BufferParameters> m_buffers;
-  std::vector<vk::Buffer> m_vhv_buffers;
 
  public:
   void owning_window(task::SynchronousWindow const* owning_window)
@@ -59,13 +56,8 @@ class Pipeline
   std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer,
       std::set<shaderbuilder::VertexAttributeEntry> const* vertex_attributes = nullptr);
 
-  void generate(task::SynchronousWindow* owning_window
-       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
-
-  std::vector<vk::Buffer> const& vhv_buffers() const
-  {
-    return m_vhv_buffers;
-  }
+  // Accessor.
+  auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
 
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
