@@ -7,8 +7,19 @@ with [OpenSimulator](http://opensimulator.org/) grids and [SecondLife](https://s
 
 ### Prerequisites ###
 
+#### Reqquired packages ####
+
+ On debian/ubuntu:
+
     sudo apt install gawk doxygen graphviz
-    sudo apt install libboost-dev libfarmhash-dev libsparsehash-dev
+    sudo apt install libboost-dev libsparsehash-dev
+
+ On Archlinux:
+
+    sudo pacman -S gawk doxygen graphviz
+    sudo pacman -S boost sparsehash
+
+#### Environment ####
 
     export GITACHE_ROOT=/opt/gitache_root
 
