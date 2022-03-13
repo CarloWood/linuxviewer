@@ -76,6 +76,7 @@ char const* to_string(EventType event_type)
     AI_CASE_RETURN(EventType::window_out_focus);
     AI_CASE_RETURN(EventType::window_in_focus);
   }
+  AI_NEVER_REACHED
 }
 
 std::ostream& operator<<(std::ostream& os, EventType event_type)

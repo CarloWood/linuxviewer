@@ -6,6 +6,7 @@ find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Boost REQUIRED COMPONENTS serialization)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
@@ -105,6 +106,7 @@ target_link_libraries(vulkan_ObjLib
     PkgConfig::Shaderc
     ImGui::imgui
     Eigen3::Eigen
+    Boost::serialization
 )
 
 # Create an ALIAS target.

@@ -754,7 +754,8 @@ void ImGui::update_modifiers(int modifiers) const
 {
   DoutEntering(dc::imgui, "ImGui::update_modifiers(" << modifiers << ")");
   ImGuiIO& io = GetIO();
-  io.AddKeyModsEvent(modifiers);
+  //FIXME: is this call necessary?
+//  io.AddKeyEvent(modifiers);
 }
 
 bool ImGui::want_capture_keyboard() const

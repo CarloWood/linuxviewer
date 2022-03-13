@@ -77,6 +77,7 @@ char const* type2name(Type glsl_type)
     case Type::u16vec3: return "vec3";
     case Type::u16vec4: return "vec4";
   }
+  AI_NEVER_REACHED
 }
 
 #undef AI_TYPE_CASE_RETURN

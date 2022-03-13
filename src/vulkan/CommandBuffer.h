@@ -161,8 +161,10 @@ class CommandBufferWriteAccessType
   }
 
   // Factory for CommandBufferWriteAccessType objects (the constructor is private).
-  friend CommandBufferWriteAccessType<pool_type> handle::CommandBuffer::operator()(
-    aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const;
+  // g++ doesn't compile when omitting the template<> and using pool_type directly (clang++ works).
+  template<vk::CommandPoolCreateFlags::MaskType pool_type2>
+  friend CommandBufferWriteAccessType<pool_type2> handle::CommandBuffer::operator()(
+    aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type2>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const;
 
  public:
   // Accessor for the underlaying command buffer.

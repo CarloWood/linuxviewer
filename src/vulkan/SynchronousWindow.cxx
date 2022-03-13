@@ -1226,7 +1226,7 @@ void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindo
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::add_synchronous_task(...)");
   auto synchronize_task = new SynchronousTask(this COMMA_CWDEBUG_ONLY(true));
-  synchronize_task->run([=](bool){ lambda(this); });
+  synchronize_task->run([lambda, this](bool){ lambda(this); });
 }
 
 #ifdef CWDEBUG

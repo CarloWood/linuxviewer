@@ -4,7 +4,6 @@ include(AICxxProject)
 # DEPENDENCIES
 #
 
-find_package(Boost REQUIRED COMPONENTS serialization) #filesystem iostreams program_options system)
 find_package(farmhash REQUIRED)
 find_package(blaze REQUIRED)
 find_package(magic_enum REQUIRED)
@@ -99,7 +98,6 @@ target_link_libraries(linuxviewer
     dns::dns
     farmhash::farmhash
     blaze::blaze
-    Boost::serialization
 )
 
 add_subdirectory(protocols)

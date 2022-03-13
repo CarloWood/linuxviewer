@@ -81,7 +81,7 @@ VK_DEFAULTS_DECLARE(ApplicationInfo)
 
 VK_DEFAULTS_DECLARE(InstanceCreateInfo)
 {
-  static constexpr ApplicationInfo default_application_info;
+  static constexpr ApplicationInfo default_application_info{};
   static constexpr std::array      default_enabled_extensions = {
     "VK_KHR_surface",
     "VK_KHR_xcb_surface",

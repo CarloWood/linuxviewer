@@ -59,7 +59,7 @@ class QueueFlags : public vk::Flags<QueueFlagBits>
   using vk::Flags<QueueFlagBits>::Flags;
 
   // Provide a converter from vk::QueueFlags to this extension.
-  QueueFlags(vk::QueueFlags queue_flags) : vk::Flags<QueueFlagBits>(static_cast<MaskType>(queue_flags)) { }
+  constexpr QueueFlags(vk::QueueFlags queue_flags) : vk::Flags<QueueFlagBits>(static_cast<MaskType>(queue_flags)) { }
 
   // Unfortunately, we have to repeat all operators that return the type of this class.
   // Moreover, vk::Flags::m_mask is private (instead of protected) so we need to use
