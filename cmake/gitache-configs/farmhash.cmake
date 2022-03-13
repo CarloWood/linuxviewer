@@ -1,6 +1,6 @@
 gitache_config(
   GIT_REPOSITORY
-    "https://github.com/google/farmhash.git"
+    "https://github.com/CarloWood/farmhash.git"
   GIT_TAG
     "master"
   BOOTSTRAP_COMMAND
