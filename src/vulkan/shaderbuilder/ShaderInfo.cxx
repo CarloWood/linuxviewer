@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderInfo.h"
 #include "SynchronousWindow.h"
+#include <fstream>
 
 namespace vulkan::shaderbuilder {
 
