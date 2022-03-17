@@ -17,7 +17,7 @@ with [OpenSimulator](http://opensimulator.org/) grids and [SecondLife](https://s
  On Archlinux:
 
     sudo pacman -S gawk doxygen graphviz
-    sudo pacman -S boost sparsehash
+    sudo pacman -S boost sparsehash libxml++ vulkan-headers vulkan-validation-layers eigen shaderc
 
 #### Environment ####
 
