@@ -32,12 +32,13 @@ class DeviceCreateInfo;
 class PresentationSurface;
 class CommandBuffer;
 class ImGui;
-struct AmbifixOwner;
+class Ambifix;
+class AmbifixOwner;
 class Swapchain;
+using SwapchainIndex = utils::VectorIndex<Swapchain>;
 class RenderPass;
 class Application;
 class SamplerKind;
-using SwapchainIndex = utils::VectorIndex<Swapchain>;
 
 namespace rendergraph {
 class RenderPass;
