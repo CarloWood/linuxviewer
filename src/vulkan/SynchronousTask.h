@@ -1,9 +1,10 @@
 #pragma once
 
-#include "SynchronousWindow.h"
 #include "statefultask/AIStatefulTask.h"
 
 namespace task {
+
+class SynchronousWindow;
 
 // Tasks that will be executed from the render loop, synchronous with
 // (not at the same time as) drawing the frame (the call to draw_frame()).
@@ -25,8 +26,8 @@ class SynchronousTask : public AIStatefulTask
 
   // Allow only yielding to the same engine.
   void yield() { AIStatefulTask::yield(); }
-  void yield_frame(unsigned int frames) { AIStatefulTask::yield_frame(m_owner, frames); }
-  void yield_ms(unsigned int ms) { AIStatefulTask::yield_ms(m_owner, ms); }
+  void yield_frame(unsigned int frames);
+  void yield_ms(unsigned int ms);
 
   /// The different states of the stateful task.
   enum synchronous_task_state_type {
@@ -38,23 +39,9 @@ class SynchronousTask : public AIStatefulTask
   static constexpr state_type state_end = SynchronousTask_start + 1;
 
   // Allow only running in the provided engine.
-  void run()
-  {
-    AIStatefulTask::run(m_owner);
-    m_owner->set_have_synchronous_task({});
-  }
-
-  void run(std::function<void (bool)> cb_function)
-  {
-    AIStatefulTask::run(m_owner, cb_function);
-    m_owner->set_have_synchronous_task({});
-  }
-
-  void run(AIStatefulTask* parent, condition_type condition, on_abort_st on_abort = abort_parent)
-  {
-    AIStatefulTask::run(m_owner, parent, condition, on_abort);
-    m_owner->set_have_synchronous_task({});
-  }
+  void run();
+  void run(std::function<void (bool)> cb_function);
+  void run(AIStatefulTask* parent, condition_type condition, on_abort_st on_abort = abort_parent);
 
  protected:
   /// Implemenation of state_str for run states.

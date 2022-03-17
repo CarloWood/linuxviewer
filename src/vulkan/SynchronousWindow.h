@@ -125,15 +125,17 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vk::Offset2D m_offset;                                                  // Initial position of the top-left corner of the window, relative to the parent window.
   // set_logical_device_task
   LogicalDevice const* m_logical_device_task = nullptr;                   // Cache valued of the task::LogicalDevice const* that was passed to
-  // set_xcb_connection_broker_and_key                                    // Application::create_window, if any. That can be nullptr so don't use it.
-  boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
-  xcb::ConnectionBrokerKey const* m_broker_key;
+                                                                          // Application::create_window, if any. That can be nullptr so don't use it.
 
   // This must come *before* m_window_events in order to get the corect order of destruction (destroy window events first).
   boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;     // A pointer to the parent window, or nullptr when this is a root window.
                                                                           // It is NOT thread-safe to access the parent window without knowing what you are doing.
   // create_window_events
   std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Point to the asynchronous object `WindowEvents`.
+
+  // set_xcb_connection_broker_and_key
+  boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
+  xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
   window_cookie_type m_window_cookie = {};                                // Unique bit for the creation event of this window (as determined by the user).

@@ -57,6 +57,8 @@ class Application
     low
   };
 
+  static Application& instance() { return *s_instance; }
+
  protected:
   // Create a AIMemoryPagePool object (must be created before thread_pool).
   AIMemoryPagePool m_mpp;
@@ -114,6 +116,7 @@ class Application
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
 
  private:
+  static Application* s_instance;                       // There can only be one instance of Application. Allow global access.
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
 
  private:

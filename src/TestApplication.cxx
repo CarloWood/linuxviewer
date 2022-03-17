@@ -267,6 +267,7 @@ class RandomPositions final : public vulkan::shaderbuilder::VertexShaderInputSet
 
 class Window : public task::SynchronousWindow
 {
+ private:
   using Directory = vulkan::Directory;
 
  public:
@@ -571,6 +572,7 @@ void main() {
 
     auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
     auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
+    auto& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     //=========================================================================
     // Vertex input.
@@ -647,8 +649,6 @@ void main() {
       .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
       .pDynamicStates = dynamic_states.data()
     };
-
-    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),

@@ -17,6 +17,9 @@
 
 namespace vulkan {
 
+//static
+Application* Application::s_instance;
+
 // Construct the base class of the Application object.
 //
 // Because this is a base class, virtual functions can't be used in the constructor.
@@ -24,13 +27,16 @@ namespace vulkan {
 Application::Application() : m_dmri(m_mpp.instance()), m_thread_pool(1)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::Application()");
+  s_instance = this;
 }
 
-// This instantiates the destructor of our std::unique_ptr's. Put here instead of the header
-// so that we could use forward declarations for EventLoop and DnsResolver.
+// This instantiates the destructor of our std::unique_ptr's.
+// Because it is here instead of the header we can use forward declarations for EventLoop and DnsResolver.
 Application::~Application()
 {
   DoutEntering(dc::vulkan, "vulkan::Application::~Application()");
+  // Revoke global access.
+  s_instance = nullptr;
 }
 
 //virtual
@@ -117,7 +123,7 @@ void Application::initialize(int argc, char** argv)
   m_resolver_scope = std::make_unique<resolver::Scope>(m_low_priority_queue, false);
 
   // Start the connection broker.
-  m_xcb_connection_broker = statefultask::create<task::SynchronousWindow::xcb_connection_broker_type>(CWDEBUG_ONLY(false));
+  m_xcb_connection_broker = statefultask::create<xcb_connection_broker_type>(CWDEBUG_ONLY(false));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
 
   ApplicationInfo application_info;
