@@ -78,6 +78,7 @@ class LogicalDevice
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
+  bool m_supports_cache_control = {};
 
 #ifdef CWDEBUG
   std::string m_debug_name;
@@ -95,6 +96,7 @@ class LogicalDevice
   bool verify_presentation_support(vulkan::PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
   bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
+  bool supports_cache_control() const { return m_supports_cache_control; }
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
 
@@ -216,7 +218,11 @@ class LogicalDevice
 
  private:
   // Override this function to change the default physical device features.
-  virtual void prepare_physical_device_features(vk::PhysicalDeviceFeatures& features10, vk::PhysicalDeviceVulkan11Features& features11, vk::PhysicalDeviceVulkan12Features& features12) const { }
+  virtual void prepare_physical_device_features(
+      vk::PhysicalDeviceFeatures& features10,
+      vk::PhysicalDeviceVulkan11Features& features11,
+      vk::PhysicalDeviceVulkan12Features& features12,
+      vk::PhysicalDeviceVulkan13Features& features13) const { }
 
   // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
   virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const { }
@@ -230,6 +236,7 @@ class LogicalDevice : public AIStatefulTask
 {
  protected:
   vulkan::Application* m_application;
+
  private:
   boost::intrusive_ptr<task::SynchronousWindow> m_root_window;          // The root window that we have to support presentation to (if any). Only used during initialization.
                                                                         // This is reset as soon as we added ourselves to m_application; so don't use it.

@@ -334,19 +334,25 @@ void LogicalDevice::prepare(
       // 1.0 features.
       { }
   };
-  vk::StructureChain<DeviceCreateInfo, vk::PhysicalDeviceVulkan11Features, vk::PhysicalDeviceVulkan12Features> device_create_info_chain({},
+  vk::StructureChain<DeviceCreateInfo,
+    vk::PhysicalDeviceVulkan11Features,
+    vk::PhysicalDeviceVulkan12Features,
+    vk::PhysicalDeviceVulkan13Features> device_create_info_chain({},
       // 1.1 features.
       { },
       // 1.2 features.
       { .imagelessFramebuffer = true,           // Mandatory feature.
-        .separateDepthStencilLayouts = true }   // Optional feature.
+        .separateDepthStencilLayouts = true },  // Optional feature.
+      // 1.3 features.
+      { .pipelineCreationCacheControl = true }  // Optional feature.
   );
 
   // Get the required physical device features from the user, using the virtual function prepare_physical_device_features.
   auto& features10 = features2.features;
   auto& features11 = device_create_info_chain.get<vk::PhysicalDeviceVulkan11Features>();
   auto& features12 = device_create_info_chain.get<vk::PhysicalDeviceVulkan12Features>();
-  prepare_physical_device_features(features10, features11, features12);
+  auto& features13 = device_create_info_chain.get<vk::PhysicalDeviceVulkan13Features>();
+  prepare_physical_device_features(features10, features11, features12, features13);
 
   // Enforce mandatory features.
   if (!features12.imagelessFramebuffer)
@@ -416,6 +422,7 @@ void LogicalDevice::prepare(
     m_vh_physical_device.getFeatures2(&features2);
     m_supports_sampler_anisotropy = features10.samplerAnisotropy;
     m_supports_separate_depth_stencil_layouts = features12.separateDepthStencilLayouts;
+    m_supports_cache_control = features13.pipelineCreationCacheControl;
     Dout(dc::vulkan, features2);
   }
 #ifdef CWDEBUG

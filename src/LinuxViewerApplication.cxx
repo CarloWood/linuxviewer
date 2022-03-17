@@ -582,7 +582,11 @@ class LogicalDevice : public vulkan::LogicalDevice
     DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
   }
 
-  void prepare_physical_device_features(vk::PhysicalDeviceFeatures& features10, vk::PhysicalDeviceVulkan11Features& features11, vk::PhysicalDeviceVulkan12Features& features12) const override
+  void prepare_physical_device_features(
+      vk::PhysicalDeviceFeatures& features10,
+      vk::PhysicalDeviceVulkan11Features& features11,
+      vk::PhysicalDeviceVulkan12Features& features12,
+      vk::PhysicalDeviceVulkan13Features& features13) const override
   {
     features10.setDepthClamp(true);
   }
