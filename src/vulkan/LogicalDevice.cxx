@@ -1058,6 +1058,17 @@ void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 }
 #endif
 
+boost::uuids::uuid LogicalDevice::get_UUID() const
+{
+  boost::uuids::uuid uuid;
+  vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceIDProperties> properties_chain;
+  vk::PhysicalDeviceProperties2& properties = properties_chain.get<vk::PhysicalDeviceProperties2>();
+  m_vh_physical_device.getProperties2(&properties);
+  vk::PhysicalDeviceIDProperties& id_properties = properties_chain.get<vk::PhysicalDeviceIDProperties>();
+  std::copy(id_properties.deviceUUID.begin(), id_properties.deviceUUID.end(), uuid.begin());
+  return uuid;
+}
+
 } // namespace vulkan
 
 namespace task {

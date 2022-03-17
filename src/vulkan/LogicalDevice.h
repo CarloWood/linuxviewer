@@ -17,6 +17,7 @@
 #include "utils/Badge.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
+#include <boost/uuid/uuid.hpp>
 #include <filesystem>
 
 namespace task {
@@ -110,6 +111,9 @@ class LogicalDevice
   // Set debug name for an object created from this device.
   void set_debug_name(vk::DebugUtilsObjectNameInfoEXT const& name_info) const { m_device->setDebugUtilsObjectNameEXT(name_info); }
 #endif
+
+  // Return an identifier string that uniquely identifies this logical device.
+  boost::uuids::uuid get_UUID() const;
 
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
   Queue acquire_queue(QueueFlags flags, vulkan::QueueReply::window_cookies_type window_cookie) const;
