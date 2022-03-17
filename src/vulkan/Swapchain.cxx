@@ -4,9 +4,10 @@
 #include "PresentationSurface.h"
 #include "LogicalDevice.h"
 #include "FrameResourcesData.h"
-#include "DelayedDestroyer.h"
+#include "SynchronousWindow.h"
 #include "debug.h"
 #include "vk_utils/print_flags.h"
+#include "utils/AIAlert.h"
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
 #include "debug/vulkan_print_on.h"
