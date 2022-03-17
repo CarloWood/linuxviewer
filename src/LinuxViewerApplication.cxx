@@ -295,9 +295,9 @@ void main()
 }
 )glsl";
 
-  void create_graphics_pipeline() override
+  void create_graphics_pipelines() override
   {
-    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
     // The pipeline needs to know who owns it.
     vulkan::pipeline::Pipeline pipeline;
@@ -314,9 +314,9 @@ void main()
       ShaderCompiler compiler;
 
       pipeline.build_shader(this, shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
       pipeline.build_shader(this, shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
     }
 
     auto vertex_binding_description = pipeline.vertex_binding_descriptions();

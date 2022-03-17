@@ -59,7 +59,7 @@ class SingleButtonWindow : public task::SynchronousWindow
   void create_descriptor_set() override { }
   void create_textures() override { }
   void create_pipeline_layout() override { }
-  void create_graphics_pipeline() override { }
+  void create_graphics_pipelines() override { }
 
   //===========================================================================
   //
@@ -514,10 +514,38 @@ void main() {
 }
 )glsl";
 
-  void create_graphics_pipeline() override
+#if 0 // vulkan::pipeline::CharacteristicRange is not defined yet this commit.
+  class TestApplicationPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange
   {
-    DoutEntering(dc::vulkan, "Window::create_graphics_pipeline() [" << this << "]");
+   private:
+    index_type const m_begin;
+    index_type const m_end;
 
+   protected:
+    index_type ibegin() const override { return m_begin; }
+    index_type iend() const override { return m_end; }
+    void fill(vk::GraphicsPipelineCreateInfo, index_type index) const override
+    {
+      Dout(dc::always, "Calling " << *this << " with index " << index);
+    }
+
+    uint64_t hash(index_type index) override { return index; }
+
+   public:
+    TestApplicationPipelineCharacteristicRange(index_type begin, index_type end) : m_begin(begin), m_end(end) { }
+
+#ifdef CWDEBUG
+    void print_on(std::ostream& os) const override
+    {
+      os << "{ (TestApplicationPipelineCharacteristicRange*)" << this << " [range:" << ibegin() << ", " << iend() << "> }";
+    }
+#endif
+  };
+#endif
+
+  void create_graphics_pipelines() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
     vulkan::pipeline::Pipeline pipeline;
 
     // Define the pipeline.
@@ -536,9 +564,9 @@ void main() {
       ShaderCompiler compiler;
 
       pipeline.build_shader(this, shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
       pipeline.build_shader(this, shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipeline()::pipeline")));
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
     }
 
     auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
