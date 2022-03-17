@@ -1048,6 +1048,36 @@ void LogicalDevice::unmap_memory(vk::DeviceMemory vh_memory) const
   m_device->unmapMemory(vh_memory);
 }
 
+vk::UniquePipelineCache LogicalDevice::create_pipeline_cache(
+    vk::PipelineCacheCreateInfo const& pipeline_cache_create_info
+    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_cache(" << pipeline_cache_create_info << ")");
+  vk::UniquePipelineCache pipeline_cache = m_device->createPipelineCacheUnique(pipeline_cache_create_info);
+  Debug(debug_set_object_name(*pipeline_cache, debug_name(""), *this));
+  return pipeline_cache;
+}
+
+size_t LogicalDevice::get_pipeline_cache_size(vk::PipelineCache vh_pipeline_cache) const
+{
+  size_t result;
+  if (m_device->getPipelineCacheData(vh_pipeline_cache, &result, nullptr) != vk::Result::eSuccess)
+    THROW_ALERT("Failed to obtain pipeline cache size");
+  return result;
+}
+
+void LogicalDevice::get_pipeline_cache_data(vk::PipelineCache vh_pipeline_cache, size_t& len, void* buffer) const
+{
+  size_t orig_len = len;
+  vk::Result result = m_device->getPipelineCacheData(vh_pipeline_cache, &len, buffer);
+  if (AI_UNLIKELY(result != vk::Result::eSuccess))
+#ifdef CWDEBUG
+    THROW_ALERTC(result, "[DEVICE]->getPipelineCacheData([LEN])", AIArgs("[DEVICE]", this->debug_name())("[LEN]", orig_len));
+#else
+    THROW_ALERTC(result, "LogicalDevice::get_pipeline_cache_data([LEN])", AIArgs("[LEN]", orig_len));
+#endif
+}
+
 #ifdef CWDEBUG
 void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 {
@@ -1066,6 +1096,14 @@ boost::uuids::uuid LogicalDevice::get_UUID() const
   m_vh_physical_device.getProperties2(&properties);
   vk::PhysicalDeviceIDProperties& id_properties = properties_chain.get<vk::PhysicalDeviceIDProperties>();
   std::copy(id_properties.deviceUUID.begin(), id_properties.deviceUUID.end(), uuid.begin());
+  return uuid;
+}
+
+boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
+{
+  boost::uuids::uuid uuid;
+  auto properties = m_vh_physical_device.getProperties();
+  std::copy(properties.pipelineCacheUUID.begin(), properties.pipelineCacheUUID.end(), uuid.begin());
   return uuid;
 }
 

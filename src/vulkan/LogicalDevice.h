@@ -116,6 +116,9 @@ class LogicalDevice
   // Return an identifier string that uniquely identifies this logical device.
   boost::uuids::uuid get_UUID() const;
 
+  // Return the pipeline cache UUID.
+  boost::uuids::uuid get_pipeline_cache_UUID() const;
+
   // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
   Queue acquire_queue(QueueFlags flags, vulkan::QueueReply::window_cookies_type window_cookie) const;
 
@@ -220,6 +223,10 @@ class LogicalDevice
   void* map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const;
   void flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const;
   void unmap_memory(vk::DeviceMemory vh_memory) const;
+  vk::UniquePipelineCache create_pipeline_cache(vk::PipelineCacheCreateInfo const& pipeline_cache_create_info
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+  size_t get_pipeline_cache_size(vk::PipelineCache vh_pipeline_cache) const;
+  void get_pipeline_cache_data(vk::PipelineCache vh_pipeline_cache, size_t& len, void* buffer) const;
 
  private:
   // Override this function to change the default physical device features.
