@@ -3,6 +3,7 @@
 #include "debug_ostream_operators.h"
 #include "vk_utils/print_version.h"
 #include "vk_utils/print_chain.h"
+#include "vk_utils/print_flags.h"
 #include <iostream>
 
 namespace vk {
@@ -274,6 +275,18 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan12Features const&
   }
 
 #undef SHOW_IF_TRUE
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, PipelineCacheCreateInfo const& pipeline_cache_create_info)
+{
+  os << '{';
+  if (pipeline_cache_create_info.pNext)
+    os << "pNext:" << pipeline_cache_create_info.pNext << ", ";
+  os << "flags:" << pipeline_cache_create_info.flags <<
+      ", initialDataSize:" << pipeline_cache_create_info.initialDataSize <<
+      ", pInitialData:" << (void*)pipeline_cache_create_info.pInitialData;
+  os << '}';
   return os;
 }
 

@@ -87,6 +87,7 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures const& feature
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures2 const& features2);
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan11Features const& features11);
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan12Features const& features12);
+std::ostream& operator<<(std::ostream& os, PipelineCacheCreateInfo const& pipeline_cache_create_info);
 
 } // namespace vk
 
