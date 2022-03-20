@@ -9,6 +9,7 @@
 #include "vulkan/rendergraph/Attachment.h"
 #include "vulkan/rendergraph/RenderPass.h"
 #include "vulkan/pipeline/Pipeline.h"
+#include "vulkan/pipeline/CharacteristicRange.h"
 #include "vulkan/shaderbuilder/VertexShaderInputSet.h"
 #include "vulkan/shaderbuilder/ShaderInfo.h"
 #include "vk_utils/get_image_data.h"
@@ -285,17 +286,13 @@ class Window : public task::SynchronousWindow
   Attachment     normal{this, "normal",   s_vector_image_view_kind};
   Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
-  // Define pipeline objects.
-  HeavyRectangle m_heavy_rectangle;             // A rectangle with many vertices.
-  RandomPositions m_random_positions;           // Where to put those rectangles.
-
   // Vertex buffers.
   std::vector<vulkan::BufferParameters> m_vertex_buffers;
 
-  vk::UniquePipeline m_graphics_pipeline;
   vulkan::Texture m_background_texture;
   vulkan::Texture m_texture;
   vk::UniquePipelineLayout m_pipeline_layout;
+  vk::Pipeline m_vh_graphics_pipeline;
 
   imgui::StatsWindow m_imgui_stats_window;
   SampleParameters m_sample_parameters;
@@ -515,165 +512,97 @@ void main() {
 }
 )glsl";
 
-#if 0 // vulkan::pipeline::CharacteristicRange is not defined yet this commit.
-  class TestApplicationPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange
+  class TestApplicationPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
-    index_type const m_begin;
-    index_type const m_end;
-
-   protected:
-    index_type ibegin() const override { return m_begin; }
-    index_type iend() const override { return m_end; }
-    void fill(vk::GraphicsPipelineCreateInfo, index_type index) const override
-    {
-      Dout(dc::always, "Calling " << *this << " with index " << index);
-    }
-
-    uint64_t hash(index_type index) override { return index; }
-
-   public:
-    TestApplicationPipelineCharacteristicRange(index_type begin, index_type end) : m_begin(begin), m_end(end) { }
-
-#ifdef CWDEBUG
-    void print_on(std::ostream& os) const override
-    {
-      os << "{ (TestApplicationPipelineCharacteristicRange*)" << this << " [range:" << ibegin() << ", " << iend() << "> }";
-    }
-#endif
-  };
-#endif
-
-  void create_graphics_pipelines() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
-    vulkan::pipeline::Pipeline pipeline;
-
-    // Define the pipeline.
-    pipeline.add_vertex_input_binding(m_heavy_rectangle);
-    pipeline.add_vertex_input_binding(m_random_positions);
-
-    {
-      using namespace vulkan::shaderbuilder;
-
-      ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "intel.vert.glsl");
-      ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "intel.frag.glsl");
-
-      shader_vert.load(intel_vert_glsl);
-      shader_frag.load(intel_frag_glsl);
-
-      ShaderCompiler compiler;
-
-      pipeline.build_shader(this, shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
-      pipeline.build_shader(this, shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
-    }
-
-    auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
-    auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
-    auto& shader_stage_create_infos = pipeline.shader_stage_create_infos();
-
-    //=========================================================================
-    // Vertex input.
-
-    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
-      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descriptions.size()),
-      .pVertexBindingDescriptions = vertex_binding_descriptions.data(),
-      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
-      .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
-    };
-
-    vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
-      .topology = vk::PrimitiveTopology::eTriangleList
-    };
-
-    vk::PipelineViewportStateCreateInfo viewport_state_create_info{
-      .viewportCount = 1,
-      .pViewports = nullptr,
-      .scissorCount = 1,
-      .pScissors = nullptr
-    };
-    vk::PipelineRasterizationStateCreateInfo rasterization_state_create_info{
-      .depthClampEnable = VK_FALSE,
-      .rasterizerDiscardEnable = VK_FALSE,
-      .polygonMode = vk::PolygonMode::eFill,
-      .cullMode = vk::CullModeFlagBits::eBack,
-      .frontFace = vk::FrontFace::eCounterClockwise,
-      .depthBiasEnable = VK_FALSE,
-      .depthBiasConstantFactor = 0.0f,
-      .depthBiasClamp = 0.0f,
-      .depthBiasSlopeFactor = 0.0f,
-      .lineWidth = 1.0f
-    };
-
-    vk::PipelineMultisampleStateCreateInfo multisample_state_create_info{
-      .rasterizationSamples = vk::SampleCountFlagBits::e1,
-      .sampleShadingEnable = VK_FALSE,
-      .minSampleShading = 1.0f,
-      .pSampleMask = nullptr,
-      .alphaToCoverageEnable = VK_FALSE,
-      .alphaToOneEnable = VK_FALSE
-    };
-
-    vk::PipelineDepthStencilStateCreateInfo depth_stencil_state_create_info{
-      .depthTestEnable = VK_TRUE,
-      .depthWriteEnable = VK_TRUE,
-      .depthCompareOp = vk::CompareOp::eLessOrEqual
-    };
-
-    vk::PipelineColorBlendAttachmentState color_blend_attachment_state{
-      .blendEnable = VK_FALSE,
-      .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
-      .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
-      .colorBlendOp = vk::BlendOp::eAdd,
-      .srcAlphaBlendFactor = vk::BlendFactor::eOne,
-      .dstAlphaBlendFactor = vk::BlendFactor::eZero,
-      .alphaBlendOp = vk::BlendOp::eAdd,
-      .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
-    };
-
-    vk::PipelineColorBlendStateCreateInfo color_blend_state_create_info{
-      .logicOpEnable = VK_FALSE,
-      .logicOp = vk::LogicOp::eCopy,
-      .attachmentCount = 1,
-      .pAttachments = &color_blend_attachment_state
-    };
-
-    std::vector<vk::DynamicState> dynamic_states = {
+    vulkan::pipeline::Pipeline m_pipeline;
+    std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
+    std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
+    std::vector<vk::PipelineColorBlendAttachmentState> const m_pipeline_color_blend_attachment_states{{
+        .blendEnable = VK_FALSE,
+        .srcColorBlendFactor = vk::BlendFactor::eSrcAlpha,
+        .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+        .colorBlendOp = vk::BlendOp::eAdd,
+        .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+        .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+        .alphaBlendOp = vk::BlendOp::eAdd,
+        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
+    }};
+    std::vector<vk::DynamicState> m_dynamic_states = {
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
 
-    vk::PipelineDynamicStateCreateInfo dynamic_state_create_info{
-      .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
-      .pDynamicStates = dynamic_states.data()
-    };
+    // Define pipeline objects.
+    HeavyRectangle m_heavy_rectangle;           // A rectangle with many vertices.
+    RandomPositions m_random_positions;         // Where to put those rectangles.
 
-    vk::GraphicsPipelineCreateInfo pipeline_create_info{
-      .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),
-      .pStages = shader_stage_create_infos.data(),
-      .pVertexInputState = &vertex_input_state_create_info,
-      .pInputAssemblyState = &input_assembly_state_create_info,
-      .pTessellationState = nullptr,
-      .pViewportState = &viewport_state_create_info,
-      .pRasterizationState = &rasterization_state_create_info,
-      .pMultisampleState = &multisample_state_create_info,
-      .pDepthStencilState = &depth_stencil_state_create_info,
-      .pColorBlendState = &color_blend_state_create_info,
-      .pDynamicState = &dynamic_state_create_info,
-      .layout = *m_pipeline_layout,
-      .renderPass = main_pass.vh_render_pass(),
-      .subpass = 0,
-      .basePipelineHandle = vk::Pipeline{},
-      .basePipelineIndex = -1
-    };
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    {
+      // Register the vectors that we will fill.
+      flat_create_info.add(m_vertex_input_binding_descriptions);
+      flat_create_info.add(m_vertex_input_attribute_descriptions);
+      flat_create_info.add(m_pipeline.shader_stage_create_infos());
+      flat_create_info.add(m_pipeline_color_blend_attachment_states);
+      flat_create_info.add(m_dynamic_states);
 
-    m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
+      // Define the pipeline.
+      m_pipeline.add_vertex_input_binding(m_heavy_rectangle);
+      m_pipeline.add_vertex_input_binding(m_random_positions);
 
-    // Generate vertex buffers.
-    create_vertex_buffers(pipeline);
+      // Compile the shaders.
+      {
+        using namespace vulkan::shaderbuilder;
+
+        ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "intel.vert.glsl");
+        ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "intel.frag.glsl");
+
+        shader_vert.load(intel_vert_glsl);
+        shader_frag.load(intel_frag_glsl);
+
+        ShaderCompiler compiler;
+
+        m_pipeline.build_shader(owning_window, shader_vert, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "TestApplicationPipelineCharacteristic::pipeline" }));
+        m_pipeline.build_shader(owning_window, shader_frag, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "TestApplicationPipelineCharacteristic::pipeline" }));
+      }
+
+      m_vertex_input_binding_descriptions = m_pipeline.vertex_binding_descriptions();
+      m_vertex_input_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+
+      flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+
+      // Generate vertex buffers.
+      // FIXME: I don't think this should go here.
+      static_cast<Window*>(owning_window)->create_vertex_buffers(m_pipeline);
+    }
+
+   public:
+    TestApplicationPipelineCharacteristic() = default;
+
+#ifdef CWDEBUG
+    void print_on(std::ostream& os) const override
+    {
+      os << "{ (TestApplicationPipelineCharacteristic*)" << this << " }";
+    }
+#endif
+  };
+
+  void create_graphics_pipelines() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+
+    //FIXME: the pipeline layout can vary between different pipelines too; use a vulkan::pipeline::CharacteristicRange for it
+    // as well and reuse compatible ones.
+    auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    pipeline_factory.add_characteristic<TestApplicationPipelineCharacteristic>(this);
+    pipeline_factory.generate(this);
+  }
+
+  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
+  {
+    m_vh_graphics_pipeline = m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->vh_pipeline(pipeline_handle.m_pipeline_index);
   }
 
   void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)
@@ -829,13 +758,18 @@ void main() {
       Dout(dc::vkframe, "Start recording command buffer.");
       command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
       command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
-      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+// FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
+if (!m_vh_graphics_pipeline)
+  Dout(dc::warning, "Pipeline not available");
+else {
+      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
       command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
       command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffers[0].m_buffer, *m_vertex_buffers[1].m_buffer }, { 0, 0 });
       command_buffer_w->setViewport(0, { viewport });
       command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
       command_buffer_w->setScissor(0, { scissor });
       command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+}
       command_buffer_w->endRenderPass();
 #if ENABLE_IMGUI
       command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);

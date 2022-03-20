@@ -7,16 +7,19 @@
 #include "StagingBufferParameters.h"
 #include "Exceptions.h"
 #include "SynchronousTask.h"
+#include "pipeline/Handle.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
 #include "vulkan/vk_format_utils.h"
+#include "utils/cpu_relax.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"
 #endif
 #include <algorithm>
+#include "debug.h"
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -1222,11 +1225,58 @@ void SynchronousWindow::copy_graphics_settings()
   m_application->copy_graphics_settings_to(&m_graphics_settings, m_logical_device);
 }
 
+#if 0
+void SynchronousWindow::load_pipeline_cache()
+{
+  DoutEntering(dc::vulkan, "SynchronousWindow::load_pipeline_cache()");
+  // If this is a root window - then we might be the first to have access to the logical device.
+  // Try to register it with the pipeline cache.
+  if (!m_parent_window_task)
+  {
+    vulkan::PipelineCache* pipeline_cache = m_application->pipeline_cache_broker(m_logical_device);
+    if (pipeline_cache)
+    {
+      // The first thread that locks Application::m_pipeline_cache_list for a given m_logical_device
+      // will have pipeline_cache != nullptr here. It might not be the first thread to return
+      // from pipeline_cache_broker - but other threads will wait in the while loop below until this
+      // thread stored the pipeline_cache pointer.
+      //
+      // Any thread that reaches that while loop, while this thread didn't finish writing to the
+      // LogicalDevice::m_pipeline_cache atomic yet, must belong to a different root window with its
+      // own SynchronousWindow task. But waiting until m_logical_device->pipeline_cache() returns
+      // a non-null value is enough to assure that that task will see the correct pointer in
+      // subsequent runs because this function is called in the critical area of that task.
+      //
+      // For all the gory details,
+      // see https://stackoverflow.com/questions/71340714/lock-free-write-once-read-often-value-in-conjunction-with-thread-pools
+      m_logical_device->store_pipeline_cache(pipeline_cache);
+    }
+    else
+    {
+      // Wait until the thread that called pipeline_cache_broker with success finished storing
+      // the returned pointer.
+      while (m_logical_device->pipeline_cache() == nullptr)
+        cpu_relax();
+    }
+  }
+}
+#endif
+
 void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindow*)> lambda)
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::add_synchronous_task(...)");
   auto synchronize_task = new SynchronousTask(this COMMA_CWDEBUG_ONLY(true));
   synchronize_task->run([lambda, this](bool){ lambda(this); });
+}
+
+vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug))
+{
+  auto factory = statefultask::create<PipelineFactory>(this, vh_pipeline_layout, vh_render_pass COMMA_CWDEBUG_ONLY(debug));
+  auto const index = m_pipeline_factories.iend();
+  m_pipeline_factories.push_back(std::move(factory));           // Now m_pipeline_factories[index] == factory.
+  m_application->run_pipeline_factory(m_pipeline_factories[index], this, index);
+  m_pipeline_factories[index]->set_index(index);
+  return index;
 }
 
 #ifdef CWDEBUG

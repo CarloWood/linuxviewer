@@ -11,8 +11,10 @@
 #include "threadpool/AIThreadPool.h"
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
+#include "pipeline/CacheBrokerKey.h"
 #include "utils/threading/Gate.h"
 #include "utils/DequeMemoryResource.h"
+#include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
 #include "debug.h"
@@ -23,6 +25,7 @@
 
 namespace task {
 class SynchronousWindow;
+class PipelineFactory;
 } // namespace task
 
 namespace evio {
@@ -45,6 +48,8 @@ class Application
   // The same types as used in SynchronousWindow.
   using window_cookie_type = QueueReply::window_cookies_type;
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
+  using pipeline_cache_broker_type = task::Broker<task::PipelineCache>;
+  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
   // Set up the thread pool for the application.
   static constexpr int default_number_of_threads = 8;                           // Use a thread pool of 8 threads.
@@ -115,6 +120,9 @@ class Application
 
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
 
+  // A task that hands out pipeline cache tasks.
+  boost::intrusive_ptr<pipeline_cache_broker_type> m_pipeline_cache_broker;
+
  private:
   static Application* s_instance;                       // There can only be one instance of Application. Allow global access.
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
@@ -125,6 +133,7 @@ class Application
   void remove(task::SynchronousWindow* window_task);
   void copy_graphics_settings_to(vulkan::GraphicsSettingsPOD* target, LogicalDevice const* logical_device) const;
   void synchronize_graphics_settings() const;           // Call this after changing m_graphics_settings, to synchronize it with the SynchronousWindow objects.
+  void flush_pipeline_caches();                         // Write pipeline caches to disk and free memory resources.
 
   // Counts the number of `boost::intrusive_ptr<Application>` objects.
   // When the last one such object is destructed, the application is terminated.
@@ -244,6 +253,12 @@ class Application
     if (GraphicsSettings::wat(m_graphics_settings)->set_max_anisotropy({}, max_anisotropy))
       synchronize_graphics_settings();
   }
+
+  // Accessor.
+  boost::intrusive_ptr<pipeline_cache_broker_type> const& pipeline_cache_broker() const { return m_pipeline_cache_broker; }
+
+  // Called by SynchronousWindow::create_pipeline_factory.
+  void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).

@@ -448,6 +448,10 @@ void main()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
   }
 
+  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
+  {
+  }
+
   //===========================================================================
   //
   // Called from initialize_impl.

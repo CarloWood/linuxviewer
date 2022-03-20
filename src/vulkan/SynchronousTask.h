@@ -43,6 +43,12 @@ class SynchronousTask : public AIStatefulTask
   void run(std::function<void (bool)> cb_function);
   void run(AIStatefulTask* parent, condition_type condition, on_abort_st on_abort = abort_parent);
 
+  // A call to signal needs to notify the render loop that potentially there is something to run.
+  bool signal(condition_type condition);
+
+  // Accessor.
+  SynchronousWindow* owning_window() const { return m_owner; }
+
  protected:
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;

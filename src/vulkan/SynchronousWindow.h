@@ -17,6 +17,8 @@
 #include "RenderPass.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
+#include "pipeline/PipelineFactory.h"
+#include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shaderbuilder/SPIRVCache.h"
@@ -56,6 +58,10 @@ using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 namespace shaderbuilder {
 class SPIRVCache;
 } // shaderbuilder
+
+namespace pipeline {
+class FactoryHandle;
+} // namespace pipeline
 
 namespace detail {
 
@@ -112,6 +118,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr condition_type frame_timer = 2;
   static constexpr condition_type logical_device_index_available = 4;
   static constexpr condition_type parent_window_created = 8;
+  static constexpr condition_type condition_pipeline_available = 16;
 
  protected:
   // Constructor
@@ -413,6 +420,18 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   void detect_if_imgui_is_used();
 
+ protected:
+  utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
+
+  // Called from create_graphics_pipelines of derived class.
+  vulkan::pipeline::FactoryHandle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
+
+ public:
+  // The same type as the type defined vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex, task::PipelineFactory and vulkan::Application with the same name.
+  using PipelineFactoryIndex = task::PipelineFactory::PipelineFactoryIndex;
+  // Called by vulkan::pipeline::FactoryHandle::generate.
+  inline task::PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
+
  private:
   // SynchronousWindow_acquire_queues:
   void acquire_queues();
@@ -459,6 +478,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     m_swapchain.set_render_pass(std::move(render_pass));
   }
 #endif
+
+  // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
+  virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;
 
  protected:
   void start_frame();
@@ -507,8 +529,14 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 
 } // namespace task
 
-#include "Application.h"
 #endif // VULKAN_SYNCHRONOUS_WINDOW_H
+
+#ifndef VULKAN_PIPELINE_FACTORY_HANDLE_H
+#include "pipeline/FactoryHandle.h"
+#endif
+#ifndef VULKAN_APPLICATION_H
+#include "Application.h"
+#endif
 
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_defs_H
 #define VULKAN_SYNCHRONOUS_WINDOW_defs_H
@@ -526,6 +554,12 @@ void SynchronousWindow::create_child_window(
       std::move(window_constructor_args), geometry, window_cookie, std::move(title),
       m_logical_device_task, this);
   // idem
+}
+
+//inline
+task::PipelineFactory* SynchronousWindow::pipeline_factory(PipelineFactoryIndex factory_index) const
+{
+  return m_pipeline_factories[factory_index].get();
 }
 
 } // namespace task
