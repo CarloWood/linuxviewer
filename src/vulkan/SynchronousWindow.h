@@ -17,6 +17,7 @@
 #include "RenderPass.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
+#include "pipeline/PipelineFactory.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shaderbuilder/SPIRVCache.h"
@@ -56,6 +57,10 @@ using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 namespace shaderbuilder {
 class SPIRVCache;
 } // shaderbuilder
+
+namespace pipeline {
+class Handle;
+} // namespace pipeline
 
 namespace detail {
 
@@ -112,6 +117,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr condition_type frame_timer = 2;
   static constexpr condition_type logical_device_index_available = 4;
   static constexpr condition_type parent_window_created = 8;
+  static constexpr condition_type condition_pipeline_available = 16;
 
  protected:
   // Constructor
@@ -413,6 +419,18 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   void detect_if_imgui_is_used();
 
+ protected:
+  utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
+
+  // Called from create_graphics_pipelines of derived class.
+  vulkan::pipeline::Handle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
+
+ public:
+  // The same type as using in vulkan::Application and vulkan::pipeline::Handle - neither of which can be defined here.
+  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
+  // Called by vulkan::pipeline::Handle::generate.
+  inline task::PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
+
  private:
   // SynchronousWindow_acquire_queues:
   void acquire_queues();
@@ -507,8 +525,14 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 
 } // namespace task
 
-#include "Application.h"
 #endif // VULKAN_SYNCHRONOUS_WINDOW_H
+
+#ifndef VULKAN_PIPELINE_HANDLE_H
+#include "pipeline/Handle.h"
+#endif
+#ifndef VULKAN_APPLICATION_H
+#include "Application.h"
+#endif
 
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_defs_H
 #define VULKAN_SYNCHRONOUS_WINDOW_defs_H
@@ -526,6 +550,12 @@ void SynchronousWindow::create_child_window(
       std::move(window_constructor_args), geometry, window_cookie, std::move(title),
       m_logical_device_task, this);
   // idem
+}
+
+//inline
+task::PipelineFactory* SynchronousWindow::pipeline_factory(PipelineFactoryIndex factory_index) const
+{
+  return m_pipeline_factories[factory_index].get();
 }
 
 } // namespace task

@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
+#include "pipeline/PipelineFactory.h"
 #include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"
@@ -35,9 +36,80 @@ Application::Application() : m_dmri(m_mpp.instance()), m_thread_pool(1)
 Application::~Application()
 {
   DoutEntering(dc::vulkan, "vulkan::Application::~Application()");
+  flush_pipeline_caches();
   // Revoke global access.
   s_instance = nullptr;
 }
+
+void Application::flush_pipeline_caches()
+{
+  ASSERT(false); // FIXME
+#if 0
+  try
+  {
+    // Take read lock on the pipeline cache list.
+    pipeline_cache_list_t::rat pipeline_cache_list_r(m_pipeline_cache_list);
+    // Run over all pipeline cache objects.
+    for (pipeline_cache_list_container_t::const_iterator pipeline_cache_iter = pipeline_cache_list_r->begin();
+        pipeline_cache_iter != pipeline_cache_list_r->end(); ++pipeline_cache_iter)
+    {
+      LogicalDevice const* logical_device = pipeline_cache_iter->first;
+      PipelineCache const& pipeline_cache = pipeline_cache_iter->second;
+      try
+      {
+        pipeline_cache.save_to_disk(m_directories.path_of(Directory::cache) / to_string(logical_device->get_UUID()) / "pipeline_cache");
+      }
+      catch (AIAlert::Error const& error)
+      {
+        Dout(dc::warning, "Failed to save pipeline cache of logical device \"" << logical_device->get_UUID() << "\".");
+      }
+    }
+  }
+  catch (std::exception& error)
+  {
+    Dout(dc::warning, "Caught exception: " << error.what());
+  }
+  catch (...)
+  {
+    // Yeah really. Anyway - destructors should never throw.
+  }
+  // Clean up memory: this function should be called after all pipelines were created. At that point the cache is no longer needed.
+  {
+    pipeline_cache_list_t::wat pipeline_cache_list_w(m_pipeline_cache_list);
+    // Run over all pipeline cache objects.
+    for (pipeline_cache_list_container_t::iterator pipeline_cache_iter = pipeline_cache_list_w->begin();
+        pipeline_cache_iter != pipeline_cache_list_w->end(); ++pipeline_cache_iter)
+    {
+      LogicalDevice* logical_device = pipeline_cache_iter->first;
+      PipelineCache& pipeline_cache = pipeline_cache_iter->second;
+      // This pointer should no longer be used; otherwise flush_pipeline_caches()
+      // shouldn't have been called. But lets make sure to crash when it IS used.
+      logical_device->store_pipeline_cache(nullptr);
+      pipeline_cache.clear_cache();
+    }
+  }
+#endif
+}
+
+#if 0
+PipelineCache* Application::pipeline_cache_broker(LogicalDevice* logical_device)
+{
+  pipeline_cache_list_t::wat pipeline_cache_list_w(m_pipeline_cache_list);
+  if (pipeline_cache_list_w->contains(logical_device))
+    return nullptr;
+  // Insert a new, empty PipelineCache object for logical_device.
+  PipelineCache* pipeline_cache = &pipeline_cache_list_w->emplace(
+      std::piecewise_construct, std::forward_as_tuple(logical_device), std::forward_as_tuple()).first->second;
+  // Initialize it.
+  // We could do this with m_pipeline_cache_list unlocked, so that windows that use a different
+  // logical_device aren't blocked while doing this - but in 99.99% of the cases all windows
+  // use the same logical device and I rather have them block on a mutex than spin in the
+  // while loop of the calling function (SynchronousWindow::load_pipeline_cache).
+  pipeline_cache->initialize(m_directories.path_of(Directory::cache) / to_string(logical_device->get_UUID()) / "pipeline_cache", logical_device);
+  // Return the pointer to it - map elements are never moved.
+  return pipeline_cache;
+}
+#endif
 
 //virtual
 std::string Application::default_display_name() const
@@ -125,6 +197,10 @@ void Application::initialize(int argc, char** argv)
   // Start the connection broker.
   m_xcb_connection_broker = statefultask::create<xcb_connection_broker_type>(CWDEBUG_ONLY(false));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
+
+  // Start the pipeline cache broker.
+  m_pipeline_cache_broker = statefultask::create<pipeline_cache_broker_type>(CWDEBUG_ONLY(true));
+  m_pipeline_cache_broker->run(m_low_priority_queue);           // Idem.
 
   ApplicationInfo application_info;
   application_info.set_application_name(application_name());
@@ -263,11 +339,18 @@ void Application::run()
       device->wait_idle();
   }
 
-  // Stop the broker task.
+  // Stop the broker tasks.
+  m_pipeline_cache_broker->terminate();
   m_xcb_connection_broker->terminate();
 
   // Application terminated cleanly.
   m_event_loop->join();
+}
+
+void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)
+{
+  factory->set_pipeline_cache_broker(m_pipeline_cache_broker);
+  factory->run(m_medium_priority_queue);
 }
 
 } // namespace vulkan

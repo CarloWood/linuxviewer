@@ -6,6 +6,7 @@
 
 namespace task {
 class SynchronousWindow;
+class PipelineFactory;
 } // namespace task
 
 namespace linuxviewer::OS {
@@ -13,6 +14,10 @@ class Window;
 } // namespace linuxviewer::OS
 
 namespace vulkan {
+
+namespace pipeline {
+class CharacteristicRange;
+} // namespace pipeline
 
 template<typename T>
 concept ConceptWindowEvents = std::is_base_of_v<linuxviewer::OS::Window, T>;
@@ -31,5 +36,8 @@ struct is_unique_handle<vk::UniqueHandle<T, Dispatch>> : std::true_type { };
 
 template<typename T>
 concept ConceptUniqueVulkanHandle = is_unique_handle<T>::value;
+
+template<typename T>
+concept ConceptPipelineCharacteristic = std::is_base_of_v<pipeline::CharacteristicRange, T>;
 
 } // namespace vulkan
