@@ -568,6 +568,9 @@ void main() {
             COMMA_CWDEBUG_ONLY({ owning_window, "TestApplicationPipelineCharacteristic::pipeline" }));
       }
 
+      m_vertex_input_binding_descriptions = m_pipeline.vertex_binding_descriptions();
+      m_vertex_input_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
       // Generate vertex buffers.
@@ -595,6 +598,11 @@ void main() {
     auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.add_characteristic<TestApplicationPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
+  }
+
+  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
+  {
+    m_vh_graphics_pipeline = m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->vh_pipeline(pipeline_handle.m_pipeline_index);
   }
 
   void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)

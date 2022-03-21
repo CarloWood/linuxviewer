@@ -18,6 +18,7 @@
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
 #include "pipeline/PipelineFactory.h"
+#include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shaderbuilder/SPIRVCache.h"
@@ -59,7 +60,7 @@ class SPIRVCache;
 } // shaderbuilder
 
 namespace pipeline {
-class Handle;
+class FactoryHandle;
 } // namespace pipeline
 
 namespace detail {
@@ -423,12 +424,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
 
   // Called from create_graphics_pipelines of derived class.
-  vulkan::pipeline::Handle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
+  vulkan::pipeline::FactoryHandle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
 
  public:
-  // The same type as using in vulkan::Application and vulkan::pipeline::Handle - neither of which can be defined here.
-  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
-  // Called by vulkan::pipeline::Handle::generate.
+  // The same type as the type defined vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex, task::PipelineFactory and vulkan::Application with the same name.
+  using PipelineFactoryIndex = task::PipelineFactory::PipelineFactoryIndex;
+  // Called by vulkan::pipeline::FactoryHandle::generate.
   inline task::PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
 
  private:
@@ -477,6 +478,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     m_swapchain.set_render_pass(std::move(render_pass));
   }
 #endif
+
+  // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
+  virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;
 
  protected:
   void start_frame();
@@ -527,8 +531,8 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 
 #endif // VULKAN_SYNCHRONOUS_WINDOW_H
 
-#ifndef VULKAN_PIPELINE_HANDLE_H
-#include "pipeline/Handle.h"
+#ifndef VULKAN_PIPELINE_FACTORY_HANDLE_H
+#include "pipeline/FactoryHandle.h"
 #endif
 #ifndef VULKAN_APPLICATION_H
 #include "Application.h"

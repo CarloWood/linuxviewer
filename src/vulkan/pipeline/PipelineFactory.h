@@ -20,9 +20,15 @@ class CharacteristicRange;
 
 namespace task {
 
+namespace synchronous {
+class PipelineFactoryWatcher;
+} // namespace synchronous
+
 class PipelineFactory : public AIStatefulTask
 {
+ public:
   using pipeline_cache_broker_type = task::Broker<PipelineCache>;
+  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
 
   static constexpr condition_type pipeline_cache_set_up = 1;
   static constexpr condition_type fully_initialized = 2;
@@ -43,9 +49,11 @@ class PipelineFactory : public AIStatefulTask
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   MultiLoop m_range_counters;
-  boost::intrusive_ptr<SynchronousTask> m_finished_watcher;             // This task just waits - synchronously - until the PipelineFactory finished.
+  boost::intrusive_ptr<synchronous::PipelineFactoryWatcher> m_finished_watcher;         // This task just waits - synchronously - until the PipelineFactory finished.
   // State PipelineFactory_generate.
   utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index> m_graphics_pipelines;
+  // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
+  PipelineFactoryIndex m_pipeline_factory_index;
 
  protected:
   using direct_base_type = AIStatefulTask;      // The immediate base class of this task.
@@ -63,22 +71,21 @@ class PipelineFactory : public AIStatefulTask
   static state_type constexpr state_end = PipelineFactory_done + 1;
 
  protected:
-  ~PipelineFactory() override
-  {
-    DoutEntering(dc::statefultask(mSMDebug), "~PipelineFactory() [" << this << "]");
-  }
+  ~PipelineFactory() override;
 
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
 
  public:
   PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
-      COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
-      m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass) { }
+      COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void set_pipeline_cache_broker(boost::intrusive_ptr<pipeline_cache_broker_type> broker);
   void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
+  void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
+
+  vk::Pipeline vh_pipeline(vulkan::pipeline::Index pipeline_index) const { return *m_graphics_pipelines[pipeline_index]; }
 };
 
 } // namespace task

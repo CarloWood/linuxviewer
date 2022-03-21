@@ -54,4 +54,12 @@ void SynchronousTask::run(AIStatefulTask* parent, condition_type condition, on_a
   m_owner->set_have_synchronous_task({});
 }
 
+bool SynchronousTask::signal(condition_type condition)
+{
+  bool woken_up = AIStatefulTask::signal(condition);
+  if (woken_up)
+    m_owner->set_have_synchronous_task({});
+  return woken_up;
+}
+
 } // namespace task

@@ -7,6 +7,7 @@
 #include "StagingBufferParameters.h"
 #include "Exceptions.h"
 #include "SynchronousTask.h"
+#include "pipeline/Handle.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
@@ -18,6 +19,7 @@
 #include "utils/at_scope_end.h"
 #endif
 #include <algorithm>
+#include "debug.h"
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -1267,12 +1269,13 @@ void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindo
   synchronize_task->run([lambda, this](bool){ lambda(this); });
 }
 
-vulkan::pipeline::Handle SynchronousWindow::create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug))
+vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug))
 {
   auto factory = statefultask::create<PipelineFactory>(this, vh_pipeline_layout, vh_render_pass COMMA_CWDEBUG_ONLY(debug));
   auto const index = m_pipeline_factories.iend();
   m_pipeline_factories.push_back(std::move(factory));           // Now m_pipeline_factories[index] == factory.
   m_application->run_pipeline_factory(m_pipeline_factories[index], this, index);
+  m_pipeline_factories[index]->set_index(index);
   return index;
 }
 

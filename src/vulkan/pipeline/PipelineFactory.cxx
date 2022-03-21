@@ -1,7 +1,9 @@
 #include "sys.h"
 #include "PipelineFactory.h"
+#include "Handle.h"
 #include "SynchronousWindow.h"
 #include "pipeline/CacheBrokerKey.h"
+#include "threadsafe/aithreadsafe.h"
 
 namespace task {
 
@@ -10,7 +12,13 @@ namespace synchronous {
 class PipelineFactoryWatcher : public SynchronousTask
 {
  public:
-  static constexpr condition_type parent_finished = 1;
+  static constexpr condition_type need_action = 1;
+
+ private:
+  using container_type = std::deque<vulkan::pipeline::Handle>;
+  using new_pipelines_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
+  new_pipelines_type m_new_pipelines;
+  std::atomic_bool m_parent_finished = false;
 
  protected:
   /// The base class of this task.
@@ -19,6 +27,7 @@ class PipelineFactoryWatcher : public SynchronousTask
   /// The different states of the stateful task.
   enum delayed_destroyer_task_state_type {
     PipelineFactoryWatcher_start = direct_base_type::state_end,
+    PipelineFactoryWatcher_need_action,
     PipelineFactoryWatcher_done
   };
 
@@ -32,6 +41,9 @@ class PipelineFactoryWatcher : public SynchronousTask
   {
     DoutEntering(dc::vulkan, "PipelineFactoryWatcher::PipelineFactoryWatcher(" << owning_window << ") [" << this << "]")
   }
+
+  void have_new_pipeline(vulkan::pipeline::Handle pipeline_handle);
+  void terminate();
 
  protected:
   /// Call finish() (or abort()), not delete.
@@ -47,11 +59,24 @@ class PipelineFactoryWatcher : public SynchronousTask
   void multiplex_impl(state_type run_state) override final;
 };
 
+void PipelineFactoryWatcher::have_new_pipeline(vulkan::pipeline::Handle pipeline_handle)
+{
+  new_pipelines_type::wat(m_new_pipelines)->push_back(pipeline_handle);
+  signal(synchronous::PipelineFactoryWatcher::need_action);
+}
+
+void PipelineFactoryWatcher::terminate()
+{
+  m_parent_finished = true;
+  signal(synchronous::PipelineFactoryWatcher::need_action);
+}
+
 char const* PipelineFactoryWatcher::state_str_impl(state_type run_state) const
 {
   switch (run_state)
   {
     AI_CASE_RETURN(PipelineFactoryWatcher_start);
+    AI_CASE_RETURN(PipelineFactoryWatcher_need_action);
     AI_CASE_RETURN(PipelineFactoryWatcher_done);
   }
   AI_NEVER_REACHED
@@ -62,9 +87,29 @@ void PipelineFactoryWatcher::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case PipelineFactoryWatcher_start:
-      set_state(PipelineFactoryWatcher_done);
-      wait(parent_finished);
+      set_state(PipelineFactoryWatcher_need_action);
+      wait(need_action);
       break;
+    case PipelineFactoryWatcher_need_action:
+      for (;;)
+      {
+        vulkan::pipeline::Handle pipeline_handle;
+        {
+          new_pipelines_type::wat new_pipelines_w(m_new_pipelines);
+          if (new_pipelines_w->empty())
+            break;
+          pipeline_handle = new_pipelines_w->front();
+          new_pipelines_w->pop_front();
+        }
+        owning_window()->new_pipeline(pipeline_handle);
+      }
+      if (!m_parent_finished)
+      {
+        wait(need_action);
+        break;
+      }
+      set_state(PipelineFactoryWatcher_done);
+      [[fallthrough]];
     case PipelineFactoryWatcher_done:
       finish();
       break;
@@ -72,6 +117,18 @@ void PipelineFactoryWatcher::multiplex_impl(state_type run_state)
 }
 
 } // namespace synchronous
+
+PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
+    COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
+    m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass)
+{
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory(" << owning_window << ", " << vh_pipeline_layout << ", " << vh_render_pass << ")");
+}
+
+PipelineFactory::~PipelineFactory()
+{
+  DoutEntering(dc::statefultask(mSMDebug), "~PipelineFactory() [" << this << "]");
+}
 
 void PipelineFactory::set_pipeline_cache_broker(boost::intrusive_ptr<pipeline_cache_broker_type> broker)
 {
@@ -217,6 +274,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             m_graphics_pipelines[pipeline_index] = m_owning_window->logical_device().create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
                 COMMA_CWDEBUG_ONLY({ m_owning_window, "pipeline" }));
 
+            // Inform the SynchronousWindow.
+            m_finished_watcher->have_new_pipeline({m_pipeline_factory_index , pipeline_index});
+
             // End of MultiLoop inner loop.
           }
           else
@@ -235,7 +295,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       set_state(PipelineFactory_done);
       [[fallthrough]];
     case PipelineFactory_done:
-      m_finished_watcher->signal(synchronous::PipelineFactoryWatcher::parent_finished);
+      m_finished_watcher->terminate();
       finish();
       break;
   }

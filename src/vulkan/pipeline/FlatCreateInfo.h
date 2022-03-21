@@ -20,7 +20,11 @@ class FlatCreateInfo
     std::vector<T> result;
     size_t s = 0;
     for (std::vector<T> const* v : input_list)
+    {
+      // You called add(std::vector<T> const&) but never filled the passed vector with data.
+      ASSERT(v->size() != 0);
       s += v->size();
+    }
     result.reserve(s);
     for (std::vector<T> const* v : input_list)
       result.insert(result.end(), v->begin(), v->end());
