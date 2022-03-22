@@ -43,12 +43,12 @@ void print_on(std::ostream& os) const override;         // To print the object t
 When derived from `vulkan::pipeline::CharacteristicRange`, additionally the following virtual function must be overridden:
 
 ```c
-void fill(FlatCreateInfo& flat_create_info, index_type index) const override;
+void fill(vulkan::pipeline::FlatCreateInfo& flat_create_info, index_type index) const override;
 ```
 
 which will be called once for each value `index` in the range that the base class `vulkan::pipeline::CharacteristicRange` was constructed with.
 
-The `initialize` function must register any vectors that this object wants to add data to, which must be declared locally.
+The `initialize` function must register any vectors, that must be declared locally, that this object wants to add data to.
 For example,
 
 ```c
