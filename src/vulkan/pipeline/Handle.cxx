@@ -6,7 +6,10 @@ namespace vulkan::pipeline {
 #ifdef CWDEBUG
 void Handle::print_on(std::ostream& os) const
 {
-  os << "<Handle>";
+  os << '{';
+  os << "m_pipeline_factory_index:" << m_pipeline_factory_index <<
+      ", m_pipeline_index:" << m_pipeline_index;
+  os << '}';
 }
 #endif
 

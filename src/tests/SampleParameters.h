@@ -1,6 +1,5 @@
 #pragma once
 
-// FIXME: move to user application.
 struct SampleParameters
 {
   static constexpr int s_max_object_count = 1000;
