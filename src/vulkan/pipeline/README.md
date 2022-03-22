@@ -34,7 +34,7 @@ it doesn't represent a range -- although that class in turn is derived from `vul
 When derived from `vulkan::pipeline::Characteristic` the following virtual functions must be overridden:
 
 ```c
-void initialize(FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override;
+void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override;
 #ifdef CWDEBUG
 void print_on(std::ostream& os) const override;         // To print the object to a debug ostream.
 #endif
@@ -43,7 +43,7 @@ void print_on(std::ostream& os) const override;         // To print the object t
 When derived from `vulkan::pipeline::CharacteristicRange`, additionally the following virtual function must be overridden:
 
 ```c
-virtual void fill(FlatCreateInfo& flat_create_info, index_type index) const override;
+void fill(FlatCreateInfo& flat_create_info, index_type index) const override;
 ```
 
 which will be called once for each value `index` in the range that the base class `vulkan::pipeline::CharacteristicRange` was constructed with.
