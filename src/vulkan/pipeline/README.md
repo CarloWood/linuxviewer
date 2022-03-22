@@ -19,8 +19,7 @@ uses it to create one or more `task::PipelineFactory` objects:
 auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
 ```
 
-The returned object is a `vulkan::pipeline::FactoryHandle` which just a wrapper around a `PipelineFactoryIndex`, but has two member functions that
-have to be called next:
+The returned object is a `vulkan::pipeline::FactoryHandle` which is just a wrapper around a `PipelineFactoryIndex`, but provides two member functions that have to be called next:
 
 ```c
 pipeline_factory.add_characteristic<MyPipelineCharacteristic1>(this);
