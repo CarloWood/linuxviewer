@@ -1,4 +1,4 @@
-A `vk::Pipeline` is created by a call to `LogicalDevice::create_graphics_pipeline` which returns a `vk::UniquePipeline`.
+A `vk::Pipeline` is created by a call to `vulkan::LogicalDevice::create_graphics_pipeline` which returns a `vk::UniquePipeline`.
 This library stores the `vk::UniquePipeline` in the `utils::Vector`: `task::PipelineFactory::m_graphics_pipelines` by `vulkan::pipeline::Index`.
 Such index therefore only specifies a pipeline uniquely together with its `task::PipelineFactory`.
 
@@ -12,7 +12,7 @@ when also given the owning `task::SynchronousWindow`.
 
 The normal flow is as follows:
 
-The user class - say MyWindow - derived from `task::SynchronousWindow` overrides the virtual function `void create_graphics_pipelines()` and
+The user class - say `MyWindow` - derived from `task::SynchronousWindow` overrides the virtual function `void create_graphics_pipelines()` and
 uses it to create one or more `task::PipelineFactory` objects:
 
 ```c
