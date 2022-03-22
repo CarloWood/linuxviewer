@@ -11,21 +11,18 @@ class PipelineFactory;
 
 namespace vulkan::pipeline {
 
+struct IndexCategory;
+using Index = utils::VectorIndex<IndexCategory>;
+
 struct Handle
 {
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
   PipelineFactoryIndex m_pipeline_factory_index;
-  vulkan::pipeline::Index m_pipeline_index;
+  Index m_pipeline_index;
 
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const
-  {
-    os << '{';
-    os << "m_pipeline_factory_index:" << m_pipeline_factory_index <<
-        ", m_pipeline_index:" << m_pipeline_index;
-    os << '}';
-  }
+  void print_on(std::ostream& os) const;
 #endif
 };
 

@@ -12,7 +12,7 @@ class SynchronousWindow;
 
 namespace vulkan::pipeline {
 
-struct IndexCategory {};
+struct IndexCategory;
 using Index = utils::VectorIndex<IndexCategory>;
 
 class CharacteristicRange : public AIRefCount
