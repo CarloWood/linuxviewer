@@ -29,7 +29,7 @@ pipeline_factory.generate(this);
 ```
 
 where the `MyPipelineCharacteristicX` classes must be derived from `vulkan::pipeline::CharacteristicRange` (or `vulkan::pipeline::Characteristic` when
-it doesn't represent a range -- although that class in turn is derived from `vulkan::pipeline::CharacteristicRange`, simply with a range size of 1).
+it doesn't represent a range -- although that class in turn is derived from `vulkan::pipeline::CharacteristicRange` with simply a range size of 1).
 
 When derived from `vulkan::pipeline::Characteristic` the following virtual functions must be overridden:
 
