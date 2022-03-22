@@ -94,9 +94,9 @@ before a new frame is drawn) to a member function
 void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override;
 ```
 
-of the `MyWindow` user class (that is derived from `task::SynchronousWindow`).
+of the `MyWindow` user class that is derived from `task::SynchronousWindow`.
 
-In this function, the corresponding `task::PipelineFactory` can be retrieved with
+In this function the corresponding `task::PipelineFactory` can be retrieved with
 
 ```c
 boost::intrusive_ptr<task::PipelineFactory> const& pipeline_factory = m_pipeline_factories[pipeline_handle.m_pipeline_factory_index];
@@ -112,6 +112,7 @@ Threading
 =========
 
 Each created `task::PipelineFactory` is a task - and thus is run by one thread at a time, while multiple pipeline factories run concurrently.
+
 Each `task::PipelineFactory` has a member
 
 ```c
@@ -120,5 +121,5 @@ boost::intrusive_ptr<task::PipelineCache const> m_pipeline_cache_task;
 
 that points to a `task::PipelineCache` object wrapping a `vk::UniquePipelineCache`. There is exactly one `task::PipelineCache` (and thus pipeline cache)
 per unique `vulkan::pipeline::CacheData`, which means - one per `task::PipelineFactory`. In other words, each pipeline factory has its own pipeline
-cache object which allows them to run concurrently.
+cache object, which allows them to run concurrently.
 
