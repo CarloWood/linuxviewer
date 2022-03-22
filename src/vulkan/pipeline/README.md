@@ -55,7 +55,7 @@ For example,
 class MyPipelineCharacteristic : public vulkan::pipeline::Characteristic
 {
  private:
-  std::vector<vk::PipelineShaderStageCreateInfo>     m_pipeline_shader_stage_create_infos;
+  vulkan::pipeline::Pipeline                         m_pipeline;
   std::vector<vk::VertexInputBindingDescription>     m_vertex_input_binding_descriptions;
   std::vector<vk::VertexInputAttributeDescription>   m_vertex_input_attribute_descriptions;
   std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
