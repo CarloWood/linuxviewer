@@ -2,7 +2,7 @@
 
 #include "vulkan/Application.h"
 
-class TestApplication : public vulkan::Application
+class FrameResourcesCount : public vulkan::Application
 {
   using vulkan::Application::Application;
 
@@ -16,6 +16,6 @@ class TestApplication : public vulkan::Application
  public:
   std::string application_name() const override
   {
-    return "TestApplication";
+    return "FrameResourcesCount";
   }
 };

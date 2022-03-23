@@ -1,270 +1,15 @@
-#include "sys.h"
-#include "TestApplication.h"
+#pragma once
+
+#include "HeavyRectangle.h"
+#include "RandomPositions.h"
 #include "SampleParameters.h"
-#include "VertexData.h"
-#include "InstanceData.h"
-#include "vulkan/FrameResourcesData.h"
-#include "vulkan/LogicalDevice.h"
-#include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/rendergraph/Attachment.h"
-#include "vulkan/rendergraph/RenderPass.h"
-#include "vulkan/pipeline/Pipeline.h"
-#include "vulkan/pipeline/CharacteristicRange.h"
-#include "vulkan/shaderbuilder/VertexShaderInputSet.h"
-#include "vulkan/shaderbuilder/ShaderInfo.h"
+#include "FrameResourcesCount.h"
+#include "vulkan/SynchronousWindow.h"
 #include "vk_utils/get_image_data.h"
-#include "debug.h"
-#include "debug/DebugSetName.h"
-#ifdef CWDEBUG
-#include "utils/debug_ostream_operators.h"
-#endif
-
-#include "vulkan/rendergraph/ClearValue.h"
-#include "vulkan/ImageKind.h"
 #include <imgui.h>
-#include <Eigen/Geometry>
-#include <random>
+#include "debug.h"
 
-#define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
 #define ENABLE_IMGUI 1
-
-using namespace linuxviewer;
-
-class SingleButtonWindow : public task::SynchronousWindow
-{
-  std::function<void(SingleButtonWindow&)> m_callback;
-
-#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
-  imgui::StatsWindow m_imgui_stats_window;
-#endif
-
- public:
-  SingleButtonWindow(std::function<void(SingleButtonWindow&)> callback, vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
-    task::SynchronousWindow(application COMMA_CWDEBUG_ONLY(debug)), m_callback(callback) { }
-
- private:
-  void create_render_graph() override
-  {
-    DoutEntering(dc::vulkan, "SingleButtonWindow::create_render_graph() [" << this << "]");
-
-    // This must be a reference.
-    auto& output = swapchain().presentation_attachment();
-
-    // This window draws nothing but an ImGui window.
-    m_render_graph = imgui_pass->stores(~output);
-
-    // Generate everything.
-    m_render_graph.generate(this);
-  }
-
-  void create_descriptor_set() override { }
-  void create_textures() override { }
-  void create_pipeline_layout() override { }
-  void create_graphics_pipelines() override { }
-
-  //===========================================================================
-  //
-  // Called from initialize_impl.
-  //
-  threadpool::Timer::Interval get_frame_rate_interval() const override
-  {
-    // Limit the frame rate of this window to 11.111 frames per second.
-    return threadpool::Interval<90, std::chrono::milliseconds>{};
-  }
-
-  //===========================================================================
-  //
-  // Frame code (called every frame)
-  //
-  //===========================================================================
-
-  void draw_frame() override
-  {
-    DoutEntering(dc::vkframe, "SingleButtonWindow::draw_frame() [" << this << "]");
-
-    start_frame();
-    acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.
-
-    vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
-    imgui_pass.update_image_views(swapchain(), frame_resources);
-
-    m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
-
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
-
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer_w->endRenderPass();
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
-
-      submit(command_buffer_w);
-    } // Unlock command pool.
-
-    // Draw GUI and present swapchain image.
-    finish_frame();
-  }
-
-  //===========================================================================
-  //
-  // ImGui
-  //
-  //===========================================================================
-
-  void draw_imgui() override final
-  {
-    ImGuiIO& io = ImGui::GetIO();
-
-    ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-    ImGui::SetNextWindowSize(io.DisplaySize);
-    ImGui::Begin("SingleButton", nullptr,
-        ImGuiWindowFlags_NoDecoration |
-        ImGuiWindowFlags_NoMove |
-        ImGuiWindowFlags_NoSavedSettings);
-
-    if (ImGui::Button("Trigger Event", ImVec2(150.f - 16.f, 50.f - 16.f)))
-    {
-      Dout(dc::notice, "SingleButtonWindow: calling m_callback() [" << this << "]");
-      m_callback(*this);
-    }
-
-    ImGui::End();
-
-#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
-    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    m_imgui_stats_window.draw(io, m_timer);
-#endif
-  }
-};
-
-class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<VertexData>
-{
-  using Vector2f = Eigen::Vector2f;
-  using Transform = Eigen::Affine2f;
-
-  // Each batch exists of two triangles that form a square with coordinates (pos_x, pos_y) where
-  // both pos_x and pos_y run from -size to +size in SampleParameters::s_quad_tessellation steps.
-  //
-  //                                  __ iside = 4
-  //                                 /
-  //                                v
-  //    y=0 ┬─────┬─────┬─────┬─────┐
-  //        │     │     │     │     │
-  //        │     │     │     │     │  x runs from 0..iside-1
-  //      1 ┼─────A─────B─────┼─────┤    y runs from 0..iside-1
-  //        │     │   .🮠│     │     │       first triangle: A C B
-  //        │     │🮣    │     │     │      second triangle: B C D, both counter clockwise.
-  //      2 ┼─────C─────D─────┼─────┤
-  //        │     │     │     │     │  Shown are the triangles that belong to x,y = 1,1 (A).
-  //        │     │     │     │     │
-  //      3 ┼─────┼─────┼─────┼─────┤
-  //        │     │     │     │     │
-  //        │     │     │     │     │
-  //        ├─────┼─────┼─────┼─────┘
-  //      x=0     1     2     3
-  //        |                       |
-  // pos: -size         0          +size
-  //  uv:   0                       1
-  //
-  // At the same time (u, v) correspond with the texture coordinates and run from (0, 0) till (1, 1).
-  //
-  // Internally we use integer coordinates x and y that run from 0 till SampleParameters::s_quad_tessellation.
-  //
-  static constexpr int iside       = SampleParameters::s_quad_tessellation;
-  static constexpr float size      = 0.12f;
-  static constexpr float pos_scale = 2 * size / iside;
-  static constexpr float uv_scale  = 1.0f / iside;
-  static constexpr int batch_size  = 6;
-
-  static Transform const xy_to_position;
-  static Transform const xy_to_uv;
-  static Vector2f const offset[6];
-
-  Vector2f xy;                  // Integer coordinates x,y.
-
-  // Convert xy to one of the six corners of the two triangles.
-  auto position_at(int vertex)
-  {
-    glsl::vec4 position;
-    position << xy_to_position * (xy + offset[vertex]), 0.0f, 1.0f;     // Homogeneous coordinates.
-    return position;
-  }
-
-  auto texture_coordinates_at(int vertex)
-  {
-    glsl::vec2 coords;
-    coords << xy_to_uv * (xy + offset[vertex]);
-    return coords;
-  }
-
-  int count() const override
-  {
-    return batch_size * iside * iside;
-  }
-
-  int next_batch() const override
-  {
-    return batch_size;
-  }
-
-  void create_entry(VertexData* input_entry_ptr) override
-  {
-    for (int vertex = 0; vertex < batch_size; ++vertex)
-    {
-      input_entry_ptr[vertex].m_position = position_at(vertex);
-      input_entry_ptr[vertex].m_texture_coordinates = texture_coordinates_at(vertex);
-    }
-
-    // Advance to the next square.
-    if (++xy.x() == iside) { xy.x() = 0; ++xy.y(); }
-  }
-
- public:
-  HeavyRectangle() : xy(0.f, 0.f) {}
-};
-
-// static transformation matrices.
-HeavyRectangle::Transform const HeavyRectangle::xy_to_position = Transform(Eigen::Translation2f{-size, -size}).scale(pos_scale);
-HeavyRectangle::Transform const HeavyRectangle::xy_to_uv       = Transform{Transform::Identity()}.scale(uv_scale);
-HeavyRectangle::Vector2f const HeavyRectangle::offset[batch_size] = {
-  { 0.0f, 0.0f },   // A
-  { 0.0f, 1.0f },   // C
-  { 1.0f, 0.0f },   // B
-  { 1.0f, 0.0f },   // B
-  { 0.0f, 1.0f },   // C
-  { 1.0f, 1.0f },   // D
-};
-
-class RandomPositions final : public vulkan::shaderbuilder::VertexShaderInputSet<InstanceData>
-{
-  std::random_device m_random_device;
-  std::mt19937 m_generator;
-  std::uniform_real_distribution<float> m_distribution_xy;
-  std::uniform_real_distribution<float> m_distribution_z;
-
- public:
-  RandomPositions() : m_generator(m_random_device()), m_distribution_xy(-1.0f, 1.0f), m_distribution_z(0.0f, 1.0f) { }
-
- private:
-  int count() const override
-  {
-    return SampleParameters::s_max_object_count;
-  }
-
-  void create_entry(InstanceData* input_entry_ptr) override final
-  {
-    input_entry_ptr->m_position << m_distribution_xy(m_generator),
-                                   m_distribution_xy(m_generator),
-                                   m_distribution_z(m_generator),
-                                   0.0f;                                // Homogeneous coordinates. This is used as an offset (a vector).
-  }
-};
 
 class Window : public task::SynchronousWindow
 {
@@ -512,7 +257,7 @@ void main() {
 }
 )glsl";
 
-  class TestApplicationPipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
     vulkan::pipeline::Pipeline m_pipeline;
@@ -563,9 +308,9 @@ void main() {
         ShaderCompiler compiler;
 
         m_pipeline.build_shader(owning_window, shader_vert, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "TestApplicationPipelineCharacteristic::pipeline" }));
+            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
         m_pipeline.build_shader(owning_window, shader_frag, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "TestApplicationPipelineCharacteristic::pipeline" }));
+            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
       }
 
       m_vertex_input_binding_descriptions = m_pipeline.vertex_binding_descriptions();
@@ -579,12 +324,12 @@ void main() {
     }
 
    public:
-    TestApplicationPipelineCharacteristic() = default;
+    FrameResourcesCountPipelineCharacteristic() = default;
 
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
-      os << "{ (TestApplicationPipelineCharacteristic*)" << this << " }";
+      os << "{ (FrameResourcesCountPipelineCharacteristic*)" << this << " }";
     }
 #endif
   };
@@ -596,7 +341,7 @@ void main() {
     //FIXME: the pipeline layout can vary between different pipelines too; use a vulkan::pipeline::CharacteristicRange for it
     // as well and reuse compatible ones.
     auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory.add_characteristic<TestApplicationPipelineCharacteristic>(this);
+    pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
   }
 
@@ -791,9 +536,9 @@ else {
   //
   //===========================================================================
 
-  TestApplication const& application() const
+  FrameResourcesCount const& application() const
   {
-    return static_cast<TestApplication const&>(task::SynchronousWindow::application());
+    return static_cast<FrameResourcesCount const&>(task::SynchronousWindow::application());
   }
 
   void draw_imgui() override final
@@ -827,150 +572,3 @@ else {
     return false;
   }
 };
-
-vulkan::ImageKind const Window::s_vector_image_kind{{ .format = vk::Format::eR16G16B16A16Sfloat }};
-vulkan::ImageViewKind const Window::s_vector_image_view_kind{s_vector_image_kind, {}};
-
-class WindowEvents : public vulkan::WindowEvents
-{
- public:
-  using vulkan::WindowEvents::WindowEvents;
-};
-
-class SlowWindow : public Window
-{
- public:
-  using Window::Window;
-
- private:
-  threadpool::Timer::Interval get_frame_rate_interval() const override
-  {
-    // Limit the frame rate of this window to 1 frames per second.
-    return threadpool::Interval<1000, std::chrono::milliseconds>{};
-  }
-
-  bool is_slow() const override
-  {
-    return true;
-  }
-};
-
-class LogicalDevice : public vulkan::LogicalDevice
-{
- public:
-  // Every time create_root_window is called a cookie must be passed.
-  // This cookie will be passed back to the virtual function ... when
-  // querying what presentation queue family to use for that window (and
-  // related windows).
-  static constexpr int root_window_cookie1 = 1;
-  static constexpr int root_window_cookie2 = 2;
-
-  LogicalDevice()
-  {
-    DoutEntering(dc::notice, "LogicalDevice::LogicalDevice() [" << this << "]");
-  }
-
-  ~LogicalDevice() override
-  {
-    DoutEntering(dc::notice, "LogicalDevice::~LogicalDevice() [" << this << "]");
-  }
-
-  void prepare_physical_device_features(
-      vk::PhysicalDeviceFeatures& features10,
-      vk::PhysicalDeviceVulkan11Features& features11,
-      vk::PhysicalDeviceVulkan12Features& features12,
-      vk::PhysicalDeviceVulkan13Features& features13) const override
-  {
-    features10.setDepthClamp(true);
-  }
-
-  void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override
-  {
-    using vulkan::QueueFlagBits;
-
-    device_create_info
-    // {0}
-    .addQueueRequest({
-        .queue_flags = QueueFlagBits::eGraphics,
-        .max_number_of_queues = 13,
-        .priority = 1.0})
-    // {1}
-    .combineQueueRequest({
-//    .addQueueRequest({
-        .queue_flags = QueueFlagBits::ePresentation,
-        .max_number_of_queues = 8,                      // Only used when it can not be combined.
-        .priority = 0.8,                                // Only used when it can not be combined.
-        .windows = root_window_cookie1})                // This may only be used for window1.
-#if 0
-    // {2}
-    .addQueueRequest({
-        .queue_flags = QueueFlagBits::ePresentation,
-        .max_number_of_queues = 2,
-        .priority = 0.2,
-        .windows = root_window_cookie2})
-#endif
-#ifdef CWDEBUG
-    .setDebugName("LogicalDevice");
-#endif
-    ;
-  }
-};
-
-int main(int argc, char* argv[])
-{
-  Debug(NAMESPACE_DEBUG::init());
-  Dout(dc::notice, "Entering main()");
-
-  try
-  {
-    // Create the application object.
-    TestApplication application;
-
-    // Initialize application using the virtual functions of TestApplication.
-    application.initialize(argc, argv);
-
-    // Create a window.
-    auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_cookie1);
-
-#if 0
-    // Create a child window of root_window1. This has to be done before calling
-    // `application.create_logical_device` below, which gobbles up the root_window1 pointer.
-    root_window1->create_child_window<WindowEvents, SingleButtonWindow>(
-        std::make_tuple([&](SingleButtonWindow& window)
-          {
-            Dout(dc::always, "TRIGGERED!");
-            application.set_max_anisotropy(window.logical_device().max_sampler_anisotropy());
-          }
-        ),
-#if ADD_STATS_TO_SINGLE_BUTTON_WINDOW
-        {0, 0, 150, 150},
-#else
-        {0, 0, 150, 50},
-#endif
-        LogicalDevice::root_window_cookie1,
-        "Button");
-#endif
-
-    // Create a logical device that supports presenting to root_window1.
-    auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
-
-    // Assume logical_device also supports presenting on root_window2.
-//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
-
-    // Run the application.
-    application.run();
-  }
-  catch (AIAlert::Error const& error)
-  {
-    // Application terminated with an error.
-    Dout(dc::warning, "\e[31m" << error << ", caught in TestApplication.cxx\e[0m");
-  }
-#ifndef CWDEBUG // Commented out so we can see in gdb where an exception is thrown from.
-  catch (std::exception& exception)
-  {
-    DoutFatal(dc::core, "\e[31mstd::exception: " << exception.what() << " caught in TestApplication.cxx\e[0m");
-  }
-#endif
-
-  Dout(dc::notice, "Leaving main()");
-}
