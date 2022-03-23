@@ -39,17 +39,29 @@ add_custom_target(resources ALL DEPENDS ${RESOURCES_TARGETS})
 
 #==============================================================================
 
-add_executable(mytest
-  TestApplication.cxx
-  TestApplication.h
+add_executable(frame_resources_count
+  FrameResourcesCount.cxx
+  FrameResourcesCount.h
+  HeavyRectangle.cxx
+  HeavyRectangle.h
+  RandomPositions.h
+  Window.cxx
+  Window.h
+  LogicalDevice.h
+  WindowEvents.h
+  VertexData.h
+  InstanceData.h
+  SampleParameters.h
+  SingleButtonWindow.h
+  SlowWindow.h
 )
 
-target_include_directories(mytest
+target_include_directories(frame_resources_count
   PRIVATE
     ${CMAKE_SOURCE_DIR}/src
 )
 
-target_link_libraries(mytest
+target_link_libraries(frame_resources_count
   PRIVATE
     LinuxViewer::vulkan
     AICxx::xcb-task
