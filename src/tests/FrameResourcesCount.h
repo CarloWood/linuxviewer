@@ -14,8 +14,8 @@ class FrameResourcesCount : public vulkan::Application
   }
 
  public:
-  std::string application_name() const override
+  std::u8string application_name() const override
   {
-    return "FrameResourcesCount";
+    return u8"FrameResourcesCount";
   }
 };

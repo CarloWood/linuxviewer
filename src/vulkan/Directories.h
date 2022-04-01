@@ -84,12 +84,12 @@ class Directories
   bool m_installed;                                                     // True when the running executable was installed in a some <prefix>/bin directory.
 
  private:
-  void set_application_name(std::string const& application_name);
+  void set_application_name(std::u8string const& application_name);
 
  public:
   Directories() = default;
 
-  void initialize(std::string const& application_name, std::filesystem::path executable_path);
+  void initialize(std::u8string const& application_name, std::filesystem::path executable_path);
 
   std::filesystem::path path_of(Directory directory) const;
 };

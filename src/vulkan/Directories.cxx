@@ -12,7 +12,7 @@
 
 namespace vulkan {
 
-void Directories::set_application_name(std::string const& application_name)
+void Directories::set_application_name(std::u8string const& application_name)
 {
   // On linux any character is possible in a filename except '/'.
   // On windows a whole host is illegal, but so are names that exist of just legal characters.
@@ -62,13 +62,13 @@ void Directories::set_application_name(std::string const& application_name)
   m_application_name = result.substr(pos + 1);
 }
 
-void Directories::initialize(std::string const& application_name, std::filesystem::path executable_path)
+void Directories::initialize(std::u8string const& application_name, std::filesystem::path executable_path)
 {
   DoutEntering(dc::notice, "Directories::initialize(\"" << application_name << "\", " << executable_path << ")");
 
   // The derived class must override:
-  //   std::string application_name() const override { return "My Cool Application"; }
-  if (application_name == vk_defaults::ApplicationInfo::default_application_name)
+  //   std::u8string application_name() const override { return u8"My Cool Application"; }
+  if (application_name == reinterpret_cast<char8_t const*>(vk_defaults::ApplicationInfo::default_application_name))
     THROW_ALERT("Application name must be unique; it will be used as directory name to store application specific files.");
 
   set_application_name(application_name);

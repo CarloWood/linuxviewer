@@ -163,7 +163,7 @@ class Application
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Rect2D geometry,
       window_cookie_type window_cookie,
-      std::string&& title,
+      std::u8string&& title,
       task::LogicalDevice const* logical_device,
       task::SynchronousWindow const* parent_window_task = nullptr);
 
@@ -191,7 +191,7 @@ class Application
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Extent2D extent,
       window_cookie_type window_cookie,
-      std::string&& title = {})
+      std::u8string&& title = {})
   {
     // This function is called while creating a vulkan window. The returned value is only used to keep the window alive
     // and/or to pass to create_logical_device in order to find a logical device that supports the surface.
@@ -203,7 +203,7 @@ class Application
   boost::intrusive_ptr<task::SynchronousWindow const> create_root_window(
       vk::Extent2D extent,
       window_cookie_type window_cookie,
-      std::string&& title = {})
+      std::u8string&& title = {})
   {
     // This function is called while creating a vulkan window. The returned value is only used to keep the window alive
     // and/or to pass to create_logical_device in order to find a logical device that supports the surface.
@@ -218,7 +218,7 @@ class Application
       vk::Extent2D extent,
       window_cookie_type window_cookie,
       task::LogicalDevice const& logical_device,
-      std::string&& title = {})
+      std::u8string&& title = {})
   {
     auto root_window = create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::move(window_constructor_args), extent, window_cookie, std::move(title), &logical_device);
     // root_window is immediately destroyed because we don't need its reference count:
@@ -230,7 +230,7 @@ class Application
       vk::Extent2D extent,
       window_cookie_type window_cookie,
       task::LogicalDevice const& logical_device,
-      std::string&& title = {})
+      std::u8string&& title = {})
   {
     auto root_window = create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::make_tuple(),
         { default_root_window_position, extent}, window_cookie, std::move(title), &logical_device);
@@ -276,7 +276,7 @@ class Application
   virtual int thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)) const;
 
   // Override this function to change the default ApplicatioInfo values.
-  virtual std::string application_name() const;
+  virtual std::u8string application_name() const;
 
   // Override this function to change the default application version. The result should be a value returned by vk_utils::encode_version.
   virtual uint32_t application_version() const;
@@ -299,7 +299,7 @@ template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS
 boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
     vk::Rect2D geometry, window_cookie_type window_cookie,
-    std::string&& title, task::LogicalDevice const* logical_device_task,
+    std::u8string&& title, task::LogicalDevice const* logical_device_task,
     task::SynchronousWindow const* parent_window_task)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_window<" <<
