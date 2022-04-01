@@ -1,9 +1,10 @@
 #pragma once
 
-#include "CacheData.h"
+#include "vk_utils/TaskToTaskDeque.h"
 #include "statefultask/AIStatefulTask.h"
 #include "threadsafe/aithreadsafe.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
+#include "utils/ulong_to_base.h"
 #include "debug.h"
 #include "debug/DebugSetName.h"
 #include <boost/serialization/serialization.hpp>
@@ -15,26 +16,32 @@
 
 namespace task {
 
-class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
+class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, int>
 {
-  static constexpr condition_type condition_flush_to_disk = 1;
+ public:
+  static constexpr condition_type condition_flush_to_disk = 2;
+  static constexpr condition_type factory_finished = 4;
 
  private:
+  // Constructor.
+  task::PipelineFactory* m_owning_factory;              // We have one pipeline cache per factory - or each factory would still be
+                                                        // slowed down as a result of concurrent accesses to the cache.
+  // State PipelineCache_load_from_disk.
   vk::UniquePipelineCache m_pipeline_cache;
 
+  bool m_is_merger = false;
+
 #ifdef CWDEBUG
-  vulkan::Ambifix m_load_ambifix;
+  vulkan::Ambifix m_create_ambifix;
 #endif
 
  protected:
-  // The base class of this task.
-  using direct_base_type = AIStatefulTask;
-
   // The different states of the stateful task.
   enum PipelineCache_state_type {
     PipelineCache_initialize = direct_base_type::state_end,
     PipelineCache_load_from_disk,
     PipelineCache_ready,
+    PipelineCache_factory_finished,
     PipelineCache_save_to_disk,
     PipelineCache_done,
   };
@@ -42,6 +49,9 @@ class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
  public:
   // One beyond the largest state of this task.
   static constexpr state_type state_end = PipelineCache_done + 1;
+
+  // Called by Application::pipeline_factory_done.
+  void set_is_merger() { m_is_merger = true; }
 
  protected:
   // boost::serialization::access has a destroy function that want to call operator delete on us. Of course, we will never call destroy.
@@ -58,7 +68,10 @@ class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
   void multiplex_impl(state_type run_state) override;
 
  public:
-  PipelineCache(CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)) { }
+  PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug = false)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
+  {
+    Debug(m_create_ambifix = vulkan::Ambifix("PipelineCache", "[" + utils::ulong_to_base(reinterpret_cast<uint64_t>(this), "0123456789abcdef") + "]"));
+  }
 
   std::filesystem::path get_filename() const;
 

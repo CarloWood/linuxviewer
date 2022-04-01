@@ -317,9 +317,13 @@ void main() {
       m_vertex_input_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+    }
 
+    // This is called *after* initialize. So m_pipeline is already initialized.
+    void synchronous_initialize(task::SynchronousWindow* owning_window) override
+    {
+      // FIXME: This is a hack. The whole synchronous_initialize should not exist: we should be able to copy vertex buffers asynchronously.
       // Generate vertex buffers.
-      // FIXME: I don't think this should go here.
       static_cast<Window*>(owning_window)->create_vertex_buffers(m_pipeline);
     }
 
@@ -342,12 +346,15 @@ void main() {
     // as well and reuse compatible ones.
     auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
+//    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+//    pipeline_factory2.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
+//    pipeline_factory2.generate(this);
   }
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
   {
-    m_vh_graphics_pipeline = m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->vh_pipeline(pipeline_handle.m_pipeline_index);
+    m_vh_graphics_pipeline = vh_graphics_pipeline(pipeline_handle);
   }
 
   void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)

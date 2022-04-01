@@ -3,7 +3,8 @@
 #include "LogicalDevice.h"
 #include "Application.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
-#include "utils/ulong_to_base.h"
+#include "utils/u8string_to_filename.h"
+#include "utils/AIAlert.h"
 #include "debug.h"
 #include <boost/serialization/binary_object.hpp>
 
@@ -39,6 +40,7 @@ char const* PipelineCache::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineCache_initialize);
     AI_CASE_RETURN(PipelineCache_load_from_disk);
     AI_CASE_RETURN(PipelineCache_ready);
+    AI_CASE_RETURN(PipelineCache_factory_finished);
     AI_CASE_RETURN(PipelineCache_save_to_disk);
     AI_CASE_RETURN(PipelineCache_done);
   }
@@ -47,7 +49,7 @@ char const* PipelineCache::state_str_impl(state_type run_state) const
 
 std::filesystem::path PipelineCache::get_filename() const
 {
-  return vulkan::Application::instance().path_of(vulkan::Directory::cache) / to_string(m_logical_device->get_UUID()) / "pipeline_cache";
+  return vulkan::Application::instance().path_of(vulkan::Directory::cache) / utils::u8string_to_filename(u8"pipeline_cache of " + m_owning_factory->owning_window()->pipeline_cache_name());
 }
 
 void PipelineCache::multiplex_impl(state_type run_state)
@@ -58,6 +60,13 @@ void PipelineCache::multiplex_impl(state_type run_state)
     {
       if (!std::filesystem::exists(get_filename()))
       {
+        vulkan::LogicalDevice const& device(m_owning_factory->owning_window()->logical_device());
+        vk::PipelineCacheCreateInfo pipeline_cache_create_info = {
+          .flags = device.supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
+          .initialDataSize = 0
+        };
+        m_pipeline_cache = device.create_pipeline_cache(pipeline_cache_create_info
+            COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
         set_state(PipelineCache_ready);
         break;
       }
@@ -67,20 +76,55 @@ void PipelineCache::multiplex_impl(state_type run_state)
     case PipelineCache_load_from_disk:
     {
       std::ifstream file(get_filename());
-      Debug(m_load_ambifix = vulkan::Ambifix("PipelineCache", "[" + utils::ulong_to_base(reinterpret_cast<uint64_t>(this), "0123456789abcdef") + "]"));
-      boost::archive::binary_iarchive ia(file);
-      ia & *this;
+      ASSERT(file);
+      try
+      {
+        boost::archive::binary_iarchive ia(file);
+        Dout(dc::always|flush_cf, "CALLING ia & *this");
+        ia & *this;
+      }
+      catch (boost::archive::archive_exception const& error)
+      {
+        Dout(dc::warning, "Caught boost::archive::archive_exception \"" << error.what() << "\" while trying to load " << get_filename() << ". Removing.");
+        std::error_code ec;
+        int exists = std::filesystem::remove(get_filename(), ec);
+        if (ec)
+          THROW_ALERTC(ec, "Failed to load (invalid?) pipeline cache file [FILENAME] ([ARERR]) and then failed to remove that file! Please remove it yourself",
+              AIArgs("[FILENAME]", get_filename())("[ARERR]", error.what()));
+        // Paranoia check: we should never get in state PipelineCache_load_from_disk when it doesn't exist?!
+        ASSERT(exists);
+        yield();        // Must yield to avoid an assert because PipelineCache_initialize did fallthrough to this state.
+        set_state(PipelineCache_initialize);
+        break;
+      }
       set_state(PipelineCache_ready);
       [[fallthrough]];
     }
     case PipelineCache_ready:
-      finish();
+      // Paranoia check: ready means we have a pipeline cache.
+      ASSERT(m_pipeline_cache);
+      m_owning_factory->signal(PipelineFactory::pipeline_cache_set_up);
+      set_state(PipelineCache_factory_finished);
+      wait(factory_finished);
       break;
+    case PipelineCache_factory_finished:
+      if (!m_is_merger)
+      {
+        break;
+      }
+      // FIXME: right now we don't merge - so we're done.
+      set_state(PipelineCache_save_to_disk);
+      [[fallthrough]];
     case PipelineCache_save_to_disk:
     {
-      std::ofstream file(get_filename());
-      boost::archive::binary_oarchive oa(file);
-      oa & *this;
+      if (m_pipeline_cache)     // Should always be true - but see ASSERT in PipelineCache::save.
+      {
+        std::ofstream file(get_filename());
+        boost::archive::binary_oarchive oa(file);
+        oa & *this;
+      }
+      else
+        Dout(dc::warning, "Not saving pipeline cache because m_pipeline_cache is nul?!");
       set_state(PipelineCache_done);
       [[fallthrough]];
     }
@@ -99,6 +143,7 @@ void PipelineCache::clear_cache()
 
 void PipelineCache::load(boost::archive::binary_iarchive& archive, unsigned int const version)
 {
+  DoutEntering(dc::vulkan, "PipelineCache::load(archive, " << version << ") [" << this << "]");
   size_t size;
   archive & size;
   void* tmp_storage = std::aligned_alloc(
@@ -107,28 +152,36 @@ void PipelineCache::load(boost::archive::binary_iarchive& archive, unsigned int 
   archive & make_nvp("pipeline_cache", boost::serialization::make_binary_object(tmp_storage, size));
   vk::PipelineCacheHeaderVersionOne const* header = static_cast<vk::PipelineCacheHeaderVersionOne const*>(tmp_storage);
   Dout(dc::vulkan, "Read " << size << " bytes from pipeline cache, with header: " << *header);
+  vulkan::LogicalDevice const& device(m_owning_factory->owning_window()->logical_device());
   vk::PipelineCacheCreateInfo pipeline_cache_create_info = {
-    .flags = m_logical_device->supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
+    .flags = device.supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
     .initialDataSize = size,
     .pInitialData = tmp_storage
   };
-  m_pipeline_cache = m_logical_device->create_pipeline_cache(pipeline_cache_create_info
-      COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_load_ambifix));
+  m_pipeline_cache = device.create_pipeline_cache(pipeline_cache_create_info
+      COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
   free(tmp_storage);
 }
 
 void PipelineCache::save(boost::archive::binary_oarchive& archive, unsigned int const version) const
 {
+  DoutEntering(dc::vulkan, "PipelineCache::save(archive, " << version << ") [" << this << "]");
   size_t size;
   vk::PipelineCache pipeline_cache = *m_pipeline_cache;
-  // This can happen when the cache was cleared with clear_cache().
+  // Don't call `oa & *this` (state PipelineCache_save_to_disk) when we don't have a handle:
+  // that would truncate the cache file since we can't write to it and worse, make it unloadable.
+  // This assert is put before the throw because it is a program error and should be fixed before a Release.
+  ASSERT(pipeline_cache);
+  // However - a release doesn't have asserts. In this case I want to do something better than just crash
+  // below; if this inadvertently would still happen.
   if (!pipeline_cache)
-    return;
-  size = m_logical_device->get_pipeline_cache_size(pipeline_cache);
+    THROW_FALERT("The pipeline cache handle is nul.");
+  vulkan::LogicalDevice const& device(m_owning_factory->owning_window()->logical_device());
+  size = device.get_pipeline_cache_size(pipeline_cache);
   void* tmp_storage = std::aligned_alloc(
       alignof(vk::PipelineCacheHeaderVersionOne),
       utils::nearest_multiple_of_power_of_two(size, alignof(vk::PipelineCacheHeaderVersionOne)));
-  m_logical_device->get_pipeline_cache_data(pipeline_cache, size, tmp_storage);
+  device.get_pipeline_cache_data(pipeline_cache, size, tmp_storage);
   archive & size;
   archive & make_nvp("pipeline_cache", boost::serialization::make_binary_object(tmp_storage, size));
   vk::PipelineCacheHeaderVersionOne const* header = static_cast<vk::PipelineCacheHeaderVersionOne const*>(tmp_storage);

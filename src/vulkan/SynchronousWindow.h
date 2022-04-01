@@ -420,15 +420,29 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   void detect_if_imgui_is_used();
 
+//  std::filesystem::path pipeline_cache_path() const;
+
+ public:
+  // The same type as the type defined in vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex,
+  // task::PipelineFactory, task::SynchronousWindow and vulkan::Application with the same name.
+  using PipelineFactoryIndex = task::PipelineFactory::PipelineFactoryIndex;
+
  protected:
   utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
+  utils::Vector<utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index>, PipelineFactoryIndex> m_pipelines;
 
   // Called from create_graphics_pipelines of derived class.
   vulkan::pipeline::FactoryHandle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
 
+  // Return the vulkan handle of this pipeline.
+  vk::Pipeline vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const;
+
  public:
-  // The same type as the type defined vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex, task::PipelineFactory and vulkan::Application with the same name.
-  using PipelineFactoryIndex = task::PipelineFactory::PipelineFactoryIndex;
+  void have_new_pipeline(vulkan::pipeline::Handle pipeline_handle, vk::UniquePipeline&& pipeline);
+
+  // Called by state MoveNewPipelines_done.
+  void pipeline_factory_done(utils::Badge<synchronous::MoveNewPipelines>, PipelineFactoryIndex index);
+
   // Called by vulkan::pipeline::FactoryHandle::generate.
   inline task::PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
 

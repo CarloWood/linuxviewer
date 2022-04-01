@@ -58,6 +58,7 @@ class CharacteristicRange : public AIRefCount
   index_type iend() const { return m_end; }
 
   virtual void initialize(FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) = 0;
+  virtual void synchronous_initialize(task::SynchronousWindow* owning_window) = 0;
   virtual void fill(FlatCreateInfo& flat_create_info, index_type index) const = 0;
 
   // An Index is constructed by setting it to zero and then calling this function

@@ -1,11 +1,11 @@
 A `vk::Pipeline` is created by a call to `vulkan::LogicalDevice::create_graphics_pipeline` which returns a `vk::UniquePipeline`.
 This library stores the `vk::UniquePipeline` in the `utils::Vector`: `task::PipelineFactory::m_graphics_pipelines` by `vulkan::pipeline::Index`.
-Such index therefore only specifies a pipeline uniquely together with its `task::PipelineFactory`.
+Such an index therefore only specifies a pipeline uniquely together with its `task::PipelineFactory`.
 
 The `task::PipelineFactory` objects in turn are stored in the `utils::Vector`: `task::SynchronousWindow::m_pipeline_factories` by `PipelineFactoryIndex`.
-[ The latter is defined in four places: `vulkan::pipeline::FactoryHandle::PipelineFactoryIndex`, `vulkan::pipeline::Handle::PipelineFactoryIndex`,
-`task::PipelineFactory::PipelineFactoryIndex` and `vulkan::Application::PipelineFactoryIndex`. ]
-Such index therefore only specifies a pipeline factory uniquely together with its `task::SynchronousWindow`.
+[ The latter is defined in five places: `vulkan::pipeline::FactoryHandle::PipelineFactoryIndex`, `vulkan::pipeline::Handle::PipelineFactoryIndex`,
+`task::PipelineFactory::PipelineFactoryIndex`, `task::SynchronousWindow` and `vulkan::Application::PipelineFactoryIndex`. ]
+Such an index therefore only specifies a pipeline factory uniquely together with its `task::SynchronousWindow`.
 
 The class `vulkan::pipeline::Handle` wraps both indices: `PipelineFactoryIndex` and `vulkan::pipeline::Index` and therefore uniquely identifies a pipeline
 when also given the owning `task::SynchronousWindow`.
@@ -87,7 +87,7 @@ of the range index.
 Adding multiple characteristic ranges results in a product: if one characteristic has a range of size
 N and another has a range of size M then N times M pipelines will be created.
 
-Every time a new pipeline is create a synchronous call happens (that is, from the render loop,
+Every time a new pipeline is created a synchronous call happens (that is, from the render loop,
 before a new frame is drawn) to a member function
 
 ```c
@@ -96,16 +96,10 @@ void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override;
 
 of the `MyWindow` user class that is derived from `task::SynchronousWindow`.
 
-In this function the corresponding `task::PipelineFactory` can be retrieved with
+In this function the pipeline handle can be retrieved with with
 
 ```c
-boost::intrusive_ptr<task::PipelineFactory> const& pipeline_factory = m_pipeline_factories[pipeline_handle.m_pipeline_factory_index];
-```
-
-and the pipeline handle with
-
-```c
-vk::Pipeline vh_pipeline = pipeline_factory->vh_pipeline(pipeline_handle.m_pipeline_index);
+vk::Pipeline vh_pipeline = vh_graphics_pipeline(pipeline_handle);
 ```
 
 Threading
@@ -116,10 +110,35 @@ Each created `task::PipelineFactory` is a task - and thus is run by one thread a
 Each `task::PipelineFactory` has a member
 
 ```c
-boost::intrusive_ptr<task::PipelineCache const> m_pipeline_cache_task;
+boost::intrusive_ptr<task::PipelineCache> m_pipeline_cache_task;
 ```
 
 that points to a `task::PipelineCache` object wrapping a `vk::UniquePipelineCache`. There is exactly one `task::PipelineCache` (and thus pipeline cache)
 per unique `vulkan::pipeline::CacheData`, which means - one per `task::PipelineFactory`. In other words, each pipeline factory has its own pipeline
 cache object, which allows them to run concurrently.
+
+Pipeline creation
+=================
+
+This paragraph is about the internal workings.
+
+Pipelines are created in the state `PipelineFactory_generate` with a call to `vulkan::LogicalDevice::create_graphics_pipeline`.
+The resulting `vk::UniquePipeline` is passed to the `task::synchronous::MoveNewPipelines` of the pipeline factory by calling
+
+```c
+m_move_new_pipelines_synchronously->have_new_datum(synchronous::MoveNewPipelines::Datum{{m_pipeline_factory_index , pipeline_index}, std::move(pipeline)});
+```
+
+where `pipeline_index` is a `vulkan::pipeline::Index` unique for the given factory for this pipeline.
+The function moves the pipeline into a threadsafe deque and wakes up the synchronous `MoveNewPipelines` task.
+
+In the state `MoveNewPipelines_need_action` the passed pipeline is moved out of the deque
+and then passed synchronously to the `SynchronousWindow` with the call
+
+```c
+flush_new_data([this](Datum&& datum){ owning_window()->have_new_pipeline(datum.first, std::move(datum.second)); });
+```
+
+This function, `SynchronousWindow::have_new_pipeline` moves the pipeline into `SynchronousWindow::m_pipelines`,
+and then calls the virtual function `new_pipeline(handle)`.
 

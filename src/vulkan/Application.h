@@ -6,12 +6,12 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
+#include "pipeline/PipelineCache.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
-#include "pipeline/CacheBrokerKey.h"
 #include "utils/threading/Gate.h"
 #include "utils/DequeMemoryResource.h"
 #include "utils/Vector.h"
@@ -48,7 +48,6 @@ class Application
   // The same types as used in SynchronousWindow.
   using window_cookie_type = QueueReply::window_cookies_type;
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
-  using pipeline_cache_broker_type = task::Broker<task::PipelineCache>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
   // Set up the thread pool for the application.
@@ -120,12 +119,20 @@ class Application
 
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
 
-  // A task that hands out pipeline cache tasks.
-  boost::intrusive_ptr<pipeline_cache_broker_type> m_pipeline_cache_broker;
-
  private:
   static Application* s_instance;                       // There can only be one instance of Application. Allow global access.
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
+
+  // We have one of these for each pipeline cache filename.
+  struct PipelineCacheMerger
+  {
+    boost::intrusive_ptr<task::PipelineCache> merged_pipeline_cache;    // The pipeline cache to merge into and finally write to disk.
+    std::vector<task::SynchronousWindow const*> window_list;            // A list of all windows that use the same pipeline cache filename.
+  };
+
+  using pipeline_factory_list_container_t = std::map<std::u8string, PipelineCacheMerger>;
+  using pipeline_factory_list_t = aithreadsafe::Wrapper<pipeline_factory_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  pipeline_factory_list_t m_pipeline_factory_list;
 
  private:
   friend class task::SynchronousWindow;
@@ -133,7 +140,6 @@ class Application
   void remove(task::SynchronousWindow* window_task);
   void copy_graphics_settings_to(vulkan::GraphicsSettingsPOD* target, LogicalDevice const* logical_device) const;
   void synchronize_graphics_settings() const;           // Call this after changing m_graphics_settings, to synchronize it with the SynchronousWindow objects.
-  void flush_pipeline_caches();                         // Write pipeline caches to disk and free memory resources.
 
   // Counts the number of `boost::intrusive_ptr<Application>` objects.
   // When the last one such object is destructed, the application is terminated.
@@ -180,6 +186,10 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+  AIQueueHandle high_priority_queue() const { return m_high_priority_queue; }
+  AIQueueHandle medium_priority_queue() const { return m_medium_priority_queue; }
+  AIQueueHandle low_priority_queue() const { return m_low_priority_queue; }
 
   std::filesystem::path path_of(Directory directory) const
   {
@@ -254,11 +264,10 @@ class Application
       synchronize_graphics_settings();
   }
 
-  // Accessor.
-  boost::intrusive_ptr<pipeline_cache_broker_type> const& pipeline_cache_broker() const { return m_pipeline_cache_broker; }
-
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);
+  // Called by SynchronousWindow::pipeline_factory_done.
+  void pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache);
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).
