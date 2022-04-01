@@ -50,7 +50,13 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
 
   Vector2f xy;                  // Integer coordinates x,y.
 
+ public:
+  // Constructor. Start with the square in the upper-left corner.
+  HeavyRectangle() : xy(0.f, 0.f) {}
+
+ private:
   // Convert xy to one of the six corners of the two triangles.
+  // Here `vertex` runs from 0 till batch_size ([0, batch_size>).
   auto position_at(int vertex)
   {
     glsl::vec4 position;
@@ -58,6 +64,8 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
     return position;
   }
 
+  // Convert xy to one of the four corners of the current square.
+  // Here `vertex` runs from 0 till batch_size ([0, batch_size>).
   auto texture_coordinates_at(int vertex)
   {
     glsl::vec2 coords;
@@ -65,16 +73,19 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
     return coords;
   }
 
+  // Returns the number of vertices.
   int count() const override
   {
     return batch_size * iside * iside;
   }
 
+  // Returns the number of vertices that a single call to create_entry produce.
   int next_batch() const override
   {
     return batch_size;
   }
 
+  // Fill the next batch_size VertexData objects.
   void create_entry(VertexData* input_entry_ptr) override
   {
     for (int vertex = 0; vertex < batch_size; ++vertex)
@@ -86,7 +97,4 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
     // Advance to the next square.
     if (++xy.x() == iside) { xy.x() = 0; ++xy.y(); }
   }
-
- public:
-  HeavyRectangle() : xy(0.f, 0.f) {}
 };

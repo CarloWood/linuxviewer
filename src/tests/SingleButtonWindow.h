@@ -88,6 +88,12 @@ class SingleButtonWindow : public task::SynchronousWindow
     finish_frame();
   }
 
+  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
+  {
+    // We don't even have our own pipeline.
+    ASSERT(false);
+  }
+
   //===========================================================================
   //
   // ImGui
@@ -119,5 +125,3 @@ class SingleButtonWindow : public task::SynchronousWindow
 #endif
   }
 };
-
-
