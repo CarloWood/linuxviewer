@@ -4,6 +4,8 @@
 #include <type_traits>
 #include <concepts>
 
+class AIStatefulTask;
+
 namespace task {
 class SynchronousWindow;
 class PipelineFactory;
@@ -39,5 +41,8 @@ concept ConceptUniqueVulkanHandle = is_unique_handle<T>::value;
 
 template<typename T>
 concept ConceptPipelineCharacteristic = std::is_base_of_v<pipeline::CharacteristicRange, T>;
+
+template<typename T>
+concept ConceptStatefulTask = std::is_base_of_v<AIStatefulTask, T>;
 
 } // namespace vulkan

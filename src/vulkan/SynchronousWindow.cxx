@@ -1141,6 +1141,16 @@ vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
 }
 
 //virtual
+// Override this function to change this value.
+std::u8string SynchronousWindow::pipeline_cache_name() const
+{
+  // set_title must already be called here (and may not be empty).
+  ASSERT(!m_title.empty());
+  // The default filename is the title of the window.
+  return m_title;
+}
+
+//virtual
 // Override this function to change these values.
 void SynchronousWindow::set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil)
 {
@@ -1222,7 +1232,7 @@ void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::Fram
 
 void SynchronousWindow::copy_graphics_settings()
 {
-  DoutEntering(dc::vulkan, "SynchronousWindow::copy_graphics_settings()");
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_graphics_settings() [" << this << "]");
   m_application->copy_graphics_settings_to(&m_graphics_settings, m_logical_device);
 }
 

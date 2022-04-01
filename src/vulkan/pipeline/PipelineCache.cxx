@@ -76,11 +76,6 @@ void PipelineCache::multiplex_impl(state_type run_state)
     case PipelineCache_ready:
       finish();
       break;
-#if 0
-      set_state(PipelineCache_save_to_disk);
-      wait(condition_flush_to_disk);
-      break;
-#endif
     case PipelineCache_save_to_disk:
     {
       std::ofstream file(get_filename());

@@ -482,6 +482,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
   virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;
 
+  // Override this function to give a Window its own (or shared) pipeline cache ID.
+  // Windows with the same pipeline_cache_name will share the same cache file.
+  virtual std::u8string pipeline_cache_name() const;
+
  protected:
   void start_frame();
   void submit(vulkan::CommandBufferWriteAccessType<vulkan::FrameResourcesData::pool_type>& command_buffer_w);

@@ -4,7 +4,6 @@
 #include "PipelineCache.h"
 #include "statefultask/BrokerKey.h"
 #include "utils/pointer_hash.h"
-#include <farmhash.h>
 
 namespace vulkan::pipeline {
 
