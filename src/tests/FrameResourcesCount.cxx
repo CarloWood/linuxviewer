@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
         {0, 0, 150, 50},
 #endif
         LogicalDevice::root_window_cookie1,
-        "Button");
+        u8"Button");
 #endif
 
     // Create a logical device that supports presenting to root_window1.

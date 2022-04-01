@@ -13,6 +13,7 @@
 #include "debug/DebugSetName.h"
 #include "vulkan/vk_format_utils.h"
 #include "utils/cpu_relax.h"
+#include "utils/u8string_to_filename.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
@@ -144,7 +145,7 @@ void SynchronousWindow::initialize_impl()
 struct RenderLoopEntered
 {
   debug::Mark m_mark;
-  RenderLoopEntered(char const* utf8_m) : m_mark(utf8_m)
+  RenderLoopEntered(char8_t const* utf8_m) : m_mark(utf8_m)
   {
     Dout(dc::renderloop, "ENTERING RENDERLOOP");
   }

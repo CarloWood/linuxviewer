@@ -127,7 +127,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
                                                                           // SynchronousWindow_logical_device_index_available.
  private:
   // set_title
-  std::string m_title;
+  std::u8string m_title;                                                  // UTF8 encoded window title.
   // set_offset
   vk::Offset2D m_offset;                                                  // Initial position of the top-left corner of the window, relative to the parent window.
   // set_logical_device_task
@@ -255,7 +255,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Called from Application::create_window.
   template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
-  void set_title(std::string&& title) { m_title = std::move(title); }
+  void set_title(std::u8string&& title) { m_title = std::move(title); }
   void set_offset(vk::Offset2D offset) { m_offset = offset; }
   void set_window_cookie(window_cookie_type window_cookie) { m_window_cookie = window_cookie; }
   void set_logical_device_task(LogicalDevice const* logical_device_task) { m_logical_device_task = logical_device_task; }
@@ -321,7 +321,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Rect2D geometry,
       task::SynchronousWindow::window_cookie_type window_cookie,
-      std::string&& title = {}) const;
+      std::u8string&& title = {}) const;
 
   // Called from LogicalDevice_create.
   void cache_logical_device() { m_logical_device = get_logical_device(); }
@@ -548,7 +548,7 @@ void SynchronousWindow::create_child_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
     vk::Rect2D geometry,
     task::SynchronousWindow::window_cookie_type window_cookie,
-    std::string&& title) const
+    std::u8string&& title) const
 {
   auto child_window = m_application->create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(
       std::move(window_constructor_args), geometry, window_cookie, std::move(title),

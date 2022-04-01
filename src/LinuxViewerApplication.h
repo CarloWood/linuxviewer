@@ -15,9 +15,9 @@ class LinuxViewerApplication : public vulkan::Application
   }
 
  public:
-  std::string application_name() const override
+  std::u8string application_name() const override
   {
-    return "LinuxViewerApplication";
+    return u8"LinuxViewerApplication";
   }
 
   void quit()

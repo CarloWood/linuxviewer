@@ -125,9 +125,9 @@ void Application::parse_command_line_parameters(int argc, char* argv[])
 }
 
 //virtual
-std::string Application::application_name() const
+std::u8string Application::application_name() const
 {
-  return vk_defaults::ApplicationInfo::default_application_name;
+  return reinterpret_cast<char8_t const*>(vk_defaults::ApplicationInfo::default_application_name);
 }
 
 //virtual

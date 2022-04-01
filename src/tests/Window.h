@@ -553,7 +553,7 @@ else {
     m_imgui_stats_window.draw(io, m_timer);
 
     ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
-    ImGui::Begin(application().application_name().c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin(reinterpret_cast<char const*>(application().application_name().c_str()), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
     ImGui::Text("%s", hardware_name.c_str());
     ImGui::NewLine();

@@ -15,7 +15,7 @@ Window::~Window()
   destroy();
 }
 
-vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::string_view const& title, vk::Rect2D geometry, Window const* parent_window)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::u8string_view const& title, vk::Rect2D geometry, Window const* parent_window)
 {
   DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(vh_instance, \"" << title << "\", " << geometry << ", " << parent_window << ") [" << this << "]");
 
