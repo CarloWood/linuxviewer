@@ -1285,9 +1285,32 @@ vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vk::P
   auto factory = statefultask::create<PipelineFactory>(this, vh_pipeline_layout, vh_render_pass COMMA_CWDEBUG_ONLY(debug));
   auto const index = m_pipeline_factories.iend();
   m_pipeline_factories.push_back(std::move(factory));           // Now m_pipeline_factories[index] == factory.
+  m_pipelines.emplace_back();
   m_application->run_pipeline_factory(m_pipeline_factories[index], this, index);
   m_pipeline_factories[index]->set_index(index);
   return index;
+}
+
+void SynchronousWindow::have_new_pipeline(vulkan::pipeline::Handle pipeline_handle, vk::UniquePipeline&& pipeline)
+{
+  auto& factory_pipelines = m_pipelines[pipeline_handle.m_pipeline_factory_index];
+  if (factory_pipelines.iend() <= pipeline_handle.m_pipeline_index)
+    factory_pipelines.resize(pipeline_handle.m_pipeline_index.get_value() + 1);
+  factory_pipelines[pipeline_handle.m_pipeline_index] = std::move(pipeline);
+  new_pipeline(pipeline_handle);
+}
+
+vk::Pipeline SynchronousWindow::vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const
+{
+  return *m_pipelines[pipeline_handle.m_pipeline_factory_index][pipeline_handle.m_pipeline_index];
+}
+
+void SynchronousWindow::pipeline_factory_done(utils::Badge<synchronous::MoveNewPipelines>, PipelineFactoryIndex index)
+{
+  DoutEntering(dc::notice, "SynchronousWindow::pipeline_factory_done(" << index << ")");
+  boost::intrusive_ptr<PipelineCache> pipeline_cache(m_pipeline_factories[index]->detach_pipeline_cache());
+  m_pipeline_factories[index].reset();          // Delete the pipeline factory task.
+  m_application->pipeline_factory_done(this, std::move(pipeline_cache));
 }
 
 #ifdef CWDEBUG

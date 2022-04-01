@@ -349,8 +349,55 @@ void Application::run()
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)
 {
+  // Remember that this factory is running.
+  {
+    pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
+    pipeline_factory_list_w->operator[](window->pipeline_cache_name()).window_list.push_back(window);
+  }
   factory->set_pipeline_cache_broker(m_pipeline_cache_broker);
   factory->run(m_medium_priority_queue);
+}
+
+void Application::pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache)
+{
+  std::u8string const pipeline_cache_name = window->pipeline_cache_name();
+  pipeline_factory_list_container_t::iterator pipeline_cache_merger_iter;
+  boost::intrusive_ptr<task::PipelineCache> merged_pipeline_cache;
+  // A factory stopped running.
+  bool first_factory = false;
+  {
+    pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
+    pipeline_cache_merger_iter = pipeline_factory_list_w->find(pipeline_cache_name);
+    // Paranoia check: it was added before in Application::run_pipeline_factory.
+    ASSERT(pipeline_cache_merger_iter != pipeline_factory_list_w->end());
+    // Use a reference to the merger instead of the iterator for convenience.
+    PipelineCacheMerger& pipeline_cache_merger = pipeline_cache_merger_iter->second;
+    // Find a matching window pointer in the list, note that for each factory of the same window, the window was added multiple times.
+    auto& windows_with_pipeline_cache_name = pipeline_cache_merger.window_list;
+    auto iter = std::find(windows_with_pipeline_cache_name.begin(), windows_with_pipeline_cache_name.end(), window);
+    // Idem.
+    ASSERT(iter != windows_with_pipeline_cache_name.end());
+    // Was this the first factory?
+    first_factory = !pipeline_cache_merger.merged_pipeline_cache;
+    if (first_factory)
+      // If this is the first time a factory finished - then just copy its task::PipelineCache to the PipelineCacheMerger.
+      pipeline_cache_merger.merged_pipeline_cache = std::move(pipeline_cache);
+    else
+    {
+//      pipeline_cache_merger.merged_pipeline_cache->add_new_pipeline_cache(std::move(pipeline_cache));
+    }
+    // Was this the last window?
+    windows_with_pipeline_cache_name.erase(iter);
+    if (windows_with_pipeline_cache_name.empty())
+      merged_pipeline_cache = std::move(pipeline_cache_merger.merged_pipeline_cache);
+  }
+  if (merged_pipeline_cache)
+  {
+    Dout(dc::notice, "That was the last factory with name " << pipeline_cache_name << ".");
+    // We merged all pipeline caches. Now make it write to disk.
+    ASSERT(merged_pipeline_cache->running());
+    merged_pipeline_cache->set_producer_finished();
+  }
 }
 
 } // namespace vulkan

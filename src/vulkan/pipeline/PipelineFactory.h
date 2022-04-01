@@ -21,7 +21,8 @@ class CharacteristicRange;
 namespace task {
 
 namespace synchronous {
-class PipelineFactoryWatcher;
+class MoveNewPipelines;
+class CreateVertexBuffers;
 } // namespace synchronous
 
 class PipelineFactory : public AIStatefulTask
@@ -45,13 +46,12 @@ class PipelineFactory : public AIStatefulTask
 
   // run
   // State PipelineFactory_start.
-  boost::intrusive_ptr<PipelineCache const> m_pipeline_cache_task;
+  boost::intrusive_ptr<PipelineCache> m_pipeline_cache_task;
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   MultiLoop m_range_counters;
-  boost::intrusive_ptr<synchronous::PipelineFactoryWatcher> m_finished_watcher;         // This task just waits - synchronously - until the PipelineFactory finished.
-  // State PipelineFactory_generate.
-  utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index> m_graphics_pipelines;
+  boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
+  boost::intrusive_ptr<synchronous::CreateVertexBuffers> m_create_vertex_buffers_synchronously;
   // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
   PipelineFactoryIndex m_pipeline_factory_index;
 
@@ -85,7 +85,8 @@ class PipelineFactory : public AIStatefulTask
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
 
-  vk::Pipeline vh_pipeline(vulkan::pipeline::Index pipeline_index) const { return *m_graphics_pipelines[pipeline_index]; }
+  // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
+  boost::intrusive_ptr<PipelineCache> detach_pipeline_cache() { return std::move(m_pipeline_cache_task); }
 };
 
 } // namespace task

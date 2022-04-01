@@ -1,116 +1,151 @@
 #include "sys.h"
 #include "PipelineFactory.h"
 #include "Handle.h"
+#include "CacheBrokerKey.h"
 #include "SynchronousWindow.h"
-#include "pipeline/CacheBrokerKey.h"
+#include "vk_utils/TaskToTaskDeque.h"
 #include "threadsafe/aithreadsafe.h"
 
 namespace task {
 
 namespace synchronous {
 
-class PipelineFactoryWatcher : public SynchronousTask
+// Task used to synchronously move newly created pipelines to the SynchronousWindow.
+class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask, std::pair<vulkan::pipeline::Handle, vk::UniquePipeline>>
 {
- public:
-  static constexpr condition_type need_action = 1;
-
  private:
-  using container_type = std::deque<vulkan::pipeline::Handle>;
-  using new_pipelines_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
-  new_pipelines_type m_new_pipelines;
-  std::atomic_bool m_parent_finished = false;
+  SynchronousWindow::PipelineFactoryIndex m_factory_index;      // Index of the owning factory. There is a one-on-one relationship between PipelineFactory's and MoveNewPipelines's.
 
  protected:
-  /// The base class of this task.
-  using direct_base_type = SynchronousTask;
-
   /// The different states of the stateful task.
-  enum delayed_destroyer_task_state_type {
-    PipelineFactoryWatcher_start = direct_base_type::state_end,
-    PipelineFactoryWatcher_need_action,
-    PipelineFactoryWatcher_done
+  enum move_new_pipelines_task_state_type {
+    MoveNewPipelines_start = direct_base_type::state_end,
+    MoveNewPipelines_need_action,
+    MoveNewPipelines_done
   };
 
  public:
   /// One beyond the largest state of this task.
-  static constexpr state_type state_end = PipelineFactoryWatcher_done + 1;
+  static constexpr state_type state_end = MoveNewPipelines_done + 1;
 
  public:
-  PipelineFactoryWatcher(SynchronousWindow* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-    SynchronousTask(owning_window COMMA_CWDEBUG_ONLY(debug))
+  MoveNewPipelines(SynchronousWindow* owning_window, SynchronousWindow::PipelineFactoryIndex factory_index COMMA_CWDEBUG_ONLY(bool debug)) :
+    direct_base_type(owning_window COMMA_CWDEBUG_ONLY(debug)), m_factory_index(factory_index)
   {
-    DoutEntering(dc::vulkan, "PipelineFactoryWatcher::PipelineFactoryWatcher(" << owning_window << ") [" << this << "]")
+    DoutEntering(dc::vulkan, "MoveNewPipelines::MoveNewPipelines(" << owning_window << ", " << factory_index << ") [" << this << "]")
   }
-
-  void have_new_pipeline(vulkan::pipeline::Handle pipeline_handle);
-  void terminate();
 
  protected:
   /// Call finish() (or abort()), not delete.
-  ~PipelineFactoryWatcher() override
+  ~MoveNewPipelines() override
   {
-    DoutEntering(dc::vulkan, "PipelineFactoryWatcher::~PipelineFactoryWatcher() [" << this << "]");
+    DoutEntering(dc::vulkan, "MoveNewPipelines::~MoveNewPipelines() [" << this << "]");
   }
 
   /// Implemenation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
 
   /// Handle mRunState.
-  void multiplex_impl(state_type run_state) override final;
+  void multiplex_impl(state_type run_state) override;
 };
 
-void PipelineFactoryWatcher::have_new_pipeline(vulkan::pipeline::Handle pipeline_handle)
-{
-  new_pipelines_type::wat(m_new_pipelines)->push_back(pipeline_handle);
-  signal(synchronous::PipelineFactoryWatcher::need_action);
-}
-
-void PipelineFactoryWatcher::terminate()
-{
-  m_parent_finished = true;
-  signal(synchronous::PipelineFactoryWatcher::need_action);
-}
-
-char const* PipelineFactoryWatcher::state_str_impl(state_type run_state) const
+char const* MoveNewPipelines::state_str_impl(state_type run_state) const
 {
   switch (run_state)
   {
-    AI_CASE_RETURN(PipelineFactoryWatcher_start);
-    AI_CASE_RETURN(PipelineFactoryWatcher_need_action);
-    AI_CASE_RETURN(PipelineFactoryWatcher_done);
+    AI_CASE_RETURN(MoveNewPipelines_start);
+    AI_CASE_RETURN(MoveNewPipelines_need_action);
+    AI_CASE_RETURN(MoveNewPipelines_done);
   }
   AI_NEVER_REACHED
 }
 
-void PipelineFactoryWatcher::multiplex_impl(state_type run_state)
+void MoveNewPipelines::multiplex_impl(state_type run_state)
 {
   switch (run_state)
   {
-    case PipelineFactoryWatcher_start:
-      set_state(PipelineFactoryWatcher_need_action);
+    case MoveNewPipelines_start:
+      set_state(MoveNewPipelines_need_action);
       wait(need_action);
       break;
-    case PipelineFactoryWatcher_need_action:
-      for (;;)
-      {
-        vulkan::pipeline::Handle pipeline_handle;
-        {
-          new_pipelines_type::wat new_pipelines_w(m_new_pipelines);
-          if (new_pipelines_w->empty())
-            break;
-          pipeline_handle = new_pipelines_w->front();
-          new_pipelines_w->pop_front();
-        }
-        owning_window()->new_pipeline(pipeline_handle);
-      }
-      if (!m_parent_finished)
-      {
-        wait(need_action);
+    case MoveNewPipelines_need_action:
+      // Flush all newly created pipelines (if any) from the m_new_pipelines deque,
+      // passing them one by one to SynchronousWindow::have_new_pipeline.
+      flush_new_data([this](Datum&& datum){ owning_window()->have_new_pipeline(datum.first, std::move(datum.second)); });
+      if (producer_not_finished())
         break;
-      }
-      set_state(PipelineFactoryWatcher_done);
+      set_state(MoveNewPipelines_done);
       [[fallthrough]];
-    case PipelineFactoryWatcher_done:
+    case MoveNewPipelines_done:
+      owning_window()->pipeline_factory_done({}, m_factory_index);
+      finish();
+      break;
+  }
+}
+
+// FIXME: This is a hack. Copying vertex buffers need their own approach, so they can be done async.
+// Task used to synchronously create vertex buffers and copy them to the GPU.
+class CreateVertexBuffers final : public vk_utils::TaskToTaskDeque<SynchronousTask, boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>>
+{
+ protected:
+  /// The different states of the stateful task.
+  enum create_vertex_buffers_task_state_type {
+    CreateVertexBuffers_start = direct_base_type::state_end,
+    CreateVertexBuffers_need_action,
+    CreateVertexBuffers_done
+  };
+
+ public:
+  /// One beyond the largest state of this task.
+  static constexpr state_type state_end = CreateVertexBuffers_done + 1;
+
+ public:
+  CreateVertexBuffers(SynchronousWindow* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
+    direct_base_type(owning_window COMMA_CWDEBUG_ONLY(debug))
+  {
+    DoutEntering(dc::vulkan, "CreateVertexBuffers::CreateVertexBuffers(" << owning_window << ") [" << this << "]")
+  }
+
+ protected:
+  /// Call finish() (or abort()), not delete.
+  ~CreateVertexBuffers() override
+  {
+    DoutEntering(dc::vulkan, "CreateVertexBuffers::~CreateVertexBuffers() [" << this << "]");
+  }
+
+  /// Implemenation of state_str for run states.
+  char const* state_str_impl(state_type run_state) const override;
+
+  /// Handle mRunState.
+  void multiplex_impl(state_type run_state) override;
+};
+
+char const* CreateVertexBuffers::state_str_impl(state_type run_state) const
+{
+  switch (run_state)
+  {
+    AI_CASE_RETURN(CreateVertexBuffers_start);
+    AI_CASE_RETURN(CreateVertexBuffers_need_action);
+    AI_CASE_RETURN(CreateVertexBuffers_done);
+  }
+  AI_NEVER_REACHED
+}
+
+void CreateVertexBuffers::multiplex_impl(state_type run_state)
+{
+  switch (run_state)
+  {
+    case CreateVertexBuffers_start:
+      set_state(CreateVertexBuffers_need_action);
+      wait(need_action);
+      break;
+    case CreateVertexBuffers_need_action:
+      flush_new_data([this](Datum&& datum){ datum->synchronous_initialize(owning_window()); });
+      if (producer_not_finished())
+        break;
+      set_state(CreateVertexBuffers_done);
+      [[fallthrough]];
+    case CreateVertexBuffers_done:
       finish();
       break;
   }
@@ -170,15 +205,18 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       break;
     }
     case PipelineFactory_initialize:
+      // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
+      m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
+      m_move_new_pipelines_synchronously->run();
+      // Start a synchronous task that will be run to create and copy vertex buffers.
+      m_create_vertex_buffers_synchronously = statefultask::create<synchronous::CreateVertexBuffers>(m_owning_window COMMA_CWDEBUG_ONLY(mSMDebug));
+      m_create_vertex_buffers_synchronously->run();
       // Wait until the user is done adding CharacteristicRange objects and called generate().
       set_state(PipelineFactory_initialized);
       wait(fully_initialized);
       break;
     case PipelineFactory_initialized:
     {
-      // Start a synchronous task that will be run when this task, that runs asynchronously, is finished.
-      m_finished_watcher = statefultask::create<synchronous::PipelineFactoryWatcher>(m_owning_window COMMA_CWDEBUG_ONLY(mSMDebug));
-      m_finished_watcher->run();
       // Do not use an empty factory - it makes no sense.
       ASSERT(!m_characteristics.empty());
       vulkan::pipeline::Index max_pipeline_index{0};
@@ -186,10 +224,12 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       for (int i = 0; i < m_characteristics.size(); ++i)
       {
         m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
+        // Inform the SynchronousWindow.
+        m_create_vertex_buffers_synchronously->have_new_datum(synchronous::CreateVertexBuffers::Datum{m_characteristics[i]});
         m_characteristics[i]->update(max_pipeline_index, m_characteristics[i]->iend() - 1);
       }
       // max_pipeline_index is now equal to the maximum value that a pipeline_index can be.
-      m_graphics_pipelines.resize(max_pipeline_index.get_value() + 1);
+//FIXME: is max_pipeline_index still needed?      m_graphics_pipelines.resize(max_pipeline_index.get_value() + 1);
 
       // Start as many for loops as there are characteristics.
       m_range_counters.initialize(m_characteristics.size(), m_characteristics[0]->ibegin());
@@ -271,11 +311,11 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 #endif
 
             // Create and then store the graphics pipeline.
-            m_graphics_pipelines[pipeline_index] = m_owning_window->logical_device().create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
+            vk::UniquePipeline pipeline = m_owning_window->logical_device().create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
                 COMMA_CWDEBUG_ONLY({ m_owning_window, "pipeline" }));
 
             // Inform the SynchronousWindow.
-            m_finished_watcher->have_new_pipeline({m_pipeline_factory_index , pipeline_index});
+            m_move_new_pipelines_synchronously->have_new_datum(synchronous::MoveNewPipelines::Datum{{m_pipeline_factory_index , pipeline_index}, std::move(pipeline)});
 
             // End of MultiLoop inner loop.
           }
@@ -295,7 +335,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       set_state(PipelineFactory_done);
       [[fallthrough]];
     case PipelineFactory_done:
-      m_finished_watcher->terminate();
+      m_create_vertex_buffers_synchronously->set_producer_finished();
+      m_move_new_pipelines_synchronously->set_producer_finished();
       finish();
       break;
   }

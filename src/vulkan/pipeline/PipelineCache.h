@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CacheData.h"
+#include "vk_utils/TaskToTaskDeque.h"
 #include "statefultask/AIStatefulTask.h"
 #include "threadsafe/aithreadsafe.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
@@ -15,9 +16,9 @@
 
 namespace task {
 
-class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
+class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, int>, public vulkan::pipeline::CacheData
 {
-  static constexpr condition_type condition_flush_to_disk = 1;
+  static constexpr condition_type condition_flush_to_disk = 2;
 
  private:
   vk::UniquePipelineCache m_pipeline_cache;
@@ -27,9 +28,6 @@ class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
 #endif
 
  protected:
-  // The base class of this task.
-  using direct_base_type = AIStatefulTask;
-
   // The different states of the stateful task.
   enum PipelineCache_state_type {
     PipelineCache_initialize = direct_base_type::state_end,
@@ -58,7 +56,7 @@ class PipelineCache : public AIStatefulTask, public vulkan::pipeline::CacheData
   void multiplex_impl(state_type run_state) override;
 
  public:
-  PipelineCache(CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)) { }
+  PipelineCache(CWDEBUG_ONLY(bool debug = false)) : direct_base_type(CWDEBUG_ONLY(debug)) { }
 
   std::filesystem::path get_filename() const;
 
