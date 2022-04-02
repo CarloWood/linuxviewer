@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "PipelineFactory.h"
 #include "Handle.h"
-#include "CacheBrokerKey.h"
 #include "SynchronousWindow.h"
 #include "vk_utils/TaskToTaskDeque.h"
 #include "threadsafe/aithreadsafe.h"
@@ -165,11 +164,6 @@ PipelineFactory::~PipelineFactory()
   DoutEntering(dc::statefultask(mSMDebug), "~PipelineFactory() [" << this << "]");
 }
 
-void PipelineFactory::set_pipeline_cache_broker(boost::intrusive_ptr<pipeline_cache_broker_type> broker)
-{
-  m_broker = std::move(broker);
-}
-
 void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
   m_characteristics.push_back(std::move(characteristic_range));
@@ -194,11 +188,11 @@ void PipelineFactory::multiplex_impl(state_type run_state)
   {
     case PipelineFactory_start:
     {
-      // Get the- or create a task::PipelineCache object that is associated with m_broker_key.
-      vulkan::pipeline::CacheBrokerKey broker_key;
-      broker_key.set_logical_device(&m_owning_window->logical_device());
-      broker_key.set_owning_factory(this);
-      m_pipeline_cache_task = m_broker->run(broker_key, [this](bool success){ Dout(dc::notice, "pipeline cache set up!"); signal(pipeline_cache_set_up); });
+      // Create our task::PipelineCache object.
+      m_pipeline_cache_task = statefultask::create<PipelineCache>(CWDEBUG_ONLY(mSMDebug));
+      m_pipeline_cache_task->set_logical_device(&m_owning_window->logical_device());
+      m_pipeline_cache_task->set_owning_factory(this);
+      m_pipeline_cache_task->run(this, pipeline_cache_set_up);
       // Wait until the pipeline cache is ready, then continue with PipelineFactory_initialize.
       set_state(PipelineFactory_initialize);
       wait(pipeline_cache_set_up);

@@ -198,10 +198,6 @@ void Application::initialize(int argc, char** argv)
   m_xcb_connection_broker = statefultask::create<xcb_connection_broker_type>(CWDEBUG_ONLY(false));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
 
-  // Start the pipeline cache broker.
-  m_pipeline_cache_broker = statefultask::create<pipeline_cache_broker_type>(CWDEBUG_ONLY(true));
-  m_pipeline_cache_broker->run(m_low_priority_queue);           // Idem.
-
   ApplicationInfo application_info;
   application_info.set_application_name(application_name());
   application_info.set_application_version(application_version());
@@ -340,7 +336,6 @@ void Application::run()
   }
 
   // Stop the broker tasks.
-  m_pipeline_cache_broker->terminate();
   m_xcb_connection_broker->terminate();
 
   // Application terminated cleanly.
@@ -354,7 +349,6 @@ void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactor
     pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
     pipeline_factory_list_w->operator[](window->pipeline_cache_name()).window_list.push_back(window);
   }
-  factory->set_pipeline_cache_broker(m_pipeline_cache_broker);
   factory->run(m_medium_priority_queue);
 }
 

@@ -23,9 +23,6 @@ class CacheData
                                                         // slowed down as a result of concurrent accesses to the cache.
   CacheData() = default;
 
-  // Used by CacheBrokerKey.
-  void initialize(task::PipelineCache& pipeline_cache) const;
-
   bool operator==(CacheData const& other) const
   {
     // These should already be set.

@@ -6,12 +6,12 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
+#include "pipeline/PipelineCache.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
-#include "pipeline/CacheBrokerKey.h"
 #include "utils/threading/Gate.h"
 #include "utils/DequeMemoryResource.h"
 #include "utils/Vector.h"
@@ -48,7 +48,6 @@ class Application
   // The same types as used in SynchronousWindow.
   using window_cookie_type = QueueReply::window_cookies_type;
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
-  using pipeline_cache_broker_type = task::Broker<task::PipelineCache>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
   // Set up the thread pool for the application.
@@ -119,9 +118,6 @@ class Application
   logical_device_list_t m_logical_device_list;
 
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
-
-  // A task that hands out pipeline cache tasks.
-  boost::intrusive_ptr<pipeline_cache_broker_type> m_pipeline_cache_broker;
 
  private:
   static Application* s_instance;                       // There can only be one instance of Application. Allow global access.
@@ -264,9 +260,6 @@ class Application
     if (GraphicsSettings::wat(m_graphics_settings)->set_max_anisotropy({}, max_anisotropy))
       synchronize_graphics_settings();
   }
-
-  // Accessor.
-  boost::intrusive_ptr<pipeline_cache_broker_type> const& pipeline_cache_broker() const { return m_pipeline_cache_broker; }
 
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);

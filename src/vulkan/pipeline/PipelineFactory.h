@@ -4,7 +4,6 @@
 #include "CharacteristicRange.h"
 #include "SynchronousTask.h"
 #include "statefultask/AIStatefulTask.h"
-#include "statefultask/Broker.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
@@ -28,7 +27,6 @@ class CreateVertexBuffers;
 class PipelineFactory : public AIStatefulTask
 {
  public:
-  using pipeline_cache_broker_type = task::Broker<PipelineCache>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
 
   static constexpr condition_type pipeline_cache_set_up = 1;
@@ -39,8 +37,6 @@ class PipelineFactory : public AIStatefulTask
   SynchronousWindow* m_owning_window;
   vk::PipelineLayout m_vh_pipeline_layout;
   vk::RenderPass m_vh_render_pass;
-  // set_pipeline_cache_broker
-  boost::intrusive_ptr<pipeline_cache_broker_type> m_broker;
   // add.
   std::vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>> m_characteristics;
 
@@ -80,7 +76,6 @@ class PipelineFactory : public AIStatefulTask
   PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
       COMMA_CWDEBUG_ONLY(bool debug = false));
 
-  void set_pipeline_cache_broker(boost::intrusive_ptr<pipeline_cache_broker_type> broker);
   void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
