@@ -76,6 +76,9 @@ class PipelineFactory : public AIStatefulTask
   PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
       COMMA_CWDEBUG_ONLY(bool debug = false));
 
+  // Accessor.
+  SynchronousWindow const* owning_window() const { return m_owning_window; }
+
   void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }

@@ -189,10 +189,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
     case PipelineFactory_start:
     {
       // Create our task::PipelineCache object.
-      m_pipeline_cache_task = statefultask::create<PipelineCache>(CWDEBUG_ONLY(mSMDebug));
-      m_pipeline_cache_task->set_logical_device(&m_owning_window->logical_device());
-      m_pipeline_cache_task->set_owning_factory(this);
-      m_pipeline_cache_task->run(this, pipeline_cache_set_up);
+      m_pipeline_cache_task = statefultask::create<PipelineCache>(this COMMA_CWDEBUG_ONLY(mSMDebug));
+      m_pipeline_cache_task->run(vulkan::Application::instance().low_priority_queue(), this, pipeline_cache_set_up);
       // Wait until the pipeline cache is ready, then continue with PipelineFactory_initialize.
       set_state(PipelineFactory_initialize);
       wait(pipeline_cache_set_up);

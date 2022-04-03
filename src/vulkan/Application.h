@@ -140,7 +140,6 @@ class Application
   void remove(task::SynchronousWindow* window_task);
   void copy_graphics_settings_to(vulkan::GraphicsSettingsPOD* target, LogicalDevice const* logical_device) const;
   void synchronize_graphics_settings() const;           // Call this after changing m_graphics_settings, to synchronize it with the SynchronousWindow objects.
-  void flush_pipeline_caches();                         // Write pipeline caches to disk and free memory resources.
 
   // Counts the number of `boost::intrusive_ptr<Application>` objects.
   // When the last one such object is destructed, the application is terminated.
@@ -187,6 +186,10 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+  AIQueueHandle high_priority_queue() const { return m_high_priority_queue; }
+  AIQueueHandle medium_priority_queue() const { return m_medium_priority_queue; }
+  AIQueueHandle low_priority_queue() const { return m_low_priority_queue; }
 
   std::filesystem::path path_of(Directory directory) const
   {
