@@ -3,7 +3,7 @@
 #include "SynchronousTask.h"
 #include <vulkan/vulkan.hpp>
 
-namespace task {
+namespace task::synchronous {
 
 class DelayedDestroyer : public SynchronousTask
 {
@@ -50,4 +50,4 @@ class DelayedDestroyer : public SynchronousTask
   void multiplex_impl(state_type run_state) override final;
 };
 
-} // namespace task
+} // namespace task::synchronous
