@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "DelayedDestroyer.h"
 
-namespace task {
+namespace task::synchronous {
 
 char const* DelayedDestroyer::state_str_impl(state_type run_state) const
 {
@@ -41,4 +41,4 @@ void DelayedDestroyer::multiplex_impl(state_type run_state)
   }
 }
 
-} // namespace task
+} // namespace task::synchronous
