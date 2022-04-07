@@ -346,10 +346,11 @@ void main() {
     // as well and reuse compatible ones.
     auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
-//    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-//    pipeline_factory2.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
-//    pipeline_factory2.generate(this);
+
+    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    pipeline_factory2.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
+    pipeline_factory2.generate(this);
   }
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override

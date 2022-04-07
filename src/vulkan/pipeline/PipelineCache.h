@@ -16,7 +16,7 @@
 
 namespace task {
 
-class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, int>
+class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::UniquePipelineCache> // Other PipelineCache tasks can pass their pipeline cache for merging.
 {
  public:
   static constexpr condition_type condition_flush_to_disk = 2;
@@ -42,6 +42,7 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, int>
     PipelineCache_load_from_disk,
     PipelineCache_ready,
     PipelineCache_factory_finished,
+    PipelineCache_factory_merge,
     PipelineCache_save_to_disk,
     PipelineCache_done,
   };
@@ -82,6 +83,9 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, int>
 
   // Accessor for the create pipeline cache.
   vk::PipelineCache vh_pipeline_cache() const { return *m_pipeline_cache; }
+
+  // Rescue pipeline cache just before deleting this task. Called by Application::pipeline_factory_done.
+  vk::UniquePipelineCache detach_pipeline_cache() { return std::move(m_pipeline_cache); }
 
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };

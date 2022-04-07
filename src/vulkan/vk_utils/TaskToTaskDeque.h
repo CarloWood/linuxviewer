@@ -22,7 +22,7 @@ namespace vk_utils {
 // This class uses AIMemoryPagePool and therefore uses Application::m_mpp.
 // It also uses utils::DequeAllocator which relies on Application::m_dmri.
 //
-// The produces task can add more `Datum` objects by passing rvalue-references to `have_new_datum`.
+// The producer task can add more `Datum` objects by passing rvalue-references to `have_new_datum`.
 // After the last call to `have_new_datum` it should call `set_producer_finished` (this can be
 // done immediately after that last call).
 //

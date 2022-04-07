@@ -20,7 +20,7 @@ class QueueFamilyProperties : public vk::QueueFamilyProperties
     vk::QueueFamilyProperties(queue_family_properties),
     m_queue_flags(queue_family_properties.queueFlags | (has_presentation_support ? QueueFlagBits::ePresentation : QueueFlagBits::none))
   {
-    DoutEntering(dc::vulkan, "QueueFamilyProperties(" << queue_family_properties << ", has_presentation_support:" << std::boolalpha << has_presentation_support << ")");
+    DoutEntering(dc::vulkan, "QueueFamilyProperties::QueueFamilyProperties(" << queue_family_properties << ", has_presentation_support:" << std::boolalpha << has_presentation_support << ")");
   }
 
   QueueFlags get_queue_flags() const
