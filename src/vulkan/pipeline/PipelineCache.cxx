@@ -41,6 +41,7 @@ char const* PipelineCache::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineCache_load_from_disk);
     AI_CASE_RETURN(PipelineCache_ready);
     AI_CASE_RETURN(PipelineCache_factory_finished);
+    AI_CASE_RETURN(PipelineCache_factory_merge);
     AI_CASE_RETURN(PipelineCache_save_to_disk);
     AI_CASE_RETURN(PipelineCache_done);
   }
@@ -110,9 +111,30 @@ void PipelineCache::multiplex_impl(state_type run_state)
     case PipelineCache_factory_finished:
       if (!m_is_merger)
       {
+        set_state(PipelineCache_done);
         break;
       }
-      // FIXME: right now we don't merge - so we're done.
+      set_state(PipelineCache_factory_merge);
+      [[fallthrough]];
+    case PipelineCache_factory_merge:
+      {
+        std::vector<vk::UniquePipelineCache> srcs;
+        std::vector<vk::PipelineCache> vhv_srcs;
+        // Copy over all pipeline caches. Also preserve the unique handle to keep the pipeline cache alive
+        // until the end of scope (after which it was merged).
+        flush_new_data([&](vk::UniquePipelineCache&& pipeline_cache){
+          vhv_srcs.push_back(*pipeline_cache);
+          srcs.push_back(std::move(pipeline_cache));
+        });
+        if (!vhv_srcs.empty())
+        {
+          Dout(dc::vulkan, "Merging " << vhv_srcs << " into " << *m_pipeline_cache);
+          vulkan::LogicalDevice const& device(m_owning_factory->owning_window()->logical_device());
+          device.merge_pipeline_caches(*m_pipeline_cache, vhv_srcs);
+        }
+      }
+      if (producer_not_finished())
+        break;
       set_state(PipelineCache_save_to_disk);
       [[fallthrough]];
     case PipelineCache_save_to_disk:

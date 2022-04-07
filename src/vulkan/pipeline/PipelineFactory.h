@@ -2,7 +2,6 @@
 
 #include "PipelineCache.h"
 #include "CharacteristicRange.h"
-#include "SynchronousTask.h"
 #include "statefultask/AIStatefulTask.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
@@ -84,7 +83,7 @@ class PipelineFactory : public AIStatefulTask
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
-  boost::intrusive_ptr<PipelineCache> detach_pipeline_cache() { return std::move(m_pipeline_cache_task); }
+  boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task() { return std::move(m_pipeline_cache_task); }
 };
 
 } // namespace task

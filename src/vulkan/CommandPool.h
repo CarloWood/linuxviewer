@@ -46,8 +46,6 @@ class UnlockedCommandPool
 #endif
 
  public:
-  UnlockedCommandPool() = default;
-
   // Construct an UnlockedCommandPool.
   UnlockedCommandPool(LogicalDevice const* logical_device, QueueFamilyPropertiesIndex queue_family
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name))

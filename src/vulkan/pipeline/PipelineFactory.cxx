@@ -2,6 +2,7 @@
 #include "PipelineFactory.h"
 #include "Handle.h"
 #include "SynchronousWindow.h"
+#include "SynchronousTask.h"
 #include "vk_utils/TaskToTaskDeque.h"
 #include "threadsafe/aithreadsafe.h"
 
@@ -156,12 +157,12 @@ PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineL
     COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
     m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass)
 {
-  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory(" << owning_window << ", " << vh_pipeline_layout << ", " << vh_render_pass << ")");
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::PipelineFactory(" << owning_window << ", " << vh_pipeline_layout << ", " << vh_render_pass << ")");
 }
 
 PipelineFactory::~PipelineFactory()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "~PipelineFactory() [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::~PipelineFactory() [" << this << "]");
 }
 
 void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)

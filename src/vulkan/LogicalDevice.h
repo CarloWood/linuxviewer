@@ -227,6 +227,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   size_t get_pipeline_cache_size(vk::PipelineCache vh_pipeline_cache) const;
   void get_pipeline_cache_data(vk::PipelineCache vh_pipeline_cache, size_t& len, void* buffer) const;
+  void merge_pipeline_caches(vk::PipelineCache vh_pipeline_cache, std::vector<vk::PipelineCache> const& vhv_pipeline_caches) const;
 
  private:
   // Override this function to change the default physical device features.

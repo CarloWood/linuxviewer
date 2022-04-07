@@ -318,43 +318,53 @@ void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactor
   factory->run(m_medium_priority_queue);
 }
 
-void Application::pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache)
+void Application::pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache_task)
 {
   std::u8string const pipeline_cache_name = window->pipeline_cache_name();
   pipeline_factory_list_container_t::iterator pipeline_cache_merger_iter;
   boost::intrusive_ptr<task::PipelineCache> merged_pipeline_cache;
   // A factory stopped running.
-  bool first_factory = false;
+  PipelineCacheMerger* pipeline_cache_merger = nullptr;
   {
     pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
     pipeline_cache_merger_iter = pipeline_factory_list_w->find(pipeline_cache_name);
     // Paranoia check: it was added before in Application::run_pipeline_factory.
     ASSERT(pipeline_cache_merger_iter != pipeline_factory_list_w->end());
     // Use a reference to the merger instead of the iterator for convenience.
-    PipelineCacheMerger& pipeline_cache_merger = pipeline_cache_merger_iter->second;
+    pipeline_cache_merger = &pipeline_cache_merger_iter->second;
     // Find a matching window pointer in the list, note that for each factory of the same window, the window was added multiple times.
-    auto& windows_with_pipeline_cache_name = pipeline_cache_merger.window_list;
+    auto& windows_with_pipeline_cache_name = pipeline_cache_merger->window_list;
     auto iter = std::find(windows_with_pipeline_cache_name.begin(), windows_with_pipeline_cache_name.end(), window);
     // Idem.
     ASSERT(iter != windows_with_pipeline_cache_name.end());
     // Was this the first factory?
-    first_factory = !pipeline_cache_merger.merged_pipeline_cache;
-    if (first_factory)
+    if (!pipeline_cache_merger->merged_pipeline_cache)
     {
       // If this is the first time a factory finished - then just copy its task::PipelineCache to the PipelineCacheMerger.
-      pipeline_cache_merger.merged_pipeline_cache = std::move(pipeline_cache);
-      pipeline_cache_merger.merged_pipeline_cache->set_is_merger();
+      pipeline_cache_merger->merged_pipeline_cache = std::move(pipeline_cache_task);
     }
     else
     {
-//      pipeline_cache_merger.merged_pipeline_cache->add_new_pipeline_cache(std::move(pipeline_cache));
+      pipeline_cache_merger->merged_pipeline_cache->have_new_datum(pipeline_cache_task->detach_pipeline_cache());
+      pipeline_cache_merger = nullptr;          // pipeline_cache_task is not the merger (this is not the first factory that finishes).
     }
-    pipeline_cache_merger.merged_pipeline_cache->signal(task::PipelineCache::factory_finished);
     // Was this the last window?
     windows_with_pipeline_cache_name.erase(iter);
     if (windows_with_pipeline_cache_name.empty())
-      merged_pipeline_cache = std::move(pipeline_cache_merger.merged_pipeline_cache);
+      merged_pipeline_cache = std::move(pipeline_cache_merger_iter->second.merged_pipeline_cache);
   }
+  if (pipeline_cache_merger)
+  {
+    // pipeline_cache_task was moved to pipeline_cache_merger->merged_pipeline_cache.
+    pipeline_cache_merger->merged_pipeline_cache->set_is_merger();
+    pipeline_cache_merger->merged_pipeline_cache->signal(task::PipelineCache::factory_finished);
+  }
+  else
+  {
+    // This deletes the task.
+    pipeline_cache_task->signal(task::PipelineCache::factory_finished);
+  }
+  // Was this the last window (now with unlocked m_pipeline_factory_list)?
   if (merged_pipeline_cache)
   {
     Dout(dc::notice, "That was the last factory with name " << pipeline_cache_name << ".");

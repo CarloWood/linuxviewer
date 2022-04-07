@@ -1078,6 +1078,17 @@ void LogicalDevice::get_pipeline_cache_data(vk::PipelineCache vh_pipeline_cache,
 #endif
 }
 
+void LogicalDevice::merge_pipeline_caches(vk::PipelineCache vh_pipeline_cache, std::vector<vk::PipelineCache> const& vhv_pipeline_caches) const
+{
+  vk::Result result = m_device->mergePipelineCaches(vh_pipeline_cache, static_cast<uint32_t>(vhv_pipeline_caches.size()), vhv_pipeline_caches.data());
+  if (AI_UNLIKELY(result != vk::Result::eSuccess))
+#ifdef CWDEBUG
+    THROW_ALERTC(result, "[DEVICE]->mergePipelineCaches([DST], [SRCS])", AIArgs("[DEVICE]", this->debug_name())("[DST]", vh_pipeline_cache)("[SRCS]", vhv_pipeline_caches));
+#else
+    THROW_ALERTC(result, "LogicalDevice::mergePipelineCaches([DST], [SRCS])", AIArgs("[DST]", vh_pipeline_cache)("[SRCS]", vhv_pipeline_caches));
+#endif
+}
+
 #ifdef CWDEBUG
 void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 {

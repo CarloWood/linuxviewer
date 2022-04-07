@@ -1308,7 +1308,7 @@ vk::Pipeline SynchronousWindow::vh_graphics_pipeline(vulkan::pipeline::Handle pi
 void SynchronousWindow::pipeline_factory_done(utils::Badge<synchronous::MoveNewPipelines>, PipelineFactoryIndex index)
 {
   DoutEntering(dc::notice, "SynchronousWindow::pipeline_factory_done(" << index << ")");
-  boost::intrusive_ptr<PipelineCache> pipeline_cache(m_pipeline_factories[index]->detach_pipeline_cache());
+  boost::intrusive_ptr<PipelineCache> pipeline_cache(m_pipeline_factories[index]->detach_pipeline_cache_task());
   m_pipeline_factories[index].reset();          // Delete the pipeline factory task.
   m_application->pipeline_factory_done(this, std::move(pipeline_cache));
 }
