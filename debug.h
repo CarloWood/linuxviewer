@@ -3,9 +3,16 @@
 #define NAMESPACE_DEBUG debug
 #define NAMESPACE_DEBUG_START namespace debug {
 #define NAMESPACE_DEBUG_END }
+
 #include "cwds/debug.h"
 
 #ifdef CWDEBUG
+// We use colors for debug output.
+#include "threadpool/debug_colors.h"
+
+// The xml submodule doesn't use utils.
+#ifdef HAVE_UTILS_CONFIG_H
+
 #include "utils/print_using.h"
 #include "utils/QuotedList.h"
 namespace libcwd {
@@ -18,6 +25,8 @@ using utils::QuotedList;
 #include "utils/has_print_on.h"
 // Add catch all for global namespace.
 using utils::has_print_on::operator<<;
+
+#endif // HAVE_UTILS_CONFIG_H
 
 namespace std {
 

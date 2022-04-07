@@ -98,7 +98,44 @@ void Application::initialize(int argc, char** argv)
 
     // Initialize the thread pool.
     m_thread_pool.change_number_of_threads_to(thread_pool_number_of_worker_threads());
-    Debug(m_thread_pool.set_color_functions([](int color){ std::string code{"\e[30m"}; code[3] = '1' + color; return code; }));
+    Debug(m_thread_pool.set_color_functions([](int color){
+      static std::array<std::string, 32> color_on_escape_codes = {
+        "\e[38;5;1m",
+        "\e[38;5;190m",
+        "\e[38;5;2m",
+        "\e[38;5;33m",
+        "\e[38;5;206m",
+        "\e[38;5;3m",
+        "\e[38;5;130m",
+        "\e[38;5;15m",
+        "\e[38;5;84m",
+        "\e[38;5;63m",
+        "\e[38;5;200m",
+        "\e[38;5;202m",
+        "\e[38;5;9m",
+        "\e[38;5;8m",
+        "\e[38;5;160m",
+        "\e[38;5;222m",
+        "\e[38;5;44m",
+        "\e[38;5;5m",
+        "\e[38;5;210m",
+        "\e[38;5;28m",
+        "\e[38;5;11m",
+        "\e[38;5;225m",
+        "\e[38;5;124m",
+        "\e[38;5;10m",
+        "\e[38;5;4m",
+        "\e[38;5;140m",
+        "\e[38;5;136m",
+        "\e[38;5;250m",
+        "\e[38;5;6m",
+        "\e[38;5;27m",
+        "\e[38;5;123m",
+        "\e[38;5;220m"
+      };
+      ASSERT(0 <= color && color < color_on_escape_codes.size());
+      return color_on_escape_codes[color];
+    }));
 
     // Initialize the first thread pool queue.
     m_high_priority_queue   = m_thread_pool.new_queue(thread_pool_queue_capacity(QueuePriority::high), thread_pool_reserved_threads(QueuePriority::high));
