@@ -14,7 +14,7 @@ namespace vulkan {
 class QueueReply
 {
  public:
-  using window_cookies_type = uint32_t;
+  using request_cookies_type = uint32_t;
 
  private:
   QueueFamilyPropertiesIndex m_queue_family;    // The queue family that should be used.
@@ -26,15 +26,15 @@ class QueueReply
   QueueRequestIndex m_combined_with;            // Set when this is a duplicate of the Reply that it was combined with.
   mutable std::atomic<uint32_t> m_acquired;     // The number of queues of this pool that were already acquired (with LogicalDevice::acquire_queue).
                                                 // Hence 0 <= m_acquired <= m_number_of_queues.
-  window_cookies_type m_window_cookies;         // A bit mask with the windows for which this reply may be used.
+  request_cookies_type m_request_cookies;       // A bit mask with the request cookies for which this reply may be used.
 
  public:
   QueueReply() = default; // QueueRequest
 
   QueueReply(QueueFamilyPropertiesIndex queue_family, uint32_t number_of_queues, QueueFlags requested_queue_flags,
-      window_cookies_type window_cookies, QueueRequestIndex combined_with = {}) :
+      request_cookies_type request_cookies, QueueRequestIndex combined_with = {}) :
     m_queue_family(queue_family), m_number_of_queues(number_of_queues), m_requested_queue_flags(requested_queue_flags), m_combined_with(combined_with),
-    m_acquired{0}, m_window_cookies(window_cookies) { }
+    m_acquired{0}, m_request_cookies(request_cookies) { }
 
   QueueReply& operator=(QueueReply const& rhs)
   {
@@ -44,7 +44,7 @@ class QueueReply
     m_combined_with= rhs.m_combined_with;
     ASSERT(rhs.m_acquired.load() == 0);
     m_acquired = 0;
-    m_window_cookies= rhs.m_window_cookies;
+    m_request_cookies= rhs.m_request_cookies;
     return *this;
   }
 
@@ -68,9 +68,9 @@ class QueueReply
     return m_combined_with;
   }
 
-  window_cookies_type get_window_cookies() const
+  request_cookies_type get_request_cookies() const
   {
-    return m_window_cookies;
+    return m_request_cookies;
   }
 
   void set_start_index(uint32_t start_index)
@@ -78,9 +78,9 @@ class QueueReply
     m_start_index = start_index;
   }
 
-  bool can_be_used_with(window_cookies_type window_cookie) const
+  bool can_be_used_with(request_cookies_type request_cookie) const
   {
-    return (m_window_cookies & window_cookie) != 0;
+    return (m_request_cookies & request_cookie) != 0;
   }
 
   // Should ONLY be called by LogicalDevice::acquire_queue.

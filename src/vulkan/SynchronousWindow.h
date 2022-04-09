@@ -101,7 +101,7 @@ namespace task {
 class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEngine
 {
  public:
-  using window_cookie_type = vulkan::QueueReply::window_cookies_type;
+  using request_cookie_type = vulkan::QueueReply::request_cookies_type;
   using xcb_connection_broker_type = Broker<XcbConnection>;
   using AttachmentIndex = vulkan::rendergraph::AttachmentIndex;
 
@@ -145,7 +145,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
-  window_cookie_type m_window_cookie = {};                                // Unique bit for the creation event of this window (as determined by the user).
+  request_cookie_type m_request_cookie = {};                              // Unique bit for the creation event of this window (as determined by the user).
   boost::intrusive_ptr<XcbConnection const> m_xcb_connection_task;        // Initialized in SynchronousWindow_start.
   std::atomic_int m_logical_device_index = -1;                            // Index into Application::m_logical_device_list.
                                                                           // Initialized in LogicalDevice_create by call to Application::create_device.
@@ -257,7 +257,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
   void set_title(std::u8string&& title) { m_title = std::move(title); }
   void set_offset(vk::Offset2D offset) { m_offset = offset; }
-  void set_window_cookie(window_cookie_type window_cookie) { m_window_cookie = window_cookie; }
+  void set_request_cookie(request_cookie_type request_cookie) { m_request_cookie = request_cookie; }
   void set_logical_device_task(LogicalDevice const* logical_device_task) { m_logical_device_task = logical_device_task; }
   void set_xcb_connection_broker_and_key(boost::intrusive_ptr<xcb_connection_broker_type> broker, xcb::ConnectionBrokerKey const* broker_key)
     // The broker_key object must have a life-time longer than the time it takes to finish task::XcbConnection.
@@ -300,12 +300,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     //
     //  You either call:
     //
-    //  auto root_window1 = application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::window_cookie1);
+    //  auto root_window1 = application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::request_cookie1);
     //  auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
     //
     //  OR
     //
-    //  application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::window_cookie2, *logical_device);
+    //  application.create_root_window<WindowEvents, Window>({400, 400}, LogicalDevice::request_cookie2, *logical_device);
     //
     // It should no longer be possible for this assert to fire since the last call doesn't return an intrusive pointer anymore.
     ASSERT(m_logical_device_index.load(std::memory_order::relaxed) == -1);
@@ -320,7 +320,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_child_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Rect2D geometry,
-      task::SynchronousWindow::window_cookie_type window_cookie,
+      task::SynchronousWindow::request_cookie_type request_cookie,
       std::u8string&& title = {}) const;
 
   // Called from LogicalDevice_create.
@@ -565,11 +565,11 @@ template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWi
 void SynchronousWindow::create_child_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
     vk::Rect2D geometry,
-    task::SynchronousWindow::window_cookie_type window_cookie,
+    task::SynchronousWindow::request_cookie_type request_cookie,
     std::u8string&& title) const
 {
   auto child_window = m_application->create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(
-      std::move(window_constructor_args), geometry, window_cookie, std::move(title),
+      std::move(window_constructor_args), geometry, request_cookie, std::move(title),
       m_logical_device_task, this);
   // idem
 }

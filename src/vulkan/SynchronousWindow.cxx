@@ -385,14 +385,14 @@ void SynchronousWindow::acquire_queues()
   DoutEntering(dc::vulkan, "SynchronousWindow::acquire_queues()");
   using vulkan::QueueFlagBits;
 
-  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_window_cookie);
+  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_request_cookie);
   vulkan::Queue vh_presentation_queue;
 
   if (!vh_graphics_queue)
   {
     // The combination of eGraphics|ePresentation failed. We have to try separately.
-    vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics, m_window_cookie);
-    vh_presentation_queue = logical_device().acquire_queue(QueueFlagBits::ePresentation, m_window_cookie);
+    vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics, m_request_cookie);
+    vh_presentation_queue = logical_device().acquire_queue(QueueFlagBits::ePresentation, m_request_cookie);
   }
   else
     vh_presentation_queue = vh_graphics_queue;
@@ -972,25 +972,6 @@ void SynchronousWindow::start_frame()
 void SynchronousWindow::finish_frame()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
-
-#if 0
-  // Draw GUI
-  {
-    Gui.Draw(m_current_frame.ResourceIndex, command_buffer, render_pass, *m_current_frame.FrameResources->Framebuffer);
-
-    vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-    vk::SubmitInfo submit_info{
-      .waitSemaphoreCount = 0,
-      .pWaitSemaphores = nullptr,
-      .pWaitDstStageMask = &wait_dst_stage_mask,
-      .commandBufferCount = 1,
-      .pCommandBuffers = &command_buffer,
-      .signalSemaphoreCount = 1,
-      .pSignalSemaphores = &(*m_current_frame.m_frame_resources->m_finished_rendering_semaphore)
-    };
-    m_presentation_surface.vh_presentation_queue().submit({ submit_info }, VK_NULL_HANDLE);
-  }
-#endif
 
   // Present frame
   {

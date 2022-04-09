@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_cookie1);
+    auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_request_cookie1);
 
 #if 1
     // Create a child window of root_window1. This has to be done before calling
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 #else
         {0, 0, 150, 50},
 #endif
-        LogicalDevice::root_window_cookie1,
+        LogicalDevice::root_window_request_cookie1,
         u8"Button");
 #endif
 
@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
 
     // Assume logical_device also supports presenting on root_window2.
-//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_cookie1, *logical_device, "Second window");
+//    application.create_root_window<WindowEvents, SlowWindow>({400, 400}, LogicalDevice::root_window_request_cookie1, *logical_device, "Second window");
 
     // Run the application.
     application.run();

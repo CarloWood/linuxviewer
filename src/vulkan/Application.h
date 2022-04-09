@@ -46,7 +46,7 @@ class Application
 {
  public:
   // The same types as used in SynchronousWindow.
-  using window_cookie_type = QueueReply::window_cookies_type;
+  using request_cookie_type = QueueReply::request_cookies_type;
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
@@ -168,7 +168,7 @@ class Application
   boost::intrusive_ptr<task::SynchronousWindow const> create_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Rect2D geometry,
-      window_cookie_type window_cookie,
+      request_cookie_type request_cookie,
       std::u8string&& title,
       task::LogicalDevice const* logical_device,
       task::SynchronousWindow const* parent_window_task = nullptr);
@@ -200,37 +200,37 @@ class Application
   boost::intrusive_ptr<task::SynchronousWindow const> create_root_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Extent2D extent,
-      window_cookie_type window_cookie,
+      request_cookie_type request_cookie,
       std::u8string&& title = {})
   {
     // This function is called while creating a vulkan window. The returned value is only used to keep the window alive
     // and/or to pass to create_logical_device in order to find a logical device that supports the surface.
     // Therefore the use of force_synchronous_access is OK: this is only used during initialization.
-    return create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::move(window_constructor_args), extent, window_cookie, std::move(title), nullptr);
+    return create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::move(window_constructor_args), extent, request_cookie, std::move(title), nullptr);
   }
 
   template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW>
   boost::intrusive_ptr<task::SynchronousWindow const> create_root_window(
       vk::Extent2D extent,
-      window_cookie_type window_cookie,
+      request_cookie_type request_cookie,
       std::u8string&& title = {})
   {
     // This function is called while creating a vulkan window. The returned value is only used to keep the window alive
     // and/or to pass to create_logical_device in order to find a logical device that supports the surface.
     // Therefore the use of force_synchronous_access is OK: this is only used during initialization.
     return create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::make_tuple(),
-        { default_root_window_position, extent }, window_cookie, std::move(title), nullptr);
+        { default_root_window_position, extent }, request_cookie, std::move(title), nullptr);
   }
 
   template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
   void create_root_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Extent2D extent,
-      window_cookie_type window_cookie,
+      request_cookie_type request_cookie,
       task::LogicalDevice const& logical_device,
       std::u8string&& title = {})
   {
-    auto root_window = create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::move(window_constructor_args), extent, window_cookie, std::move(title), &logical_device);
+    auto root_window = create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::move(window_constructor_args), extent, request_cookie, std::move(title), &logical_device);
     // root_window is immediately destroyed because we don't need its reference count:
     // the task has already been started.
   }
@@ -238,12 +238,12 @@ class Application
   template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW>
   void create_root_window(
       vk::Extent2D extent,
-      window_cookie_type window_cookie,
+      request_cookie_type request_cookie,
       task::LogicalDevice const& logical_device,
       std::u8string&& title = {})
   {
     auto root_window = create_window<WINDOW_EVENTS, SYNCHRONOUS_WINDOW>(std::make_tuple(),
-        { default_root_window_position, extent}, window_cookie, std::move(title), &logical_device);
+        { default_root_window_position, extent}, request_cookie, std::move(title), &logical_device);
     // idem
   }
 
@@ -307,7 +307,7 @@ namespace vulkan {
 template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
 boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
-    vk::Rect2D geometry, window_cookie_type window_cookie,
+    vk::Rect2D geometry, request_cookie_type request_cookie,
     std::u8string&& title, task::LogicalDevice const* logical_device_task,
     task::SynchronousWindow const* parent_window_task)
 {
@@ -316,7 +316,7 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
       libcwd::type_info_of<SYNCHRONOUS_WINDOW>().demangled_name() <<            // Second template parameter (SYNCHRONOUS_WINDOW).
       ((LibcwDoutStream << ... << (std::string(", ") + libcwd::type_info_of<SYNCHRONOUS_WINDOW_ARGS>().demangled_name())), ">(") <<
                                                                                 // Tuple template parameters (SYNCHRONOUS_WINDOW_ARGS...)
-      window_constructor_args << ", " << geometry << ", " << std::hex << window_cookie << std::dec << ", \"" << title << "\", " << logical_device_task << ", " << parent_window_task << ")");
+      window_constructor_args << ", " << geometry << ", " << std::hex << request_cookie << std::dec << ", \"" << title << "\", " << logical_device_task << ", " << parent_window_task << ")");
 
   // Call Application::initialize(argc, argv) immediately after constructing the Application.
   //
@@ -324,7 +324,7 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
   //
   //   MyApplication application;
   //   application.initialize(argc, argv);      // <-- this is missing if you assert here.
-  //   auto root_window1 = application.create_root_window<MyWindowEvents, MyRenderLoop>({1000, 800}, MyLogicalDevice::root_window_cookie1);
+  //   auto root_window1 = application.create_root_window<MyWindowEvents, MyRenderLoop>({1000, 800}, MyLogicalDevice::root_window_request_cookie1);
   //
   ASSERT(m_event_loop);
 
@@ -342,7 +342,7 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
     title = application_name();
   window_task->set_title(std::move(title));
   window_task->set_offset(geometry.offset);
-  window_task->set_window_cookie(window_cookie);
+  window_task->set_request_cookie(request_cookie);
   window_task->set_logical_device_task(logical_device_task);
   // The key passed to set_xcb_connection_broker_and_key MUST be canonicalized!
   m_main_display_broker_key.canonicalize();

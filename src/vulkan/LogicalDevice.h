@@ -49,6 +49,7 @@ class QueueFamilies
 {
  private:
   utils::Vector<QueueFamilyProperties> m_queue_families;
+  bool m_has_explicit_transfer_support{};                     // Set to true if at least one of the queue families reported eTransfer.
 
  public:
   // Check that for every required feature in device_create_info, there is at least one queue family that supports it.
@@ -64,6 +65,9 @@ class QueueFamilies
 
   // Construct an empty vector.
   QueueFamilies() = default;
+
+  // Returns true if there is at least one queue family that reported eTransfer.
+  bool has_explicit_transfer_support() const { return m_has_explicit_transfer_support; }
 };
 
 struct UnsupportedQueueFlagsException : std::exception {
@@ -101,6 +105,7 @@ class LogicalDevice
   bool supports_cache_control() const { return m_supports_cache_control; }
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
+  bool has_explicit_transfer_support() const { return m_queue_families.has_explicit_transfer_support(); }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;
@@ -119,8 +124,8 @@ class LogicalDevice
   // Return the pipeline cache UUID.
   boost::uuids::uuid get_pipeline_cache_UUID() const;
 
-  // Return the (next) queue for window_cookie (as passed to Application::create_root_window).
-  Queue acquire_queue(QueueFlags flags, vulkan::QueueReply::window_cookies_type window_cookie) const;
+  // Return the (next) queue for request_cookie (as passed to Application::create_root_window).
+  Queue acquire_queue(QueueFlags flags, vulkan::QueueReply::request_cookies_type request_cookie) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.

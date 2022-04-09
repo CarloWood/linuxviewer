@@ -26,11 +26,19 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
     supported_queue_flags |= queue_family_properties.get_queue_flags();
 
   // Check if all the requested features are supported by at least one queue.
+  bool accept_graphics_or_compute_for_transer = false;
   QueueFlags unsupported_features = device_create_info.get_queue_flags() & ~supported_queue_flags;
   if (unsupported_features)
   {
-    Dout(dc::vulkan, "Required feature(s) " << unsupported_features << " is/are not supported by any family queue.");
-    return false;
+    // Requesting eTransfer when there is no queue family that supports it is not an error if there are
+    // queue families that support eGraphics and/or eCompute.
+    if (unsupported_features != QueueFlagBits::eTransfer || !(supported_queue_flags & (QueueFlagBits::eGraphics|QueueFlagBits::eCompute)))
+    {
+      Dout(dc::vulkan, "Required feature(s) " << unsupported_features << " is/are not supported by any family queue.");
+      return false;
+    }
+    // Ignore the fact that we want(ed) eTransfer.
+    accept_graphics_or_compute_for_transer = true;      // This only makes an exception for requests that have eTransfer set, but NOT eGraphics or eCompute.
   }
 
   // Run over all queue requests.
@@ -46,7 +54,12 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
     for (auto const& queue_family_properties : m_queue_families)
     {
       QueueFlags required_but_unsupported = queue_request.queue_flags & ~queue_family_properties.get_queue_flags();
-      if (!required_but_unsupported)
+      if (!required_but_unsupported ||
+          (required_but_unsupported == QueueFlagBits::eTransfer &&
+           accept_graphics_or_compute_for_transer &&
+           // Requesting eTransfer|eGraphics, or eTransfer|eCompute is not a special case (but it is when you combine them).
+           !(queue_request.queue_flags & (QueueFlagBits::eGraphics|QueueFlagBits::eCompute)) &&
+           (queue_family_properties.get_queue_flags() & (QueueFlagBits::eGraphics|QueueFlagBits::eCompute))))
       {
         // We found a match between a request and a family.
         Dout(dc::vulkan, "QueueFamilyIndex " << queue_family << " supports request " << queue_request.queue_flags << ".");
@@ -96,7 +109,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
   // have the preference for B because A and C are already used and 3 then has the
   // preference for D. However, then 4 is forced to use a family that was already
   // assigned. What we want in that case to have enough queues in that family to
-  // satisfy both. If this is not possible then we want the minimize some penalty
+  // satisfy both. If this is not possible then we want to minimize some penalty
   // function: the sum over all requests r of P_r * (R_r - H_r) / H_r,
   // where P_r is the priority of the request, R_r is the number of requested
   // queues, and H_r the number of handed out queues.
@@ -307,6 +320,8 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   {
     bool const presentation_support = physical_device.getSurfaceSupportKHR(queue_family.get_value(), surface);
     m_queue_families.emplace_back(queueFamily, presentation_support);
+    if ((queueFamily.queueFlags & vk::QueueFlagBits::eTransfer))
+      m_has_explicit_transfer_support = true;
     ++queue_family;
   }
 }
@@ -486,11 +501,11 @@ void LogicalDevice::prepare(
 
 Queue LogicalDevice::acquire_queue(
     QueueFlags flags,
-    task::SynchronousWindow::window_cookie_type window_cookie) const
+    task::SynchronousWindow::request_cookie_type request_cookie) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << window_cookie << ")");
-  // window_cookie is a bit mask and must represent a single window.
-  ASSERT(utils::is_power_of_two(window_cookie));
+  DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << request_cookie << ")");
+  // request_cookie is a bit mask and must represent a single window.
+  ASSERT(utils::is_power_of_two(request_cookie));
 
   // Accumulate the combined queue flags.
   utils::Vector<QueueFlags, QueueRequestIndex> combined_queue_flags(m_queue_replies.size());
@@ -499,7 +514,7 @@ Queue LogicalDevice::acquire_queue(
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
   {
     QueueReply const& reply = m_queue_replies[qri];
-    if (!(reply.get_window_cookies() & window_cookie))          // Skip requests that are not to be used for this window.
+    if (!(reply.get_request_cookies() & request_cookie))                // Skip replies that are not to be used for this request.
       continue;
     combined_queue_flags[qri] |= reply.requested_queue_flags();
     if (!reply.combined_with().undefined())
@@ -512,6 +527,12 @@ Queue LogicalDevice::acquire_queue(
   int request_count = 0;        // The number of QueueReply's whose request flags matches flags.
   QueueRequestIndex queue_request_index;        // The index into the vector of QueueReply's that matched (the last one if there are more).
 
+  // Special treatment for eTransfer.
+  //
+  // If there is any queue family that excplicitly supports eTransfer then, during acquire, eTransfer is not a special case.
+  bool accept_graphics_or_compute_for_transer = !has_explicit_transfer_support();
+  QueueFlags const flags_without_transfer = flags & ~QueueFlags{QueueFlagBits::eTransfer};
+
   // Run over all QueueReply's.
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
   {
@@ -522,7 +543,11 @@ Queue LogicalDevice::acquire_queue(
     Dout(dc::notice, "Reply = " << reply << "; combined_queue_flags = " << combined_queue_flags[qri]);
 
     auto qfpi = reply.get_queue_family();
-    if ((m_queue_families[qfpi].get_queue_flags() & flags) == flags)            // This queue family supports requested flags?
+    if ((m_queue_families[qfpi].get_queue_flags() & flags) == flags ||          // This queue family supports requested flags?
+        (accept_graphics_or_compute_for_transer &&
+         (m_queue_families[qfpi].get_queue_flags() & flags_without_transfer) == flags_without_transfer &&
+         (m_queue_families[qfpi].get_queue_flags() & (QueueFlagBits::eGraphics|QueueFlagBits::eCompute))))
+
     {
       ++support_count;
       if ((combined_queue_flags[qri] & flags) == flags)                         // The corresponding QueueRequest requested the same flags?
@@ -536,19 +561,19 @@ Queue LogicalDevice::acquire_queue(
 
   // Deal with errors.
   if (support_count == 0)
-    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
   if (request_count == 0)
   {
     // If flags has more than one bit set, return an empty handle indicating that the combination could not be found
     // and a new attempt with less bits should be tried.
     if (!utils::is_power_of_two(static_cast<QueueFlags::MaskType>(flags)))
       return {};
-    THROW_ALERT("Trying to acquire a queue with flag [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+    THROW_ALERT("Trying to acquire a queue with flag [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
   }
   if (request_count > 1)
   {
     // Make sure there is only one solution per window for any combination of requested flags.
-    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], more than one solution was found.", AIArgs("[FLAGS]", flags)("[COOKIE]", window_cookie));
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], more than one solution was found.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
   }
 
   // Reserve a queue index from the pool of total queues.

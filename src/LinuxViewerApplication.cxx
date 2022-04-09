@@ -574,7 +574,7 @@ class LogicalDevice : public vulkan::LogicalDevice
   // This cookie will be passed back to the virtual function ... when
   // querying what presentation queue family to use for that window (and
   // related windows).
-  static constexpr int root_window_cookie1 = 1;
+  static constexpr int root_window_request_cookie1 = 1;
 
   LogicalDevice()
   {
@@ -627,7 +627,7 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window<WindowEvents, Window>({500, 800}, LogicalDevice::root_window_cookie1, u8"Main window title");
+    auto root_window1 = application.create_root_window<WindowEvents, Window>({500, 800}, LogicalDevice::root_window_request_cookie1, u8"Main window title");
 
     // Create a logical device that supports presenting to root_window1.
     auto logical_device = application.create_logical_device(std::make_unique<LogicalDevice>(), std::move(root_window1));
