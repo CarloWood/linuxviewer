@@ -101,7 +101,7 @@ namespace task {
 class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEngine
 {
  public:
-  using request_cookie_type = vulkan::QueueReply::request_cookies_type;
+  using request_cookie_type = vulkan::QueueRequest::cookies_type;
   using xcb_connection_broker_type = Broker<XcbConnection>;
   using AttachmentIndex = vulkan::rendergraph::AttachmentIndex;
 

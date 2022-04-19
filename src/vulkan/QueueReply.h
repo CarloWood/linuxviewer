@@ -13,9 +13,6 @@ namespace vulkan {
 // Each QueueRequest is paired with one QueueReply.
 class QueueReply
 {
- public:
-  using request_cookies_type = uint32_t;
-
  private:
   QueueFamilyPropertiesIndex m_queue_family;    // The queue family that should be used.
   uint32_t m_number_of_queues;                  // The number of queues that can be allocated; this might be less than the max_number_of_queues
@@ -26,13 +23,13 @@ class QueueReply
   QueueRequestIndex m_combined_with;            // Set when this is a duplicate of the Reply that it was combined with.
   mutable std::atomic<uint32_t> m_acquired;     // The number of queues of this pool that were already acquired (with LogicalDevice::acquire_queue).
                                                 // Hence 0 <= m_acquired <= m_number_of_queues.
-  request_cookies_type m_request_cookies;       // A bit mask with the request cookies for which this reply may be used.
+  QueueRequest::cookies_type m_request_cookies; // A bit mask with the request cookies for which this reply may be used.
 
  public:
   QueueReply() = default; // QueueRequest
 
   QueueReply(QueueFamilyPropertiesIndex queue_family, uint32_t number_of_queues, QueueFlags requested_queue_flags,
-      request_cookies_type request_cookies, QueueRequestIndex combined_with = {}) :
+      QueueRequest::cookies_type request_cookies, QueueRequestIndex combined_with = {}) :
     m_queue_family(queue_family), m_number_of_queues(number_of_queues), m_requested_queue_flags(requested_queue_flags), m_combined_with(combined_with),
     m_acquired{0}, m_request_cookies(request_cookies) { }
 
@@ -68,7 +65,7 @@ class QueueReply
     return m_combined_with;
   }
 
-  request_cookies_type get_request_cookies() const
+  QueueRequest::cookies_type get_request_cookies() const
   {
     return m_request_cookies;
   }
@@ -78,7 +75,7 @@ class QueueReply
     m_start_index = start_index;
   }
 
-  bool can_be_used_with(request_cookies_type request_cookie) const
+  bool can_be_used_with(QueueRequest::cookies_type request_cookie) const
   {
     return (m_request_cookies & request_cookie) != 0;
   }

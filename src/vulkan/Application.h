@@ -46,7 +46,7 @@ class Application
 {
  public:
   // The same types as used in SynchronousWindow.
-  using request_cookie_type = QueueReply::request_cookies_type;
+  using request_cookie_type = QueueRequest::cookies_type;
   using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
