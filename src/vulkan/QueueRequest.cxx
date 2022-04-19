@@ -17,7 +17,7 @@ void QueueRequest::print_on(std::ostream& os) const
   os << "priority:" << priority << ", ";
   if (!combined_with.undefined())
     os << "combined_with:" << combined_with << ", ";
-  os << "windows:0x" << std::hex << windows << std::dec;
+  os << "cookies:0x" << std::hex << cookies << std::dec;
   os << '}';
 }
 #endif

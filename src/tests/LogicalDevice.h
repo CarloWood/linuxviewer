@@ -47,7 +47,7 @@ class LogicalDevice : public vulkan::LogicalDevice
         .queue_flags = QueueFlagBits::ePresentation,
         .max_number_of_queues = 8,                      // Only used when it can not be combined.
         .priority = 0.8,                                // Only used when it can not be combined.
-        .windows = root_window_request_cookie1})        // This may only be used for window1.
+        .cookies = root_window_request_cookie1})        // This may only be used for window1.
     // {2}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::eTransfer,

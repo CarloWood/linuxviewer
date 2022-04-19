@@ -16,6 +16,8 @@ using QueueRequestIndex = utils::VectorIndex<QueueRequest>;
 
 struct QueueRequest
 {
+  static constexpr uint32_t any_cookie = 0xffffffff;
+
   QueueFlags queue_flags;               // Request a queue with ALL of the flags.
   uint32_t max_number_of_queues = 0;    // Allocate at most this many queues like that. Zero means: as many as supported by the device.
                                         // Zero means: addQueueRequests: as many as supported by the device,
@@ -24,7 +26,7 @@ struct QueueRequest
                                         // Zero means: addQueueRequests: 1.0.
                                         //             combineQueueRequests: the same as the last QueueFlags added (with either addQueueRequests or combineQueueRequests).
   QueueRequestIndex combined_with;      // A previous request that these queues may be combined with if possible.
-  uint32_t windows = -1;                // Bit mask with window cookies that this request applies too.
+  uint32_t cookies = any_cookie;        // Bit mask with request cookies that this request applies too.
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

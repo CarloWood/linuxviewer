@@ -263,7 +263,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
                     qri0 = request.combined_with;
                     ASSERT(!qri0.undefined());
                   }
-                  queue_replies[qri] = QueueReply(queue_family, H, queue_flags, request.windows, qri0);
+                  queue_replies[qri] = QueueReply(queue_family, H, queue_flags, request.cookies, qri0);
                 }
               }
             }
