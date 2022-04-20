@@ -385,14 +385,14 @@ void SynchronousWindow::acquire_queues()
   DoutEntering(dc::vulkan, "SynchronousWindow::acquire_queues()");
   using vulkan::QueueFlagBits;
 
-  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_request_cookie);
+  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue({QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_request_cookie});
   vulkan::Queue vh_presentation_queue;
 
   if (!vh_graphics_queue)
   {
     // The combination of eGraphics|ePresentation failed. We have to try separately.
-    vh_graphics_queue = logical_device().acquire_queue(QueueFlagBits::eGraphics, m_request_cookie);
-    vh_presentation_queue = logical_device().acquire_queue(QueueFlagBits::ePresentation, m_request_cookie);
+    vh_graphics_queue = logical_device().acquire_queue({QueueFlagBits::eGraphics, m_request_cookie});
+    vh_presentation_queue = logical_device().acquire_queue({QueueFlagBits::ePresentation, m_request_cookie});
   }
   else
     vh_presentation_queue = vh_graphics_queue;
@@ -713,6 +713,12 @@ void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data
 
     m_logical_device->unmap_memory(*staging_buffer.m_buffer.m_memory);
   }
+
+  //FIXME: This is test code to test task::ImmediateSubmit.
+  vulkan::Queue queue = m_logical_device->acquire_queue({vulkan::QueueFlagBits::eTransfer, m_request_cookie});
+  if (!queue)
+    THROW_ALERT("Failed to acquire queue with eTransfer for window with cookie [COOKIE]", AIArgs("[COOKIE]", m_request_cookie));
+  Dout(dc::always, "Obtained queue: " << queue);
 
   // We use a temporary command pool here.
   using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;

@@ -5,6 +5,7 @@
 #include "LogicalDevice.h"
 #include "QueueFamilyProperties.h"
 #include "QueueReply.h"
+#include "Exceptions.h"
 #include "infos/DeviceCreateInfo.h"
 #include "vk_utils/find_missing_names.h"
 #include "vk_utils/print_using_to_string.h"
@@ -499,13 +500,11 @@ void LogicalDevice::prepare(
 #endif
 }
 
-Queue LogicalDevice::acquire_queue(
-    QueueFlags flags,
-    task::SynchronousWindow::request_cookie_type request_cookie) const
+Queue LogicalDevice::acquire_queue(QueueRequestKey queue_request_key) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << flags << ", " << request_cookie << ")");
-  // request_cookie is a bit mask and must represent a single window.
-  ASSERT(utils::is_power_of_two(request_cookie));
+  DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << queue_request_key << ")");
+  // cookie is a bit mask and must represent a single window.
+  ASSERT(utils::is_power_of_two(queue_request_key.cookie));
 
   // Accumulate the combined queue flags.
   utils::Vector<QueueFlags, QueueRequestIndex> combined_queue_flags(m_queue_replies.size());
@@ -514,7 +513,7 @@ Queue LogicalDevice::acquire_queue(
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
   {
     QueueReply const& reply = m_queue_replies[qri];
-    if (!(reply.get_request_cookies() & request_cookie))                // Skip replies that are not to be used for this request.
+    if (!(reply.get_request_cookies() & queue_request_key.cookie))         // Skip replies that are not to be used for this request.
       continue;
     combined_queue_flags[qri] |= reply.requested_queue_flags();
     if (!reply.combined_with().undefined())
@@ -531,7 +530,7 @@ Queue LogicalDevice::acquire_queue(
   //
   // If there is any queue family that excplicitly supports eTransfer then, during acquire, eTransfer is not a special case.
   bool accept_graphics_or_compute_for_transer = !has_explicit_transfer_support();
-  QueueFlags const flags_without_transfer = flags & ~QueueFlags{QueueFlagBits::eTransfer};
+  QueueFlags const flags_without_transfer = queue_request_key.queue_flags & ~QueueFlags{QueueFlagBits::eTransfer};
 
   // Run over all QueueReply's.
   for (QueueRequestIndex qri{0}; qri != qri_end; ++qri)
@@ -543,46 +542,46 @@ Queue LogicalDevice::acquire_queue(
     Dout(dc::notice, "Reply = " << reply << "; combined_queue_flags = " << combined_queue_flags[qri]);
 
     auto qfpi = reply.get_queue_family();
-    if ((m_queue_families[qfpi].get_queue_flags() & flags) == flags ||          // This queue family supports requested flags?
+    if ((m_queue_families[qfpi].get_queue_flags() & queue_request_key.queue_flags) == queue_request_key.queue_flags ||        // This queue family supports requested flags?
         (accept_graphics_or_compute_for_transer &&
          (m_queue_families[qfpi].get_queue_flags() & flags_without_transfer) == flags_without_transfer &&
          (m_queue_families[qfpi].get_queue_flags() & (QueueFlagBits::eGraphics|QueueFlagBits::eCompute))))
 
     {
       ++support_count;
-      if ((combined_queue_flags[qri] & flags) == flags)                         // The corresponding QueueRequest requested the same flags?
+      if ((combined_queue_flags[qri] & queue_request_key.queue_flags) == queue_request_key.queue_flags)                       // The corresponding QueueRequest requested the same flags?
       {
-        queue_request_index = qri;                                              // We found a (the?) matching queue request/reply.
+        queue_request_index = qri;      // We found a (the?) matching queue request/reply.
         ++request_count;
       }
     }
   }
-  Dout(dc::notice, "Found " << support_count << " QueueReply's that support " << flags << " and " << request_count << " QueueRequest's that requested them.");
+  Dout(dc::notice, "Found " << support_count << " QueueReply's that support " << queue_request_key.queue_flags << " and " << request_count << " QueueRequest's that requested them.");
 
   // Deal with errors.
   if (support_count == 0)
-    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], no queue family was found at all that supports that.",
+        AIArgs("[FLAGS]", queue_request_key.queue_flags)("[COOKIE]", queue_request_key.cookie));
   if (request_count == 0)
   {
     // If flags has more than one bit set, return an empty handle indicating that the combination could not be found
     // and a new attempt with less bits should be tried.
-    if (!utils::is_power_of_two(static_cast<QueueFlags::MaskType>(flags)))
+    if (!utils::is_power_of_two(static_cast<QueueFlags::MaskType>(queue_request_key.queue_flags)))
       return {};
-    THROW_ALERT("Trying to acquire a queue with flag [FLAGS] for window cookie [COOKIE] without having requested those flags.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
+    THROW_ALERT("Trying to acquire a queue with flag [FLAGS] for window cookie [COOKIE] without having requested those flags.",
+        AIArgs("[FLAGS]", queue_request_key.queue_flags)("[COOKIE]", queue_request_key.cookie));
   }
   if (request_count > 1)
   {
     // Make sure there is only one solution per window for any combination of requested flags.
-    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], more than one solution was found.", AIArgs("[FLAGS]", flags)("[COOKIE]", request_cookie));
+    THROW_ALERT("While acquiring a queue with flags [FLAGS] for window cookie [COOKIE], more than one solution was found.",
+        AIArgs("[FLAGS]", queue_request_key.queue_flags)("[COOKIE]", queue_request_key.cookie));
   }
 
   // Reserve a queue index from the pool of total queues.
   int next_queue_index = m_queue_replies[queue_request_index].acquire_queue();
   if (next_queue_index == -1)
-  {
-    THROW_ALERT("Trying to acquire a queue with flags [FLAGS], but we have run out; there were only [N] such queues.",
-        AIArgs("[FLAGS]", flags)("[N]", m_queue_replies[queue_request_index].number_of_queues()));
-  }
+    throw vulkan::OutOfQueues_Exception(queue_request_key.queue_flags, m_queue_replies[queue_request_index].number_of_queues());
 
   // Allocate the queue and return the handle.
   QueueFamilyPropertiesIndex queue_family_properties_index = m_queue_replies[queue_request_index].get_queue_family();;

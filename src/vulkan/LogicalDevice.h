@@ -12,6 +12,7 @@
 #include "ImageKind.h"
 #include "SamplerKind.h"
 #include "BufferParameters.h"
+#include "QueueRequestKey.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
 #include "utils/Badge.h"
@@ -124,8 +125,8 @@ class LogicalDevice
   // Return the pipeline cache UUID.
   boost::uuids::uuid get_pipeline_cache_UUID() const;
 
-  // Return the (next) queue for request_cookie (as passed to Application::create_root_window).
-  Queue acquire_queue(QueueFlags flags, vulkan::QueueRequest::cookies_type request_cookie) const;
+  // Return the (next) queue for queue_request_key as passed to Application::create_root_window).
+  Queue acquire_queue(vulkan::QueueRequestKey queue_request_key) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
