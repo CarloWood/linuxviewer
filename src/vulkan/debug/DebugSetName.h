@@ -77,13 +77,19 @@ class AmbifixOwner : public Ambifix
 };
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const& device);
+void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const* logical_device);
 
 template<ConceptVulkanHandle ObjectType>
 void debug_set_object_name(ObjectType const& object, AmbifixOwner const& ambifix);
 
+template<ConceptVulkanHandle ObjectType>
+void debug_set_object_name(ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
+
 template<ConceptUniqueVulkanHandle UniqueObjectType>
 void debug_set_object_name(UniqueObjectType const& object, AmbifixOwner const& ambifix);
+
+template<ConceptUniqueVulkanHandle UniqueObjectType>
+void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
 
 } // namespace vulkan
 
@@ -115,10 +121,22 @@ void debug_set_object_name(ObjectType const& object, AmbifixOwner const& ambifix
   debug_set_object_name(object, ambifix.object_name(), ambifix.logical_device());
 }
 
+template<ConceptVulkanHandle ObjectType>
+void debug_set_object_name(ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
+{
+  debug_set_object_name(object, ambifix.object_name(), logical_device);
+}
+
 template<ConceptUniqueVulkanHandle UniqueObjectType>
 void debug_set_object_name(UniqueObjectType const& object, AmbifixOwner const& ambifix)
 {
   debug_set_object_name(*object, ambifix.object_name(), ambifix.logical_device());
+}
+
+template<ConceptUniqueVulkanHandle UniqueObjectType>
+void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
+{
+  debug_set_object_name(*object, ambifix.object_name(), logical_device);
 }
 
 } // namespace vulkan

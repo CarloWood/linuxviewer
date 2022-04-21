@@ -50,6 +50,7 @@ class SynchronousWindow;
 namespace vulkan {
 class Application;
 class LogicalDevice;
+class Ambifix;
 class AmbifixOwner;
 class Swapchain;
 
@@ -416,7 +417,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   vulkan::Texture upload_texture(void const* texture_data, uint32_t width, uint32_t height,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const;
+      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const;
 
   void detect_if_imgui_is_used();
 
@@ -506,6 +507,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void finish_frame();
   void acquire_image();
 
+ public:
 #ifdef CWDEBUG
   vulkan::AmbifixOwner debug_name_prefix(std::string prefix) const;
 #endif

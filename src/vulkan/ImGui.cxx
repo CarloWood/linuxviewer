@@ -49,18 +49,18 @@ LogicalDevice const* ImGui::logical_device() const
 using namespace imgui_ns;
 
 void ImGui::create_frame_resources(FrameResourceIndex number_of_frame_resources
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   m_frame_resources_list.resize(number_of_frame_resources.get_value());
   for (FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
   {
 #ifdef CWDEBUG
-    AmbifixOwner const list_ambifix = ambifix(".m_frame_resources_list[" + to_string(i) + "]");
+    Ambifix const list_ambifix = ambifix(".m_frame_resources_list[" + to_string(i) + "]");
 #endif
   }
 }
 
-void ImGui::create_descriptor_set(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_descriptor_set()");
 
@@ -83,7 +83,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
 }
 
-void ImGui::create_pipeline_layout(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+void ImGui::create_pipeline_layout(CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_pipeline_layout()");
 
@@ -119,7 +119,7 @@ void main()
 }
 )glsl";
 
-void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
 
@@ -259,7 +259,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 }
 
 void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ")");
   check_version();
@@ -804,7 +804,7 @@ void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_
 }
 
 void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, FrameResourceIndex index
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   EndFrame();
   Render();

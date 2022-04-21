@@ -6,9 +6,10 @@ namespace task {
 ImmediateSubmitQueue::ImmediateSubmitQueue(
     vulkan::LogicalDevice const* logical_device,
     vulkan::Queue const& queue
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& command_pool_debug_name, bool debug)) :
+    COMMA_CWDEBUG_ONLY(bool debug)) :
   direct_base_type(CWDEBUG_ONLY(debug)),
-  m_command_pool(logical_device, queue.queue_family() COMMA_CWDEBUG_ONLY(command_pool_debug_name))
+  m_command_pool(logical_device, queue.queue_family()
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_pool")))
 {
   DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue::ImmediateSubmitQueue(" << logical_device << ", " << queue << ") [" << this << "]");
 }

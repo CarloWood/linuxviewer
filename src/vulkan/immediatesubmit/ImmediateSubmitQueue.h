@@ -34,7 +34,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<AIStatefulTa
     // Arguments for m_command_pool.
     vulkan::LogicalDevice const* logical_device,
     vulkan::Queue const& queue
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& command_pool_debug_name, bool debug = false));
+    COMMA_CWDEBUG_ONLY(bool debug = false));
 };
 
 } // namespace task

@@ -913,7 +913,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
 
 vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const
+    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const
 {
   // Create texture parameters.
   vulkan::Texture texture = m_logical_device->create_texture(width, height,

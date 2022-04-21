@@ -48,7 +48,7 @@ class UnlockedCommandPool
  public:
   // Construct an UnlockedCommandPool.
   UnlockedCommandPool(LogicalDevice const* logical_device, QueueFamilyPropertiesIndex queue_family
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name))
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
     : m_logical_device(logical_device),
       m_command_pool(logical_device->create_command_pool(queue_family.get_value(), create_flags
           COMMA_CWDEBUG_ONLY(debug_name)))

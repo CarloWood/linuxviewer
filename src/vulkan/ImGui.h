@@ -103,18 +103,18 @@ class ImGui
 
   void setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport);
   void create_descriptor_set(
-      CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      CWDEBUG_ONLY(Ambifix const& ambifix));
   void create_pipeline_layout(
-      CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      CWDEBUG_ONLY(Ambifix const& ambifix));
   void create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
  public:
   void create_frame_resources(FrameResourceIndex number_of_frame_resources
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   void init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   // Called at the start of the render loop.
   void set_current_context() { lvImGuiTLS = m_context; }
@@ -132,7 +132,7 @@ class ImGui
 
   void start_frame(float delta_s);
   void render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, FrameResourceIndex index
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   ~ImGui();
 };
