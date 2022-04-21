@@ -359,11 +359,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::LogicalDevice* get_logical_device() const;
 
   // Return a cached value of get_logical_device().
-  vulkan::LogicalDevice const& logical_device() const
+  vulkan::LogicalDevice const* logical_device() const
   {
     // Bug in linuxviewer. This should not be called before m_logical_device is initialized.
     ASSERT(m_logical_device);
-    return *m_logical_device;
+    return m_logical_device;
   }
 
   vulkan::Swapchain& swapchain() { return m_swapchain; }

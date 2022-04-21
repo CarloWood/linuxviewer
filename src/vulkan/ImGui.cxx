@@ -40,7 +40,7 @@ static_assert(
     ModifierMask::Super == ImGuiKeyModFlags_Super, "Modifier mapping needs fixing.");
 
 //inline
-LogicalDevice const& ImGui::logical_device() const
+LogicalDevice const* ImGui::logical_device() const
 {
   return m_owning_window->logical_device();
 }
@@ -79,7 +79,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
       .descriptorCount = 1
     }
   };
-  m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
+  m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
 }
 
@@ -92,7 +92,7 @@ void ImGui::create_pipeline_layout(CWDEBUG_ONLY(AmbifixOwner const& ambifix))
     .offset = 0,
     .size = 4 * sizeof(float)
   };
-  m_pipeline_layout = logical_device().create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+  m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
 }
 
@@ -254,7 +254,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .basePipelineIndex = -1
   };
 
-  m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
+  m_graphics_pipeline = logical_device()->create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
       COMMA_CWDEBUG_ONLY(ambifix(".m_graphics_pipeline")));
 }
 
@@ -285,8 +285,8 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
     { dt::eInputAttachment, 1000 }
   };
 
-  auto imgui_pool = logical_device().create_descriptor_pool(pool_sizes, 1000
-      COMMA_CWDEBUG_ONLY({owning_window, "ImGui::init()::imguiPool"}));
+  auto imgui_pool = logical_device()->create_descriptor_pool(pool_sizes, 1000
+      COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("ImGui::init()::imguiPool")));
 
   // 2: Initialize imgui library.
 
@@ -335,7 +335,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
     .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
   });
   ImageViewKind const imgui_font_image_view_kind(imgui_font_image_kind, {});
-  SamplerKind const imgui_font_sampler_kind(&logical_device(), {});
+  SamplerKind const imgui_font_sampler_kind(logical_device(), {});
   m_font_texture = owning_window->upload_texture(texture_data, width, height, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
@@ -810,7 +810,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
   Render();
   ImDrawData* draw_data = GetDrawData();
   ImGui_FrameResourcesData& frame_resources = m_frame_resources_list[index];
-  LogicalDevice const& device = logical_device();
+  LogicalDevice const* device = logical_device();
 
   size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
   size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
@@ -824,7 +824,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
   {
     // Create or resize the vertex buffer.
     if (vertex_size > frame_resources.m_vertex_buffer.m_size)
-      frame_resources.m_vertex_buffer = device.create_buffer(
+      frame_resources.m_vertex_buffer = device->create_buffer(
           vertex_size,
           vk::BufferUsageFlagBits::eVertexBuffer,
           vk::MemoryPropertyFlagBits::eHostVisible
@@ -832,7 +832,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
 
     // Create or resize the index buffer.
     if (index_size > frame_resources.m_index_buffer.m_size)
-      frame_resources.m_index_buffer = device.create_buffer(
+      frame_resources.m_index_buffer = device->create_buffer(
           index_size,
           vk::BufferUsageFlagBits::eIndexBuffer,
           vk::MemoryPropertyFlagBits::eHostVisible
@@ -845,8 +845,8 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
     Debug(dc::vulkan.off());
 
     // Upload vertex and index data each into a single contiguous GPU buffer.
-    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(device.map_memory(*frame_resources.m_vertex_buffer.m_memory, 0, frame_resources.m_vertex_buffer.m_size));
-    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(device.map_memory(*frame_resources.m_index_buffer.m_memory, 0, frame_resources.m_index_buffer.m_size));
+    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(device->map_memory(*frame_resources.m_vertex_buffer.m_memory, 0, frame_resources.m_vertex_buffer.m_size));
+    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(device->map_memory(*frame_resources.m_index_buffer.m_memory, 0, frame_resources.m_index_buffer.m_size));
     for (int n = 0; n < draw_data->CmdListsCount; ++n)
     {
       ImDrawList const* cmd_list = draw_data->CmdLists[n];
@@ -860,10 +860,10 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
       vk::MappedMemoryRange{ .memory = *frame_resources.m_vertex_buffer.m_memory, .size = VK_WHOLE_SIZE },
       vk::MappedMemoryRange{ .memory = *frame_resources.m_index_buffer.m_memory, .size = VK_WHOLE_SIZE }
     };
-    device.flush_mapped_memory_ranges(mapped_memory_ranges);
+    device->flush_mapped_memory_ranges(mapped_memory_ranges);
 
-    device.unmap_memory(*frame_resources.m_vertex_buffer.m_memory);
-    device.unmap_memory(*frame_resources.m_index_buffer.m_memory);
+    device->unmap_memory(*frame_resources.m_vertex_buffer.m_memory);
+    device->unmap_memory(*frame_resources.m_index_buffer.m_memory);
     Debug(dc::vulkan.on());
   }
 

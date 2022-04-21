@@ -14,13 +14,13 @@ RenderPass::RenderPass(task::SynchronousWindow* owning_window, std::string const
 
 void RenderPass::create_render_pass()
 {
-  m_render_pass = m_owning_window->logical_device().create_render_pass(*this
+  m_render_pass = m_owning_window->logical_device()->create_render_pass(*this
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner{m_owning_window, "«" + name() + "».m_render_pass"}));
 }
 
 void RenderPass::create_imageless_framebuffer(vk::Extent2D extent, uint32_t layers)
 {
-  m_framebuffer = m_owning_window->logical_device().create_imageless_framebuffer(*this, extent, layers
+  m_framebuffer = m_owning_window->logical_device()->create_imageless_framebuffer(*this, extent, layers
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner{m_owning_window, "«" + name() + "».m_framebuffer"}));
   update_framebuffer({{}, extent});
 }

@@ -385,14 +385,14 @@ void SynchronousWindow::acquire_queues()
   DoutEntering(dc::vulkan, "SynchronousWindow::acquire_queues()");
   using vulkan::QueueFlagBits;
 
-  vulkan::Queue vh_graphics_queue = logical_device().acquire_queue({QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_request_cookie});
+  vulkan::Queue vh_graphics_queue = logical_device()->acquire_queue({QueueFlagBits::eGraphics|QueueFlagBits::ePresentation, m_request_cookie});
   vulkan::Queue vh_presentation_queue;
 
   if (!vh_graphics_queue)
   {
     // The combination of eGraphics|ePresentation failed. We have to try separately.
-    vh_graphics_queue = logical_device().acquire_queue({QueueFlagBits::eGraphics, m_request_cookie});
-    vh_presentation_queue = logical_device().acquire_queue({QueueFlagBits::ePresentation, m_request_cookie});
+    vh_graphics_queue = logical_device()->acquire_queue({QueueFlagBits::eGraphics, m_request_cookie});
+    vh_presentation_queue = logical_device()->acquire_queue({QueueFlagBits::ePresentation, m_request_cookie});
   }
   else
     vh_presentation_queue = vh_graphics_queue;
@@ -654,7 +654,7 @@ void SynchronousWindow::set_image_memory_barrier(
 
   // Submit
   {
-    auto fence = logical_device().create_fence(false
+    auto fence = logical_device()->create_fence(false
         COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("set_image_memory_barrier()::fence")));
 
     vk::SubmitInfo submit_info{
@@ -672,7 +672,7 @@ void SynchronousWindow::set_image_memory_barrier(
     vk::Result res;
     do
     {
-      res = logical_device().wait_for_fences({ *fence }, VK_TRUE, 300000000);
+      res = logical_device()->wait_for_fences({ *fence }, VK_TRUE, 300000000);
       if (res != vk::Result::eTimeout)
         break;
       Dout(dc::notice, "wait_for_fences timed out " << count);
@@ -681,7 +681,7 @@ void SynchronousWindow::set_image_memory_barrier(
     if (res != vk::Result::eSuccess)
     {
       Dout(dc::warning, "wait_for_fences returned " << res);
-      logical_device().reset_fences({ *fence });
+      logical_device()->reset_fences({ *fence });
       THROW_ALERTC(res, "waitForFences");
     }
   }
@@ -785,7 +785,7 @@ void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data
     };
     m_presentation_surface.vh_graphics_queue().submit( { submit_info }, *fence );
 
-    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 1000000000);
+    vk::Result res = logical_device()->wait_for_fences({ *fence }, VK_FALSE, 1000000000);
     if (res != vk::Result::eSuccess)
       THROW_ALERTC(res, "waitForFences");
   }
@@ -905,7 +905,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
 
-    vk::Result res = logical_device().wait_for_fences({ *fence }, VK_FALSE, 1000000000);
+    vk::Result res = logical_device()->wait_for_fences({ *fence }, VK_FALSE, 1000000000);
     if (res != vk::Result::eSuccess)
       THROW_ALERTC(res, "waitForFences");
   }

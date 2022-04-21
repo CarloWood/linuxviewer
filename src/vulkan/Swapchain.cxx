@@ -130,7 +130,7 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
 {
   DoutEntering(dc::vulkan, "Swapchain::prepare(" << owning_window << ", " << ", " << selected_usage << ", " << selected_present_mode << ")");
 
-  vk::PhysicalDevice vh_physical_device = owning_window->logical_device().vh_physical_device();
+  vk::PhysicalDevice vh_physical_device = owning_window->logical_device()->vh_physical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Query supported surface details.
@@ -188,7 +188,7 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
 
   m_min_image_count = desired_image_count;
 
-  m_acquire_semaphore = owning_window->logical_device().create_semaphore(
+  m_acquire_semaphore = owning_window->logical_device()->create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
 
   // In case of re-use, cant_render_bit might be reset.
@@ -218,7 +218,7 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
 {
   DoutEntering(dc::vulkan, "Swapchain::recreate_swapchain_images(" << owning_window << ", " << surface_extent << ")");
 
-  LogicalDevice const& logical_device = owning_window->logical_device();
+  LogicalDevice const* logical_device = owning_window->logical_device();
   PresentationSurface const& presentation_surface = owning_window->presentation_surface();
 
   // Keep a copy of the rendering_finished_semaphore's for number-of-swapchain-semaphores calls to acquire_image.
@@ -233,20 +233,20 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
   vk::UniqueSwapchainKHR old_handle(std::move(m_swapchain));
 
   m_extent = surface_extent;
-  m_swapchain = logical_device.create_swapchain(surface_extent, m_min_image_count, owning_window->presentation_surface(), m_kind, *old_handle
+  m_swapchain = logical_device->create_swapchain(surface_extent, m_min_image_count, owning_window->presentation_surface(), m_kind, *old_handle
       COMMA_CWDEBUG_ONLY(ambifix(".m_swapchain")));
-  m_vhv_images = logical_device.get_swapchain_images(owning_window, *m_swapchain
+  m_vhv_images = logical_device->get_swapchain_images(owning_window, *m_swapchain
       COMMA_CWDEBUG_ONLY(ambifix(".m_vhv_images")));
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
   // Create the corresponding resources: image view and semaphores.
   for (SwapchainIndex i = m_vhv_images.ibegin(); i != m_vhv_images.iend(); ++i)
   {
-    vk::UniqueImageView image_view = logical_device.create_image_view(m_vhv_images[i], image_view_kind()
+    vk::UniqueImageView image_view = logical_device->create_image_view(m_vhv_images[i], image_view_kind()
         COMMA_CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_image_view")));
-    vk::UniqueSemaphore image_available_semaphore = logical_device.create_semaphore(
+    vk::UniqueSemaphore image_available_semaphore = logical_device->create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore")));
-    vk::UniqueSemaphore rendering_finished_semaphore = logical_device.create_semaphore(
+    vk::UniqueSemaphore rendering_finished_semaphore = logical_device->create_semaphore(
         CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_rendering_finished_semaphore")));
 
     m_resources.emplace_back(std::move(image_view), std::move(image_available_semaphore), std::move(rendering_finished_semaphore));

@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
         std::make_tuple([&](SingleButtonWindow& window)
           {
             Dout(dc::always, "TRIGGERED!");
-            application.set_max_anisotropy(window.logical_device().max_sampler_anisotropy());
+            application.set_max_anisotropy(window.logical_device()->max_sampler_anisotropy());
           }
         ),
 #if ADD_STATS_TO_SINGLE_BUTTON_WINDOW

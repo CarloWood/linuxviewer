@@ -109,7 +109,7 @@ class Window : public task::SynchronousWindow
       .descriptorCount = 2
     }};
 
-    m_descriptor_set = logical_device().create_descriptor_resources(layout_bindings, pool_sizes
+    m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
   }
 
@@ -378,7 +378,7 @@ void main() {
         vertex_shader_input_set->get_input_entry(ptr);
       }
 
-      m_vertex_buffers.emplace_back(logical_device().create_buffer(buffer_size,
+      m_vertex_buffers.emplace_back(logical_device()->create_buffer(buffer_size,
           vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
 
@@ -562,7 +562,7 @@ else {
 
     ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(reinterpret_cast<char const*>(application().application_name().c_str()), nullptr, ImGuiWindowFlags_AlwaysAutoResize);
-    static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device().vh_physical_device().getProperties().deviceName);
+    static std::string const hardware_name = "Hardware: " + static_cast<std::string>(logical_device()->vh_physical_device().getProperties().deviceName);
     ImGui::Text("%s", hardware_name.c_str());
     ImGui::NewLine();
     ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);

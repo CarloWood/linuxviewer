@@ -328,7 +328,7 @@ void RenderPass::create(task::SynchronousWindow const* owning_window)
         .setStencilStoreOp(get_stencil_store_op(attachment))
         ;
     }
-    bool supports_separate_depth_stencil_layouts = owning_window->logical_device().supports_separate_depth_stencil_layouts();
+    bool supports_separate_depth_stencil_layouts = owning_window->logical_device()->supports_separate_depth_stencil_layouts();
     attachment_description.setInitialLayout(get_initial_layout(attachment, supports_separate_depth_stencil_layouts));
     attachment_description.setFinalLayout(get_final_layout(attachment, supports_separate_depth_stencil_layouts));
 

@@ -99,7 +99,7 @@ class ImGui
   imgui::UI m_ui;                                       // UI vertex attributes.
 
  private:
-  inline LogicalDevice const& logical_device() const;
+  inline LogicalDevice const* logical_device() const;
 
   void setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport);
   void create_descriptor_set(

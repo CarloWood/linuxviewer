@@ -75,14 +75,14 @@ void SPIRVCache::compile(std::string_view glsl_source_code, ShaderCompiler const
   m_spirv_code = compiler.compile({}, shader_info, glsl_source_code);
 }
 
-vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::Pipeline>, vulkan::LogicalDevice const& logical_device
+vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::Pipeline>, vulkan::LogicalDevice const* logical_device
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "SPIRVCache::create({}, " << logical_device << ")");
 
   // Call compile() before calling this create().
   ASSERT(!m_spirv_code.empty());
-  return logical_device.create_shader_module(m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
+  return logical_device->create_shader_module(m_spirv_code.data(), m_spirv_code.size() * sizeof(uint32_t)
       COMMA_CWDEBUG_ONLY(debug_name));
 }
 

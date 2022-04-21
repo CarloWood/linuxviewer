@@ -255,7 +255,7 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
 
-    m_pipeline_layout = logical_device().create_pipeline_layout({}, {}
+    m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
   }
 
@@ -444,7 +444,7 @@ void main()
       .basePipelineIndex = -1
     };
 
-    m_graphics_pipeline = logical_device().create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
+    m_graphics_pipeline = logical_device()->create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_graphics_pipeline")));
   }
 

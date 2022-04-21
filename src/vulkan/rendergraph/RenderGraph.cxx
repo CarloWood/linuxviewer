@@ -308,7 +308,7 @@ void RenderGraph::generate(task::SynchronousWindow* owning_window)
     if (sink)
     {
       Dout(dc::renderpass, "Render pass \"" << sink << "\" is the sink of attachment \"" << attachment << "\".");
-      attachment->set_final_layout(sink->get_final_layout(attachment, owning_window->logical_device().supports_separate_depth_stencil_layouts()));
+      attachment->set_final_layout(sink->get_final_layout(attachment, owning_window->logical_device()->supports_separate_depth_stencil_layouts()));
     }
   }
 

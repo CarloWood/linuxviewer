@@ -251,7 +251,7 @@ class ShaderCompiler
   // Calls to compile are thread-safe.
   std::vector<uint32_t> compile(utils::Badge<SPIRVCache>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const;
 
-  vk::UniqueShaderModule compile_and_create(utils::Badge<ShaderInfo>, vulkan::LogicalDevice const& logical_device, ShaderInfo const& shader_info, std::string_view glsl_source_code
+  vk::UniqueShaderModule compile_and_create(utils::Badge<ShaderInfo>, vulkan::LogicalDevice const* logical_device, ShaderInfo const& shader_info, std::string_view glsl_source_code
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
 };
 
