@@ -72,7 +72,7 @@ void MoveNewPipelines::multiplex_impl(state_type run_state)
       // Flush all newly created pipelines (if any) from the m_new_pipelines deque,
       // passing them one by one to SynchronousWindow::have_new_pipeline.
       flush_new_data([this](Datum&& datum){ owning_window()->have_new_pipeline(datum.first, std::move(datum.second)); });
-      if (producer_not_finished())
+      if (producer_not_finished())      // This calls wait(need_action) if not finished.
         break;
       set_state(MoveNewPipelines_done);
       [[fallthrough]];

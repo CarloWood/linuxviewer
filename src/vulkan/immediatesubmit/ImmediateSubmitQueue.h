@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ImmediateSubmitData.h"
+#include "AsyncTask.h"
 #include "vk_utils/TaskToTaskDeque.h"
 
 namespace task {
 
-class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<AIStatefulTask, vulkan::ImmediateSubmitData>
+class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::AsyncTask, vulkan::ImmediateSubmitData>
 {
  public:
   static constexpr auto pool_type = vulkan::ImmediateSubmitData::pool_type;
@@ -16,7 +17,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<AIStatefulTa
 
   // The different states of the task.
   enum ImmediateSubmitQueue_state_type {
-    ImmediateSubmitQueue_start = direct_base_type::state_end,
+    ImmediateSubmitQueue_need_action = direct_base_type::state_end,
     ImmediateSubmitQueue_done
   };
 

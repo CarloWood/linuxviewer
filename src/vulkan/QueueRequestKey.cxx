@@ -11,7 +11,7 @@ void QueueRequestKey::print_on(std::ostream& os) const
 {
   os <<
     "{queue_flags:" << queue_flags <<
-   ", cookie:" << cookie <<
+   ", cookie:0x" << std::hex << cookie << std::dec <<
    '}';
 }
 #endif
