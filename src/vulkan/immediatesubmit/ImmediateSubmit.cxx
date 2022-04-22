@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "ImmediateSubmit.h"
 #include "ImmediateSubmitQueue.h"
+#include "Exceptions.h"
+#include "Application.h"
 #include "utils/AIAlert.h"
 
 namespace task {
@@ -38,14 +40,24 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
     {
       // Get a pointer to the task::ImmediateSubmitQueue associated with the vulkan::QueueRequestKey that we have.
       // FIXME: get this task from a pool. For now assume we can *always* get a new queue and therefore can create a new task::ImmediateSubmitQueue.
-      vulkan::Queue queue = m_submit_data.logical_device()->acquire_queue(m_submit_data.queue_request_key());
-      if (!queue)
-        THROW_ALERT("Failed to acquire queue with key [KEY]", AIArgs("[KEY]", m_submit_data.queue_request_key()));
-      Dout(dc::always, "Obtained queue: " << queue);
+      vulkan::Queue queue;
+      try
+      {
+        queue = m_submit_data.logical_device()->acquire_queue(m_submit_data.queue_request_key());
+        Dout(dc::always, "Obtained queue: " << queue);
+      }
+      catch (vulkan::OutOfQueues_Exception const& error)
+      {
+        // No more queue.
+        // FIXME: should be handled as part of the pool implementation.
+        ASSERT(false);
+      }
+      auto immediate_submit_queue_task = statefultask::create<ImmediateSubmitQueue>(m_submit_data.logical_device(), queue COMMA_CWDEBUG_ONLY(mSMDebug));
+      immediate_submit_queue_task->run(vulkan::Application::instance().medium_priority_queue());
 
-      auto immediate_submit_queue_task = statefultask::create<ImmediateSubmitQueue>(m_submit_data.logical_device(), queue
-          COMMA_CWDEBUG_ONLY(mSMDebug));
-      immediate_submit_queue_task->run();
+      immediate_submit_queue_task->have_new_datum(std::move(m_submit_data));
+      set_state(ImmediateSubmit_done);
+      wait(commands_submitted);
       break;
     }
     case ImmediateSubmit_done:

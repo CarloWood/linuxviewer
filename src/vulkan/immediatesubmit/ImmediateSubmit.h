@@ -8,6 +8,9 @@ namespace task {
 
 class ImmediateSubmit final : public vulkan::AsyncTask
 {
+ public:
+  static constexpr condition_type commands_submitted = 1;
+
  private:
   vulkan::ImmediateSubmitData m_submit_data;
 

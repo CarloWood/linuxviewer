@@ -34,7 +34,9 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case ImmediateSubmitQueue_need_action:
-      flush_new_data([this](Datum&& datum){ Dout(dc::always, "ImmediateSubmitQueue_need_action: received " << datum); });
+      flush_new_data([this](Datum&& datum){
+        Dout(dc::always, "ImmediateSubmitQueue_need_action: received " << datum);
+      });
       if (producer_not_finished())
         break;
       set_state(ImmediateSubmitQueue_done);
