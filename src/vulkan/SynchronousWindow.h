@@ -1,7 +1,6 @@
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_H
 #define VULKAN_SYNCHRONOUS_WINDOW_H
 
-#include "QueueReply.h"
 #include "PresentationSurface.h"
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
@@ -17,6 +16,7 @@
 #include "RenderPass.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
+#include "queues/QueueReply.h"
 #include "pipeline/PipelineFactory.h"
 #include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"

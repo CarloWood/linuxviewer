@@ -1,6 +1,6 @@
 #pragma once
 
-#include "QueueFlags.h"
+#include "queues/QueueFlags.h"
 #include <exception>
 #include <sstream>
 

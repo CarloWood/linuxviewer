@@ -31,7 +31,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/immediatesubmit/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
 )
@@ -41,7 +41,7 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/immediatesubmit/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
 )

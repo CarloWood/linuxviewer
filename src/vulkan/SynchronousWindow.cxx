@@ -8,7 +8,7 @@
 #include "Exceptions.h"
 #include "SynchronousTask.h"
 #include "pipeline/Handle.h"
-#include "immediatesubmit/ImmediateSubmit.h"
+#include "queues/ImmediateSubmit.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"

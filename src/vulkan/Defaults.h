@@ -5,7 +5,7 @@
 #ifndef VULKAN_DEFAULTS_H
 #define VULKAN_DEFAULTS_H
 
-#include "QueueRequest.h"
+#include "queues/QueueRequest.h"
 #include "vk_utils/encode_version.h"
 #include "utils/Array.h"
 #include <vulkan/vulkan.hpp>

@@ -2,7 +2,7 @@
 #define COMMAND_POOL_H
 
 #include "LogicalDevice.h"
-#include "QueueFamilyProperties.h"
+#include "queues/QueueFamilyProperties.h"
 #include "threadsafe/aithreadsafe.h"
 #include <vector>
 
