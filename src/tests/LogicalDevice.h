@@ -51,7 +51,7 @@ class LogicalDevice : public vulkan::LogicalDevice
     // {2}
     .addQueueRequest({
         .queue_flags = QueueFlagBits::eTransfer,
-        .max_number_of_queues = 4,
+        .max_number_of_queues = 2,
         .priority = 1.0})
 #if 0
     // {3}

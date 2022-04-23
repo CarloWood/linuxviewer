@@ -7,7 +7,7 @@
 namespace vulkan {
 
 // This struct contains the data needed to start an ImmediateSubmit task.
-class ImmediateSubmitData
+class ImmediateSubmitRequest
 {
  public:
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -20,8 +20,8 @@ class ImmediateSubmitData
   record_function_type m_record_function;       // Callback function that will record the command buffer.
 
  public:
-  ImmediateSubmitData() = default;
-  ImmediateSubmitData(vulkan::LogicalDevice const* logical_device, vulkan::QueueRequestKey queue_request_key, record_function_type&& record_function) :
+  ImmediateSubmitRequest() = default;
+  ImmediateSubmitRequest(vulkan::LogicalDevice const* logical_device, vulkan::QueueRequestKey queue_request_key, record_function_type&& record_function) :
     m_logical_device(logical_device), m_queue_request_key(queue_request_key), m_record_function(std::move(record_function)) { }
 
   void set_logical_device(vulkan::LogicalDevice const* logical_device) { m_logical_device = logical_device; }

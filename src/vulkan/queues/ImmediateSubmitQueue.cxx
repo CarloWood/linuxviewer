@@ -9,7 +9,8 @@ ImmediateSubmitQueue::ImmediateSubmitQueue(
     COMMA_CWDEBUG_ONLY(bool debug)) :
   direct_base_type(CWDEBUG_ONLY(debug)),
   m_command_pool(logical_device, queue.queue_family()
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_pool")))
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_pool"))),
+  m_queue(queue)
 {
   DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue::ImmediateSubmitQueue(" << logical_device << ", " << queue << ") [" << this << "]");
 }
@@ -34,8 +35,8 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case ImmediateSubmitQueue_need_action:
-      flush_new_data([this](Datum&& datum){
-        Dout(dc::always, "ImmediateSubmitQueue_need_action: received " << datum);
+      flush_new_data([this](vulkan::ImmediateSubmitRequest&& submit_request){
+        Dout(dc::vulkan, "ImmediateSubmitQueue_need_action: received submit_request: " << submit_request << " [" << this << "]");
       });
       if (producer_not_finished())
         break;

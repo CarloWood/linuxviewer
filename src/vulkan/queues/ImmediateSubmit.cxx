@@ -3,6 +3,7 @@
 #include "ImmediateSubmitQueue.h"
 #include "Exceptions.h"
 #include "Application.h"
+#include "QueuePool.h"
 #include "utils/AIAlert.h"
 
 namespace task {
@@ -12,8 +13,8 @@ ImmediateSubmit::ImmediateSubmit(CWDEBUG_ONLY(bool debug)) :
 {
 }
 
-ImmediateSubmit::ImmediateSubmit(vulkan::ImmediateSubmitData&& submit_data COMMA_CWDEBUG_ONLY(bool debug)) :
-  AsyncTask(CWDEBUG_ONLY(debug)), m_submit_data(std::move(submit_data))
+ImmediateSubmit::ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request COMMA_CWDEBUG_ONLY(bool debug)) :
+  AsyncTask(CWDEBUG_ONLY(debug)), m_submit_request(std::move(submit_request))
 {
 }
 
@@ -38,24 +39,13 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
   {
     case ImmediateSubmit_start:
     {
-      // Get a pointer to the task::ImmediateSubmitQueue associated with the vulkan::QueueRequestKey that we have.
-      // FIXME: get this task from a pool. For now assume we can *always* get a new queue and therefore can create a new task::ImmediateSubmitQueue.
-      vulkan::Queue queue;
-      try
-      {
-        queue = m_submit_data.logical_device()->acquire_queue(m_submit_data.queue_request_key());
-        Dout(dc::always, "Obtained queue: " << queue);
-      }
-      catch (vulkan::OutOfQueues_Exception const& error)
-      {
-        // No more queue.
-        // FIXME: should be handled as part of the pool implementation.
-        ASSERT(false);
-      }
-      auto immediate_submit_queue_task = statefultask::create<ImmediateSubmitQueue>(m_submit_data.logical_device(), queue COMMA_CWDEBUG_ONLY(mSMDebug));
-      immediate_submit_queue_task->run(vulkan::Application::instance().medium_priority_queue());
+      // Obtain reference to associated QueuePool.
+      vulkan::QueuePool& queue_pool = vulkan::QueuePool::instance(m_submit_request);
+      // Get a running ImmediateSubmitQueue task from the pool.
+      ImmediateSubmitQueue* immediate_submit_queue_task = queue_pool.get_immediate_submit_queue_task(CWDEBUG_ONLY(mSMDebug));
 
-      immediate_submit_queue_task->have_new_datum(std::move(m_submit_data));
+      // Pass on the submit request.
+      immediate_submit_queue_task->have_new_datum(std::move(m_submit_request));
       set_state(ImmediateSubmit_done);
       wait(commands_submitted);
       break;

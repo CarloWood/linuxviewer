@@ -1,10 +1,10 @@
 #include "sys.h"
-#include "ImmediateSubmitData.h"
+#include "ImmediateSubmitRequest.h"
 
 namespace vulkan {
 
 #ifdef CWDEBUG
-void ImmediateSubmitData::print_on(std::ostream& os) const
+void ImmediateSubmitRequest::print_on(std::ostream& os) const
 {
   os << "{m_logical_device:" << m_logical_device <<
     ", m_queue_request_key:" << m_queue_request_key <<

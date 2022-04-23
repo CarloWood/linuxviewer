@@ -716,17 +716,13 @@ void SynchronousWindow::copy_data_to_buffer(uint32_t data_size, void const* data
   }
 
   //FIXME: This is test code to test task::ImmediateSubmit.
-#if 0
-  vulkan::Queue queue = m_logical_device->acquire_queue({vulkan::QueueFlagBits::eTransfer, m_request_cookie});
-  if (!queue)
-    THROW_ALERT("Failed to acquire queue with eTransfer for window with cookie [COOKIE]", AIArgs("[COOKIE]", m_request_cookie));
-  Dout(dc::always, "Obtained queue: " << queue);
-#else
-  vulkan::ImmediateSubmitData submit_data(m_logical_device, {vulkan::QueueFlagBits::eTransfer, m_request_cookie},
-      [](vulkan::ImmediateSubmitData::command_buffer_wat const& command_buffer_w){ Dout(dc::always, "WE GET HERE"); });
-  auto immediate_submit = statefultask::create<task::ImmediateSubmit>(std::move(submit_data) COMMA_CWDEBUG_ONLY(true));
+  vulkan::ImmediateSubmitRequest submit_request(m_logical_device, {vulkan::QueueFlagBits::eTransfer, m_request_cookie},
+      [](vulkan::ImmediateSubmitRequest::command_buffer_wat command_buffer_w){
+        command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+        command_buffer_w->end();
+      });
+  auto immediate_submit = statefultask::create<task::ImmediateSubmit>(std::move(submit_request) COMMA_CWDEBUG_ONLY(true));
   immediate_submit->run();
-#endif
 
   // We use a temporary command pool here.
   using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;

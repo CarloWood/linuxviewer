@@ -10,8 +10,8 @@ namespace vulkan {
 void QueueRequestKey::print_on(std::ostream& os) const
 {
   os <<
-    "{queue_flags:" << queue_flags <<
-   ", cookie:0x" << std::hex << cookie << std::dec <<
+    "{queue_flags:" << m_queue_flags <<
+   ", request_cookie:0x" << std::hex << m_request_cookie << std::dec <<
    '}';
 }
 #endif
