@@ -100,7 +100,7 @@ namespace handle {
 class CommandBuffer
 {
  private:
-  vk::CommandBuffer m_handle;           // The underlaying vulkan handle.
+  vk::CommandBuffer m_vh_command_buffer;           // The underlaying vulkan handle.
 
 #ifdef CWDEBUG
   details::UniquePoolID m_pool_id;      // For debug purposes; a unique ID of the command pool that this buffer was allocated from.
@@ -113,7 +113,7 @@ class CommandBuffer
   template<vk::CommandPoolCreateFlags::MaskType pool_type>
   friend class vulkan::UnlockedCommandPool;
 
-  // Needs access to m_handle.
+  // Needs access to m_vh_command_buffer.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>
   friend class vulkan::CommandBufferWriteAccessType;
 
@@ -132,6 +132,11 @@ class CommandBuffer
   CommandBufferWriteAccessType<pool_type> operator()( // Do not accept a temporary! The life time of command_pool_w must exceed that of the returned object.
       aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>>&& command_pool_w
       ) const = delete;
+
+  template<vk::CommandPoolCreateFlags::MaskType pool_type>
+  CommandBufferWriteAccessType<pool_type> operator()(
+      UnlockedCommandPool<pool_type> const& command_pool
+      ) const;
 };
 
 } // namespace handle
@@ -149,14 +154,23 @@ namespace vulkan {
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 class CommandBufferWriteAccessType
 {
-  vk::CommandBuffer m_handle;           // A copy of the CommandBuffer::m_handle that we give access to.
+  vk::CommandBuffer m_vh_command_buffer;           // A copy of the CommandBuffer::m_vh_command_buffer that we give access to.
 
-  // Construct a CommandBufferWriteAccessType from a command pool and a command buffer.
+  // Construct a CommandBufferWriteAccessType from a command pool wat and a command buffer.
   CommandBufferWriteAccessType(typename CommandPool<pool_type>::wat const& CWDEBUG_ONLY(pool_w), handle::CommandBuffer const& command_buffer) :
-    m_handle(command_buffer.m_handle)
+    m_vh_command_buffer(command_buffer.m_vh_command_buffer)
   {
 #ifdef CWDEBUG
     ASSERT(pool_w->id() == command_buffer.m_pool_id);
+#endif
+  }
+
+  // Construct a CommandBufferWriteAccessType from an unlocked command pool and a command buffer.
+  CommandBufferWriteAccessType(UnlockedCommandPool<pool_type> const& CWDEBUG_ONLY(unlocked_pool), handle::CommandBuffer const& command_buffer) :
+    m_vh_command_buffer(command_buffer.m_vh_command_buffer)
+  {
+#ifdef CWDEBUG
+    ASSERT(unlocked_pool.id() == command_buffer.m_pool_id);
 #endif
   }
 
@@ -166,18 +180,29 @@ class CommandBufferWriteAccessType
   friend CommandBufferWriteAccessType<pool_type2> handle::CommandBuffer::operator()(
     aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type2>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const;
 
+  template<vk::CommandPoolCreateFlags::MaskType pool_type2>
+  friend CommandBufferWriteAccessType<pool_type2> handle::CommandBuffer::operator()(
+    UnlockedCommandPool<pool_type2> const& command_pool) const;
+
  public:
   // Accessor for the underlaying command buffer.
   typename vk::CommandBuffer* operator->()
   {
-    return &m_handle;
+    return &m_vh_command_buffer;
   }
 
   // Used when submitting.
   operator vk::CommandBuffer*()
   {
-    return &m_handle;
+    return &m_vh_command_buffer;
   }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const
+  {
+    os << "{vh_command_buffer:" << m_vh_command_buffer << '}';
+  }
+#endif
 };
 
 namespace handle {
@@ -187,6 +212,13 @@ CommandBufferWriteAccessType<pool_type> CommandBuffer::operator()(
     aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const
 {
   return {command_pool_w, *this};
+}
+
+template<vk::CommandPoolCreateFlags::MaskType pool_type>
+CommandBufferWriteAccessType<pool_type> CommandBuffer::operator()(
+    UnlockedCommandPool<pool_type> const& command_pool) const
+{
+  return {command_pool, *this};
 }
 
 } // namespace handle

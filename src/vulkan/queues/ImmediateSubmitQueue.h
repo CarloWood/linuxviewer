@@ -12,7 +12,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Asyn
   static constexpr auto pool_type = vulkan::ImmediateSubmitRequest::pool_type;
 
  private:
-  using command_pool_type = vulkan::CommandPool<pool_type>;
+  using command_pool_type = vulkan::UnlockedCommandPool<pool_type>;
   command_pool_type m_command_pool;
   vulkan::Queue m_queue;
 

@@ -61,12 +61,12 @@ void PipelineCache::multiplex_impl(state_type run_state)
     {
       if (!std::filesystem::exists(get_filename()))
       {
-        vulkan::LogicalDevice const* device(m_owning_factory->owning_window()->logical_device());
+        vulkan::LogicalDevice const* logical_device(m_owning_factory->owning_window()->logical_device());
         vk::PipelineCacheCreateInfo pipeline_cache_create_info = {
-          .flags = device->supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
+          .flags = logical_device->supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
           .initialDataSize = 0
         };
-        m_pipeline_cache = device->create_pipeline_cache(pipeline_cache_create_info
+        m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
             COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
         set_state(PipelineCache_ready);
         break;
@@ -129,8 +129,8 @@ void PipelineCache::multiplex_impl(state_type run_state)
         if (!vhv_srcs.empty())
         {
           Dout(dc::vulkan, "Merging " << vhv_srcs << " into " << *m_pipeline_cache);
-          vulkan::LogicalDevice const* device(m_owning_factory->owning_window()->logical_device());
-          device->merge_pipeline_caches(*m_pipeline_cache, vhv_srcs);
+          vulkan::LogicalDevice const* logical_device(m_owning_factory->owning_window()->logical_device());
+          logical_device->merge_pipeline_caches(*m_pipeline_cache, vhv_srcs);
         }
       }
       if (producer_not_finished())
@@ -174,13 +174,13 @@ void PipelineCache::load(boost::archive::binary_iarchive& archive, unsigned int 
   archive & make_nvp("pipeline_cache", boost::serialization::make_binary_object(tmp_storage, size));
   vk::PipelineCacheHeaderVersionOne const* header = static_cast<vk::PipelineCacheHeaderVersionOne const*>(tmp_storage);
   Dout(dc::vulkan, "Read " << size << " bytes from pipeline cache, with header: " << *header);
-  vulkan::LogicalDevice const* device(m_owning_factory->owning_window()->logical_device());
+  vulkan::LogicalDevice const* logical_device(m_owning_factory->owning_window()->logical_device());
   vk::PipelineCacheCreateInfo pipeline_cache_create_info = {
-    .flags = device->supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
+    .flags = logical_device->supports_cache_control() ? vk::PipelineCacheCreateFlagBits::eExternallySynchronized : vk::PipelineCacheCreateFlagBits{0},
     .initialDataSize = size,
     .pInitialData = tmp_storage
   };
-  m_pipeline_cache = device->create_pipeline_cache(pipeline_cache_create_info
+  m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
       COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
   free(tmp_storage);
 }
@@ -198,12 +198,12 @@ void PipelineCache::save(boost::archive::binary_oarchive& archive, unsigned int 
   // below; if this inadvertently would still happen.
   if (!pipeline_cache)
     THROW_FALERT("The pipeline cache handle is nul.");
-  vulkan::LogicalDevice const* device(m_owning_factory->owning_window()->logical_device());
-  size = device->get_pipeline_cache_size(pipeline_cache);
+  vulkan::LogicalDevice const* logical_device(m_owning_factory->owning_window()->logical_device());
+  size = logical_device->get_pipeline_cache_size(pipeline_cache);
   void* tmp_storage = std::aligned_alloc(
       alignof(vk::PipelineCacheHeaderVersionOne),
       utils::nearest_multiple_of_power_of_two(size, alignof(vk::PipelineCacheHeaderVersionOne)));
-  device->get_pipeline_cache_data(pipeline_cache, size, tmp_storage);
+  logical_device->get_pipeline_cache_data(pipeline_cache, size, tmp_storage);
   archive & size;
   archive & make_nvp("pipeline_cache", boost::serialization::make_binary_object(tmp_storage, size));
   vk::PipelineCacheHeaderVersionOne const* header = static_cast<vk::PipelineCacheHeaderVersionOne const*>(tmp_storage);

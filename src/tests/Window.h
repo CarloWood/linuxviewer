@@ -4,6 +4,7 @@
 #include "RandomPositions.h"
 #include "SampleParameters.h"
 #include "FrameResourcesCount.h"
+#include "queues/CopyDataToBuffer.h"
 #include "vulkan/SynchronousWindow.h"
 #include "vk_utils/get_image_data.h"
 #include <imgui.h>
@@ -368,8 +369,16 @@ void main() {
       int count = vertex_shader_input_set->count();
       size_t buffer_size = count * entry_size;
 
+      m_vertex_buffers.emplace_back(logical_device()->create_buffer(buffer_size,
+          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
+
+      auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(logical_device(), buffer_size, *m_vertex_buffers.back().m_buffer, 0, vk::AccessFlags(0),
+          vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput
+          COMMA_CWDEBUG_ONLY(true));
+
       // FIXME: write directly into allocated vulkan buffer?
-      std::vector<std::byte> buf(buffer_size);
+      std::vector<std::byte>& buf = copy_data_to_buffer->get_buf();
       std::byte const* const end = buf.data() + buffer_size;
       int batch_size;
       for (std::byte* ptr = buf.data(); ptr != end; ptr += batch_size * entry_size)
@@ -378,12 +387,7 @@ void main() {
         vertex_shader_input_set->get_input_entry(ptr);
       }
 
-      m_vertex_buffers.emplace_back(logical_device()->create_buffer(buffer_size,
-          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
-
-      copy_data_to_buffer(buffer_size, buf.data(), *m_vertex_buffers.back().m_buffer, 0, vk::AccessFlags(0),
-          vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput);
+      copy_data_to_buffer->run();
     }
   }
 

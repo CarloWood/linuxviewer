@@ -387,6 +387,25 @@ void LogicalDevice::prepare(
 
   Dout(dc::vulkan, "Requested QueueRequest's: " << device_create_info.get_queue_requests() << " [" << this << "]");
 
+  for (QueueRequest queue_request : device_create_info.get_queue_requests())
+    if (queue_request.queue_flags == QueueFlagBits::eTransfer)
+    {
+      m_transfer_request_cookie = queue_request.cookies;
+      Dout(dc::vulkan, "Using 0x" << std::hex << m_transfer_request_cookie << " as transfer request cookie.");
+      break;
+    }
+  // The overridden prepare_logical_device must request one or more queues with QueueFlagBits::eTransfer.
+  // For example, call
+  //
+  //  .addQueueRequest({
+  //      .queue_flags = QueueFlagBits::eTransfer,
+  //      .max_number_of_queues = 2,
+  //      .cookies = my_transfer_request_cookie})
+  //
+  // on the device_create_info that was pass to prepare_logical_device
+  // (if more than one request specifies eTransfer then the first one is used).
+  ASSERT(m_transfer_request_cookie);
+
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
@@ -865,6 +884,13 @@ void LogicalDevice::allocate_command_buffers(
     for (int i = 0; i < count; ++i)
       DebugSetName(command_buffers_out[i], debug_name("[" + std::to_string(i) + "]"), this);
 #endif
+}
+
+void LogicalDevice::free_command_buffers(vk::CommandPool const& pool, uint32_t count, vk::CommandBuffer const* command_buffers) const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::free_command_buffers(" << pool << ", " << ", " << count << ", " << command_buffers << ") [" << this << "]");
+
+  m_device->freeCommandBuffers(pool, count, command_buffers);
 }
 
 DescriptorSetParameters LogicalDevice::create_descriptor_resources(

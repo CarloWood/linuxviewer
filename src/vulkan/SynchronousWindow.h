@@ -411,10 +411,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
 
-  void copy_data_to_buffer(uint32_t data_size, void const* data, vk::Buffer target_buffer,
-    vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
-    vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages) const;
-
   vulkan::Texture upload_texture(void const* texture_data, uint32_t width, uint32_t height,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const;

@@ -12,6 +12,7 @@ class LogicalDevice : public vulkan::LogicalDevice
   // related windows).
   static constexpr int root_window_request_cookie1 = 1;
   static constexpr int root_window_request_cookie2 = 2;
+  static constexpr int transfer_request_cookie = 4;
 
   LogicalDevice()
   {
@@ -52,7 +53,7 @@ class LogicalDevice : public vulkan::LogicalDevice
     .addQueueRequest({
         .queue_flags = QueueFlagBits::eTransfer,
         .max_number_of_queues = 2,
-        .priority = 1.0})
+        .cookies = transfer_request_cookie})
 #if 0
     // {3}
     .combineQueueRequest({

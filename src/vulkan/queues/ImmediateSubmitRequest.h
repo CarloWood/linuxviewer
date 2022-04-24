@@ -21,6 +21,10 @@ class ImmediateSubmitRequest
 
  public:
   ImmediateSubmitRequest() = default;
+  ImmediateSubmitRequest(vulkan::LogicalDevice const* logical_device) :
+    m_logical_device(logical_device), m_queue_request_key({QueueFlagBits::eTransfer, logical_device->transfer_request_cookie()}) { }
+  ImmediateSubmitRequest(vulkan::LogicalDevice const* logical_device, vulkan::QueueRequestKey queue_request_key) :
+    m_logical_device(logical_device), m_queue_request_key(queue_request_key) { }
   ImmediateSubmitRequest(vulkan::LogicalDevice const* logical_device, vulkan::QueueRequestKey queue_request_key, record_function_type&& record_function) :
     m_logical_device(logical_device), m_queue_request_key(queue_request_key), m_record_function(std::move(record_function)) { }
 

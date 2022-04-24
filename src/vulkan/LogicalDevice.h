@@ -85,6 +85,7 @@ class LogicalDevice
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
   bool m_supports_cache_control = {};
+  QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
 
 #ifdef CWDEBUG
   std::string m_debug_name;
@@ -106,6 +107,7 @@ class LogicalDevice
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
   bool has_explicit_transfer_support() const { return m_queue_families.has_explicit_transfer_support(); }
+  QueueRequestKey::request_cookie_type transfer_request_cookie() const { return m_transfer_request_cookie; }
 
   void print_on(std::ostream& os) const { char const* prefix = ""; os << '{'; print_members(os, prefix); os << '}'; }
   void print_members(std::ostream& os, char const* prefix) const;
@@ -125,7 +127,7 @@ class LogicalDevice
   boost::uuids::uuid get_pipeline_cache_UUID() const;
 
   // Return the (next) queue for queue_request_key as passed to Application::create_root_window).
-  Queue acquire_queue(vulkan::QueueRequestKey queue_request_key) const;
+  Queue acquire_queue(QueueRequestKey queue_request_key) const;
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
@@ -207,6 +209,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   void allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix, bool is_array = true)) const;
+  void free_command_buffers(vk::CommandPool const& pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
   void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;

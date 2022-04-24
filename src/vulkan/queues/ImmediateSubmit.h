@@ -6,15 +6,14 @@
 
 namespace task {
 
-class ImmediateSubmit final : public vulkan::AsyncTask
+class ImmediateSubmit : public vulkan::AsyncTask
 {
  public:
   static constexpr condition_type commands_submitted = 1;
 
- private:
+ protected:
   vulkan::ImmediateSubmitRequest m_submit_request;
 
- protected:
   // The different states of the task.
   enum ImmediateSubmit_state_type {
     ImmediateSubmit_start = direct_base_type::state_end,

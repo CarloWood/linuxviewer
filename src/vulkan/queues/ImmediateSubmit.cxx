@@ -25,6 +25,8 @@ ImmediateSubmit::~ImmediateSubmit()
 
 char const* ImmediateSubmit::state_str_impl(state_type run_state) const
 {
+  // If this fails then a derived class forgot to add an AI_CASE_RETURN for this state.
+  ASSERT(run_state < state_end);
   switch (run_state)
   {
     AI_CASE_RETURN(ImmediateSubmit_start);

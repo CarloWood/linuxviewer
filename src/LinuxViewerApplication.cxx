@@ -575,6 +575,7 @@ class LogicalDevice : public vulkan::LogicalDevice
   // querying what presentation queue family to use for that window (and
   // related windows).
   static constexpr int root_window_request_cookie1 = 1;
+  static constexpr int transfer_request_cookie = 2;
 
   LogicalDevice()
   {
@@ -606,6 +607,11 @@ class LogicalDevice : public vulkan::LogicalDevice
     // {1}
     .combineQueueRequest({
         .queue_flags = QueueFlagBits::ePresentation})
+    // {2}
+    .addQueueRequest({
+        .queue_flags = QueueFlagBits::eTransfer,
+        .max_number_of_queues = 2,
+        .cookies = transfer_request_cookie})
 #ifdef CWDEBUG
     .setDebugName("LogicalDevice");
 #endif

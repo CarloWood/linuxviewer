@@ -60,13 +60,15 @@ class UnlockedCommandPool
 #endif
 
   handle::CommandBuffer allocate_buffer(
-      CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      CWDEBUG_ONLY(Ambifix const& ambifix));
+
+  void free_buffer(handle::CommandBuffer command_buffer);
 
   void allocate_buffers(uint32_t count, handle::CommandBuffer* command_buffers
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name));
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name));
 
   void allocate_buffers(std::vector<handle::CommandBuffer>& command_buffers
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name))
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
   {
     allocate_buffers(static_cast<uint32_t>(command_buffers.size()), command_buffers.data()
         COMMA_CWDEBUG_ONLY(debug_name));
@@ -74,7 +76,7 @@ class UnlockedCommandPool
 
   template<size_t N>
   void allocate_buffers(std::array<handle::CommandBuffer, N>& command_buffers
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name))
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
   {
     allocate_buffers(static_cast<uint32_t>(N), command_buffers.data()
         COMMA_CWDEBUG_ONLY(debug_name));
@@ -96,31 +98,37 @@ namespace vulkan {
 
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 handle::CommandBuffer UnlockedCommandPool<pool_type>::allocate_buffer(
-    CWDEBUG_ONLY(AmbifixOwner const& debug_name))
+    CWDEBUG_ONLY(Ambifix const& debug_name))
 {
   handle::CommandBuffer command_buffer{CWDEBUG_ONLY(m_id)};
-  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, 1, &command_buffer.m_handle
+  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, 1, &command_buffer.m_vh_command_buffer
       COMMA_CWDEBUG_ONLY(debug_name, false));
   return command_buffer;
 }
 
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 void UnlockedCommandPool<pool_type>::allocate_buffers(uint32_t count, handle::CommandBuffer* command_buffers
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name))
+    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
 {
 #ifndef CWDEBUG
-  static_assert(sizeof(command_buffers[0]) == sizeof(command_buffers[0].m_handle), "m_handle must be the only member");
-  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, &command_buffers[0].m_handle);
+  static_assert(sizeof(command_buffers[0]) == sizeof(command_buffers[0].m_vh_command_buffer), "m_vh_command_buffer must be the only member");
+  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, &command_buffers[0].m_vh_command_buffer);
 #else
   std::vector<vk::CommandBuffer> tmp(count);
   m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, tmp.data(), debug_name);
   for (int i = 0; i < count; ++i)
   {
-    command_buffers[i].m_handle = tmp[i];
+    command_buffers[i].m_vh_command_buffer = tmp[i];
     command_buffers[i].m_pool_id = m_id;
-    DebugSetName(command_buffers[i].m_handle, debug_name("[" + to_string(i) + "]"));
+    DebugSetName(command_buffers[i].m_vh_command_buffer, debug_name("[" + to_string(i) + "]"));
   }
 #endif
+}
+
+template<vk::CommandPoolCreateFlags::MaskType pool_type>
+void UnlockedCommandPool<pool_type>::free_buffer(handle::CommandBuffer command_buffer)
+{
+  m_logical_device->free_command_buffers(*m_command_pool, 1, &command_buffer.m_vh_command_buffer);
 }
 
 } // namespace vulkan
