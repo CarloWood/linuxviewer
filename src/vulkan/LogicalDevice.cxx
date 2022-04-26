@@ -410,6 +410,7 @@ void LogicalDevice::prepare(
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
 
   auto required_extensions = device_create_info.device_extensions();
+  Dout(dc::vulkan, "required_extensions = " << required_extensions);
 
   auto vh_physical_devices = vulkan_instance.enumeratePhysicalDevices();
   for (auto const& vh_physical_device : vh_physical_devices)
@@ -426,7 +427,11 @@ void LogicalDevice::prepare(
       auto missing_extensions = vk_utils::find_missing_names(required_extensions, available_names);
 
       if (!missing_extensions.empty())
+      {
+        Dout(dc::vulkan, "Skipping " << vh_physical_device << " because it is missing the required extensions: " << missing_extensions);
+        Dout(dc::vulkan, "Available extensions: " << available_names);
         continue;
+      }
 
       // Use the first compatible device.
       m_vh_physical_device = vh_physical_device;
