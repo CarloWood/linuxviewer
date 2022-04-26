@@ -1,12 +1,12 @@
 #pragma once
 
 #include "ImmediateSubmitRequest.h"
-#include "AsyncTask.h"
+#include "PersistentAsyncTask.h"
 #include "vk_utils/TaskToTaskDeque.h"
 
 namespace task {
 
-class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::AsyncTask, vulkan::ImmediateSubmitRequest>
+class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
 {
  public:
   static constexpr auto pool_type = vulkan::ImmediateSubmitRequest::pool_type;
@@ -37,6 +37,8 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Asyn
     vulkan::LogicalDevice const* logical_device,
     vulkan::Queue const& queue
     COMMA_CWDEBUG_ONLY(bool debug = false));
+
+  void terminate();
 };
 
 } // namespace task

@@ -1,17 +1,13 @@
 #pragma once
 
 #include "QueueRequestKey.h"
-#include "ImmediateSubmitRequest.h"
+#include "ImmediateSubmitQueue.h"
 #include "utils/UltraHash.h"
 #include "threadsafe/aithreadsafe.h"
 #include "threadsafe/AIReadWriteSpinLock.h"
 #include <boost/intrusive_ptr.hpp>
 #include <vector>
 #include "debug.h"
-
-namespace task {
-class ImmediateSubmitQueue;
-} // namespace task
 
 namespace vulkan {
 
@@ -75,7 +71,12 @@ class QueuePool
   }
 
  public:
-  QueuePool(LogicalDevice const* logical_device, uint64_t key_as_uint64) : m_logical_device(logical_device), m_key_as_uint64(key_as_uint64), m_no_more_queues(false), m_next_task(0) { }
+  QueuePool(LogicalDevice const* logical_device, uint64_t key_as_uint64) : m_logical_device(logical_device), m_key_as_uint64(key_as_uint64), m_no_more_queues(false), m_next_task(0)
+  {
+    DoutEntering(dc::vulkan, "QueuePool::QueuePool(" << logical_device << ", 0x" << std::hex << key_as_uint64 << ") [" << this << "]");
+  }
+
+  ~QueuePool();
 
   static QueuePool& instance(ImmediateSubmitRequest const& submit_request)
   {

@@ -2,6 +2,7 @@
 #include "Application.h"
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
+#include "PersistentAsyncTask.h"
 #include "pipeline/PipelineFactory.h"
 #include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
@@ -290,9 +291,12 @@ void Application::create_instance(vulkan::InstanceCreateInfo const& instance_cre
 void Application::run()
 {
   // The main thread goes to sleep for the entirety of the application.
-  m_until_terminated.wait();
+  m_until_windows_terminated.wait();
 
-  Dout(dc::notice, "======= Program terminated ======");
+  Dout(dc::notice, "======= Program terminating ======");
+
+  // Terminate all running PersistentAsyncTask's.
+  PersistentAsyncTask::terminate_and_wait();
 
   // Wait till all logical devices are idle.
   {

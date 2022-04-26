@@ -9,10 +9,11 @@ namespace task {
 class ImmediateSubmit : public vulkan::AsyncTask
 {
  public:
-  static constexpr condition_type commands_submitted = 1;
+  static constexpr condition_type submit_finished = 1;
 
  protected:
   vulkan::ImmediateSubmitRequest m_submit_request;
+  state_type m_continue_state{ImmediateSubmit_done};
 
   // The different states of the task.
   enum ImmediateSubmit_state_type {
@@ -24,7 +25,7 @@ class ImmediateSubmit : public vulkan::AsyncTask
   static state_type constexpr state_end = ImmediateSubmit_done + 1;
 
   ImmediateSubmit(CWDEBUG_ONLY(bool debug));
-  ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request COMMA_CWDEBUG_ONLY(bool debug));
+  ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug));
 
   void set_queue_request_key(vulkan::QueueRequestKey queue_request_key) { m_submit_request.set_queue_request_key(queue_request_key); }
   void set_record_function(vulkan::ImmediateSubmitRequest::record_function_type&& record_function) { m_submit_request.set_record_function(std::move(record_function)); }

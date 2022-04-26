@@ -89,7 +89,7 @@ class Application
   xcb::ConnectionBrokerKey m_main_display_broker_key;
 
   // To stop the main thread from exiting until the last xcb connection is closed.
-  mutable utils::threading::Gate m_until_terminated;
+  mutable utils::threading::Gate m_until_windows_terminated;            // This Gate is opened when the last window is destructed.
 
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::SynchronousWindow>>;
@@ -143,21 +143,24 @@ class Application
 
   // Counts the number of `boost::intrusive_ptr<Application>` objects.
   // When the last one such object is destructed, the application is terminated.
-  mutable std::atomic<int> m_count;
+  //
+  // Because only task::SynchronousWindow is supposed to have such pointers, this
+  // reference count is called m_window_count.
+  mutable std::atomic<int> m_window_count;
 
   friend void intrusive_ptr_add_ref(Application const* ptr)
   {
-    ptr->m_count.fetch_add(1, std::memory_order_relaxed);
+    ptr->m_window_count.fetch_add(1, std::memory_order_relaxed);
   }
 
   friend void intrusive_ptr_release(Application const* ptr)
   {
-    if (ptr->m_count.fetch_sub(1, std::memory_order_release) == 1)
+    if (ptr->m_window_count.fetch_sub(1, std::memory_order_release) == 1)
     {
       std::atomic_thread_fence(std::memory_order_acquire);
-      // The last reference was destructed; terminate the application.
+      // The last reference (window) was destructed; terminate the application.
       Dout(dc::notice, "Last reference to Application was removed. Terminating application.");
-      ptr->m_until_terminated.open();
+      ptr->m_until_windows_terminated.open();
     }
   }
 

@@ -70,6 +70,9 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
             THROW_ALERTC(res, "waitForFences");
         }
 
+        // As soon as the fence is signalled. It is ok to destroy the staging buffer.
+        submit_request.submit_finished();
+
         // Free the temporary command buffer again.
         m_command_pool.free_buffer(tmp_command_buffer);
       });
@@ -78,8 +81,17 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
       set_state(ImmediateSubmitQueue_done);
       [[fallthrough]];
     case ImmediateSubmitQueue_done:
+      finish();
       break;
   }
+}
+
+void ImmediateSubmitQueue::terminate()
+{
+  // Calling set_producer_finished() instead would work too; but that would handle
+  // all immediate submit requests that are still queued up and wait for the current
+  // one to be finished. We do not need to do that.
+  abort();
 }
 
 } // namespace task

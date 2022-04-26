@@ -1,7 +1,13 @@
 #include "sys.h"
 #include "ImmediateSubmitRequest.h"
+#include "ImmediateSubmit.h"
 
 namespace vulkan {
+
+void ImmediateSubmitRequest::submit_finished() const
+{
+  m_immediate_submit->signal(task::ImmediateSubmit::submit_finished);
+}
 
 #ifdef CWDEBUG
 void ImmediateSubmitRequest::print_on(std::ostream& os) const

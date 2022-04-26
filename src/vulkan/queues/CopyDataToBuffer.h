@@ -38,7 +38,7 @@ class CopyDataToBuffer final : public ImmediateSubmit
       vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
       vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages
       COMMA_CWDEBUG_ONLY(bool debug)) :
-    ImmediateSubmit(logical_device COMMA_CWDEBUG_ONLY(debug)),
+    ImmediateSubmit({logical_device, this}, CopyDataToBuffer_done COMMA_CWDEBUG_ONLY(debug)),
     /*m_data_size(data_size),*/ m_data(data_size), m_target_buffer(target_buffer),
     m_buffer_offset(buffer_offset), m_current_buffer_access(current_buffer_access), m_generating_stages(generating_stages),
     m_new_buffer_access(new_buffer_access), m_consuming_stages(consuming_stages)

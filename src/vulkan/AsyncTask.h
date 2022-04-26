@@ -7,6 +7,10 @@
 
 namespace vulkan {
 
+class Application;
+
+// A task that runs asynchronously from the render loop - for example from the thread pool
+// or in immediate mode.
 class AsyncTask : public AIStatefulTask
 {
  protected:

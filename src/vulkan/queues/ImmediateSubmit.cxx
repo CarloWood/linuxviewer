@@ -13,8 +13,8 @@ ImmediateSubmit::ImmediateSubmit(CWDEBUG_ONLY(bool debug)) :
 {
 }
 
-ImmediateSubmit::ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request COMMA_CWDEBUG_ONLY(bool debug)) :
-  AsyncTask(CWDEBUG_ONLY(debug)), m_submit_request(std::move(submit_request))
+ImmediateSubmit::ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug)) :
+  AsyncTask(CWDEBUG_ONLY(debug)), m_submit_request(std::move(submit_request)), m_continue_state(continue_state)
 {
 }
 
@@ -48,8 +48,8 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
 
       // Pass on the submit request.
       immediate_submit_queue_task->have_new_datum(std::move(m_submit_request));
-      set_state(ImmediateSubmit_done);
-      wait(commands_submitted);
+      set_state(m_continue_state);
+      wait(submit_finished);
       break;
     }
     case ImmediateSubmit_done:

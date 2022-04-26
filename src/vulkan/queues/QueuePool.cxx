@@ -113,4 +113,14 @@ task::ImmediateSubmitQueue* QueuePool::get_immediate_submit_queue_task(CWDEBUG_O
   return new_task;
 }
 
+QueuePool::~QueuePool()
+{
+  DoutEntering(dc::vulkan, "QueuePool::~QueuePool() [" << this << "]");
+  tasks_type::wat tasks_w(m_tasks);
+  size_t number_of_tasks = tasks_w->tasks.size();
+  Dout(dc::vulkan, "Terminating " << number_of_tasks << " running task::ImmediateSubmitQueue's.");
+  for (int task = 0; task < number_of_tasks; ++task)
+    tasks_w->tasks[task]->terminate();
+}
+
 } // namespace vulkan
