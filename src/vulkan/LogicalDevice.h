@@ -61,7 +61,7 @@ class QueueFamilies
   }
 
   // Construct a vector of QueueFamilyProperties for physical_device and surface (for the presentation capability bit).
-  QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface);
+  QueueFamilies(vk::PhysicalDevice vh_physical_device, vk::SurfaceKHR vh_surface);
 
   // Construct an empty vector.
   QueueFamilies() = default;
@@ -94,7 +94,7 @@ class LogicalDevice
  public:
   virtual ~LogicalDevice() = default;
 
-  void prepare(vk::Instance vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
+  void prepare(vk::Instance vh_vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
 
   // Accessor for underlaying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
@@ -148,13 +148,13 @@ class LogicalDevice
   }
   inline vk::UniqueCommandPool create_command_pool(uint32_t queue_family_index, vk::CommandPoolCreateFlags flags
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  inline void destroy_command_pool(vk::CommandPool command_pool) const;
-  vk::Result acquire_next_image(vk::SwapchainKHR swapchain, uint64_t timeout, vk::Semaphore semaphore, vk::Fence fence, SwapchainIndex& image_index_out) const
+  inline void destroy_command_pool(vk::CommandPool vh_command_pool) const;
+  vk::Result acquire_next_image(vk::SwapchainKHR vh_swapchain, uint64_t timeout, vk::Semaphore vh_semaphore, vk::Fence vh_fence, SwapchainIndex& image_index_out) const
   {
-    DoutEntering(dc::vkframe, "LogicalDevice::acquire_next_image(" << swapchain << ", " << timeout << ", " << semaphore << ", " << fence << ", ...)");
+    DoutEntering(dc::vkframe, "LogicalDevice::acquire_next_image(" << vh_swapchain << ", " << timeout << ", " << vh_semaphore << ", " << vh_fence << ", ...)");
 
     uint32_t new_image_index;
-    auto result = m_device->acquireNextImageKHR(swapchain, timeout, semaphore, fence, &new_image_index);
+    auto result = m_device->acquireNextImageKHR(vh_swapchain, timeout, vh_semaphore, vh_fence, &new_image_index);
     image_index_out = SwapchainIndex(new_image_index);
     return result;
   }
@@ -193,7 +193,7 @@ class LogicalDevice
 
   vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  vk::UniqueDeviceMemory allocate_image_memory(vk::Image image, vk::MemoryPropertyFlagBits property
+  vk::UniqueDeviceMemory allocate_image_memory(vk::Image vh_image, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
@@ -205,19 +205,19 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout, vk::DescriptorPool descriptor_pool
+  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  void allocate_command_buffers(vk::CommandPool const& pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
+  void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix, bool is_array = true)) const;
-  void free_command_buffers(vk::CommandPool const& pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
-  void update_descriptor_set(vk::DescriptorSet descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
+  void free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
+  void update_descriptor_set(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;
   vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueBuffer create_buffer(uint32_t size, vk::BufferUsageFlags usage
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  vk::UniqueDeviceMemory allocate_buffer_memory(vk::Buffer buffer, vk::MemoryPropertyFlagBits property
+  vk::UniqueDeviceMemory allocate_buffer_memory(vk::Buffer vh_buffer, vk::MemoryPropertyFlagBits property
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
@@ -337,9 +337,9 @@ vk::UniqueCommandPool LogicalDevice::create_command_pool(uint32_t queue_family_i
   return command_pool;
 }
 
-void LogicalDevice::destroy_command_pool(vk::CommandPool command_pool) const
+void LogicalDevice::destroy_command_pool(vk::CommandPool vh_command_pool) const
 {
-  m_device->destroyCommandPool(command_pool);
+  m_device->destroyCommandPool(vh_command_pool);
 }
 
 } // namespace vulkan

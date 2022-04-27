@@ -305,11 +305,11 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
   return true;
 }
 
-QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR surface)
+QueueFamilies::QueueFamilies(vk::PhysicalDevice vh_physical_device, vk::SurfaceKHR vh_surface)
 {
-  DoutEntering(dc::vulkan, "QueueFamilies::QueueFamilies(" << physical_device << ", " << surface << ")");
+  DoutEntering(dc::vulkan, "QueueFamilies::QueueFamilies(" << vh_physical_device << ", " << vh_surface << ")");
 
-  std::vector<vk::QueueFamilyProperties> queueFamilies = physical_device.getQueueFamilyProperties();
+  std::vector<vk::QueueFamilyProperties> queueFamilies = vh_physical_device.getQueueFamilyProperties();
 
   Dout(dc::vulkan, "getQueueFamilyProperties() returned " << queueFamilies.size() << " families:");
 #ifdef CWDEBUG
@@ -319,7 +319,7 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice physical_device, vk::SurfaceKHR 
   QueueFamilyPropertiesIndex queue_family(0);
   for (auto const& queueFamily : queueFamilies)
   {
-    bool const presentation_support = physical_device.getSurfaceSupportKHR(queue_family.get_value(), surface);
+    bool const presentation_support = vh_physical_device.getSurfaceSupportKHR(queue_family.get_value(), vh_surface);
     m_queue_families.emplace_back(queueFamily, presentation_support);
     if ((queueFamily.queueFlags & vk::QueueFlagBits::eTransfer))
       m_has_explicit_transfer_support = true;
@@ -337,11 +337,11 @@ bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface cons
 }
 
 void LogicalDevice::prepare(
-    vk::Instance vulkan_instance,
+    vk::Instance vh_instance,
     DispatchLoader& dispatch_loader,
     task::SynchronousWindow const* window_task_ptr)
 {
-  DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vulkan_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
+  DoutEntering(dc::vulkan, "vulkan::LogicalDevice::prepare(" << vh_instance << ", dispatch_loader, " << (void*)window_task_ptr << ")");
 
   // Get the queue family requirements from the user, using the virtual function prepare_logical_device
   // and enable the imagelessFramebuffer feature.
@@ -412,8 +412,8 @@ void LogicalDevice::prepare(
   auto required_extensions = device_create_info.device_extensions();
   Dout(dc::vulkan, "required_extensions = " << required_extensions);
 
-  auto vh_physical_devices = vulkan_instance.enumeratePhysicalDevices();
-  for (auto const& vh_physical_device : vh_physical_devices)
+  auto vhv_physical_devices = vh_instance.enumeratePhysicalDevices();
+  for (auto const& vh_physical_device : vhv_physical_devices)
   {
     QueueFamilies queue_families(vh_physical_device, window_task_ptr->vh_surface());
     if (queue_families.is_compatible_with(device_create_info, m_queue_replies))
@@ -509,7 +509,7 @@ void LogicalDevice::prepare(
   Dout(dc::vulkan, "Calling m_vh_physical_device.createDevice(" << device_create_info << ")");
   m_device = m_vh_physical_device.createDeviceUnique(device_create_info);
   // For greater performance, immediately after creating a vulkan device, inform the extension loader.
-  dispatch_loader.load(vulkan_instance, *m_device);
+  dispatch_loader.load(vh_instance, *m_device);
 
 #ifdef CWDEBUG
   // Set the debug name of the device.
@@ -757,11 +757,11 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
 }
 
 vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(
-    vk::Image image,
+    vk::Image vh_image,
     vk::MemoryPropertyFlagBits property
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  vk::MemoryRequirements image_memory_requirements = m_device->getImageMemoryRequirements(image);
+  vk::MemoryRequirements image_memory_requirements = m_device->getImageMemoryRequirements(vh_image);
   vk::PhysicalDeviceMemoryProperties memory_properties = m_vh_physical_device.getMemoryProperties();
 
   for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)
@@ -842,14 +842,14 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
 }
 
 std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets(
-    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layout,
-    vk::DescriptorPool descriptor_pool
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    vk::DescriptorPool vh_descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-    .descriptorPool = descriptor_pool,
-    .descriptorSetCount = static_cast<uint32_t>(descriptor_set_layout.size()),
-    .pSetLayouts = descriptor_set_layout.data()
+    .descriptorPool = vh_descriptor_pool,
+    .descriptorSetCount = static_cast<uint32_t>(vhv_descriptor_set_layout.size()),
+    .pSetLayouts = vhv_descriptor_set_layout.data()
   };
   std::vector<vk::UniqueDescriptorSet> descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
 #ifdef CWDEBUG
@@ -860,16 +860,16 @@ std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets(
 }
 
 void LogicalDevice::allocate_command_buffers(
-    vk::CommandPool const& pool,
+    vk::CommandPool vh_pool,
     vk::CommandBufferLevel level,
     uint32_t count,
     vk::CommandBuffer* command_buffers_out
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array)) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::allocate_command_buffers(" << pool << ", " << level << ", " << count << ", " << command_buffers_out << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "LogicalDevice::allocate_command_buffers(" << vh_pool << ", " << level << ", " << count << ", " << command_buffers_out << ") [" << this << "]");
 
   vk::CommandBufferAllocateInfo command_buffer_allocate_info{
-    .commandPool = pool,
+    .commandPool = vh_pool,
     .level = level,
     .commandBufferCount = count
   };
@@ -891,11 +891,11 @@ void LogicalDevice::allocate_command_buffers(
 #endif
 }
 
-void LogicalDevice::free_command_buffers(vk::CommandPool const& pool, uint32_t count, vk::CommandBuffer const* command_buffers) const
+void LogicalDevice::free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::free_command_buffers(" << pool << ", " << ", " << count << ", " << command_buffers << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "LogicalDevice::free_command_buffers(" << vh_pool << ", " << ", " << count << ", " << command_buffers << ") [" << this << "]");
 
-  m_device->freeCommandBuffers(pool, count, command_buffers);
+  m_device->freeCommandBuffers(vh_pool, count, command_buffers);
 }
 
 DescriptorSetParameters LogicalDevice::create_descriptor_resources(
@@ -920,7 +920,7 @@ DescriptorSetParameters LogicalDevice::create_descriptor_resources(
 }
 
 void LogicalDevice::update_descriptor_set(
-    vk::DescriptorSet descriptor_set,
+    vk::DescriptorSet vh_descriptor_set,
     vk::DescriptorType descriptor_type,
     uint32_t binding,
     uint32_t array_element,
@@ -929,7 +929,7 @@ void LogicalDevice::update_descriptor_set(
     std::vector<vk::BufferView> const& buffer_views) const
 {
   vk::WriteDescriptorSet descriptor_writes{
-    .dstSet = descriptor_set,
+    .dstSet = vh_descriptor_set,
     .dstBinding = binding,
     .dstArrayElement = array_element,
     .descriptorCount = 1,
@@ -943,14 +943,14 @@ void LogicalDevice::update_descriptor_set(
 }
 
 vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
-    std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts,
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts,
     std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   vk::PipelineLayoutCreateInfo layout_create_info{
     .flags = {},
-    .setLayoutCount = static_cast<uint32_t>(descriptor_set_layouts.size()),
-    .pSetLayouts = descriptor_set_layouts.data(),
+    .setLayoutCount = static_cast<uint32_t>(vhv_descriptor_set_layouts.size()),
+    .pSetLayouts = vhv_descriptor_set_layouts.data(),
     .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
     .pPushConstantRanges = push_constant_ranges.data()
   };
@@ -976,11 +976,11 @@ vk::UniqueBuffer LogicalDevice::create_buffer(
 }
 
 vk::UniqueDeviceMemory LogicalDevice::allocate_buffer_memory(
-    vk::Buffer buffer,
+    vk::Buffer vh_buffer,
     vk::MemoryPropertyFlagBits property
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  vk::MemoryRequirements buffer_memory_requirements = m_device->getBufferMemoryRequirements(buffer);
+  vk::MemoryRequirements buffer_memory_requirements = m_device->getBufferMemoryRequirements(vh_buffer);
   vk::PhysicalDeviceMemoryProperties memory_properties = m_vh_physical_device.getMemoryProperties();
 
   for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)

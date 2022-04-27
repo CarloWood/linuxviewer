@@ -12,7 +12,7 @@ class CopyDataToBuffer final : public ImmediateSubmit
  private:
 //  uint32_t m_data_size;
   std::vector<std::byte> m_data;                        // FIXME: I don't think this buffer should exist. We should write more directly into whatever it is that we're writing to.
-  vk::Buffer m_target_buffer;
+  vk::Buffer m_vh_target_buffer;
   vk::DeviceSize m_buffer_offset;
   vk::AccessFlags m_current_buffer_access;
   vk::PipelineStageFlags m_generating_stages;
@@ -34,16 +34,16 @@ class CopyDataToBuffer final : public ImmediateSubmit
 
   // Construct a CopyDataToBuffer object.
   CopyDataToBuffer(vulkan::LogicalDevice const* logical_device,
-      uint32_t data_size, /*void const* data,*/ vk::Buffer target_buffer,
+      uint32_t data_size, /*void const* data,*/ vk::Buffer vh_target_buffer,
       vk::DeviceSize buffer_offset, vk::AccessFlags current_buffer_access, vk::PipelineStageFlags generating_stages,
       vk::AccessFlags new_buffer_access, vk::PipelineStageFlags consuming_stages
       COMMA_CWDEBUG_ONLY(bool debug)) :
     ImmediateSubmit({logical_device, this}, CopyDataToBuffer_done COMMA_CWDEBUG_ONLY(debug)),
-    /*m_data_size(data_size),*/ m_data(data_size), m_target_buffer(target_buffer),
+    /*m_data_size(data_size),*/ m_data(data_size), m_vh_target_buffer(vh_target_buffer),
     m_buffer_offset(buffer_offset), m_current_buffer_access(current_buffer_access), m_generating_stages(generating_stages),
     m_new_buffer_access(new_buffer_access), m_consuming_stages(consuming_stages)
   {
-    DoutEntering(dc::vulkan, "CopyDataToBuffer(" << logical_device << ", " << data_size << ", " << /*data << ", " <<*/ target_buffer <<
+    DoutEntering(dc::vulkan, "CopyDataToBuffer(" << logical_device << ", " << data_size << ", " << /*data << ", " <<*/ vh_target_buffer <<
         ", " << buffer_offset << ", " << current_buffer_access << ", " << generating_stages <<
         ", " << new_buffer_access << ", " << consuming_stages << ")");
   }

@@ -688,12 +688,12 @@ void SynchronousWindow::set_image_memory_barrier(
   }
 }
 
-void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
+void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image vh_target_image,
     uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const
 {
-  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << target_image << ", " << width << ", " << height << ", " <<
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << vh_target_image << ", " << width << ", " << height << ", " <<
       image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " << generating_stages << ", " <<
       new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
 
@@ -744,7 +744,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
       .newLayout = vk::ImageLayout::eTransferDstOptimal,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = target_image,
+      .image = vh_target_image,
       .subresourceRange = image_subresource_range
     };
     tmp_command_buffer_w->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
@@ -771,7 +771,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
         }
       });
     }
-    tmp_command_buffer_w->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    tmp_command_buffer_w->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
     vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -780,7 +780,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
       .newLayout = new_image_layout,
       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = target_image,
+      .image = vh_target_image,
       .subresourceRange = image_subresource_range
     };
     tmp_command_buffer_w->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
@@ -809,7 +809,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
 }
 
 vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
-    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
+    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const
 {
   // Create texture parameters.
@@ -836,7 +836,7 @@ vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
       }
     };
-    m_logical_device->update_descriptor_set(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+    m_logical_device->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
   }
 
   return texture;

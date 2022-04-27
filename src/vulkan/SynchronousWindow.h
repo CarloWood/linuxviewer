@@ -406,13 +406,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
-  void copy_data_to_image(uint32_t data_size, void const* data, vk::Image target_image,
+  void copy_data_to_image(uint32_t data_size, void const* data, vk::Image vh_target_image,
     uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
 
   vulkan::Texture upload_texture(void const* texture_data, uint32_t width, uint32_t height,
-      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet descriptor_set
+      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const;
 
   void detect_if_imgui_is_used();

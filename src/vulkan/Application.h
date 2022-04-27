@@ -101,7 +101,7 @@ class Application
   DispatchLoader m_dispatch_loader;
 
   // Vulkan instance.
-  vk::UniqueInstance m_instance;                        // Per application state. Creating a vk::Instance object initializes
+  vk::UniqueInstance m_instance;                        // Per application state. Creating a vk::UniqueInstance object initializes
                                                         // the Vulkan library and allows the application to pass information
                                                         // about itself to the implementation. Using vk::UniqueInstance also
                                                         // automatically destroys it.

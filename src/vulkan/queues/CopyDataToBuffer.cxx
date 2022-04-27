@@ -30,7 +30,7 @@ void CopyDataToBuffer::record_command_buffer(vulkan::ImmediateSubmitRequest::com
     .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-    .buffer = m_target_buffer,
+    .buffer = m_vh_target_buffer,
     .offset = m_buffer_offset,
     .size = m_data.size()
   };
@@ -41,14 +41,14 @@ void CopyDataToBuffer::record_command_buffer(vulkan::ImmediateSubmitRequest::com
     .dstOffset = m_buffer_offset,
     .size = m_data.size()
   };
-  command_buffer_w->copyBuffer(*m_staging_buffer.m_buffer.m_buffer, m_target_buffer, { buffer_copy_region });
+  command_buffer_w->copyBuffer(*m_staging_buffer.m_buffer.m_buffer, m_vh_target_buffer, { buffer_copy_region });
 
   vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{
     .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
     .dstAccessMask = m_new_buffer_access,
     .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-    .buffer = m_target_buffer,
+    .buffer = m_vh_target_buffer,
     .offset = m_buffer_offset,
     .size = m_data.size()
   };

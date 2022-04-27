@@ -189,21 +189,21 @@ void PipelineCache::save(boost::archive::binary_oarchive& archive, unsigned int 
 {
   DoutEntering(dc::vulkan, "PipelineCache::save(archive, " << version << ") [" << this << "]");
   size_t size;
-  vk::PipelineCache pipeline_cache = *m_pipeline_cache;
+  vk::PipelineCache vh_pipeline_cache = *m_pipeline_cache;
   // Don't call `oa & *this` (state PipelineCache_save_to_disk) when we don't have a handle:
   // that would truncate the cache file since we can't write to it and worse, make it unloadable.
   // This assert is put before the throw because it is a program error and should be fixed before a Release.
-  ASSERT(pipeline_cache);
+  ASSERT(vh_pipeline_cache);
   // However - a release doesn't have asserts. In this case I want to do something better than just crash
   // below; if this inadvertently would still happen.
-  if (!pipeline_cache)
+  if (!vh_pipeline_cache)
     THROW_FALERT("The pipeline cache handle is nul.");
   vulkan::LogicalDevice const* logical_device(m_owning_factory->owning_window()->logical_device());
-  size = logical_device->get_pipeline_cache_size(pipeline_cache);
+  size = logical_device->get_pipeline_cache_size(vh_pipeline_cache);
   void* tmp_storage = std::aligned_alloc(
       alignof(vk::PipelineCacheHeaderVersionOne),
       utils::nearest_multiple_of_power_of_two(size, alignof(vk::PipelineCacheHeaderVersionOne)));
-  logical_device->get_pipeline_cache_data(pipeline_cache, size, tmp_storage);
+  logical_device->get_pipeline_cache_data(vh_pipeline_cache, size, tmp_storage);
   archive & size;
   archive & make_nvp("pipeline_cache", boost::serialization::make_binary_object(tmp_storage, size));
   vk::PipelineCacheHeaderVersionOne const* header = static_cast<vk::PipelineCacheHeaderVersionOne const*>(tmp_storage);
