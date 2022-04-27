@@ -134,8 +134,8 @@ class LogicalDevice
   void wait_idle() const { m_device->waitIdle(); }
 
   // Unsorted additional functions.
-  inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& ambifix)) const;
+  inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+  inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
     DoutEntering(dc::vkframe, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
@@ -161,13 +161,13 @@ class LogicalDevice
 
   // Create a Sampler.
   vk::UniqueSampler create_sampler(SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   // Create a Sampler, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
   vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const { return create_sampler({this, std::move(sampler_kind)}, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const { return create_sampler({this, std::move(sampler_kind)}, graphics_settings COMMA_CWDEBUG_ONLY(debug_name)); }
 
   vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   // Create all texture objects at once.
   // Use sampler as-is.
@@ -189,43 +189,43 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
 
   vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDeviceMemory allocate_image_memory(vk::Image vh_image, vk::MemoryPropertyFlagBits property
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueFramebuffer create_imageless_framebuffer(RenderPass const& render_graph_pass, vk::Extent2D extent, uint32_t layers
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix, bool is_array = true)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;
   void free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
   void update_descriptor_set(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;
   vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueBuffer create_buffer(uint32_t size, vk::BufferUsageFlags usage
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDeviceMemory allocate_buffer_memory(vk::Buffer vh_buffer, vk::MemoryPropertyFlagBits property
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
       SwapchainKind const& swapchain_kind, vk::SwapchainKHR vh_old_swapchain
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniquePipeline create_graphics_pipeline(vk::PipelineCache vh_pipeline_cache, vk::GraphicsPipelineCreateInfo const& graphics_pipeline_create_info
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   Swapchain::images_type get_swapchain_images(task::SynchronousWindow const* owning_window, vk::SwapchainKHR vh_swapchain
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   void* map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const;
