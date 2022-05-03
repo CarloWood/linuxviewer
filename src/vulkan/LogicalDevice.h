@@ -134,6 +134,24 @@ class LogicalDevice
   void wait_idle() const { m_device->waitIdle(); }
 
   // Unsorted additional functions.
+  inline vk::UniqueSemaphore create_timeline_semaphore(uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+  void signal_timeline_semaphore(vk::SemaphoreSignalInfo const& semaphore_signal_info) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::signal_timeline_semaphore(" << semaphore_signal_info << ")");
+    m_device->signalSemaphore(semaphore_signal_info);
+  }
+  vk::Result wait_semaphores(vk::SemaphoreWaitInfo const& semaphore_wait_info, uint64_t timeout) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::wait_semaphores(" << semaphore_wait_info << ", " << timeout << ")");
+    return m_device->waitSemaphores(semaphore_wait_info, timeout);
+  }
+  uint64_t get_semaphore_counter_value(vk::Semaphore vh_timeline_semaphore) const
+  {
+    DoutEntering(dc::vkframe|continued_cf, "LogicalDevice::get_semaphore_counter_value(" << vh_timeline_semaphore << ") = ");
+    uint64_t value = m_device->getSemaphoreCounterValue(vh_timeline_semaphore);
+    Dout(dc::finish, value);
+    return value;
+  }
   inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
@@ -308,12 +326,23 @@ class LogicalDevice : public AIStatefulTask
 #include "debug/DebugSetName.h"
 #endif // LOGICAL_DEVICE_DECLARATION_H
 
+// Define inlined functions that use DebugSetName (see https://stackoverflow.com/a/71470522/1487069).
 #ifndef LOGICAL_DEVICE_DEFINITIONS_H
 #define LOGICAL_DEVICE_DEFINITIONS_H
 
 namespace vulkan {
 
-// Define inlined functions that use DebugSetName (see https://stackoverflow.com/a/69873866/1487069).
+vk::UniqueSemaphore LogicalDevice::create_timeline_semaphore(uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+{
+  vk::SemaphoreTypeCreateInfo timelineCreateInfo{
+    .semaphoreType = vk::SemaphoreType::eTimeline,
+    .initialValue = initial_value
+  };
+  vk::UniqueSemaphore semaphore = m_device->createSemaphoreUnique({ .pNext = &timelineCreateInfo });
+  DebugSetName(semaphore, debug_name, this);
+  return semaphore;
+}
+
 vk::UniqueSemaphore LogicalDevice::create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   vk::UniqueSemaphore semaphore = m_device->createSemaphoreUnique({});

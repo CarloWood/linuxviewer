@@ -5,6 +5,7 @@
 #include "statefultask/AIStatefulTask.h"
 #include "utils/DequeAllocator.h"
 #include <deque>
+#include <algorithm>
 
 namespace vk_utils {
 
@@ -42,18 +43,17 @@ namespace vk_utils {
 template<vulkan::ConceptStatefulTask BASE, typename DATUM>
 class TaskToTaskDeque : public BASE
 {
- protected:
-  using direct_base_type = TaskToTaskDeque<BASE, DATUM>;
-
  public:
   static constexpr AIStatefulTask::condition_type need_action = 1;
   using Datum = DATUM;
 
- private:
+ protected:
+  using direct_base_type = TaskToTaskDeque<BASE, DATUM>;
   using deque_allocator_type = utils::DequeAllocator<DATUM>;
   using container_type = std::deque<DATUM, deque_allocator_type>;
   using new_data_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
 
+ private:
   utils::NodeMemoryResource m_nmr{AIMemoryPagePool::instance()};
   utils::DequeAllocator<DATUM> m_datum_allocator{m_nmr};
   new_data_type m_new_data{m_datum_allocator};
@@ -86,6 +86,31 @@ class TaskToTaskDeque : public BASE
     if (!producer_finished)
       BASE::wait(need_action);
     return !producer_finished;
+  }
+
+  // Return begin() and decrease n to the number of elements that are in the deque,
+  // if that is less than the requested n.
+  typename container_type::const_iterator front_n(int& n) const
+  {
+    typename new_data_type::crat new_data_r(m_new_data);
+    n = std::min((size_t)n, new_data_r->size());
+    return new_data_r->begin();
+  }
+
+  // Erase all elements up till and including last, which must be the iterator
+  // returned by front_n incremented n - 1 times.
+  //
+  // No other threads may have called pop_front_n in the meantime; in other
+  // words the pair front_n/pop_front_n is single-threaded.
+  //
+  // Note that it is not possible to have the caller pass last + 1, because
+  // the deque is not locked at the moment of the call and other threads
+  // are allowed to call have_new_datum that will call push_back which
+  // invalidates the end iterator; and last + 1 CAN be one past the end.
+  void pop_front_n(typename container_type::const_iterator last)
+  {
+    typename new_data_type::wat new_data_w(m_new_data);
+    new_data_w->erase(new_data_w->begin(), ++last);
   }
 
  public:

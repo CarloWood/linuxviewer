@@ -30,6 +30,7 @@ char const* ImmediateSubmit::state_str_impl(state_type run_state) const
   switch (run_state)
   {
     AI_CASE_RETURN(ImmediateSubmit_start);
+    AI_CASE_RETURN(ImmediateSubmit_issued);
     AI_CASE_RETURN(ImmediateSubmit_done);
   }
   AI_NEVER_REACHED
@@ -44,14 +45,22 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
       // Obtain reference to associated QueuePool.
       vulkan::QueuePool& queue_pool = vulkan::QueuePool::instance(m_submit_request);
       // Get a running ImmediateSubmitQueue task from the pool.
-      ImmediateSubmitQueue* immediate_submit_queue_task = queue_pool.get_immediate_submit_queue_task(CWDEBUG_ONLY(mSMDebug));
+      m_immediate_submit_queue_task = queue_pool.get_immediate_submit_queue_task(CWDEBUG_ONLY(mSMDebug));
 
       // Pass on the submit request.
-      immediate_submit_queue_task->have_new_datum(std::move(m_submit_request));
+      m_immediate_submit_queue_task->have_new_datum(std::move(m_submit_request));
+      set_state(ImmediateSubmit_issued);
+      wait(submit_issued);
+      break;
+    }
+    case ImmediateSubmit_issued:
+      // FIXME: don't block.
+      m_immediate_submit_queue_task->wait_for(m_signal_value);
+      signal(submit_finished);
+
       set_state(m_continue_state);
       wait(submit_finished);
       break;
-    }
     case ImmediateSubmit_done:
       finish();
       break;

@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "ImmediateSubmitQueue.h"
+#include "CommandBufferFactory.h"
 #include "utils/AIAlert.h"
 
 namespace task {
@@ -9,9 +10,11 @@ ImmediateSubmitQueue::ImmediateSubmitQueue(
     vulkan::Queue const& queue
     COMMA_CWDEBUG_ONLY(bool debug)) :
   direct_base_type(CWDEBUG_ONLY(debug)),
-  m_command_pool(logical_device, queue.queue_family()
-      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_pool"))),
-  m_queue(queue)
+  m_command_buffer_pool(8, m_deque_allocator, logical_device, queue.queue_family()
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_buffer_pool.m_factory"))),
+  m_queue(queue),
+  m_semaphore(logical_device, 0
+      COMMA_CWDEBUG_ONLY(debug_name_prefix("m_timeline_semaphore")))
 {
   DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue::ImmediateSubmitQueue(" << logical_device << ", " << queue << ") [" << this << "]");
 }
@@ -36,50 +39,48 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case ImmediateSubmitQueue_need_action:
-      flush_new_data([this](vulkan::ImmediateSubmitRequest&& submit_request){
-        Dout(dc::vulkan, "ImmediateSubmitQueue_need_action: received submit_request: " << submit_request << " [" << this << "]");
-        // Create a temporary command buffer.
+    {
+      // Reserve up to 64 elements for reading.
+      int n = 64;
+      container_type::const_iterator submit_request = front_n(n);
+      if (n > 0)
+      {
+        // Acquire n command buffers from the command buffer pool.
+        std::vector<vulkan::handle::CommandBuffer> command_buffers(n);
+        m_command_buffer_pool.acquire(command_buffers);
 
-        // Allocate a temporary command buffer from the command pool.
-        vulkan::handle::CommandBuffer tmp_command_buffer = m_command_pool.allocate_buffer(
-            CWDEBUG_ONLY(debug_name_prefix("ImmediateSubmitQueue_need_action::tmp_command_buffer")));
-
-        // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
-        auto tmp_command_buffer_w = tmp_command_buffer(m_command_pool);
-
-        // Record the command buffer.
-        submit_request.record_commands(tmp_command_buffer_w);
-
-        // Submit
+        // As this task owns the deque and is essentially single threaded,
+        // we can now simply iterate over the elements returned by front_n
+        // without having the deque locked: producer threads can add new
+        // elements in the meantime without invalidating submit_request.
+        for (int count = 0; count < n; ++count, ++submit_request)
         {
-          vk::UniqueFence fence = submit_request.logical_device()->create_fence(false
-              COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("ImmediateSubmitQueue_need_action::fence")));
+          Dout(dc::vulkan, "ImmediateSubmitQueue_need_action: received submit_request: " << *submit_request << " [" << this << "]");
 
-          vk::SubmitInfo submit_info{
-            .waitSemaphoreCount = 0,
-            .pWaitSemaphores = nullptr,
-            .pWaitDstStageMask = nullptr,
-            .commandBufferCount = 1,
-            .pCommandBuffers = tmp_command_buffer_w
-          };
-          static_cast<vk::Queue>(m_queue).submit({ submit_info }, *fence);
+          // Get accessor for command buffer 'count' (a no-op in Release mode).
+          auto command_buffer_w = command_buffers[count](m_command_buffer_pool.factory().command_pool());
+          // Record the command buffer.
+          submit_request->record_commands(command_buffer_w);
+          // Submit recorded commands.
+          m_queue.submit(command_buffer_w, m_semaphore);
+          // Inform producer task that the commands were issued.
+          submit_request->issued(m_semaphore.signal_value());
 
-          // FIXME: don't block.
-          vk::Result res = submit_request.logical_device()->wait_for_fences({ *fence }, VK_FALSE, 1000000000);
-          if (res != vk::Result::eSuccess)
-            THROW_ALERTC(res, "waitForFences");
+          // Prevent submit_request from being moved past the last allocated command buffer.
+          // This is required for the call to pop_front_n below.
+          if (count == n - 1)
+            break;
         }
-
-        // As soon as the fence is signalled. It is ok to destroy the staging buffer.
-        submit_request.submit_finished();
-
-        // Free the temporary command buffer again.
-        m_command_pool.free_buffer(tmp_command_buffer);
-      });
+        // Release the used command buffers.
+        m_command_buffer_pool.release(command_buffers);
+        // Erase the n submit requests that were just processed.
+        pop_front_n(submit_request);
+      }
       if (producer_not_finished())
         break;
       set_state(ImmediateSubmitQueue_done);
       [[fallthrough]];
+    }
     case ImmediateSubmitQueue_done:
       finish();
       break;

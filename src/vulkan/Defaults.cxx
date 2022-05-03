@@ -51,8 +51,8 @@ int Application::thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)
 } // namespace vulkan
 
 #ifdef CWDEBUG
-#include "vk_utils/PrintList.h"
 #include "vk_utils/PrintPointer.h"
+#include "vk_utils/print_list.h"
 #include "vk_utils/print_version.h"
 #include "debug.h"
 #include <iomanip>

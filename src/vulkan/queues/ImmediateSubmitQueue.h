@@ -1,20 +1,22 @@
 #pragma once
 
+#include "CommandBufferFactory.h"
 #include "ImmediateSubmitRequest.h"
 #include "PersistentAsyncTask.h"
+#include "TimelineSemaphore.h"
 #include "vk_utils/TaskToTaskDeque.h"
+#include "statefultask/DefaultMemoryPagePool.h"
 
 namespace task {
 
 class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
 {
- public:
-  static constexpr auto pool_type = vulkan::ImmediateSubmitRequest::pool_type;
-
  private:
-  using command_pool_type = vulkan::UnlockedCommandPool<pool_type>;
-  command_pool_type m_command_pool;
-  vulkan::Queue m_queue;
+  utils::NodeMemoryResource m_nmr{AIMemoryPagePool::instance()};
+  utils::DequeAllocator<vulkan::CommandBufferFactory::resource_type> m_deque_allocator{m_nmr};  // Allocator used by m_command_buffer_pool.
+  statefultask::ResourcePool<vulkan::CommandBufferFactory> m_command_buffer_pool;
+  vulkan::Queue m_queue;                                // Queue that is owned by this task.
+  vulkan::TimelineSemaphore m_semaphore;                // Timeline semaphore used for submitting to m_queue.
 
   // The different states of the task.
   enum ImmediateSubmitQueue_state_type {
@@ -33,10 +35,12 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Pers
 
  public:
   ImmediateSubmitQueue(
-    // Arguments for m_command_pool.
+    // Arguments for m_command_buffer_pool.
     vulkan::LogicalDevice const* logical_device,
     vulkan::Queue const& queue
     COMMA_CWDEBUG_ONLY(bool debug = false));
+
+  void wait_for(uint64_t signal_value) { m_semaphore.wait_for(signal_value); }
 
   void terminate();
 };

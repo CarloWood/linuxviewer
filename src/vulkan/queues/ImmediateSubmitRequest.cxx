@@ -4,9 +4,15 @@
 
 namespace vulkan {
 
-void ImmediateSubmitRequest::submit_finished() const
+void ImmediateSubmitRequest::finished() const
 {
   m_immediate_submit->signal(task::ImmediateSubmit::submit_finished);
+}
+
+void ImmediateSubmitRequest::issued(uint64_t signal_value) const
+{
+  m_immediate_submit->set_signal_value(signal_value);
+  m_immediate_submit->signal(task::ImmediateSubmit::submit_issued);
 }
 
 #ifdef CWDEBUG

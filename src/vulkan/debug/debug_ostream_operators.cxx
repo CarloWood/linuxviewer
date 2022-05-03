@@ -4,12 +4,14 @@
 #include "vk_utils/print_version.h"
 #include "vk_utils/print_chain.h"
 #include "vk_utils/print_flags.h"
+#include "vk_utils/print_list.h"
 #include <iostream>
 
 namespace vk {
 
 using NAMESPACE_DEBUG::print_string;
 using vk_utils::print_api_version;
+using vk_utils::print_list;
 
 std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference)
 {
@@ -286,6 +288,29 @@ std::ostream& operator<<(std::ostream& os, PipelineCacheCreateInfo const& pipeli
   os << "flags:" << pipeline_cache_create_info.flags <<
       ", initialDataSize:" << pipeline_cache_create_info.initialDataSize <<
       ", pInitialData:" << (void*)pipeline_cache_create_info.pInitialData;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, SemaphoreSignalInfo const& semaphores_signal_info)
+{
+  os << '{';
+  if (semaphores_signal_info.pNext)
+    os << "pNext:" << semaphores_signal_info.pNext << ", ";
+  os << "semaphore:" << semaphores_signal_info.semaphore <<
+      ", value:" << semaphores_signal_info.value;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_wait_info)
+{
+  os << '{';
+  if (semaphores_wait_info.pNext)
+    os << "pNext:" << semaphores_wait_info.pNext << ", ";
+  os << "flags:" << semaphores_wait_info.flags <<
+      ", pSemaphores:" << print_list(semaphores_wait_info.pSemaphores, semaphores_wait_info.semaphoreCount) <<
+      ", pValues:" << print_list(semaphores_wait_info.pValues, semaphores_wait_info.semaphoreCount);
   os << '}';
   return os;
 }

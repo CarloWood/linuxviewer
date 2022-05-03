@@ -88,6 +88,8 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceFeatures2 const& featur
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan11Features const& features11);
 std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan12Features const& features12);
 std::ostream& operator<<(std::ostream& os, PipelineCacheCreateInfo const& pipeline_cache_create_info);
+std::ostream& operator<<(std::ostream& os, SemaphoreSignalInfo const& semaphores_signal_info);
+std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_wait_info);
 
 } // namespace vk
 

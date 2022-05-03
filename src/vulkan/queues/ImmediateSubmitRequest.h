@@ -63,7 +63,8 @@ class ImmediateSubmitRequest
     m_record_function(command_buffer_w);
   }
 
-  void submit_finished() const;
+  void issued(uint64_t signal_value) const;
+  void finished() const;
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
