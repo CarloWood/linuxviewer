@@ -6,7 +6,6 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
-#include "pipeline/PipelineCache.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "threadpool/AIThreadPool.h"
@@ -26,6 +25,7 @@
 namespace task {
 class SynchronousWindow;
 class PipelineFactory;
+class PipelineCache;
 } // namespace task
 
 namespace evio {
@@ -69,6 +69,11 @@ class Application
 
   // Initialize the deque memory resources table.
   utils::DequeMemoryResource::Initialization m_dmri;
+
+  // Application-wide used node memory resource objects for use with utils::DequeAllocator's with elements of size 512 or less.
+  // That is, the assumption is that deque *always* allocates chunks of 512 bytes in that case (it does at the moment of writing).
+  // Once it doesn't, the program will assert in utils/NodeMemoryResource.h with: Assertion `block_size <= stored_block_size' failed.
+  utils::NodeMemoryResource m_deque512_nmr{m_mpp.instance(), 512};  // _GLIBCXX_DEQUE_BUF_SIZE
 
   // Create the thread pool.
   AIThreadPool m_thread_pool;
@@ -189,6 +194,9 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+  // Accessor for the nmr for deque's.
+  utils::NodeMemoryResource& deque512_nmr() { return m_deque512_nmr; }
 
   AIQueueHandle high_priority_queue() const { return m_high_priority_queue; }
   AIQueueHandle medium_priority_queue() const { return m_medium_priority_queue; }

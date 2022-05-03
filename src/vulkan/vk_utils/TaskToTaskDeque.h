@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Concepts.h"
+#include "Application.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/AIStatefulTask.h"
 #include "utils/DequeAllocator.h"
@@ -54,8 +55,7 @@ class TaskToTaskDeque : public BASE
   using new_data_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
 
  private:
-  utils::NodeMemoryResource m_nmr{AIMemoryPagePool::instance()};
-  utils::DequeAllocator<DATUM> m_datum_allocator{m_nmr};
+  utils::DequeAllocator<DATUM> m_datum_allocator{vulkan::Application::instance().deque512_nmr()};
   new_data_type m_new_data{m_datum_allocator};
   std::atomic_bool m_producer_finished = false;
 

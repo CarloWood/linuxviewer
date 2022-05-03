@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include "debug.h"
 
 namespace vulkan::pipeline {
 

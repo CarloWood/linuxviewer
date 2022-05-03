@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "PipelineFactory.h"
+#include "PipelineCache.h"
 #include "Handle.h"
 #include "SynchronousWindow.h"
 #include "SynchronousTask.h"

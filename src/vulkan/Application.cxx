@@ -3,7 +3,7 @@
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
 #include "PersistentAsyncTask.h"
-#include "pipeline/PipelineFactory.h"
+#include "pipeline/PipelineCache.h"
 #include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"

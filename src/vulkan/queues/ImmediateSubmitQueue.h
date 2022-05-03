@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Application.h"
 #include "CommandBufferFactory.h"
 #include "ImmediateSubmitRequest.h"
 #include "PersistentAsyncTask.h"
@@ -12,8 +13,8 @@ namespace task {
 class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
 {
  private:
-  utils::NodeMemoryResource m_nmr{AIMemoryPagePool::instance()};
-  utils::DequeAllocator<vulkan::CommandBufferFactory::resource_type> m_deque_allocator{m_nmr};  // Allocator used by m_command_buffer_pool.
+  using CommandBuffer = vulkan::CommandBufferFactory::resource_type;   // vulkan::handle::CommandBuffer 
+  utils::DequeAllocator<CommandBuffer> m_deque_allocator{vulkan::Application::instance().deque512_nmr()};
   statefultask::ResourcePool<vulkan::CommandBufferFactory> m_command_buffer_pool;
   vulkan::Queue m_queue;                                // Queue that is owned by this task.
   vulkan::TimelineSemaphore m_semaphore;                // Timeline semaphore used for submitting to m_queue.

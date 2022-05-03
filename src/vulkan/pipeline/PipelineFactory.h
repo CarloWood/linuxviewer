@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PipelineCache.h"
 #include "CharacteristicRange.h"
 #include "statefultask/AIStatefulTask.h"
 #include "utils/MultiLoop.h"
@@ -17,6 +16,7 @@ class CharacteristicRange;
 } // namespace vulkan
 
 namespace task {
+class PipelineCache;
 
 namespace synchronous {
 class MoveNewPipelines;
