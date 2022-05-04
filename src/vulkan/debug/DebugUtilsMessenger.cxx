@@ -347,6 +347,24 @@ VkBool32 DebugUtilsMessenger::debugCallback(
   }
   else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
   {
+    // Can do this when using BestPractices validation layer - but that seems pretty meaningless.
+#if 0
+    // Validation Warning: [ UNASSIGNED-BestPractices-vkCreateInstance-specialuse-extension-debugging ]
+    // MessageID = 0x822806fa | CreateInstance(): Attempting to enable extension VK_EXT_debug_utils,
+    // but this extension is intended to support use by applications when debugging and it is strongly
+    // recommended that it be otherwise avoided.
+    if (pCallbackData->messageIdNumber == 0x822806fa)
+      return VK_FALSE;
+    // Validation Performance Warning: [ UNASSIGNED-BestPractices-vkCreateDevice-RobustBufferAccess ]
+    // MessageID = 0x10f85b96 | [Arm] [AMD] vkCreateDevice() called with enabled robustBufferAccess.
+    // Use robustBufferAccess as a debugging tool during development. Enabling it causes loss in performance
+    // for accesses to uniform buffers and shader storage buffers. Disable robustBufferAccess in release
+    // builds. Only leave it enabled if the application use-case requires the additional level of
+    // reliability due to the use of unverified user-supplied draw parameters.
+    if (pCallbackData->messageIdNumber == 0x10f85b96)
+      return VK_FALSE;
+#endif
+
     dcp = &DEBUGCHANNELS::dc::vkwarning;
     Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[39;49m";

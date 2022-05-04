@@ -895,6 +895,9 @@ void LogicalDevice::free_command_buffers(vk::CommandPool vh_pool, uint32_t count
 {
   DoutEntering(dc::vulkan, "LogicalDevice::free_command_buffers(" << vh_pool << ", " << ", " << count << ", " << command_buffers << ") [" << this << "]");
 
+  // VUID-vkFreeCommandBuffers-commandBufferCount-arraylength
+  // commandBufferCount must be greater than 0
+  ASSERT(count > 0);
   m_device->freeCommandBuffers(vh_pool, count, command_buffers);
 }
 

@@ -1,0 +1,11 @@
+According to this Validation Performance Warning:
+
+Validation Performance Warning: [ UNASSIGNED-BestPractices-vkCreateSwapchainKHR-suboptimal-swapchain-image-count ]
+Object 0: handle = 0x7f64b8113f50, name = LogicalDevice, type = VK_OBJECT_TYPE_DEVICE; | MessageID = 0x654358b5 |
+Warning: A Swapchain is being created with minImageCount set to 2, which means double buffering is going to be used.
+Using double buffering and vsync locks rendering to an integer fraction of the vsync rate. In turn, reducing the
+performance of the application if rendering is slower than vsync. Consider setting minImageCount to 3 to use
+triple buffering to maximize performance in such cases.
+
+I should get a better performance with minImageCount set to 3 if rendering is slightly slower than vsync (more
+time is needed to render one image than 1/60th of a second, e.g. 17 or 18 ms).

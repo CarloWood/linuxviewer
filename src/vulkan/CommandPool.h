@@ -10,13 +10,13 @@ namespace vulkan {
 namespace details {
 
 template<uint32_t flags>
-struct is_transient_or_reset
+struct is_transient_or_reset_only
 {
   constexpr static bool value = (flags & (VK_COMMAND_POOL_CREATE_TRANSIENT_BIT|VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)) == flags;
 };
 
 template<uint32_t flags>
-inline constexpr bool is_transient_or_reset_v = is_transient_or_reset<flags>::value;
+inline constexpr bool is_transient_or_reset_only_v = is_transient_or_reset_only<flags>::value;
 
 #ifdef CWDEBUG
 using UniquePoolID = uint64_t;
@@ -32,7 +32,7 @@ class CommandBuffer;
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 class UnlockedCommandPool
 {
-  static_assert(details::is_transient_or_reset_v<pool_type>, "The only allowed values for create_flags are bit masks "
+  static_assert(details::is_transient_or_reset_only_v<pool_type>, "The only allowed values for create_flags are bit masks "
       "with zero or more VK_COMMAND_POOL_CREATE_TRANSIENT_BIT and/or VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT.");
 
  public:

@@ -14,7 +14,7 @@ namespace vulkan {
 class ImmediateSubmitRequest
 {
  public:
-  static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+  static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   using command_buffer_wat = vulkan::CommandBufferWriteAccessType<pool_type>;   // Wrapper around a vk::CommandBuffer.
   using record_function_type = std::function<void(command_buffer_wat)>;
 
