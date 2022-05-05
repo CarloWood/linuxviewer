@@ -35,7 +35,7 @@ class ImmediateSubmit : public vulkan::AsyncTask
 
   void set_queue_request_key(vulkan::QueueRequestKey queue_request_key) { m_submit_request.set_queue_request_key(queue_request_key); }
   void set_record_function(vulkan::ImmediateSubmitRequest::record_function_type&& record_function) { m_submit_request.set_record_function(std::move(record_function)); }
-  void set_signal_value(uint64_t signal_value) {m_signal_value = signal_value; }
+  void set_signal_value(uint64_t signal_value) { m_signal_value = signal_value; }
 
  protected:
   ~ImmediateSubmit() override;

@@ -42,19 +42,20 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
     {
       // Reserve up to 64 elements for reading.
       int n = 64;
-      container_type::const_iterator submit_request = front_n(n);
+      container_type::const_iterator const first_submit_request = front_n(n);
       if (n > 0)
       {
         // Acquire n command buffers from the command buffer pool.
         std::vector<vulkan::handle::CommandBuffer> command_buffers(n);
         // Attempt to acquire n buffers - this might fail.
-        size_t acquired = m_command_buffer_pool.acquire(command_buffers);
+        size_t const acquired = m_command_buffer_pool.acquire(command_buffers);
         if (AI_LIKELY(acquired > 0))
         {
           // As this task owns the deque and is essentially single threaded,
           // we can now simply iterate over the elements returned by front_n
           // without having the deque locked: producer threads can add new
           // elements in the meantime without invalidating submit_request.
+          container_type::const_iterator submit_request = first_submit_request;
           for (int count = 0; count < acquired; ++count, ++submit_request)
           {
             Dout(dc::vulkan, "ImmediateSubmitQueue_need_action: received submit_request: " << *submit_request << " [" << this << "]");
@@ -63,9 +64,15 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
             auto command_buffer_w = command_buffers[count](m_command_buffer_pool.factory().command_pool());
             // Record the command buffer.
             submit_request->record_commands(command_buffer_w);
-            // Submit recorded commands.
-            m_queue.submit(command_buffer_w, m_semaphore);
-            // Inform producer task that the commands were issued.
+          }
+
+          // Submit recorded commands.
+          m_queue.submit(command_buffer_w, acquired, m_semaphore);
+
+          // Inform producer tasks that the commands were issued.
+          submit_request = first_submit_request;
+          for (int count = 0; count < acquired; ++count, ++submit_request)
+          {
             submit_request->issued(m_semaphore.signal_value());
 
             // Prevent submit_request from being moved past the last allocated command buffer.
@@ -73,12 +80,14 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
             if (count == acquired - 1)
               break;
           }
+
           // Release the used command buffers.
           m_command_buffer_pool.release(command_buffers);
+
           // Erase the acquired submit requests that were just processed.
           pop_front_n(submit_request);
         }
-        // If less command buffers were returned then requested, then request for a callback once those command buffers are available again.
+        // If less command buffers were returned than requested, then request for a callback once those command buffers are available again.
         // The re-use of `need_action` is kindof iffy, but because that is the ONLY signal that this task has and it is as general as
         // "do something" (action needs to be taken) it will work: this just assures this task will run again once more CAN be done.
         // It will also still run again when more submit requests are added; that then can result in multiple calls to the below 'subscribe'

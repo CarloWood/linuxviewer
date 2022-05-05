@@ -19,7 +19,7 @@ void Queue::print_on(std::ostream& os) const
 }
 #endif
 
-void Queue::submit(vk::CommandBuffer const* vh_command_buffer_ptr, TimelineSemaphore& timeline_semaphore)
+void Queue::submit(vk::CommandBuffer const* vh_command_buffer_ptrs, uint32_t count, TimelineSemaphore& timeline_semaphore)
 {
   vk::TimelineSemaphoreSubmitInfo timeline_semaphore_info{
     .signalSemaphoreValueCount = 1,
@@ -32,8 +32,8 @@ void Queue::submit(vk::CommandBuffer const* vh_command_buffer_ptr, TimelineSemap
     .waitSemaphoreCount = 0,
     .pWaitSemaphores = nullptr,
     .pWaitDstStageMask = nullptr,
-    .commandBufferCount = 1,
-    .pCommandBuffers = vh_command_buffer_ptr,
+    .commandBufferCount = count,
+    .pCommandBuffers = vh_command_buffer_ptrs,
     .signalSemaphoreCount = 1,
     .pSignalSemaphores = timeline_semaphore.vh_semaphore_ptr()
   };

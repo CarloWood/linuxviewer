@@ -25,7 +25,7 @@ class Queue
   QueueFamilyPropertiesIndex queue_family() const { return m_queue_family; }
   operator bool() const { return !m_queue_family.undefined(); }
 
-  void submit(vk::CommandBuffer const* vh_command_buffer_ptr, TimelineSemaphore& timeline_semaphore);
+  void submit(vk::CommandBuffer const* vh_command_buffer_ptrs, uint32_t count, TimelineSemaphore& timeline_semaphore);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
