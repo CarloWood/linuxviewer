@@ -84,6 +84,14 @@ task::ImmediateSubmitQueue* QueuePool::get_immediate_submit_queue_task(CWDEBUG_O
 
   // For now just get a new queue, regardless of whether or not already running tasks are busy or not.
 
+  // We can't allow multiple threads in this area, because for each queue that is successfully
+  // acquired, it has to be emplaced on the tasks list before another thread may set m_no_more_queues.
+  // An alternative solution to avoid the above modulo to be executed while tasks_r->tasks.size() is
+  // zero would be to spin just before setting m_no_more_queues until that size is at least 1.
+  // However then it is possible that only one task was push to tasks yet resulting in
+  // many threads using that one task; while there could be more. So, this is cleaner.
+  std::lock_guard<std::mutex> lock(m_acquiring_queue);
+
   // Get a pointer to the task::ImmediateSubmitQueue associated with the vulkan::QueueRequestKey that we have.
   vulkan::Queue queue;
   try

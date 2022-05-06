@@ -54,6 +54,7 @@ class QueuePool
   std::atomic<bool> m_no_more_queues;           // Set when all available queues have been acquired. Once set we'll return the least busy task from m_tasks.
   std::atomic<int> m_next_task;                 // Rotates over the existing tasks. FIXME: we should use the task with an empty queue first and/or the smallest queue.
   tasks_type m_tasks;                           // A list with running task::ImmediateSubmitQueue pointers.
+  std::mutex m_acquiring_queue;                 // Used in get_immediate_submit_queue_task.
 
  private:
   // Add key by reinitializing the UltraHash and lookup_table.
