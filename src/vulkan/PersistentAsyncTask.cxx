@@ -29,7 +29,9 @@ void PersistentAsyncTask::terminate_and_wait()
 {
   DoutEntering(dc::vulkan, "PersistentAsyncTask::terminate_and_wait()");
   QueuePool::clean_up();
-  s_until_persistent_tasks_terminated.wait();
+  // There might be no PersistentAsyncTask's at all. In that case we shouldn't wait for one to finish.
+  if (s_task_count.load(std::memory_order_relaxed) > 0)
+    s_until_persistent_tasks_terminated.wait();
 }
 
 } // namespace vulkan
