@@ -14,7 +14,7 @@ class CommandBufferFactory final : public statefultask::ResourceFactory
    using resource_type = vulkan::handle::CommandBuffer;
 
  private:
-  using command_pool_type = vulkan::UnlockedCommandPool<pool_type>;
+  using command_pool_type = vulkan::CommandPool<pool_type>;
   command_pool_type m_command_pool;
 
  public:

@@ -19,11 +19,11 @@ char const* CopyDataToBuffer::state_str_impl(state_type run_state) const
   return direct_base_type::state_str_impl(run_state);
 }
 
-void CopyDataToBuffer::record_command_buffer(vulkan::ImmediateSubmitRequest::command_buffer_wat command_buffer_w)
+void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer command_buffer)
 {
-  DoutEntering(dc::vulkan, "CopyDataToBuffer::record_command_buffer(" << command_buffer_w << ")");
+  DoutEntering(dc::vulkan, "CopyDataToBuffer::record_command_buffer(" << command_buffer << ")");
 
-  command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+  command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
   vk::BufferMemoryBarrier pre_transfer_buffer_memory_barrier{
     .srcAccessMask = m_current_buffer_access,
@@ -34,14 +34,14 @@ void CopyDataToBuffer::record_command_buffer(vulkan::ImmediateSubmitRequest::com
     .offset = m_buffer_offset,
     .size = m_data.size()
   };
-  command_buffer_w->pipelineBarrier(m_generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, { pre_transfer_buffer_memory_barrier }, {});
+  command_buffer->pipelineBarrier(m_generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, { pre_transfer_buffer_memory_barrier }, {});
 
   vk::BufferCopy buffer_copy_region{
     .srcOffset = 0,
     .dstOffset = m_buffer_offset,
     .size = m_data.size()
   };
-  command_buffer_w->copyBuffer(*m_staging_buffer.m_buffer.m_buffer, m_vh_target_buffer, { buffer_copy_region });
+  command_buffer->copyBuffer(*m_staging_buffer.m_buffer.m_buffer, m_vh_target_buffer, { buffer_copy_region });
 
   vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{
     .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -52,8 +52,8 @@ void CopyDataToBuffer::record_command_buffer(vulkan::ImmediateSubmitRequest::com
     .offset = m_buffer_offset,
     .size = m_data.size()
   };
-  command_buffer_w->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, m_consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
-  command_buffer_w->end();
+  command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, m_consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
+  command_buffer->end();
 }
 
 void CopyDataToBuffer::initialize_impl()
@@ -84,8 +84,8 @@ void CopyDataToBuffer::multiplex_impl(state_type run_state)
         logical_device->flush_mapped_memory_ranges({ memory_range });
         logical_device->unmap_memory(*m_staging_buffer.m_buffer.m_memory);
       }
-      m_submit_request.set_record_function([this](vulkan::ImmediateSubmitRequest::command_buffer_wat command_buffer_w){
-        record_command_buffer(command_buffer_w);
+      m_submit_request.set_record_function([this](vulkan::handle::CommandBuffer command_buffer){
+        record_command_buffer(command_buffer);
       });
       set_state(ImmediateSubmit_start);
       break;

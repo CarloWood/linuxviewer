@@ -66,23 +66,17 @@ class SingleButtonWindow : public task::SynchronousWindow
     imgui_pass.update_image_views(swapchain(), frame_resources);
 
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+    auto command_buffer = frame_resources->m_command_buffer;
 
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
+    Dout(dc::vkframe, "Start recording command buffer.");
+    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+    m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+    command_buffer->endRenderPass();
+    command_buffer->end();
+    Dout(dc::vkframe, "End recording command buffer.");
 
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer_w->endRenderPass();
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
-
-      submit(command_buffer_w);
-    } // Unlock command pool.
+    submit(command_buffer);
 
     // Draw GUI and present swapchain image.
     finish_frame();

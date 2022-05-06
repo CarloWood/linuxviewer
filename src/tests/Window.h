@@ -505,39 +505,33 @@ void main() {
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
+    auto command_buffer = frame_resources->m_command_buffer;
 
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
-
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+    Dout(dc::vkframe, "Start recording command buffer.");
+    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_vh_graphics_pipeline)
-  Dout(dc::warning, "Pipeline not available");
+Dout(dc::warning, "Pipeline not available");
 else {
-      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
-      command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-      command_buffer_w->bindVertexBuffers(0, { *m_vertex_buffers[0].m_buffer, *m_vertex_buffers[1].m_buffer }, { 0, 0 });
-      command_buffer_w->setViewport(0, { viewport });
-      command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
-      command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+    command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
+    command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+    command_buffer->bindVertexBuffers(0, { *m_vertex_buffers[0].m_buffer, *m_vertex_buffers[1].m_buffer }, { 0, 0 });
+    command_buffer->setViewport(0, { viewport });
+    command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+    command_buffer->setScissor(0, { scissor });
+    command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
-      command_buffer_w->endRenderPass();
+    command_buffer->endRenderPass();
 #if ENABLE_IMGUI
-      command_buffer_w->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-      m_imgui.render_frame(command_buffer_w, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer_w->endRenderPass();
+    command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+    m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+    command_buffer->endRenderPass();
 #endif
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
+    command_buffer->end();
+    Dout(dc::vkframe, "End recording command buffer.");
 
-      submit(command_buffer_w);
-    } // Unlock command pool.
+    submit(command_buffer);
 
     Dout(dc::vkframe, "Leaving Window::DrawSample.");
   }

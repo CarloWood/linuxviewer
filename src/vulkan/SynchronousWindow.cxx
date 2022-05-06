@@ -626,15 +626,9 @@ void SynchronousWindow::set_image_memory_barrier(
   command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_pool")));
 
-  // Take lock on command pool.
-  command_pool_type::wat tmp_command_pool_w(tmp_command_pool);
-
   // Allocate a temporary command buffer from the temporary command pool.
-  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool_w->allocate_buffer(
+  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(
       CWDEBUG_ONLY(debug_name_prefix("set_image_memory_barrier()::tmp_command_buffer")));
-
-  // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
-  auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
   vk::ImageMemoryBarrier const image_memory_barrier{
     .srcAccessMask = source.access_mask,
@@ -649,9 +643,9 @@ void SynchronousWindow::set_image_memory_barrier(
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    tmp_command_buffer_w->pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
-    tmp_command_buffer_w->end();
+    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer->pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
+    tmp_command_buffer->end();
   }
 
   // Submit
@@ -664,7 +658,7 @@ void SynchronousWindow::set_image_memory_barrier(
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = tmp_command_buffer_w,
+      .pCommandBuffers = tmp_command_buffer.get_array(),
       .signalSemaphoreCount = 0,
       .pSignalSemaphores = nullptr
     };
@@ -724,19 +718,13 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
 
-  // Take lock on command pool.
-  command_pool_type::wat tmp_command_pool_w(tmp_command_pool);
-
   // Allocate a temporary command buffer from the temporary command pool.
-  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool_w->allocate_buffer(
+  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(
       CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")));
-
-  // Accessor for the command buffer (this is a noop in Release mode, but checks that the right pool is currently locked in debug mode).
-  auto tmp_command_buffer_w = tmp_command_buffer(tmp_command_pool_w);
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 
     vk::ImageMemoryBarrier pre_transfer_image_memory_barrier{
       .srcAccessMask = current_image_access,
@@ -748,7 +736,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
       .image = vh_target_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer_w->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
+    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
 
     std::vector<vk::BufferImageCopy> buffer_image_copy;
     buffer_image_copy.reserve(image_subresource_range.levelCount);
@@ -772,7 +760,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
         }
       });
     }
-    tmp_command_buffer_w->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    tmp_command_buffer->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
     vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -784,9 +772,9 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
       .image = vh_target_image,
       .subresourceRange = image_subresource_range
     };
-    tmp_command_buffer_w->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
+    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
 
-    tmp_command_buffer_w->end();
+    tmp_command_buffer->end();
   }
 
   // Submit
@@ -799,7 +787,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = tmp_command_buffer_w
+      .pCommandBuffers = tmp_command_buffer.get_array()
     };
     m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
 
@@ -1073,14 +1061,8 @@ void SynchronousWindow::create_frame_resources()
     frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, ambifix("->m_command_buffers_completed")));
 
     // Create the command buffer.
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
-
-      frame_resources->m_command_buffer = command_pool_w->allocate_buffer(
-          CWDEBUG_ONLY(ambifix("->m_command_buffer")));
-
-    } // Unlock command pool.
+    frame_resources->m_command_buffer = frame_resources->m_command_pool.allocate_buffer(
+        CWDEBUG_ONLY(ambifix("->m_command_buffer")));
   }
 
   if (m_use_imgui)
@@ -1098,7 +1080,7 @@ void SynchronousWindow::create_frame_resources()
   on_window_size_changed_post();
 }
 
-void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::FrameResourcesData::pool_type>& command_buffer_w)
+void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
 {
   vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   vk::SubmitInfo submit_info{
@@ -1106,7 +1088,7 @@ void SynchronousWindow::submit(vulkan::CommandBufferWriteAccessType<vulkan::Fram
     .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
     .pWaitDstStageMask = &wait_dst_stage_mask,
     .commandBufferCount = 1,
-    .pCommandBuffers = command_buffer_w,
+    .pCommandBuffers = command_buffer.get_array(),
     .signalSemaphoreCount = 1,
     .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
   };

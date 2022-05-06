@@ -8,7 +8,7 @@
 #include "debug/DebugSetName.h"
 #include "debug.h"
 
-#include "CommandBuffer.h"      // CommandBufferWriteAccessType
+#include "CommandBuffer.h"      // handle::CommandBuffer
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
 #include "math/glsl.h"          // glsl::vec2
@@ -80,7 +80,7 @@ struct ImGui_FrameResourcesData
 
 class ImGui
 {
-  static constexpr auto pool_type = static_cast<vk::CommandPoolCreateFlags::MaskType>(vulkan::FrameResourcesData::command_pool_type::data_type::create_flags);
+  static constexpr auto pool_type = static_cast<vk::CommandPoolCreateFlags::MaskType>(vulkan::FrameResourcesData::command_pool_type::create_flags);
 
   task::SynchronousWindow const* m_owning_window;
   Texture m_font_texture;
@@ -101,7 +101,7 @@ class ImGui
  private:
   inline LogicalDevice const* logical_device() const;
 
-  void setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport);
+  void setup_render_state(handle::CommandBuffer command_buffer, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport);
   void create_descriptor_set(
       CWDEBUG_ONLY(Ambifix const& ambifix));
   void create_pipeline_layout(
@@ -131,7 +131,7 @@ class ImGui
   bool want_capture_mouse() const;
 
   void start_frame(float delta_s);
-  void render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, FrameResourceIndex index
+  void render_frame(handle::CommandBuffer command_buffer, FrameResourceIndex index
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   ~ImGui();

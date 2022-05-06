@@ -781,29 +781,29 @@ void ImGui::start_frame(float delta_s)
   NewFrame();
 }
 
-void ImGui::setup_render_state(CommandBufferWriteAccessType<pool_type>& command_buffer_w, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport)
+void ImGui::setup_render_state(handle::CommandBuffer command_buffer, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport)
 {
   // I did not want to forward declare ImDrawData in a header in global namespace.
   ImDrawData* draw_data = reinterpret_cast<ImDrawData*>(draw_data_void_ptr);
 
   // Bind the pipeline.
-  command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+  command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
 
   // Bind vertex and index buffer.
-  command_buffer_w->bindVertexBuffers(0, { *frame_resources.m_vertex_buffer.m_buffer }, { 0 });
-  command_buffer_w->bindIndexBuffer(*frame_resources.m_index_buffer.m_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+  command_buffer->bindVertexBuffers(0, { *frame_resources.m_vertex_buffer.m_buffer }, { 0 });
+  command_buffer->bindIndexBuffer(*frame_resources.m_index_buffer.m_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
 
   // Set viewport again (is this really needed?).
-  command_buffer_w->setViewport(0, { viewport });
+  command_buffer->setViewport(0, { viewport });
 
   // Setup scale and translation.
   std::array<float, 2> scale = { 2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y };
   std::array<float, 2> translate = { -1.0f - draw_data->DisplayPos.x * scale[0], -1.0f - draw_data->DisplayPos.y * scale[1] };
-  command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
-  command_buffer_w->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
+  command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
+  command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
 }
 
-void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer_w, FrameResourceIndex index
+void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceIndex index
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   EndFrame();
@@ -876,7 +876,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
     .minDepth = 0.0f,
     .maxDepth = 1.0f
   };
-  setup_render_state(command_buffer_w, draw_data, frame_resources, viewport);
+  setup_render_state(command_buffer, draw_data, frame_resources, viewport);
 
   // Will project scissor/clipping rectangles into framebuffer space
   ImVec2 clip_off = draw_data->DisplayPos;         // (0,0) unless using multi-viewports
@@ -900,7 +900,7 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
 
         // ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.
         if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-          setup_render_state(command_buffer_w, draw_data, frame_resources, viewport);
+          setup_render_state(command_buffer, draw_data, frame_resources, viewport);
         else
           pcmd->UserCallback(cmd_list, pcmd);
       }
@@ -928,14 +928,14 @@ void ImGui::render_frame(CommandBufferWriteAccessType<pool_type>& command_buffer
             .height = static_cast<uint32_t>(clip_max.y - clip_min.y)
           }
         };
-        command_buffer_w->setScissor(0, 1, &scissor);
+        command_buffer->setScissor(0, 1, &scissor);
 
         // Bind DescriptorSet with font or user texture.
         std::array<vk::DescriptorSet, 1> desc_set = { static_cast<VkDescriptorSet>(pcmd->TextureId) };
-        command_buffer_w->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, desc_set, {});
+        command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, desc_set, {});
 
         // Draw
-        command_buffer_w->drawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+        command_buffer->drawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
       }
     }
     global_idx_offset += cmd_list->IdxBuffer.Size;

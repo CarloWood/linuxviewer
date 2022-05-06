@@ -60,14 +60,12 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
           {
             Dout(dc::vulkan, "ImmediateSubmitQueue_need_action: received submit_request: " << *submit_request << " [" << this << "]");
 
-            // Get accessor for command buffer 'count' (a no-op in Release mode).
-            auto command_buffer_w = command_buffers[count](m_command_buffer_pool.factory().command_pool());
             // Record the command buffer.
-            submit_request->record_commands(command_buffer_w);
+            submit_request->record_commands(command_buffers[count]);
           }
 
           // Submit recorded commands.
-          m_queue.submit(command_buffer_w, acquired, m_semaphore);
+          m_queue.submit(command_buffers.data()->get_array(), acquired, m_semaphore);
 
           // Inform producer tasks that the commands were issued.
           submit_request = first_submit_request;

@@ -524,38 +524,32 @@ void main()
 //    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
     m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
-    {
-      // Lock command pool.
-      vulkan::FrameResourcesData::command_pool_type::wat command_pool_w(frame_resources->m_command_pool);
 
-      // Get access to the command buffer.
-      auto command_buffer_w = frame_resources->m_command_buffer(command_pool_w);
+    auto command_buffer = frame_resources->m_command_buffer;
+    Dout(dc::vkframe, "Start recording command buffer.");
+    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
+    command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+    command_buffer->setViewport(0, { viewport });
+    command_buffer->setScissor(0, { scissor });
+    command_buffer->draw(3, 1, 0, 0);
+    command_buffer->endRenderPass();
+    command_buffer->end();
+    Dout(dc::vkframe, "End recording command buffer.");
 
-      Dout(dc::vkframe, "Start recording command buffer.");
-      command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-      command_buffer_w->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
-      command_buffer_w->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-      command_buffer_w->setViewport(0, { viewport });
-      command_buffer_w->setScissor(0, { scissor });
-      command_buffer_w->draw(3, 1, 0, 0);
-      command_buffer_w->endRenderPass();
-      command_buffer_w->end();
-      Dout(dc::vkframe, "End recording command buffer.");
+    vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+    vk::SubmitInfo submit_info{
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
+      .pWaitDstStageMask = &wait_dst_stage_mask,
+      .commandBufferCount = 1,
+      .pCommandBuffers = command_buffer.get_array(),
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
+    };
 
-      vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-      vk::SubmitInfo submit_info{
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
-        .pWaitDstStageMask = &wait_dst_stage_mask,
-        .commandBufferCount = 1,
-        .pCommandBuffers = command_buffer_w,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
-      };
-
-      Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
-      presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
-    } // Unlock command pool.
+    Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
+    presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
 
     Dout(dc::vkframe, "Leaving Window::DrawSample.");
   }

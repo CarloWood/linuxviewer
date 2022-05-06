@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LogicalDevice.h"
 #include "CommandBuffer.h"
 #include "QueueRequestKey.h"
 #include <functional>
@@ -15,12 +16,11 @@ class ImmediateSubmitRequest
 {
  public:
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-  using command_buffer_wat = vulkan::CommandBufferWriteAccessType<pool_type>;   // Wrapper around a vk::CommandBuffer.
-  using record_function_type = std::function<void(command_buffer_wat)>;
+  using record_function_type = std::function<void(handle::CommandBuffer)>;
 
  private:
   task::ImmediateSubmit* m_immediate_submit;            // The ImmediateSubmit ask that issued this request.
-  vulkan::LogicalDevice const* m_logical_device;        // The logical device to use.
+  LogicalDevice const* m_logical_device;                // The logical device to use.
   vulkan::QueueRequestKey m_queue_request_key;          // Key that uniquely maps to a queue (request/reply) to use.
   record_function_type m_record_function;               // Callback function that will record the command buffer.
 
@@ -58,9 +58,9 @@ class ImmediateSubmitRequest
     return m_queue_request_key;
   }
 
-  void record_commands(command_buffer_wat command_buffer_w) const
+  void record_commands(handle::CommandBuffer command_buffer) const
   {
-    m_record_function(command_buffer_w);
+    m_record_function(command_buffer);
   }
 
   void issued(uint64_t signal_value) const;

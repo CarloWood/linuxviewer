@@ -5,21 +5,13 @@
 #include "threadsafe/aithreadsafe.h"
 #ifdef CWDEBUG
 #include <cstdint>      // uint64_t
+#include <iosfwd>
 #endif
 
 namespace vulkan {
 
-#ifdef CWDEBUG
-namespace details {
-using UniquePoolID = uint64_t;
-} // namespace details
-#endif
-
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
-class UnlockedCommandPool;
-
-template<vk::CommandPoolCreateFlags::MaskType pool_type>
-class CommandBufferWriteAccessType;
+class CommandPool;
 
 namespace handle {
 
@@ -27,74 +19,53 @@ namespace handle {
 //
 // Usage:
 //
-// Define command pools anywhere (ie, on the stack when it is a temporary command pool, or as member variable of some class).
+// Define command pools as part of a task.
 // The VkCommandPoolCreateFlagBits bits are part of the type:
 //
-//   using command_pool_type = CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
-//   command_pool_type command_pool;
+//   using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT>;
+//   command_pool_type m_command_pool;
 //
-// Define command buffer objects anywhere:
+// Define command buffer objects as part of the same task, or as local variables
+// in functions executed by the task that owns the pool.
 //
-//   CommandBuffer command_buffer;
-//   std::array<CommandBuffer, 10> command_buffers_array;
-//   std::vector<CommandBuffer> command_buffers_vector;
+//   vulkan::CommandBuffer m_command_buffer;
+//   std::array<vulkan::CommandBuffer, 10> m_command_buffers_array;
+//   std::vector<vulkan::CommandBuffer> command_buffers_vector;
 //
-// In order to allocate command buffers, the pool must be locked:
+// Allocating command buffers may only be done by the task that owns the command pool.
+// In debug mode this requires to pass a debug name that will be used for the
+// allocated command buffers. See explanation of `Ambifix` elsewhere.
 //
-//   command_pool_type::wat command_pool_w(command_pool);
-//
-// This should be an automatic variable.
-// Then, while it exists (you can pass it to functions as argument though), you can
-// allocate command buffer(s).
-//
-// In debug mode this requires to pass a debug name that will be used for the command
-// allocated command buffers. See explanation of `AmbifixOwner` elsewhere.
-//
-//   command_buffer = command_pool_w->allocate_buffer(
-//       CWDEBUG_ONLY(debug_name_prefix("command_buffer"))
+//   m_command_buffer = m_command_pool.allocate_buffer(
+//       CWDEBUG_ONLY(debug_name_prefix("m_command_buffer"))
 //       );
 //
-//   command_pool_w->allocate_buffers(command_buffers_array
-//       COMMA_CWDEBUG_ONLY(debug_name_prefix("command_buffers_array"))
+//   m_command_pool.allocate_buffers(m_command_buffers_array
+//       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_command_buffers_array"))
 //       );
 //
 //   command_buffers_vector.resize(size);
-//   command_pool_w->allocate_buffers(command_buffers_vector
-//       COMMA_CWDEBUG_ONLY(debug_name_prefix("command_buffers_vector"))
+//   m_command_pool.allocate_buffers(command_buffers_vector
+//       COMMA_CWDEBUG_ONLY(debug_name_prefix("function()::command_buffers_vector"))
 //       );
 //
-// After allocation the command pool can be unlocked again by
-// destructing command_pool_w (aka, leaving scope).
-//
-// In order to use a command buffer, the pool must be locked again
-// and then an object must be created on the stack to access the command buffer:
-//
-//   command_pool_type::wat command_pool_w(command_pool);
-//   auto command_buffer_w = command_buffer(command_pool_w);
+// The command buffer may only be used while no other thread uses the command pool,
+// or other command buffers allocated from the same pool. For example, by the task
+// that owns the pool, or by a task that was spawned by that task while it is waiting.
 //
 // Now the command buffer can be accessed using operator-> which returns a vk::CommandBuffer*.
 // For example,
 //
-//   command_buffer_w->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+//   command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 //   ...
-//   command_buffer_w->end();
+//   command_buffer->end();
 //
-// If only one command buffer needs to be accessed, the first two lines
-// may NOT be abbreviated as follows:
-//
-//   auto command_buffer_w = command_buffer(command_pool_type::wat(command_pool));
-//
-// Otherwise the pool will be unlocked while using command_buffer_w.
-//
-// In order to avoid this error, CommandBuffer::operator()(CommandPool::wat&&)
-// exists and is deleted.
-//
-// Finally, command_buffer_w will implicitely convert to the pointer of
-// the underlaying vk::CommandBuffer, so that it can be submitted using:
+// Finally, a vulkan::CommandBuffer* can be converted to the underlaying
+// vk::CommandBuffer, so that it can be submitted using:
 //
 //   ...
-//   .commandBufferCount = 1,
-//   .pCommandBuffers = tmp_command_buffer_w
+//   .commandBufferCount = count,
+//   .pCommandBuffers = command_buffers->get_array()
 //   ...
 //
 class CommandBuffer
@@ -102,127 +73,26 @@ class CommandBuffer
  private:
   vk::CommandBuffer m_vh_command_buffer;           // The underlaying vulkan handle.
 
-#ifdef CWDEBUG
-  details::UniquePoolID m_pool_id;      // For debug purposes; a unique ID of the command pool that this buffer was allocated from.
-
-  // Constructor to initialize the pool ID.
-  CommandBuffer(details::UniquePoolID pool_id) : m_pool_id(pool_id) { }
-#endif
-
   // Needed to allocate new buffers.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>
-  friend class vulkan::UnlockedCommandPool;
-
-  // Needs access to m_vh_command_buffer.
-  template<vk::CommandPoolCreateFlags::MaskType pool_type>
-  friend class vulkan::CommandBufferWriteAccessType;
+  friend class vulkan::CommandPool;
 
  public:
   // Default constructor.
   CommandBuffer() = default;
 
-  // CommandBufferWriteAccessType factory.
-  template<vk::CommandPoolCreateFlags::MaskType pool_type>
-  CommandBufferWriteAccessType<pool_type> operator()(
-      // This type is just CommandPool::wat const&, but if we use that it can't infer the template argument `pool_type`.
-      aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w
-      ) const;
+  vk::CommandBuffer* get_array() { return &m_vh_command_buffer; }
+  vk::CommandBuffer const* get_array() const { return &m_vh_command_buffer; }
 
-  template<vk::CommandPoolCreateFlags::MaskType pool_type>
-  CommandBufferWriteAccessType<pool_type> operator()( // Do not accept a temporary! The life time of command_pool_w must exceed that of the returned object.
-      aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>>&& command_pool_w
-      ) const = delete;
+  vk::CommandBuffer* operator->() { return &m_vh_command_buffer; }
+  vk::CommandBuffer const* operator->() const { return &m_vh_command_buffer; }
 
-  template<vk::CommandPoolCreateFlags::MaskType pool_type>
-  CommandBufferWriteAccessType<pool_type> operator()(
-      UnlockedCommandPool<pool_type> const& command_pool
-      ) const;
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 } // namespace handle
 } // namespace vulkan
 
-// See https://stackoverflow.com/questions/55751848/how-can-i-handle-circular-include-calls-in-a-template-class-header/69873866#69873866
-#include "CommandPool.h"
 #endif // COMMAND_BUFFER_H
-
-#ifndef COMMAND_BUFFER_DEFINITION_H
-#define COMMAND_BUFFER_DEFINITION_H
-
-namespace vulkan {
-
-template<vk::CommandPoolCreateFlags::MaskType pool_type>
-class CommandBufferWriteAccessType
-{
-  vk::CommandBuffer m_vh_command_buffer;           // A copy of the CommandBuffer::m_vh_command_buffer that we give access to.
-
-  // Construct a CommandBufferWriteAccessType from a command pool wat and a command buffer.
-  CommandBufferWriteAccessType(typename CommandPool<pool_type>::wat const& CWDEBUG_ONLY(pool_w), handle::CommandBuffer const& command_buffer) :
-    m_vh_command_buffer(command_buffer.m_vh_command_buffer)
-  {
-#ifdef CWDEBUG
-    ASSERT(pool_w->id() == command_buffer.m_pool_id);
-#endif
-  }
-
-  // Construct a CommandBufferWriteAccessType from an unlocked command pool and a command buffer.
-  CommandBufferWriteAccessType(UnlockedCommandPool<pool_type> const& CWDEBUG_ONLY(unlocked_pool), handle::CommandBuffer const& command_buffer) :
-    m_vh_command_buffer(command_buffer.m_vh_command_buffer)
-  {
-#ifdef CWDEBUG
-    ASSERT(unlocked_pool.id() == command_buffer.m_pool_id);
-#endif
-  }
-
-  // Factory for CommandBufferWriteAccessType objects (the constructor is private).
-  // g++ doesn't compile when omitting the template<> and using pool_type directly (clang++ works).
-  template<vk::CommandPoolCreateFlags::MaskType pool_type2>
-  friend CommandBufferWriteAccessType<pool_type2> handle::CommandBuffer::operator()(
-    aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type2>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const;
-
-  template<vk::CommandPoolCreateFlags::MaskType pool_type2>
-  friend CommandBufferWriteAccessType<pool_type2> handle::CommandBuffer::operator()(
-    UnlockedCommandPool<pool_type2> const& command_pool) const;
-
- public:
-  // Accessor for the underlaying command buffer.
-  typename vk::CommandBuffer* operator->()
-  {
-    return &m_vh_command_buffer;
-  }
-
-  // Used when submitting.
-  operator vk::CommandBuffer*()
-  {
-    return &m_vh_command_buffer;
-  }
-
-#ifdef CWDEBUG
-  void print_on(std::ostream& os) const
-  {
-    os << "{vh_command_buffer:" << m_vh_command_buffer << '}';
-  }
-#endif
-};
-
-namespace handle {
-
-template<vk::CommandPoolCreateFlags::MaskType pool_type>
-CommandBufferWriteAccessType<pool_type> CommandBuffer::operator()(
-    aithreadsafe::Access<aithreadsafe::Wrapper<UnlockedCommandPool<pool_type>, aithreadsafe::policy::Primitive<std::mutex>>> const& command_pool_w) const
-{
-  return {command_pool_w, *this};
-}
-
-template<vk::CommandPoolCreateFlags::MaskType pool_type>
-CommandBufferWriteAccessType<pool_type> CommandBuffer::operator()(
-    UnlockedCommandPool<pool_type> const& command_pool) const
-{
-  return {command_pool, *this};
-}
-
-} // namespace handle
-
-} // namespace vulkan
-
-#endif // COMMAND_BUFFER_DEFINITION_H

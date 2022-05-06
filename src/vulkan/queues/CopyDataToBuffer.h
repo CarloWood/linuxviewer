@@ -52,7 +52,7 @@ class CopyDataToBuffer final : public ImmediateSubmit
   std::vector<std::byte>& get_buf() { return m_data; }
 
  private:
-  void record_command_buffer(vulkan::ImmediateSubmitRequest::command_buffer_wat command_buffer_w);
+  void record_command_buffer(vulkan::handle::CommandBuffer command_buffer);
 
  protected:
   ~CopyDataToBuffer() override;

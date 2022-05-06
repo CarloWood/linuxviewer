@@ -499,7 +499,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   void start_frame();
-  void submit(vulkan::CommandBufferWriteAccessType<vulkan::FrameResourcesData::pool_type>& command_buffer_w);
+  void submit(vulkan::handle::CommandBuffer command_buffer);
   void finish_frame();
   void acquire_image();
 
