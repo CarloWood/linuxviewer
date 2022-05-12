@@ -1176,6 +1176,15 @@ boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
   return uuid;
 }
 
+LogicalDevice::LogicalDevice() : m_semaphore_watcher(statefultask::create<task::AsyncSemaphoreWatcher>(CWDEBUG_ONLY(true)))
+{
+  m_semaphore_watcher->run(Application::instance().high_priority_queue());
+}
+
+LogicalDevice::~LogicalDevice()
+{
+}
+
 } // namespace vulkan
 
 namespace task {

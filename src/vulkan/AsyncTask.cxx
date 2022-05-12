@@ -1,5 +1,8 @@
 #include "sys.h"
 #include "AsyncTask.h"
+#ifdef CWDEBUG
+#include "debug/DebugSetName.h"
+#endif
 
 namespace vulkan {
 

@@ -51,10 +51,12 @@ vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_i
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
+  m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug))),
   attachment_index_context(vulkan::rendergraph::AttachmentIndex{0})
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
+  m_semaphore_watcher->run();
 }
 
 SynchronousWindow::~SynchronousWindow()
@@ -120,8 +122,7 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(SynchronousWindow_render_loop);
     AI_CASE_RETURN(SynchronousWindow_close);
   }
-  ASSERT(false);
-  return "UNKNOWN STATE";
+  AI_NEVER_REACHED;
 }
 
 void SynchronousWindow::initialize_impl()
@@ -567,7 +568,7 @@ void SynchronousWindow::handle_window_size_changed()
   // No reason to call wait_idle: handle_window_size_changed is called from the render loop.
   // Besides, we can't call wait_idle because another window can still be using queues on the logical device.
   on_window_size_changed_pre();
-  // We must wait here until all fences are signalled.
+  // We must wait here until all fences are signaled.
   wait_for_all_fences();
   // Now it is safe to recreate the swapchain.
   vk::Extent2D extent = get_extent();

@@ -13,6 +13,14 @@ pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 
 find_package(magic_enum REQUIRED)
 
+# VMA does not install a vmaConfig.cmake
+add_library(Vma::vma STATIC IMPORTED)
+set_target_properties(Vma::vma PROPERTIES
+  IMPORTED_LOCATION "${vma_ROOT}/lib/libVulkanMemoryAllocator.a"
+  INTERFACE_COMPILE_DEFINITIONS "VMA_STATIC_VULKAN_FUNCTIONS=0"
+  INTERFACE_INCLUDE_DIRECTORIES "${vma_ROOT}/include"
+)
+
 #==============================================================================
 # BUILD PROJECT
 #
@@ -99,6 +107,7 @@ target_compile_features(vulkan_ObjLib
 # Set link dependencies.
 target_link_libraries(vulkan_ObjLib
   PUBLIC
+    Vma::vma
     Vulkan::Vulkan
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError

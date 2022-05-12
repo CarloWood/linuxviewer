@@ -1,6 +1,8 @@
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_H
 #define VULKAN_SYNCHRONOUS_WINDOW_H
 
+#include "SemaphoreWatcher.h"
+#include "SynchronousTask.h"
 #include "PresentationSurface.h"
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
@@ -139,7 +141,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;     // A pointer to the parent window, or nullptr when this is a root window.
                                                                           // It is NOT thread-safe to access the parent window without knowing what you are doing.
   // create_window_events
-  std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Point to the asynchronous object `WindowEvents`.
+  std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Pointer to the asynchronous object `WindowEvents`.
 
   // set_xcb_connection_broker_and_key
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
@@ -155,6 +157,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
+
+  boost::intrusive_ptr<task::SemaphoreWatcher<task::SynchronousTask>> m_semaphore_watcher;  // Synchronous task that polls timeline semaphores.
 
   bool m_use_imgui = false;
 

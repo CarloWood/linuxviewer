@@ -1,6 +1,7 @@
-#ifndef LOGICAL_DEVICE_DECLARATION_H
-#define LOGICAL_DEVICE_DECLARATION_H
+#ifndef VULKAN_LOGICAL_DEVICE_H
+#define VULKAN_LOGICAL_DEVICE_H
 
+#include "AsyncTask.h"
 #include "DispatchLoader.h"
 #include "Swapchain.h"
 #include "RenderPassAttachmentData.h"
@@ -23,6 +24,7 @@
 
 namespace task {
 class SynchronousWindow;
+class AsyncSemaphoreWatcher;
 } // namespace task
 
 namespace vulkan {
@@ -86,13 +88,15 @@ class LogicalDevice
   bool m_supports_sampler_anisotropy = {};
   bool m_supports_cache_control = {};
   QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
+  boost::intrusive_ptr<task::AsyncSemaphoreWatcher> m_semaphore_watcher;// Asynchronous task that polls timeline semaphores.
 
 #ifdef CWDEBUG
   std::string m_debug_name;
 #endif
 
  public:
-  virtual ~LogicalDevice() = default;
+  LogicalDevice();
+  virtual ~LogicalDevice();
 
   void prepare(vk::Instance vh_vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
 
@@ -152,6 +156,8 @@ class LogicalDevice
     Dout(dc::finish, value);
     return value;
   }
+  [[gnu::always_inline]] inline void add_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition) const;
+  [[gnu::always_inline]] inline void remove_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore) const;
   inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
@@ -322,13 +328,21 @@ class LogicalDevice : public AIStatefulTask
 };
 
 } // namespace task
+#endif // VULKAN_LOGICAL_DEVICE_H
 
+#ifndef DEBUG_SET_NAME_DECLARATION_H
 #include "debug/DebugSetName.h"
-#endif // LOGICAL_DEVICE_DECLARATION_H
+#endif
+#ifndef VULKAN_TIMELINE_SEMAPHORE_H
+#include "TimelineSemaphore.h"
+#endif
+#ifndef VULKAN_SEMAPHORE_WATCHER_H
+#include "SemaphoreWatcher.h"
+#endif
 
 // Define inlined functions that use DebugSetName (see https://stackoverflow.com/a/71470522/1487069).
-#ifndef LOGICAL_DEVICE_DEFINITIONS_H
-#define LOGICAL_DEVICE_DEFINITIONS_H
+#ifndef VULKAN_LOGICAL_DEVICE_DEFS_H
+#define VULKAN_LOGICAL_DEVICE_DEFS_H
 
 namespace vulkan {
 
@@ -341,6 +355,16 @@ vk::UniqueSemaphore LogicalDevice::create_timeline_semaphore(uint64_t initial_va
   vk::UniqueSemaphore semaphore = m_device->createSemaphoreUnique({ .pNext = &timelineCreateInfo });
   DebugSetName(semaphore, debug_name, this);
   return semaphore;
+}
+
+void LogicalDevice::add_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition) const
+{
+  m_semaphore_watcher->add(timeline_semaphore, signal_value, task, condition);
+}
+
+void LogicalDevice::remove_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore) const
+{
+  m_semaphore_watcher->remove(timeline_semaphore);
 }
 
 vk::UniqueSemaphore LogicalDevice::create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const
@@ -373,4 +397,4 @@ void LogicalDevice::destroy_command_pool(vk::CommandPool vh_command_pool) const
 
 } // namespace vulkan
 
-#endif // LOGICAL_DEVICE_DEFINITIONS_H
+#endif // VULKAN_LOGICAL_DEVICE_DEFS_H

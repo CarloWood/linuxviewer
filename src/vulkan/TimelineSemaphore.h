@@ -1,9 +1,15 @@
-#pragma once
+#ifndef VULKAN_TIMELINE_SEMAPHORE_H
+#define VULKAN_TIMELINE_SEMAPHORE_H
 
+#include "statefultask/AIStatefulTask.h"
 #include <vulkan/vulkan.hpp>
-#include "LogicalDevice.h"
+#include "debug.h"
 
 namespace vulkan {
+
+// Forward declaration.
+class LogicalDevice;
+class Ambifix;
 
 class TimelineSemaphore
 {
@@ -14,36 +20,19 @@ class TimelineSemaphore
 
  public:
   // Create a timeline semaphore.
-  TimelineSemaphore(LogicalDevice const* logical_device, uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    m_logical_device(logical_device),
-    m_semaphore(logical_device->create_timeline_semaphore(initial_value COMMA_CWDEBUG_ONLY(ambifix(".m_semaphore")))),
-    m_signal_value(initial_value) { }
+  inline TimelineSemaphore(LogicalDevice const* logical_device, uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
-  void signal(uint64_t value)
-  {
-    vk::SemaphoreSignalInfo semaphore_signal_info{
-      .semaphore = *m_semaphore,
-      .value = value
-    };
-    m_logical_device->signal_timeline_semaphore(semaphore_signal_info);
-  }
+  void signal(uint64_t value);
+  bool wait_for(uint64_t value, uint64_t timeout_ns = uint64_t{0} - 1);
 
-  bool wait_for(uint64_t value, uint64_t timeout_ns = uint64_t{0} - 1)
-  {
-    vk::SemaphoreWaitInfo semaphore_wait_info{
-      .flags = vk::SemaphoreWaitFlagBits::eAny,
-      .semaphoreCount = 1,
-      .pSemaphores = &*m_semaphore,
-      .pValues = &value
-    };
-    vk::Result res = m_logical_device->wait_semaphores(semaphore_wait_info, timeout_ns);
-    return res == vk::Result::eSuccess; // Otherwise eTimeout.
-  }
+  // Add a poll for this timeline semaphore for the last signal value.
+  inline void add_poll(AIStatefulTask* task, AIStatefulTask::condition_type condition) const;
 
-  uint64_t get_counter_value() const
-  {
-    return m_logical_device->get_semaphore_counter_value(*m_semaphore);
-  }
+  // Used to clean up: this only needs to be called if the TimelineSemaphore is destroyed before receiving a signal.
+  inline void remove_poll() const;
+
+  // Get the current value of the timeline semaphore.
+  [[gnu::always_inline]] inline uint64_t get_counter_value() const;
 
   // Returns a pointer to an uint64_t with the same life-time as this object.
   uint64_t const* get_next_value_ptr()
@@ -72,3 +61,40 @@ class TimelineSemaphore
 };
 
 } // namespace vulkan
+
+#endif // VULKAN_TIMELINE_SEMAPHORE_H
+
+#ifndef VULKAN_LOGICAL_DEVICE_H
+#include "LogicalDevice.h"
+#endif
+
+#ifndef VULKAN_TIMELINE_SEMAPHORE_DEFS_H
+#define VULKAN_TIMELINE_SEMAPHORE_DEFS_H
+
+namespace vulkan {
+
+// inline
+TimelineSemaphore::TimelineSemaphore(LogicalDevice const* logical_device, uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+  m_logical_device(logical_device),
+  m_semaphore(logical_device->create_timeline_semaphore(initial_value COMMA_CWDEBUG_ONLY(ambifix(".m_semaphore")))),
+  m_signal_value(initial_value) { }
+
+// Add a poll for this timeline semaphore for the last signal value.
+void TimelineSemaphore::add_poll(AIStatefulTask* task, AIStatefulTask::condition_type condition) const
+{
+  m_logical_device->add_timeline_semaphore_poll(this, m_signal_value, task, condition);
+}
+
+void TimelineSemaphore::remove_poll() const
+{
+  m_logical_device->remove_timeline_semaphore_poll(this);
+}
+
+uint64_t TimelineSemaphore::get_counter_value() const
+{
+  return m_logical_device->get_semaphore_counter_value(*m_semaphore);
+}
+
+} // namespace vulkan
+
+#endif // VULKAN_TIMELINE_SEMAPHORE_DEFS_H

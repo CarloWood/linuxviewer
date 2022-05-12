@@ -13,11 +13,14 @@ namespace task {
 class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
 {
  private:
-  using CommandBuffer = vulkan::CommandBufferFactory::resource_type;   // vulkan::handle::CommandBuffer
+  using CommandBuffer = vulkan::CommandBufferFactory::resource_type;    // vulkan::handle::CommandBuffer
   utils::DequeAllocator<CommandBuffer> m_deque_allocator{vulkan::Application::instance().deque512_nmr()};
   statefultask::ResourcePool<vulkan::CommandBufferFactory> m_command_buffer_pool;
-  vulkan::Queue m_queue;                                // Queue that is owned by this task.
-  vulkan::TimelineSemaphore m_semaphore;                // Timeline semaphore used for submitting to m_queue.
+  vulkan::Queue m_queue;                                                // Queue that is owned by this task.
+  vulkan::TimelineSemaphore m_semaphore;                                // Timeline semaphore used for submitting to m_queue.
+  int m_pending_requests{};                                             // The number of command buffers that were submitted but were not signaled yet.
+  container_type::const_iterator m_last_submitted;                      // Pointer to the last ImmediateSubmitRequest associated with the pending requests.
+                                                                        // Only valid if m_pending_requests > 0.
 
   // The different states of the task.
   enum ImmediateSubmitQueue_state_type {
@@ -33,6 +36,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Pers
 
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
+  void abort_impl() override;
 
  public:
   ImmediateSubmitQueue(

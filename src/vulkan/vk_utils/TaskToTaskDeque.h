@@ -41,7 +41,7 @@ namespace vk_utils {
 //    [[fallthrough]];
 //  case MoveNewPipelines_done:
 //
-template<vulkan::ConceptStatefulTask BASE, typename DATUM>
+template<task::TaskType BASE, typename DATUM>
 class TaskToTaskDeque : public BASE
 {
  public:
@@ -113,6 +113,13 @@ class TaskToTaskDeque : public BASE
     new_data_w->erase(new_data_w->begin(), ++last);
   }
 
+  // Erase the first element.
+  void pop_front()
+  {
+    typename new_data_type::wat new_data_w(m_new_data);
+    new_data_w->pop_front();
+  }
+
  public:
   // Called by producer.
   void have_new_datum(DATUM&& datum);
@@ -120,14 +127,14 @@ class TaskToTaskDeque : public BASE
 
 }; // MoveNewPipelines
 
-template<vulkan::ConceptStatefulTask BASE, typename DATUM>
+template<task::TaskType BASE, typename DATUM>
 void TaskToTaskDeque<BASE, DATUM>::have_new_datum(DATUM&& datum)
 {
   typename new_data_type::wat(m_new_data)->push_back(std::move(datum));
   BASE::signal(need_action);
 }
 
-template<vulkan::ConceptStatefulTask BASE, typename DATUM>
+template<task::TaskType BASE, typename DATUM>
 void TaskToTaskDeque<BASE, DATUM>::set_producer_finished()
 {
   m_producer_finished.store(true, std::memory_order::release);

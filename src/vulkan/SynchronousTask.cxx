@@ -10,8 +10,7 @@ char const* SynchronousTask::state_str_impl(state_type run_state) const
   {
     AI_CASE_RETURN(SynchronousTask_start);
   }
-  ASSERT(false);
-  return "UNKNOWN STATE";
+  AI_NEVER_REACHED;
 }
 
 void SynchronousTask::initialize_impl()

@@ -386,8 +386,7 @@ void main() {
         batch_size = vertex_shader_input_set->next_batch();
         vertex_shader_input_set->get_input_entry(ptr);
       }
-
-      copy_data_to_buffer->run();
+      copy_data_to_buffer->run(vulkan::Application::instance().low_priority_queue());
     }
   }
 

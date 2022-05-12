@@ -11,19 +11,19 @@ class ImmediateSubmitQueue;
 class ImmediateSubmit : public vulkan::AsyncTask
 {
  public:
-  static constexpr condition_type submit_issued = 1;
-  static constexpr condition_type submit_finished = 2;
+  static constexpr condition_type submit_finished = 1;
 
  protected:
+  // Constructor, set_queue_request_key, set_record_function.
   vulkan::ImmediateSubmitRequest m_submit_request;
-  ImmediateSubmitQueue* m_immediate_submit_queue_task{};
-  uint64_t m_signal_value;
+  // Constructor.
   state_type m_continue_state{ImmediateSubmit_done};
+  // ImmediateSubmit_start.
+  ImmediateSubmitQueue* m_immediate_submit_queue_task{};
 
   // The different states of the task.
   enum ImmediateSubmit_state_type {
     ImmediateSubmit_start = direct_base_type::state_end,
-    ImmediateSubmit_issued,
     ImmediateSubmit_done
   };
 
@@ -35,7 +35,6 @@ class ImmediateSubmit : public vulkan::AsyncTask
 
   void set_queue_request_key(vulkan::QueueRequestKey queue_request_key) { m_submit_request.set_queue_request_key(queue_request_key); }
   void set_record_function(vulkan::ImmediateSubmitRequest::record_function_type&& record_function) { m_submit_request.set_record_function(std::move(record_function)); }
-  void set_signal_value(uint64_t signal_value) { m_signal_value = signal_value; }
 
  protected:
   ~ImmediateSubmit() override;

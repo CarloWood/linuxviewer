@@ -1,8 +1,8 @@
-#ifdef CWDEBUG
 
 #ifndef DEBUG_SET_NAME_DECLARATION_H
 #define DEBUG_SET_NAME_DECLARATION_H
 
+#ifdef CWDEBUG
 #include "Concepts.h"
 #include <string>
 #include <cstddef>
@@ -95,8 +95,16 @@ void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifi
 
 #define DebugSetName(...) do { using ::vulkan::as_postfix; using std::to_string; ::vulkan::debug_set_object_name(__VA_ARGS__); } while(0)
 
-#include "LogicalDevice.h"
+#else // CWDEBUG
+#define DebugSetName(...) do { } while(0)
+#endif // CWDEBUG
+
 #endif // DEBUG_SET_NAME_DECLARATION_H
+
+#ifdef CWDEBUG
+#ifndef VULKAN_LOGICAL_DEVICE_H
+#include "LogicalDevice.h"
+#endif
 
 #ifndef DEBUG_SET_NAME_DEFINITIONS_H
 #define DEBUG_SET_NAME_DEFINITIONS_H
@@ -142,7 +150,4 @@ void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifi
 } // namespace vulkan
 
 #endif // DEBUG_SET_NAME_DEFINITIONS_H
-
-#else // CWDEBUG
-#define DebugSetName(...) do { } while(0)
 #endif // CWDEBUG

@@ -1,0 +1,146 @@
+Intoduction
+===========
+
+An "immediate submit" refers to the process of recording a temporary command
+buffer and submitting it immediately after recording it; the command buffer
+can only be freed after Vulkan signals the semaphore or fence that it is
+done executing the commands in the command buffer.
+
+However, "immediate" doesn't have much meaning unless you not just start
+a process, but also waits till it is finished. Since this library doesn't
+block, but works with 'tasks' instead; the "immediate" kinda lost it's
+meaning. What is meant here is that a temporary command buffer is recorded
+and submitted and that you will be informed when that finishes; but in
+the mean time everything continuous running - including rendering.
+
+Usage
+=====
+
+Firstly, a task class must be created in the usual way - using ImmediateSubmit
+as base class. For example,
+
+#include "ImmediateSubmit.h"
+
+namespace task {
+
+class MyImmediateSubmitTask final : public ImmediateSubmit
+{
+ private:
+  // private data members...
+
+ protected:
+  using direct_base_type = ImmediateSubmit;
+ 
+  // The different states of this task.
+  enum MyImmediateSubmitTask_state_type {
+    MyImmediateSubmitTask_start = direct_base_type::state_end,
+    // possibly other states...
+    MyImmediateSubmitTask_done
+  };
+    
+ public:
+  static constexpr state_type state_end = MyImmediateSubmitTask_done + 1;
+
+  // Constructor(s)...
+  MyImmediateSubmitTask(vulkan::LogicalDevice const* logical_device
+    COMMA_CWDEBUG_ONLY(bool debug)) :
+    ImmediateSubmit({logical_device, this},     // Construct and pass an ImmediateSubmitRequest rvalue.
+      MyImmediateSubmitTask_done                // The state that this task will continue with after the submit finished.
+      COMMA_CWDEBUG_ONLY(debug))
+
+ private:   
+  void record_command_buffer(vulkan::handle::CommandBuffer command_buffer);     // See multiplex_impl below.
+
+ protected:
+  ~MyImmediateSubmitTask() override;
+
+  void initialize_impl() override;
+  char const* state_str_impl(state_type run_state) const override;
+  void multiplex_impl(state_type run_state) override;
+  // Optional as usual:
+  void abort_impl() override;                   // Called at application termination if the task is still running.
+  void finish_impl() override;
+};
+
+Running the ImmediateSubmit task requires set_record_function to be called on ImmediateSubmit::m_submit_request
+This can be done as part of MyImmediateSubmitTask_start before setting the state to that of the base class.
+
+A typical multiplex_impl could look like this:
+
+void MyImmediateSubmitTask::multiplex_impl(state_type run_state)
+{
+  switch (run_state)
+  {
+    case MyImmediateSubmitTask_start:   
+    {
+      // prep work here...
+
+      m_submit_request.set_record_function([this](vulkan::handle::CommandBuffer command_buffer){
+        record_command_buffer(command_buffer);
+      });
+      set_state(ImmediateSubmit_start);
+      break;
+    }
+    case MyImmediateSubmitTask_done:
+      finish();
+      break;
+    default:
+      direct_base_type::multiplex_impl(run_state);
+      break;
+  }
+}
+
+Internal workings
+=================
+
+This is about what task::ImmediateSubmit does.
+
+By the time ImmediateSubmit_start begins, ImmediateSubmit::m_submit_request is initialized.
+ImmediateSubmitRequest::m_logical_device points to the logical device that was passed to the constructor,
+ImmediateSubmitRequest::m_immediate_submit points to the ImmediateSubmit base class of
+  MyImmediateSubmitTask (or whatever), also initialized by the constructor.
+ImmediateSubmitRequest::m_queue_request_key is a key that uniquely maps to a queue (request/reply) to use
+  (by default eTransfer queues marked with the LogicalDevice::transfer_request_cookie() when requested,
+  but this can be changed with set_queue_request_key).
+
+ImmediateSubmit_start begins with getting a reference to the associated vulkan::QueuePool based
+on said m_queue_request_key. Then it gets a queue from that pool in the form of a task::ImmediateSubmitQueue*
+and assigns that to m_immediate_submit_queue_task. ImmediateSubmitQueue is derived from
+vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest> and takes
+ImmediateSubmitRequest's. ImmediateSubmit_start then simply passes m_submit_request to this
+ImmediateSubmitQueue task and waits for the submit_finished signal after which it will continue
+with m_continue_state (MyImmediateSubmitTask_done in the above example).
+
+The effect is that there can be as many ImmediateSubmitQueue tasks as that there are matching queues,
+each with its own deque of ImmediateSubmitRequest objects that it needs to handle. Since each
+ImmediateSubmitQueue controls its own queue and associated semaphore, they can submit concurrently.
+
+It is the ImmediateSubmitQueue task that is responsible for creating command buffers, calling
+the record function with them and submitting them, as well as informing the waiting ImmediateSubmit
+tasks once a submit finishes (by calling ImmediateSubmitRequest::finished()).
+
+The command buffers are acquired from ImmediateSubmitQueue::m_command_buffer_pool, a
+statefultask::ResourcePool<vulkan::CommandBufferFactory>, and released to that once the submit
+finished.
+
+task::ImmediateSubmitQueue, being derived from vulkan::PersistentAsyncTask, never finishes (although
+they are aborted at program termination). These tasks run ImmediateSubmitQueue_need_action over
+and over as soon as there is something to be done. The need_action signal is sent to these tasks
+1) when a new ImmediateSubmitRequest was queued, 2) when its timeline semaphore reaches a counter
+value of a submit that wasn't finished yet, 3) when it couldn't get enough command buffers from
+the pool and more command buffers were just released.
+
+In order to do this, the ImmediateSubmitRequest's are kept in the TaskToTaskDeque until after
+their submit finished. For this two more fields are filled in after submitting:
+ImmediateSubmitRequest::m_command_buffer is set to the command buffer that is being used, and
+ImmediateSubmitRequest::m_signal_value is set to the signal value that was used with timeline
+semaphore when submitting this command buffer. See ImmediateSubmitQueue_need_action for a more
+detailed description.
+
+Detection of the semaphore being signalled is done by polling, performed by
+LogicalDevice::m_semaphore_watcher pointing to a task::AsyncSemaphoreWatcher.
+
+Note that there is also a SynchronousWindow::m_semaphore_watcher with the type
+boost::intrusive_ptr<task::SemaphoreWatcher<task::SynchronousTask>> which can poll
+timeline semaphores once per frame.
+

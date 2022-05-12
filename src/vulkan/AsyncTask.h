@@ -1,13 +1,11 @@
 #pragma once
 
 #include "statefultask/AIStatefulTask.h"
-#ifdef CWDEBUG
-#include "debug/DebugSetName.h"
-#endif
 
 namespace vulkan {
 
 class Application;
+class Ambifix;
 
 // A task that runs asynchronously from the render loop - for example from the thread pool
 // or in immediate mode.
