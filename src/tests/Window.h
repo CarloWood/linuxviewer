@@ -33,7 +33,7 @@ class Window : public task::SynchronousWindow
   Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
   // Vertex buffers.
-  std::vector<vulkan::BufferParameters> m_vertex_buffers;
+  std::vector<vulkan::memory::Buffer> m_vertex_buffers;
 
   vulkan::Texture m_background_texture;
   vulkan::Texture m_texture;
@@ -369,11 +369,12 @@ void main() {
       int count = vertex_shader_input_set->count();
       size_t buffer_size = count * entry_size;
 
-      m_vertex_buffers.emplace_back(logical_device()->create_buffer(buffer_size,
-          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal
+      m_vertex_buffers.push_back(vulkan::memory::Buffer(logical_device(), buffer_size,
+          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+          0, vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
 
-      auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(logical_device(), buffer_size, *m_vertex_buffers.back().m_buffer, 0, vk::AccessFlags(0),
+      auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(logical_device(), buffer_size, m_vertex_buffers.back().m_vh_buffer, 0, vk::AccessFlags(0),
           vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput
           COMMA_CWDEBUG_ONLY(true));
 
@@ -515,7 +516,7 @@ Dout(dc::warning, "Pipeline not available");
 else {
     command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
     command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-    command_buffer->bindVertexBuffers(0, { *m_vertex_buffers[0].m_buffer, *m_vertex_buffers[1].m_buffer }, { 0, 0 });
+    command_buffer->bindVertexBuffers(0, { m_vertex_buffers[0].m_vh_buffer, m_vertex_buffers[1].m_vh_buffer }, { 0, 0 });
     command_buffer->setViewport(0, { viewport });
     command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
     command_buffer->setScissor(0, { scissor });

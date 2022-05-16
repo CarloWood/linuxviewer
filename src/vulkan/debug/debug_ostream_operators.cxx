@@ -318,3 +318,40 @@ std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_w
 #endif
 
 } // namespace vk
+
+#ifdef CWDEBUG
+#include "LogicalDevice.h"
+#include <vk_mem_alloc.h>
+
+std::ostream& operator<<(std::ostream& os, VmaAllocationInfo const& vma_allocation_info)
+{
+  os << '{';
+  os << "memoryType:" << vma_allocation_info.memoryType <<
+      ", deviceMemory:" << vma_allocation_info.deviceMemory <<
+      ", offset:" << vma_allocation_info.offset <<
+      ", size:" << vma_allocation_info.size <<
+      ", pMappedData:" << vma_allocation_info.pMappedData <<
+      ", pUserData:" << vma_allocation_info.pUserData <<
+      ", pName:" << debug::print_string(vma_allocation_info.pName);
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, VmaAllocationCreateInfo const& vma_allocation_create_info)
+{
+  vulkan::LogicalDevice const* logical_device = debug::set_device::get_pword_value(os);
+  // Use the I/O manipulator debug::set_device(logical_device) before writing a VmaAllocationCreateInfo to an ostream.
+  ASSERT(logical_device);
+  os << '{';
+  os << "flags:" << vma_allocation_create_info.flags <<
+      ", usage:" << vma_allocation_create_info.usage <<
+      ", requiredFlags:" << vma_allocation_create_info.requiredFlags <<
+      ", preferredFlags:" << vma_allocation_create_info.preferredFlags <<
+      ", memoryTypeBits:" << utils::print_using(vma_allocation_create_info.memoryTypeBits, logical_device->memory_type_bits_printer()) <<
+      ", pool:" << vma_allocation_create_info.pool <<
+      ", pUserData:" << vma_allocation_create_info.pUserData <<
+      ", priority:" << vma_allocation_create_info.priority;
+  os << '}';
+  return os;
+}
+#endif // CWDEBUG

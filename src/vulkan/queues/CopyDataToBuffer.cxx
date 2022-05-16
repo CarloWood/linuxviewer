@@ -41,7 +41,7 @@ void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer comma
     .dstOffset = m_buffer_offset,
     .size = m_data.size()
   };
-  command_buffer->copyBuffer(*m_staging_buffer.m_buffer.m_buffer, m_vh_target_buffer, { buffer_copy_region });
+  command_buffer->copyBuffer(m_staging_buffer.m_buffer.m_vh_buffer, m_vh_target_buffer, { buffer_copy_region });
 
   vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{
     .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
@@ -70,19 +70,13 @@ void CopyDataToBuffer::multiplex_impl(state_type run_state)
       // Create staging buffer and map its memory to copy data from the CPU.
       {
         vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
-        m_staging_buffer.m_buffer = logical_device->create_buffer(m_data.size(), vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+        m_staging_buffer.m_buffer = vulkan::memory::Buffer(logical_device, m_data.size(), vk::BufferUsageFlagBits::eTransferSrc,
+            VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, vk::MemoryPropertyFlagBits::eHostVisible
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer.m_buffer")));
-        m_staging_buffer.m_pointer = logical_device->map_memory(*m_staging_buffer.m_buffer.m_memory, 0, m_data.size());
-
+        m_staging_buffer.m_pointer = m_staging_buffer.m_buffer.map_memory();
         std::memcpy(m_staging_buffer.m_pointer, m_data.data(), m_data.size());
-
-        vk::MappedMemoryRange memory_range{
-          .memory = *m_staging_buffer.m_buffer.m_memory,
-          .offset = 0,
-          .size = VK_WHOLE_SIZE
-        };
-        logical_device->flush_mapped_memory_ranges({ memory_range });
-        logical_device->unmap_memory(*m_staging_buffer.m_buffer.m_memory);
+        logical_device->flush_mapped_allocation(m_staging_buffer.m_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
+        m_staging_buffer.m_buffer.unmap_memory();
       }
       m_submit_request.set_record_function([this](vulkan::handle::CommandBuffer command_buffer){
         record_command_buffer(command_buffer);

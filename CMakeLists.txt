@@ -12,7 +12,7 @@ project(linuxviewer
 )
 
 # Begin of gitache configuration.
-set(GITACHE_PACKAGES magic_enum blaze libcwd_r wolfssl vma)
+set(GITACHE_PACKAGES magic_enum blaze libcwd_r wolfssl)
 
 # Is libfarmhash installed somewhere in a default path?
 find_library(

@@ -56,3 +56,8 @@ endif ()
 
 # Create an ALIAS target.
 add_library(ImGui::imgui ALIAS imgui_ObjLib)
+
+# Create target VulkanMemoryAllocator.
+set(VMA_STATIC_VULKAN_FUNCTIONS OFF CACHE BOOL "Link statically with Vulkan API")
+set(VMA_DYNAMIC_VULKAN_FUNCTIONS ON CACHE BOOL "Fetch pointers to Vulkan functions internally (no static linking)")
+add_subdirectory(VulkanMemoryAllocator)

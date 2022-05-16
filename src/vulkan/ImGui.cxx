@@ -790,8 +790,8 @@ void ImGui::setup_render_state(handle::CommandBuffer command_buffer, void* draw_
   command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
 
   // Bind vertex and index buffer.
-  command_buffer->bindVertexBuffers(0, { *frame_resources.m_vertex_buffer.m_buffer }, { 0 });
-  command_buffer->bindIndexBuffer(*frame_resources.m_index_buffer.m_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+  command_buffer->bindVertexBuffers(0, { frame_resources.m_vertex_buffer.m_vh_buffer }, { 0 });
+  command_buffer->bindIndexBuffer(frame_resources.m_index_buffer.m_vh_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
 
   // Set viewport again (is this really needed?).
   command_buffer->setViewport(0, { viewport });
@@ -815,7 +815,7 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
   size_t vertex_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
   size_t index_size = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 
-  bool initial_buffer_creation = !frame_resources.m_vertex_buffer.m_buffer;
+  bool initial_buffer_creation = !frame_resources.m_vertex_buffer.m_vh_buffer;
 
   if (AI_UNLIKELY(initial_buffer_creation) && draw_data->TotalVtxCount == 0)
     vertex_size = index_size = 1;       // We're not allowed to create buffers with zero size.
@@ -824,17 +824,21 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
   {
     // Create or resize the vertex buffer.
     if (vertex_size > frame_resources.m_vertex_buffer.m_size)
-      frame_resources.m_vertex_buffer = device->create_buffer(
+      frame_resources.m_vertex_buffer = memory::Buffer(
+          device,
           vertex_size,
           vk::BufferUsageFlagBits::eVertexBuffer,
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
           vk::MemoryPropertyFlagBits::eHostVisible
           COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")));
 
     // Create or resize the index buffer.
     if (index_size > frame_resources.m_index_buffer.m_size)
-      frame_resources.m_index_buffer = device->create_buffer(
+      frame_resources.m_index_buffer = memory::Buffer(
+          device,
           index_size,
           vk::BufferUsageFlagBits::eIndexBuffer,
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
           vk::MemoryPropertyFlagBits::eHostVisible
           COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")));
   }
@@ -845,8 +849,8 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
     Debug(dc::vulkan.off());
 
     // Upload vertex and index data each into a single contiguous GPU buffer.
-    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(device->map_memory(*frame_resources.m_vertex_buffer.m_memory, 0, frame_resources.m_vertex_buffer.m_size));
-    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(device->map_memory(*frame_resources.m_index_buffer.m_memory, 0, frame_resources.m_index_buffer.m_size));
+    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(frame_resources.m_vertex_buffer.map_memory());
+    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(frame_resources.m_index_buffer.map_memory());
     for (int n = 0; n < draw_data->CmdListsCount; ++n)
     {
       ImDrawList const* cmd_list = draw_data->CmdLists[n];
@@ -856,14 +860,23 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
       idx_dst += cmd_list->IdxBuffer.Size;
     }
 
-    std::array<vk::MappedMemoryRange, 2> mapped_memory_ranges = {
-      vk::MappedMemoryRange{ .memory = *frame_resources.m_vertex_buffer.m_memory, .size = VK_WHOLE_SIZE },
-      vk::MappedMemoryRange{ .memory = *frame_resources.m_index_buffer.m_memory, .size = VK_WHOLE_SIZE }
+    std::array<VmaAllocation, 2> vh_allocations = {
+      frame_resources.m_vertex_buffer.m_vh_allocation,
+      frame_resources.m_index_buffer.m_vh_allocation
     };
-    device->flush_mapped_memory_ranges(mapped_memory_ranges);
+    static std::array<vk::DeviceSize, 2> const offsets = {
+      0,
+      0
+    };
+    static std::array<vk::DeviceSize, 2> const sizes = {
+      VK_WHOLE_SIZE,
+      VK_WHOLE_SIZE
+    };
+    device->flush_mapped_allocations(vh_allocations.size(), vh_allocations.data(), offsets.data(), sizes.data());
 
-    device->unmap_memory(*frame_resources.m_vertex_buffer.m_memory);
-    device->unmap_memory(*frame_resources.m_index_buffer.m_memory);
+    frame_resources.m_vertex_buffer.unmap_memory();
+    frame_resources.m_index_buffer.unmap_memory();
+
     Debug(dc::vulkan.on());
   }
 

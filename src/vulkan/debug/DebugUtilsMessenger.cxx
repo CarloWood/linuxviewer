@@ -111,11 +111,17 @@ std::string Token::to_string(ValidationError& validation_error) const
       validation_error.objects[object_id] = new_object;
     }
     Object const& object = validation_error.objects.at(m_id);
-    std::string_view object_name(object.info.pObjectName);
-    auto window_ptr_pos = object_name.find(" [0x");
-    if (window_ptr_pos != std::string::npos)
-      object_name = object_name.substr(0, window_ptr_pos);
-    oss << object_name << " (\e[30;43m" << object.n << "\e[39;49m)";
+    if (object.info.pObjectName)
+    {
+      std::string_view object_name(object.info.pObjectName);
+      auto window_ptr_pos = object_name.find(" [0x");
+      if (window_ptr_pos != std::string::npos)
+        object_name = object_name.substr(0, window_ptr_pos);
+      oss << object_name;
+    }
+    else
+      oss << vk::to_string(static_cast<vk::ObjectType>(object.info.objectType));
+    oss << " (\e[30;43m" << object.n << "\e[39;49m)";
     return oss.str();
   }
   return m_text;

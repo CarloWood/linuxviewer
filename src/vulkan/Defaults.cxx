@@ -230,6 +230,48 @@ void PhysicalDeviceProperties::print_members(std::ostream& os, char const* prefi
 //    VULKAN_HPP_NAMESPACE::PhysicalDeviceSparseProperties                         sparseProperties  = {};
 }
 
+void MemoryType::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "propertyFlags:" << propertyFlags <<
+      ", heapIndex:" << heapIndex;
+}
+
+void MemoryHeap::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "size:" << size <<
+      ", flags:" << flags;
+}
+
+void MemoryRequirements::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "size:" << size <<
+      ", alignment:" << alignment <<
+      ", memoryTypeBits:" << std::hex << memoryTypeBits << std::dec;
+}
+
+void BufferCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << print_chain(pNext) << ", ";
+
+  os << "flags:" << flags <<
+      ", size:" << size <<
+      ", usage:" << usage <<
+      ", sharingMode:" << sharingMode <<
+//      ", queueFamilyIndexCount:" << queueFamilyIndexCount <<
+      ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount);
+}
+
+void PhysicalDeviceMemoryProperties::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix << "memoryTypeCount:" << memoryTypeCount <<
+      ", memoryTypes:" << print_list(memoryTypes.data(), memoryTypeCount) <<
+      ", memoryHeapCount:" << memoryHeapCount <<
+      ", memoryHeaps:" << print_list(memoryHeaps.data(), memoryHeapCount);
+}
+
 void SurfaceCapabilitiesKHR::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix << "minImageCount:" << minImageCount <<

@@ -1,4 +1,3 @@
-// Anonymous namespace because probably only included from Defaults.cxx.
 #include <iostream>
 
 namespace vk_utils {

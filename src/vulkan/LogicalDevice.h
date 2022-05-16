@@ -10,17 +10,23 @@
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
-#include "BufferParameters.h"
 #include "queues/Queue.h"
 #include "queues/QueueRequestKey.h"
 #include "queues/QueueReply.h"
+#include "memory/Allocator.h"
+#include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
 #include "utils/Badge.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <vk_mem_alloc.h>
 #include <filesystem>
+#ifdef CWDEBUG
+#include "vk_utils/MemoryRequirementsPrinter.h"
+#include "debug/set_device.h"
+#endif
 
 namespace task {
 class SynchronousWindow;
@@ -45,6 +51,10 @@ class SamplerKind;
 namespace rendergraph {
 class RenderPass;
 } // namespace rendergraph
+
+namespace memory {
+class Buffer;
+} // namespace memory
 
 // The collection of queue family properties for a given physical device.
 class QueueFamilies
@@ -84,9 +94,12 @@ class LogicalDevice
   QueueFamilies m_queue_families;
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
+  uint32_t m_memory_type_count;                         // The number of memory types of this GPU.
+  uint32_t m_memory_heap_count;                         // The number of heaps of this GPU.
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
   bool m_supports_cache_control = {};
+  memory::Allocator m_vh_allocator;                     // Handle to VMA allocator object.
   QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
   boost::intrusive_ptr<task::AsyncSemaphoreWatcher> m_semaphore_watcher;// Asynchronous task that polls timeline semaphores.
 
@@ -239,12 +252,6 @@ class LogicalDevice
       std::vector<vk::BufferView> const& buffer_views = {}) const;
   vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  vk::UniqueBuffer create_buffer(uint32_t size, vk::BufferUsageFlags usage
-      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  vk::UniqueDeviceMemory allocate_buffer_memory(vk::Buffer vh_buffer, vk::MemoryPropertyFlagBits property
-      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  BufferParameters create_buffer(uint32_t size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlagBits memoryProperty
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
       SwapchainKind const& swapchain_kind, vk::SwapchainKHR vh_old_swapchain
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
@@ -252,14 +259,83 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   Swapchain::images_type get_swapchain_images(task::SynchronousWindow const* owning_window, vk::SwapchainKHR vh_swapchain
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  void* map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const;
-  void flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const;
-  void unmap_memory(vk::DeviceMemory vh_memory) const;
+
+  void flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe, "flush_mapped_memory_ranges(" << mapped_memory_ranges << ")");
+    m_device->flushMappedMemoryRanges(mapped_memory_ranges);
+  }
+
+  //---------------------------------------------------------------------------
+  // API for access to m_vh_allocator.
+  //
+
+  // Called by memory::Buffer::Buffer.
+  vk::Buffer create_buffer(utils::Badge<memory::Buffer>, vk::BufferCreateInfo const& buffer_create_info,
+      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+      COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::create_buffer(" << buffer_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
+    return m_vh_allocator.create_buffer(buffer_create_info, vma_allocation_create_info, vh_allocation
+        COMMA_CWDEBUG_ONLY(allocation_name));
+  }
+
+  // Called by memory::Buffer::destroy().
+  void destroy_buffer(utils::Badge<memory::Buffer>, vk::Buffer vh_buffer, VmaAllocation vh_allocation) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::destroy_buffer(" << vh_buffer << ", " << vh_allocation << ")");
+    m_vh_allocator.destroy_buffer(vh_buffer, vh_allocation);
+  }
+
+  void* map_memory(VmaAllocation vh_allocation) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::map_memory(" << vh_allocation << " [" << m_vh_allocator.get_allocation_info(vh_allocation) << "])");
+    return m_vh_allocator.map_memory(vh_allocation);
+  }
+
+  void flush_mapped_allocation(VmaAllocation vh_allocation, vk::DeviceSize offset, vk::DeviceSize size) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe, "flush_mapped_allocation(" << vh_allocation << ", " << offset << ", " << size << ")");
+    m_vh_allocator.flush_allocation(vh_allocation, offset, size);
+  }
+
+  void flush_mapped_allocations(uint32_t allocation_count, VmaAllocation const* vh_allocations, vk::DeviceSize const* offsets, vk::DeviceSize const* sizes) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe, "flush_mapped_allocations(" << allocation_count << ", " <<
+        vk_utils::print_list(vh_allocations, allocation_count) << ", " << vk_utils::print_list(offsets, allocation_count) << ", " << vk_utils::print_list(sizes, allocation_count) << ")");
+    m_vh_allocator.flush_allocations(allocation_count, vh_allocations, offsets, sizes);
+  }
+
+  void unmap_memory(VmaAllocation vh_allocation) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe, "unmap_memory(" << vh_allocation << ")");
+    m_vh_allocator.unmap_memory(vh_allocation);
+  }
+
+#ifdef CWDEBUG
+  VmaAllocationInfo get_allocation_info(VmaAllocation vh_allocation) const
+  {
+    return m_vh_allocator.get_allocation_info(vh_allocation);
+  }
+#endif
+
+  // End of API for access to m_vh_allocator.
+  //---------------------------------------------------------------------------
+
   vk::UniquePipelineCache create_pipeline_cache(vk::PipelineCacheCreateInfo const& pipeline_cache_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   size_t get_pipeline_cache_size(vk::PipelineCache vh_pipeline_cache) const;
   void get_pipeline_cache_data(vk::PipelineCache vh_pipeline_cache, size_t& len, void* buffer) const;
   void merge_pipeline_caches(vk::PipelineCache vh_pipeline_cache, std::vector<vk::PipelineCache> const& vhv_pipeline_caches) const;
+  vk::MemoryRequirements get_buffer_memory_requirements(vk::Buffer vh_buffer) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::get_buffer_memory_requirements(" << vh_buffer << ")");
+    return m_device->getBufferMemoryRequirements(vh_buffer);
+  }
+#ifdef CWDEBUG
+  vk_utils::MemoryTypeBitsPrinter memory_type_bits_printer() const { return { m_memory_type_count }; }
+  vk_utils::MemoryRequirementsPrinter memory_requirements_printer() const { return { m_memory_type_count, m_memory_heap_count }; }
+#endif
 
  private:
   // Override this function to change the default physical device features.

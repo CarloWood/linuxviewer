@@ -696,20 +696,13 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   // Create staging buffer and map it's memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = m_logical_device->create_buffer(data_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible
+    staging_buffer.m_buffer = vulkan::memory::Buffer(m_logical_device, data_size, vk::BufferUsageFlagBits::eTransferSrc,
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, vk::MemoryPropertyFlagBits::eHostVisible
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = m_logical_device->map_memory(*staging_buffer.m_buffer.m_memory, 0, data_size);
-
+    staging_buffer.m_pointer = staging_buffer.m_buffer.map_memory();
     std::memcpy(staging_buffer.m_pointer, data, data_size);
-
-    vk::MappedMemoryRange memory_range{
-        .memory = *staging_buffer.m_buffer.m_memory,
-        .offset = 0,
-        .size = VK_WHOLE_SIZE
-    };
-    m_logical_device->flush_mapped_memory_ranges({ memory_range });
-
-    m_logical_device->unmap_memory(*staging_buffer.m_buffer.m_memory);
+    m_logical_device->flush_mapped_allocation(staging_buffer.m_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
+    staging_buffer.m_buffer.unmap_memory();
   }
 
   // We use a temporary command pool here.
@@ -761,7 +754,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
         }
       });
     }
-    tmp_command_buffer->copyBufferToImage(*staging_buffer.m_buffer.m_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+    tmp_command_buffer->copyBufferToImage(staging_buffer.m_buffer.m_vh_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
     vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
       .srcAccessMask = vk::AccessFlagBits::eTransferWrite,

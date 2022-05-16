@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <iosfwd>
+#include <array>
 
 namespace vulkan {
 

@@ -2,7 +2,7 @@
 
 #include "CurrentFrameData.h"
 #include "Texture.h"
-#include "BufferParameters.h"
+#include "memory/Buffer.h"
 #include "DescriptorSetParameters.h"
 #include "pipeline/Pipeline.h"
 #include "debug/DebugSetName.h"
@@ -74,8 +74,8 @@ namespace vulkan {
 // Frame resources.
 struct ImGui_FrameResourcesData
 {
-  BufferParameters m_vertex_buffer;
-  BufferParameters m_index_buffer;
+  memory::Buffer m_vertex_buffer;
+  memory::Buffer m_index_buffer;
 };
 
 class ImGui

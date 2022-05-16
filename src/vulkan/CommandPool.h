@@ -56,12 +56,8 @@ class CommandPool
   void allocate_buffers(uint32_t count, handle::CommandBuffer* command_buffers
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name));
 
-  void allocate_buffers(std::vector<handle::CommandBuffer>& command_buffers
-      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
-  {
-    allocate_buffers(static_cast<uint32_t>(command_buffers.size()), command_buffers.data()
-        COMMA_CWDEBUG_ONLY(debug_name));
-  }
+  [[gnu::always_inline]] inline void allocate_buffers(std::vector<handle::CommandBuffer>& command_buffers
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name));
 
   template<size_t N>
   void allocate_buffers(std::array<handle::CommandBuffer, N>& command_buffers
@@ -99,6 +95,15 @@ void CommandPool<pool_type>::allocate_buffers(uint32_t count, handle::CommandBuf
   static_assert(sizeof(command_buffers[0]) == sizeof(command_buffers[0].m_vh_command_buffer), "m_vh_command_buffer must be the only member");
   m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, command_buffers->get_array()
       COMMA_CWDEBUG_ONLY(debug_name, true));
+}
+
+//inline
+template<vk::CommandPoolCreateFlags::MaskType pool_type>
+void CommandPool<pool_type>::allocate_buffers(std::vector<handle::CommandBuffer>& command_buffers
+    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
+{
+  allocate_buffers(static_cast<uint32_t>(command_buffers.size()), command_buffers.data()
+      COMMA_CWDEBUG_ONLY(debug_name));
 }
 
 template<vk::CommandPoolCreateFlags::MaskType pool_type>

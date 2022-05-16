@@ -454,6 +454,16 @@ void LogicalDevice::prepare(
     m_non_coherent_atom_size = properties.limits.nonCoherentAtomSize;
     m_max_sampler_anisotropy = properties.limits.maxSamplerAnisotropy;
   }
+  Dout(dc::vulkan, "Physical Device Memory Properties:");
+  {
+#ifdef CWDEBUG
+    debug::Mark mark;
+#endif
+    auto memory_properties = m_vh_physical_device.getMemoryProperties();
+    Dout(dc::vulkan, memory_properties);
+    m_memory_type_count = memory_properties.memoryTypeCount;
+    m_memory_heap_count = memory_properties.memoryHeapCount;
+  }
   Dout(dc::vulkan, "Physical Device Features:");
   {
 #ifdef CWDEBUG
@@ -522,6 +532,21 @@ void LogicalDevice::prepare(
   Dout(dc::vulkan, "Setting debug name of device " << *m_device << " to " << debug::print_string(device_create_info.debug_name()));
   m_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
+
+  // Initialize the VMA allocator.
+  VmaVulkanFunctions vma_vulkan_functions{
+    .vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+    .vkGetDeviceProcAddr = vkGetDeviceProcAddr
+  };
+  VmaAllocatorCreateInfo vma_allocator_create_info{
+    .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
+    .physicalDevice = m_vh_physical_device,
+    .device = *m_device,
+    .pVulkanFunctions = &vma_vulkan_functions,
+    .instance = vh_instance,
+    .vulkanApiVersion = VK_API_VERSION_1_3
+  };
+  m_vh_allocator.create(vma_allocator_create_info);
 }
 
 Queue LogicalDevice::acquire_queue(QueueRequestKey queue_request_key) const
@@ -963,76 +988,6 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
   return pipline_layout;
 }
 
-vk::UniqueBuffer LogicalDevice::create_buffer(
-    uint32_t size,
-    vk::BufferUsageFlags usage
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
-{
-  vk::BufferCreateInfo buffer_create_info{
-    .flags = vk::BufferCreateFlags(0),
-    .size = size,
-    .usage = usage
-  };
-  vk::UniqueBuffer buffer = m_device->createBufferUnique(buffer_create_info);
-  DebugSetName(buffer, debug_name, this);
-  return buffer;
-}
-
-vk::UniqueDeviceMemory LogicalDevice::allocate_buffer_memory(
-    vk::Buffer vh_buffer,
-    vk::MemoryPropertyFlagBits property
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
-{
-  vk::MemoryRequirements buffer_memory_requirements = m_device->getBufferMemoryRequirements(vh_buffer);
-  vk::PhysicalDeviceMemoryProperties memory_properties = m_vh_physical_device.getMemoryProperties();
-
-  for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)
-  {
-    if ((buffer_memory_requirements.memoryTypeBits & (1 << i)) &&
-        ((memory_properties.memoryTypes[i].propertyFlags & property) == property) ) {
-      try
-      {
-        vk::UniqueDeviceMemory memory = m_device->allocateMemoryUnique({ .allocationSize = buffer_memory_requirements.size, .memoryTypeIndex = i });
-        DebugSetName(memory, debug_name, this);
-        return memory;
-      }
-      catch( ... )
-      {
-        // Iterate over all supported memory types; only if none of them could be used, throw exception
-      }
-    }
-  }
-
-  throw std::runtime_error( "Could not allocate a memory for a buffer!" );
-}
-
-BufferParameters LogicalDevice::create_buffer(
-    uint32_t size,
-    vk::BufferUsageFlags usage,
-    vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-{
-  if (!(memory_property & vk::MemoryPropertyFlagBits::eHostCoherent))
-  {
-    // Allocate a multiple of m_non_coherent_atom_size bytes.
-    size = ((size - 1) / m_non_coherent_atom_size + 1) * m_non_coherent_atom_size;
-  }
-
-  vk::UniqueBuffer buffer = create_buffer(size, usage
-      COMMA_CWDEBUG_ONLY(ambifix(".m_buffer")));
-
-  vk::UniqueDeviceMemory buffer_memory = allocate_buffer_memory(*buffer, memory_property
-      COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
-
-  m_device->bindBufferMemory(*buffer, *buffer_memory, vk::DeviceSize(0));
-
-  return {
-    .m_buffer = std::move(buffer),
-    .m_memory = std::move(buffer_memory),
-    .m_size = size
-  };
-}
-
 vk::UniqueSwapchainKHR LogicalDevice::create_swapchain(
     vk::Extent2D extent,
     uint32_t min_image_count,
@@ -1086,24 +1041,6 @@ Swapchain::images_type LogicalDevice::get_swapchain_images(
   }
 
   return swapchain_images;
-}
-
-void* LogicalDevice::map_memory(vk::DeviceMemory vh_memory, vk::DeviceSize offset, vk::DeviceSize size) const
-{
-  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::map_memory(" << vh_memory << ", " << offset << ", " << size << ")");
-  return m_device->mapMemory(vh_memory, offset, size);
-}
-
-void LogicalDevice::flush_mapped_memory_ranges(vk::ArrayProxy<vk::MappedMemoryRange const> const& mapped_memory_ranges) const
-{
-  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::flush_mapped_memory_ranges(" << mapped_memory_ranges << ")");
-  m_device->flushMappedMemoryRanges(mapped_memory_ranges);
-}
-
-void LogicalDevice::unmap_memory(vk::DeviceMemory vh_memory) const
-{
-  DoutEntering(dc::vulkan|dc::vkframe, "LogicalDevice::unmap_memory(" << vh_memory << ")");
-  m_device->unmapMemory(vh_memory);
 }
 
 vk::UniquePipelineCache LogicalDevice::create_pipeline_cache(

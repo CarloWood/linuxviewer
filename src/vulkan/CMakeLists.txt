@@ -13,14 +13,6 @@ pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 
 find_package(magic_enum REQUIRED)
 
-# VMA does not install a vmaConfig.cmake
-add_library(Vma::vma STATIC IMPORTED)
-set_target_properties(Vma::vma PROPERTIES
-  IMPORTED_LOCATION "${vma_ROOT}/lib/libVulkanMemoryAllocator.a"
-  INTERFACE_COMPILE_DEFINITIONS "VMA_STATIC_VULKAN_FUNCTIONS=0"
-  INTERFACE_INCLUDE_DIRECTORIES "${vma_ROOT}/include"
-)
-
 #==============================================================================
 # BUILD PROJECT
 #
@@ -40,6 +32,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
 )
@@ -50,6 +43,7 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
 )
@@ -107,7 +101,7 @@ target_compile_features(vulkan_ObjLib
 # Set link dependencies.
 target_link_libraries(vulkan_ObjLib
   PUBLIC
-    Vma::vma
+    VulkanMemoryAllocator
     Vulkan::Vulkan
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError

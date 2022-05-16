@@ -309,7 +309,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
                 COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
             // Inform the SynchronousWindow.
-            m_move_new_pipelines_synchronously->have_new_datum(synchronous::MoveNewPipelines::Datum{{m_pipeline_factory_index , pipeline_index}, std::move(pipeline)});
+            m_move_new_pipelines_synchronously->have_new_datum({vulkan::pipeline::Handle{m_pipeline_factory_index , pipeline_index}, std::move(pipeline)});
 
             // End of MultiLoop inner loop.
           }

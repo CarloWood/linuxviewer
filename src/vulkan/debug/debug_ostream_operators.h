@@ -22,6 +22,11 @@ DECLARE_OSTREAM_INSERTER(DebugUtilsObjectNameInfoEXT)
 DECLARE_OSTREAM_INSERTER(QueueFamilyProperties)
 DECLARE_OSTREAM_INSERTER(ExtensionProperties)
 DECLARE_OSTREAM_INSERTER(PhysicalDeviceProperties)
+DECLARE_OSTREAM_INSERTER(PhysicalDeviceMemoryProperties)
+DECLARE_OSTREAM_INSERTER(MemoryType)
+DECLARE_OSTREAM_INSERTER(MemoryHeap)
+DECLARE_OSTREAM_INSERTER(MemoryRequirements)
+DECLARE_OSTREAM_INSERTER(BufferCreateInfo)
 DECLARE_OSTREAM_INSERTER(SurfaceCapabilitiesKHR)
 DECLARE_OSTREAM_INSERTER(SurfaceFormatKHR)
 DECLARE_OSTREAM_INSERTER(SwapchainCreateInfoKHR)
@@ -92,6 +97,12 @@ std::ostream& operator<<(std::ostream& os, SemaphoreSignalInfo const& semaphores
 std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_wait_info);
 
 } // namespace vk
+
+struct VmaAllocationInfo;
+struct VmaAllocationCreateInfo;
+
+std::ostream& operator<<(std::ostream& os, VmaAllocationInfo const& vma_allocation_info);
+std::ostream& operator<<(std::ostream& os, VmaAllocationCreateInfo const& vma_allocation_create_info);
 
 #endif // CWDEBUG
 

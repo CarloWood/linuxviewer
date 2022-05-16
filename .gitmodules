@@ -60,3 +60,6 @@
 [submodule "external/peelo-xdg"]
 	path = external/peelo-xdg
 	url = https://github.com/peelonet/peelo-xdg.git
+[submodule "external/VulkanMemoryAllocator"]
+	path = external/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
