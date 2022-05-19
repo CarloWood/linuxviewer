@@ -319,15 +319,14 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
   create_descriptor_set(CWDEBUG_ONLY(ambifix));
 
   // Build and load the texture atlas into a texture.
-  uint32_t width;
-  uint32_t height;
+  vk::Extent2D extent;
   std::byte const* texture_data;
   {
     int w, h;
     unsigned char* d = nullptr;
     io.Fonts->GetTexDataAsRGBA32(&d, &w, &h);
-    width = w;
-    height = h;
+    extent.width = w;
+    extent.height = h;
     texture_data = reinterpret_cast<std::byte*>(d);
   }
   ImageKind const imgui_font_image_kind({
@@ -336,7 +335,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
   });
   ImageViewKind const imgui_font_image_view_kind(imgui_font_image_kind, {});
   SamplerKind const imgui_font_sampler_kind(logical_device(), {});
-  m_font_texture = owning_window->upload_texture(texture_data, width, height, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
+  m_font_texture = owning_window->upload_texture(texture_data, extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));

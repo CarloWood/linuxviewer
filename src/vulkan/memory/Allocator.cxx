@@ -27,4 +27,17 @@ vk::Buffer Allocator::create_buffer(vk::BufferCreateInfo const& buffer_create_in
   return vh_buffer;
 }
 
+vk::Image Allocator::create_image(vk::ImageCreateInfo const& image_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+    COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
+{
+  VkImage vh_image;
+  vk::Result res = static_cast<vk::Result>(
+      vmaCreateImage(m_handle, &static_cast<VkImageCreateInfo const&>(image_create_info), &vma_allocation_create_info, &vh_image, vh_allocation, nullptr)
+      );
+  if (res != vk::Result::eSuccess)
+    THROW_ALERTC(res, "vmaCreateImage");
+  Debug(vmaSetAllocationName(m_handle, *vh_allocation, allocation_name.object_name().c_str()));
+  return vh_image;
+}
+
 } // namespace vulkan::memory

@@ -40,7 +40,7 @@ target_include_directories(imgui_ObjLib
     # And when using imgui, we can't use #include <imgui/*> because backends/*.h use #include "imgui.h"; so we'll just
     # have to include this directory at all times.
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui"
-  PRIVATE:
+  PRIVATE
     # In order to find lvimconfig.h while compiling imgui.
     "${CMAKE_SOURCE_DIR}"
 )

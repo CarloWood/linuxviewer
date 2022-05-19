@@ -5,8 +5,9 @@
 #include "SampleParameters.h"
 #include "FrameResourcesCount.h"
 #include "queues/CopyDataToBuffer.h"
+#include "queues/CopyDataToImage.h"
 #include "vulkan/SynchronousWindow.h"
-#include "vk_utils/get_image_data.h"
+#include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
 
@@ -120,9 +121,7 @@ class Window : public task::SynchronousWindow
 
     // Background texture.
     {
-      int width = 0, height = 0, data_size = 0;
-      std::vector<std::byte> texture_data =
-        vk_utils::get_image_data(m_application->path_of(Directory::resources) / "textures/background.png", 4, &width, &height, nullptr, &data_size);
+      vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/background.png", 4);
       // Create descriptor resources.
       {
         static vulkan::ImageKind const background_image_kind({
@@ -133,20 +132,23 @@ class Window : public task::SynchronousWindow
         static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
         m_background_texture =
-          m_logical_device->create_texture(
-              width, height, background_image_view_kind,
+          vulkan::Texture(m_logical_device,
+              texture_data.extent(), background_image_view_kind,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
               graphics_settings()
               COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
-      }
-      // Copy data.
-      {
-        vk_defaults::ImageSubresourceRange const image_subresource_range;
-        copy_data_to_image(data_size, texture_data.data(), *m_background_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
-            vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
-            vk::PipelineStageFlagBits::eFragmentShader);
+
+        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
+            m_background_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
+            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
+            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
+            COMMA_CWDEBUG_ONLY(true));
+
+        std::memcpy(copy_data_to_image->get_buf().data(), texture_data.image_data(), texture_data.size());
+
+        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
       // Update descriptor set.
       {
@@ -163,9 +165,7 @@ class Window : public task::SynchronousWindow
 
     // Sample texture.
     {
-      int width = 0, height = 0, data_size = 0;
-      std::vector<std::byte> texture_data =
-        vk_utils::get_image_data(m_application->path_of(Directory::resources) / "textures/frame_resources.png", 4, &width, &height, nullptr, &data_size);
+      vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/frame_resources.png", 4);
       // Create descriptor resources.
       {
         static vulkan::ImageKind const sample_image_kind({
@@ -175,20 +175,23 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_texture = m_logical_device->create_texture(
-            width, height, sample_image_view_kind,
+        m_texture = vulkan::Texture(m_logical_device,
+            texture_data.extent(), sample_image_view_kind,
             vk::MemoryPropertyFlagBits::eDeviceLocal,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
             graphics_settings()
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-      }
-      // Copy data.
-      {
-        vk_defaults::ImageSubresourceRange const image_subresource_range;
-        copy_data_to_image(data_size, texture_data.data(), *m_texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
-            vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
-            vk::PipelineStageFlagBits::eFragmentShader);
+
+        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
+            m_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
+            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
+            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
+            COMMA_CWDEBUG_ONLY(true));
+
+        std::memcpy(copy_data_to_image->get_buf().data(), texture_data.image_data(), texture_data.size());
+
+        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
       // Update descriptor set.
       {

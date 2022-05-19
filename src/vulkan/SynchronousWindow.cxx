@@ -9,7 +9,7 @@
 #include "SynchronousTask.h"
 #include "pipeline/Handle.h"
 #include "pipeline/PipelineCache.h"
-#include "queues/ImmediateSubmit.h"
+#include "queues/CopyDataToImage.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
@@ -685,11 +685,11 @@ void SynchronousWindow::set_image_memory_barrier(
 }
 
 void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image vh_target_image,
-    uint32_t width, uint32_t height, vk::ImageSubresourceRange const& image_subresource_range,
+    vk::Extent2D extent, vk::ImageSubresourceRange const& image_subresource_range,
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const
 {
-  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << vh_target_image << ", " << width << ", " << height << ", " <<
+  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << vh_target_image << ", " << extent << ", " <<
       image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " << generating_stages << ", " <<
       new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
 
@@ -748,8 +748,8 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
         },
         .imageOffset = vk::Offset3D{},
         .imageExtent = vk::Extent3D{
-          .width = width,
-          .height = height,
+          .width = extent.width,
+          .height = extent.height,
           .depth = 1
         }
       });
@@ -791,17 +791,18 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   }
 }
 
-vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint32_t width, uint32_t height,
+vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, vk::Extent2D extent,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const
 {
   // Create texture parameters.
-  vulkan::Texture texture = m_logical_device->create_texture(width, height,
+  vulkan::Texture texture(m_logical_device, extent,
       image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
       COMMA_CWDEBUG_ONLY(ambifix));
 
-  size_t const data_size = width * height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
+  size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 
+#if 0 //FIXME: write and use task::CopyDataToImage
   // Copy data.
   {
     vk_defaults::ImageSubresourceRange const image_subresource_range;
@@ -809,6 +810,16 @@ vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, uint
         vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
         vk::PipelineStageFlagBits::eFragmentShader);
   }
+#endif
+  auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, data_size,
+            texture.m_vh_image, extent, vk_defaults::ImageSubresourceRange{},
+            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
+            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
+            COMMA_CWDEBUG_ONLY(true));
+
+  std::memcpy(copy_data_to_image->get_buf().data(), texture_data, data_size);
+
+  copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
 
   // Update descriptor set.
   {
@@ -985,10 +996,9 @@ void SynchronousWindow::on_window_size_changed_post()
       if (attachment->index().undefined())      // Skip swapchain attachment.
         continue;
       Dout(dc::vulkan, "Creating attachment \"" << attachment->name() << "\".");
-      vulkan::Attachment& attachment_ref = frame_resources_data->m_attachments[*attachment];
-      attachment_ref = m_logical_device->create_attachment(
-          swapchain().extent().width,
-          swapchain().extent().height,
+      frame_resources_data->m_attachments[*attachment] = vulkan::Attachment(
+          m_logical_device,
+          swapchain().extent(),
           attachment->image_view_kind(),
           vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index) +

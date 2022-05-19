@@ -683,17 +683,6 @@ vk::UniqueRenderPass LogicalDevice::create_render_pass(
   return render_pass;
 }
 
-vk::UniqueImage LogicalDevice::create_image(
-    vk::Extent2D extent,
-    vulkan::ImageKind const& image_kind
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
-{
-  DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << extent << ", " << image_kind << ")");
-  vk::UniqueImage image = m_device->createImageUnique(image_kind(extent));
-  DebugSetName(image, debug_name, this);
-  return image;
-}
-
 vk::UniqueImageView LogicalDevice::create_image_view(
     vk::Image vh_image, ImageViewKind const& image_view_kind
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
@@ -715,58 +704,6 @@ vk::UniqueSampler LogicalDevice::create_sampler(
   return sampler;
 }
 
-Attachment LogicalDevice::create_attachment(
-    uint32_t width,
-    uint32_t height,
-    vulkan::ImageViewKind const& image_view_kind,
-    vk::MemoryPropertyFlagBits property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-{
-  vk::UniqueImage tmp_image = create_image({ width, height }, image_view_kind.image_kind()
-      COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
-
-  vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
-      COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
-
-  m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
-
-  vk::UniqueImageView tmp_view = create_image_view(*tmp_image, image_view_kind
-      COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")));
-
-  return {
-   .m_image = std::move(tmp_image),
-   .m_image_view = std::move(tmp_view),
-   .m_memory = std::move(tmp_memory)
-  };
-}
-
-Texture LogicalDevice::create_texture(
-    uint32_t width,
-    uint32_t height,
-    vulkan::ImageViewKind const& image_view_kind,
-    vk::MemoryPropertyFlagBits property,
-    vk::UniqueSampler&& sampler
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-{
-  vk::UniqueImage tmp_image = create_image({ width, height }, image_view_kind.image_kind()
-      COMMA_CWDEBUG_ONLY(ambifix(".m_image")));
-
-  vk::UniqueDeviceMemory tmp_memory = allocate_image_memory(*tmp_image, property
-      COMMA_CWDEBUG_ONLY(ambifix(".m_memory")));
-
-  m_device->bindImageMemory(*tmp_image, *tmp_memory, vk::DeviceSize(0));
-
-  vk::UniqueImageView tmp_view = create_image_view(*tmp_image, image_view_kind
-      COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")));
-
-  return {
-   .m_image = std::move(tmp_image),
-   .m_image_view = std::move(tmp_view),
-   .m_sampler = std::move(sampler),
-   .m_memory = std::move(tmp_memory)
-  };
-}
-
 vk::UniqueShaderModule LogicalDevice::create_shader_module(
     uint32_t const* spirv_code, size_t spirv_size
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
@@ -783,7 +720,7 @@ vk::UniqueShaderModule LogicalDevice::create_shader_module(
 
 vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(
     vk::Image vh_image,
-    vk::MemoryPropertyFlagBits property
+    vk::MemoryPropertyFlagBits memory_property
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   vk::MemoryRequirements image_memory_requirements = m_device->getImageMemoryRequirements(vh_image);
@@ -792,7 +729,7 @@ vk::UniqueDeviceMemory LogicalDevice::allocate_image_memory(
   for (uint32_t i = 0; i < memory_properties.memoryTypeCount; ++i)
   {
     if ((image_memory_requirements.memoryTypeBits & (1 << i)) &&
-      ((memory_properties.memoryTypes[i].propertyFlags & property) == property))
+      ((memory_properties.memoryTypes[i].propertyFlags & memory_property) == memory_property))
     {
       try
       {

@@ -42,6 +42,14 @@ class Allocator
     vmaDestroyBuffer(m_handle, vh_buffer, vh_allocation);
   }
 
+  vk::Image create_image(vk::ImageCreateInfo const& image_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+      COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const;
+
+  void destroy_image(vk::Image vh_image, VmaAllocation vh_allocation) const
+  {
+    vmaDestroyImage(m_handle, vh_image, vh_allocation);
+  }
+
   VmaAllocationInfo get_allocation_info(VmaAllocation vh_allocation) const
   {
     VmaAllocationInfo alloc_info;

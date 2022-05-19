@@ -14,7 +14,7 @@ struct Buffer
   LogicalDevice const* m_logical_device{};              // The associated logical device; only valid when m_vh_buffer is non-null.
   vk::Buffer m_vh_buffer;                               // Vulkan handle to the underlaying buffer, or VK_NULL_HANDLE when no buffer is represented.
   VmaAllocation m_vh_allocation{};                      // The memory allocation used for the buffer; only valid when m_vh_buffer is non-null.
-  vk::DeviceSize m_size{};                              // A copy of size of the buffer (also stored in m_vh_allocation); only valid when m_vh_buffer is non-null.
+  vk::DeviceSize m_size{};                              // A copy of the size of the buffer (also stored in m_vh_allocation); only valid when m_vh_buffer is non-null.
 
   Buffer() = default;
 
@@ -83,7 +83,7 @@ void Buffer::unmap_memory()
 //inline
 void Buffer::destroy()
 {
-  if (m_vh_buffer)
+  if (AI_UNLIKELY(m_vh_buffer)) // Normally the Buffer will just just default constructed.
     m_logical_device->destroy_buffer({}, m_vh_buffer, m_vh_allocation);
   m_vh_buffer = VK_NULL_HANDLE;
 }

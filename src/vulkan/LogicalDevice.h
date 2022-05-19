@@ -5,8 +5,6 @@
 #include "DispatchLoader.h"
 #include "Swapchain.h"
 #include "RenderPassAttachmentData.h"
-#include "Texture.h"
-#include "Attachment.h"
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
@@ -54,6 +52,7 @@ class RenderPass;
 
 namespace memory {
 class Buffer;
+class Image;
 } // namespace memory
 
 // The collection of queue family properties for a given physical device.
@@ -202,35 +201,11 @@ class LogicalDevice
   // Create a Sampler, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
   vk::UniqueSampler create_sampler(SamplerKindPOD&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const { return create_sampler({this, std::move(sampler_kind)}, graphics_settings COMMA_CWDEBUG_ONLY(debug_name)); }
-
-  vk::UniqueImage create_image(vk::Extent2D extent, vulkan::ImageKind const& image_kind
-      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-
-  // Create all texture objects at once.
-  // Use sampler as-is.
-  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
-      vk::MemoryPropertyFlagBits property, vk::UniqueSampler&& sampler
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-  // Create sampler too.
-  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
-      vk::MemoryPropertyFlagBits property, SamplerKind const& sampler_kind, GraphicsSettingsPOD const& graphics_settings
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-      { return create_texture(width, height, image_view_kind, property, create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)) COMMA_CWDEBUG_ONLY(ambifix)); }
-  // Create sampler too, allowing to pass an initializer list to construct the SamplerKind (from temporary SamplerKindPOD).
-  Texture create_texture(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind,
-      vk::MemoryPropertyFlagBits property, SamplerKindPOD const&& sampler_kind, GraphicsSettingsPOD const& graphics_settings
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-      { return create_texture(width, height, image_view_kind, property, { this, std::move(sampler_kind) }, graphics_settings COMMA_CWDEBUG_ONLY(ambifix)); }
-  // Create all attachment objects at once.
-  Attachment create_attachment(uint32_t width, uint32_t height, vulkan::ImageViewKind const& image_view_kind, vk::MemoryPropertyFlagBits property
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
-
   vk::UniqueImageView create_image_view(vk::Image vh_image, ImageViewKind const& image_view_kind
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-
   vk::UniqueShaderModule create_shader_module(uint32_t const* spirv_code, size_t spirv_size
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  vk::UniqueDeviceMemory allocate_image_memory(vk::Image vh_image, vk::MemoryPropertyFlagBits property
+  vk::UniqueDeviceMemory allocate_image_memory(vk::Image vh_image, vk::MemoryPropertyFlagBits memory_property
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueRenderPass create_render_pass(rendergraph::RenderPass const& render_graph_pass
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
@@ -319,6 +294,23 @@ class LogicalDevice
   }
 #endif
 
+  // Called by memory::Image::Image.
+  vk::Image create_image(utils::Badge<memory::Image>, vk::ImageCreateInfo const& image_create_info,
+      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+      COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << image_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
+    return m_vh_allocator.create_image(image_create_info, vma_allocation_create_info, vh_allocation
+        COMMA_CWDEBUG_ONLY(allocation_name));
+  }
+
+  // Called by memory::Image::destroy().
+  void destroy_image(utils::Badge<memory::Image>, vk::Image vh_image, VmaAllocation vh_allocation) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::destroy_image(" << vh_image << ", " << vh_allocation << ")");
+    m_vh_allocator.destroy_image(vh_image, vh_allocation);
+  }
+
   // End of API for access to m_vh_allocator.
   //---------------------------------------------------------------------------
 
@@ -331,6 +323,11 @@ class LogicalDevice
   {
     DoutEntering(dc::vulkan, "LogicalDevice::get_buffer_memory_requirements(" << vh_buffer << ")");
     return m_device->getBufferMemoryRequirements(vh_buffer);
+  }
+  vk::MemoryRequirements get_image_memory_requirements(vk::Image vh_image) const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::get_image_memory_requirements(" << vh_image << ")");
+    return m_device->getImageMemoryRequirements(vh_image);
   }
 #ifdef CWDEBUG
   vk_utils::MemoryTypeBitsPrinter memory_type_bits_printer() const { return { m_memory_type_count }; }

@@ -264,6 +264,28 @@ void BufferCreateInfo::print_members(std::ostream& os, char const* prefix) const
       ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount);
 }
 
+void ImageCreateInfo::print_members(std::ostream& os, char const* prefix) const
+{
+  os << prefix;
+
+  if (pNext)
+    os << "pNext:" << print_chain(pNext) << ", ";
+
+  os << "flags:" << flags <<
+      ", imageType:" << imageType <<
+      ", format:" << format <<
+      ", extent:" << extent <<
+      ", mipLevels:" << mipLevels <<
+      ", arrayLayers:" << arrayLayers <<
+      ", samples:" << samples <<
+      ", tiling:" << tiling <<
+      ", usage:" << usage <<
+      ", sharingMode:" << sharingMode <<
+//      ", queueFamilyIndexCount:" << queueFamilyIndexCount <<
+      ", pQueueFamilyIndices:" << print_list(pQueueFamilyIndices, queueFamilyIndexCount) <<
+      ", initialLayout:" << initialLayout;
+}
+
 void PhysicalDeviceMemoryProperties::print_members(std::ostream& os, char const* prefix) const
 {
   os << prefix << "memoryTypeCount:" << memoryTypeCount <<

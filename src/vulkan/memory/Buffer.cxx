@@ -49,10 +49,10 @@ Buffer::Buffer(
 #ifdef CWDEBUG
 void Buffer::print_on(std::ostream& os) const
 {
-  os << "{vh_buffer:" << m_vh_buffer <<
+  os << "{logical_device:" << m_logical_device <<
+      ", vh_buffer:" << m_vh_buffer <<
       ", vh_allocation:" << m_vh_allocation <<
-      ", size:" << m_size <<
-      ", logical_device:" << m_logical_device << '}';
+      ", size:" << m_size << '}';
 }
 #endif
 
