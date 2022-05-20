@@ -20,7 +20,8 @@ struct Buffer
 
   Buffer(LogicalDevice const* logical_device, vk::DeviceSize size, vk::BufferUsageFlags usage,
     VmaAllocationCreateFlags vma_allocation_create_flags, vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
+    VmaAllocationInfo* allocation_info = nullptr);
 
   Buffer(Buffer&& rhs) : m_logical_device(rhs.m_logical_device), m_vh_buffer(rhs.m_vh_buffer), m_vh_allocation(rhs.m_vh_allocation), m_size(rhs.m_size)
   {

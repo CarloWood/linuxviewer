@@ -11,14 +11,16 @@ Image::Image(
     ImageViewKind const& image_view_kind,
     VmaAllocationCreateFlags vma_allocation_create_flags,
     vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) : m_logical_device(logical_device)
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
+    VmaAllocationInfo* allocation_info) : m_logical_device(logical_device)
 {
   VmaAllocationCreateInfo vma_allocation_create_info{
     .flags = vma_allocation_create_flags,
     .usage = VMA_MEMORY_USAGE_AUTO
   };
 
-  m_vh_image = logical_device->create_image({}, image_view_kind.image_kind()(extent), vma_allocation_create_info, &m_vh_allocation COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
+  m_vh_image = logical_device->create_image({}, image_view_kind.image_kind()(extent), vma_allocation_create_info, &m_vh_allocation, allocation_info
+      COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
   DebugSetName(m_vh_image, ambifix(".m_vh_image"), logical_device);
 
 #ifdef CWDEBUG

@@ -34,7 +34,11 @@ class Allocator
 
   void create(VmaAllocatorCreateInfo const& vma_allocator_create_info);
 
-  vk::Buffer create_buffer(vk::BufferCreateInfo const& buffer_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+  vk::Buffer create_buffer(
+      vk::BufferCreateInfo const& buffer_create_info,
+      VmaAllocationCreateInfo const& vma_allocation_create_info,
+      VmaAllocation* vh_allocation,
+      VmaAllocationInfo* allocation_info
       COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const;
 
   void destroy_buffer(vk::Buffer vh_buffer, VmaAllocation vh_allocation) const
@@ -42,7 +46,11 @@ class Allocator
     vmaDestroyBuffer(m_handle, vh_buffer, vh_allocation);
   }
 
-  vk::Image create_image(vk::ImageCreateInfo const& image_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+  vk::Image create_image(
+      vk::ImageCreateInfo const& image_create_info,
+      VmaAllocationCreateInfo const& vma_allocation_create_info,
+      VmaAllocation* vh_allocation,
+      VmaAllocationInfo* allocation_info
       COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const;
 
   void destroy_image(vk::Image vh_image, VmaAllocation vh_allocation) const

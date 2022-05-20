@@ -10,7 +10,8 @@ Buffer::Buffer(
     vk::BufferUsageFlags usage,
     VmaAllocationCreateFlags vma_allocation_create_flags,
     vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) : m_logical_device(logical_device), m_size(size)
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
+    VmaAllocationInfo* allocation_info) : m_logical_device(logical_device), m_size(size)
 {
   // VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
   // Requests possibility to map the allocation.
@@ -35,7 +36,8 @@ Buffer::Buffer(
     .usage = VMA_MEMORY_USAGE_AUTO
   };
 
-  m_vh_buffer = logical_device->create_buffer({}, buffer_create_info, vma_allocation_create_info, &m_vh_allocation COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
+  m_vh_buffer = logical_device->create_buffer({}, buffer_create_info, vma_allocation_create_info, &m_vh_allocation, allocation_info
+      COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
   DebugSetName(m_vh_buffer, ambifix(".m_vh_buffer"), logical_device);
 
 #ifdef CWDEBUG

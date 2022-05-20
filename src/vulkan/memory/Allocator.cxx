@@ -14,12 +14,16 @@ void Allocator::create(VmaAllocatorCreateInfo const& vma_allocator_create_info)
     THROW_ALERTC(res, "vmaCreateAllocator");
 }
 
-vk::Buffer Allocator::create_buffer(vk::BufferCreateInfo const& buffer_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+vk::Buffer Allocator::create_buffer(
+    vk::BufferCreateInfo const& buffer_create_info,
+    VmaAllocationCreateInfo const& vma_allocation_create_info,
+    VmaAllocation* vh_allocation,
+    VmaAllocationInfo* allocation_info
     COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
 {
   VkBuffer vh_buffer;
   vk::Result res = static_cast<vk::Result>(
-      vmaCreateBuffer(m_handle, &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &vma_allocation_create_info, &vh_buffer, vh_allocation, nullptr)
+      vmaCreateBuffer(m_handle, &static_cast<VkBufferCreateInfo const&>(buffer_create_info), &vma_allocation_create_info, &vh_buffer, vh_allocation, allocation_info)
       );
   if (res != vk::Result::eSuccess)
     THROW_ALERTC(res, "vmaCreateBuffer");
@@ -27,12 +31,16 @@ vk::Buffer Allocator::create_buffer(vk::BufferCreateInfo const& buffer_create_in
   return vh_buffer;
 }
 
-vk::Image Allocator::create_image(vk::ImageCreateInfo const& image_create_info, VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+vk::Image Allocator::create_image(
+    vk::ImageCreateInfo const& image_create_info,
+    VmaAllocationCreateInfo const& vma_allocation_create_info,
+    VmaAllocation* vh_allocation,
+    VmaAllocationInfo* allocation_info
     COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
 {
   VkImage vh_image;
   vk::Result res = static_cast<vk::Result>(
-      vmaCreateImage(m_handle, &static_cast<VkImageCreateInfo const&>(image_create_info), &vma_allocation_create_info, &vh_image, vh_allocation, nullptr)
+      vmaCreateImage(m_handle, &static_cast<VkImageCreateInfo const&>(image_create_info), &vma_allocation_create_info, &vh_image, vh_allocation, allocation_info)
       );
   if (res != vk::Result::eSuccess)
     THROW_ALERTC(res, "vmaCreateImage");

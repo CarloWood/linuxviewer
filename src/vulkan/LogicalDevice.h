@@ -247,11 +247,11 @@ class LogicalDevice
 
   // Called by memory::Buffer::Buffer.
   vk::Buffer create_buffer(utils::Badge<memory::Buffer>, vk::BufferCreateInfo const& buffer_create_info,
-      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation, VmaAllocationInfo* allocation_info
       COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
   {
     DoutEntering(dc::vulkan, "LogicalDevice::create_buffer(" << buffer_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
-    return m_vh_allocator.create_buffer(buffer_create_info, vma_allocation_create_info, vh_allocation
+    return m_vh_allocator.create_buffer(buffer_create_info, vma_allocation_create_info, vh_allocation, allocation_info
         COMMA_CWDEBUG_ONLY(allocation_name));
   }
 
@@ -296,11 +296,11 @@ class LogicalDevice
 
   // Called by memory::Image::Image.
   vk::Image create_image(utils::Badge<memory::Image>, vk::ImageCreateInfo const& image_create_info,
-      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation
+      VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation, VmaAllocationInfo* allocation_info
       COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
   {
     DoutEntering(dc::vulkan, "LogicalDevice::create_image(" << image_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
-    return m_vh_allocator.create_image(image_create_info, vma_allocation_create_info, vh_allocation
+    return m_vh_allocator.create_image(image_create_info, vma_allocation_create_info, vh_allocation, allocation_info
         COMMA_CWDEBUG_ONLY(allocation_name));
   }
 

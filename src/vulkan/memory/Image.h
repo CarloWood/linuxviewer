@@ -24,7 +24,8 @@ struct Image
     ImageViewKind const& image_view_kind,
     VmaAllocationCreateFlags vma_allocation_create_flags,
     vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
+    VmaAllocationInfo* allocation_info = nullptr);
 
   Image(Image&& rhs) : m_logical_device(rhs.m_logical_device), m_vh_image(rhs.m_vh_image), m_vh_allocation(rhs.m_vh_allocation)
   {
