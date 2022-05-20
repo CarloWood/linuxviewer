@@ -27,6 +27,8 @@ struct ImDrawVert
   uint32_t col;
 };
 
+using ImDrawIdx = unsigned short;
+
 } // namespace imgui
 
 // Describe the ImDrawVert's vertex attributes in terms of this dummy struct,
@@ -76,6 +78,8 @@ struct ImGui_FrameResourcesData
 {
   memory::Buffer m_vertex_buffer;
   memory::Buffer m_index_buffer;
+  imgui::ImDrawVert* m_mapped_vertex_buffer;
+  imgui::ImDrawIdx* m_mapped_index_buffer;
 };
 
 class ImGui

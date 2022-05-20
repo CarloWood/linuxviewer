@@ -854,25 +854,34 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
 
   if (AI_LIKELY(draw_data->TotalVtxCount > 0) || initial_buffer_creation)
   {
+    VmaAllocationInfo allocation_info;
     // Create or resize the vertex buffer.
     if (vertex_size > frame_resources.m_vertex_buffer.m_size)
+    {
       frame_resources.m_vertex_buffer = memory::Buffer(
           device,
           vertex_size,
           vk::BufferUsageFlagBits::eVertexBuffer,
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
           vk::MemoryPropertyFlagBits::eHostVisible
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")));
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")),
+          &allocation_info);
+      frame_resources.m_mapped_vertex_buffer = static_cast<imgui::ImDrawVert*>(allocation_info.pMappedData);
+    }
 
     // Create or resize the index buffer.
     if (index_size > frame_resources.m_index_buffer.m_size)
+    {
       frame_resources.m_index_buffer = memory::Buffer(
           device,
           index_size,
           vk::BufferUsageFlagBits::eIndexBuffer,
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
           vk::MemoryPropertyFlagBits::eHostVisible
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")));
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")),
+          &allocation_info);
+      frame_resources.m_mapped_index_buffer = static_cast<ImDrawIdx*>(allocation_info.pMappedData);
+    }
   }
 
   if (draw_data->TotalVtxCount > 0)
@@ -881,8 +890,8 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
     Debug(dc::vulkan.off());
 
     // Upload vertex and index data each into a single contiguous GPU buffer.
-    ImDrawVert* vtx_dst = static_cast<ImDrawVert*>(frame_resources.m_vertex_buffer.map_memory());
-    ImDrawIdx* idx_dst = static_cast<ImDrawIdx*>(frame_resources.m_index_buffer.map_memory());
+    ImDrawVert* vtx_dst = reinterpret_cast<ImDrawVert*>(frame_resources.m_mapped_vertex_buffer);
+    ImDrawIdx* idx_dst = frame_resources.m_mapped_index_buffer;
     for (int n = 0; n < draw_data->CmdListsCount; ++n)
     {
       ImDrawList const* cmd_list = draw_data->CmdLists[n];
@@ -904,10 +913,6 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
       VK_WHOLE_SIZE,
       VK_WHOLE_SIZE
     };
-    device->flush_mapped_allocations(vh_allocations.size(), vh_allocations.data(), offsets.data(), sizes.data());
-
-    frame_resources.m_vertex_buffer.unmap_memory();
-    frame_resources.m_index_buffer.unmap_memory();
 
     Debug(dc::vulkan.on());
   }
