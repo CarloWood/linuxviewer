@@ -22,6 +22,7 @@ struct Image
     LogicalDevice const* logical_device,
     vk::Extent2D extent,
     ImageViewKind const& image_view_kind,
+    VmaAllocationCreateFlags vma_allocation_create_flags,
     vk::MemoryPropertyFlagBits memory_property
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 

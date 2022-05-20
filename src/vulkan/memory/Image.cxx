@@ -9,11 +9,12 @@ Image::Image(
     LogicalDevice const* logical_device,
     vk::Extent2D extent,
     ImageViewKind const& image_view_kind,
+    VmaAllocationCreateFlags vma_allocation_create_flags,
     vk::MemoryPropertyFlagBits memory_property
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) : m_logical_device(logical_device)
 {
   VmaAllocationCreateInfo vma_allocation_create_info{
-    .flags = 0, //FIXME vma_allocation_create_flags,
+    .flags = vma_allocation_create_flags,
     .usage = VMA_MEMORY_USAGE_AUTO
   };
 

@@ -797,7 +797,7 @@ vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFe
 {
   // Create texture parameters.
   vulkan::Texture texture(m_logical_device, extent,
-      image_view_kind, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
+      image_view_kind, 0, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
       COMMA_CWDEBUG_ONLY(ambifix));
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
@@ -990,6 +990,7 @@ void SynchronousWindow::on_window_size_changed_post()
           m_logical_device,
           swapchain().extent(),
           attachment->image_view_kind(),
+          0,
           vk::MemoryPropertyFlagBits::eDeviceLocal
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_frame_resources_list[" + to_string(frame_resource_index) +
               "]->m_attachments[" + to_string(attachment->index()) + "]")));

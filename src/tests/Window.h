@@ -133,7 +133,7 @@ class Window : public task::SynchronousWindow
 
         m_background_texture =
           vulkan::Texture(m_logical_device,
-              texture_data.extent(), background_image_view_kind,
+              texture_data.extent(), background_image_view_kind, 0,
               vk::MemoryPropertyFlagBits::eDeviceLocal,
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
@@ -176,6 +176,7 @@ class Window : public task::SynchronousWindow
 
         m_texture = vulkan::Texture(m_logical_device,
             texture_data.extent(), sample_image_view_kind,
+            0,
             vk::MemoryPropertyFlagBits::eDeviceLocal,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },

@@ -19,10 +19,11 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
+      VmaAllocationCreateFlags vma_allocation_create_flags,
       vk::MemoryPropertyFlagBits memory_property,
       vk::UniqueSampler&& sampler
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    memory::Image(logical_device, extent, image_view_kind, memory_property
+    memory::Image(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property
         COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
         COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")))),
@@ -35,11 +36,12 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
+      VmaAllocationCreateFlags vma_allocation_create_flags,
       vk::MemoryPropertyFlagBits memory_property,
       SamplerKind const& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    Texture(logical_device, extent, image_view_kind, memory_property,
+    Texture(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property,
         logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(ambifix))
         COMMA_CWDEBUG_ONLY(ambifix))
   {
@@ -50,11 +52,12 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
+      VmaAllocationCreateFlags vma_allocation_create_flags,
       vk::MemoryPropertyFlagBits memory_property,
       SamplerKindPOD const&& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    Texture(logical_device, extent, image_view_kind, memory_property,
+    Texture(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property,
         { logical_device, std::move(sampler_kind) }, graphics_settings
         COMMA_CWDEBUG_ONLY(ambifix))
   {
