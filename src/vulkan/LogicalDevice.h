@@ -414,8 +414,8 @@ class LogicalDevice : public AIStatefulTask
 #endif
 
 // Define inlined functions that use DebugSetName (see https://stackoverflow.com/a/71470522/1487069).
-#ifndef VULKAN_LOGICAL_DEVICE_DEFS_H
-#define VULKAN_LOGICAL_DEVICE_DEFS_H
+#ifndef VULKAN_LOGICAL_DEVICE_H_definitions
+#define VULKAN_LOGICAL_DEVICE_H_definitions
 
 namespace vulkan {
 
@@ -470,4 +470,4 @@ void LogicalDevice::destroy_command_pool(vk::CommandPool vh_command_pool) const
 
 } // namespace vulkan
 
-#endif // VULKAN_LOGICAL_DEVICE_DEFS_H
+#endif // VULKAN_LOGICAL_DEVICE_H_definitions

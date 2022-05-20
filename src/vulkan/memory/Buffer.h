@@ -63,8 +63,8 @@ struct Buffer
 #include "LogicalDevice.h"
 #endif
 
-#ifndef VULKAN_MEMORY_BUFFER_DEFS_H
-#define VULKAN_MEMORY_BUFFER_DEFS_H
+#ifndef VULKAN_MEMORY_BUFFER_H_definitions
+#define VULKAN_MEMORY_BUFFER_H_definitions
 
 namespace vulkan::memory {
 
@@ -90,4 +90,4 @@ void Buffer::destroy()
 
 } // namespace vulkan::memory
 
-#endif // VULKAN_MEMORY_BUFFER_DEFS_H
+#endif // VULKAN_MEMORY_BUFFER_H_definitions

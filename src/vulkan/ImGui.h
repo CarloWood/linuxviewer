@@ -50,7 +50,7 @@ namespace imgui {
 
 class UI final : public vulkan::shaderbuilder::VertexShaderInputSet<ImDrawVert>
 {
-  int count() const override
+  int fragment_count() const override
   {
     // This should never be called because the backend writes directly to the vertex buffer. See ImGui::render_frame.
     // Currently this means we simply don't call Pipeline::generate.

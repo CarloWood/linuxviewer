@@ -34,8 +34,8 @@ class FactoryHandle
 #include "SynchronousWindow.h"
 #endif // VULKAN_PIPELINE_FACTORY_HANDLE_H
 
-#ifndef VULKAN_PIPELINE_FACTORY_HANDLE_defs_H
-#define VULKAN_PIPELINE_FACTORY_HANDLE_defs_H
+#ifndef VULKAN_PIPELINE_FACTORY_HANDLE_H_definitions
+#define VULKAN_PIPELINE_FACTORY_HANDLE_H_definitions
 
 namespace vulkan::pipeline {
 
@@ -51,4 +51,4 @@ void FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_win
 
 } // namespace vulkan::pipeline
 
-#endif // VULKAN_PIPELINE_FACTORY_HANDLE_defs_H
+#endif // VULKAN_PIPELINE_FACTORY_HANDLE_H_definitions

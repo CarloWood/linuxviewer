@@ -415,7 +415,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
 
-  vulkan::Texture upload_texture(void const* texture_data, vk::Extent2D extent,
+  vulkan::Texture upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const;
 
@@ -558,8 +558,8 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 #include "Application.h"
 #endif
 
-#ifndef VULKAN_SYNCHRONOUS_WINDOW_defs_H
-#define VULKAN_SYNCHRONOUS_WINDOW_defs_H
+#ifndef VULKAN_SYNCHRONOUS_WINDOW_H_definitions
+#define VULKAN_SYNCHRONOUS_WINDOW_H_definitions
 
 namespace task {
 
@@ -584,4 +584,4 @@ task::PipelineFactory* SynchronousWindow::pipeline_factory(PipelineFactoryIndex 
 
 } // namespace task
 
-#endif // VULKAN_SYNCHRONOUS_WINDOW_defs_H
+#endif // VULKAN_SYNCHRONOUS_WINDOW_H_definitions

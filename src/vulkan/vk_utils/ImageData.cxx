@@ -1,11 +1,10 @@
 #include "sys.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "ImageData.h"
 #include "get_binary_file_contents.h"
 #include "utils/AIAlert.h"
 #include <cstring>
 #include <stdexcept>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include "debug.h"
 
 namespace vk_utils {
@@ -32,7 +31,8 @@ ImageData::ImageData(std::filesystem::path const& filename, int requested_compon
 
 ImageData::~ImageData()
 {
-  stbi_image_free(m_image_data);
+  if (m_image_data)
+    stbi_image_free(m_image_data);
 }
 
 } // namespace stbi

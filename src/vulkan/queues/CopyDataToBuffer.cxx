@@ -17,14 +17,14 @@ void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer comma
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .buffer = m_vh_target_buffer,
     .offset = m_buffer_offset,
-    .size = m_data.size()
+    .size = m_data_size
   };
   command_buffer->pipelineBarrier(m_generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, { pre_transfer_buffer_memory_barrier }, {});
 
   vk::BufferCopy buffer_copy_region{
     .srcOffset = 0,
     .dstOffset = m_buffer_offset,
-    .size = m_data.size()
+    .size = m_data_size
   };
   command_buffer->copyBuffer(m_staging_buffer.m_buffer.m_vh_buffer, m_vh_target_buffer, { buffer_copy_region });
 
@@ -35,7 +35,7 @@ void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer comma
     .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
     .buffer = m_vh_target_buffer,
     .offset = m_buffer_offset,
-    .size = m_data.size()
+    .size = m_data_size
   };
   command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, m_consuming_stages, vk::DependencyFlags(0), {}, { post_transfer_buffer_memory_barrier }, {});
   command_buffer->end();

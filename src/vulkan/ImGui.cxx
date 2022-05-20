@@ -5,11 +5,12 @@
 #include "Application.h"
 #include "ImageKind.h"
 #include "InputEvent.h"
-#include "debug.h"
+#include "memory/DataFeeder.h"
 #include "pipeline/Pipeline.h"
 #include "vk_utils/print_flags.h"
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
+#include "debug.h"
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -44,6 +45,41 @@ LogicalDevice const* ImGui::logical_device() const
 {
   return m_owning_window->logical_device();
 }
+
+// Define a DataFeeder to read the font texture of imgui.
+struct TexPixelsRGBA32Feeder final : public DataFeeder
+{
+ private:
+  unsigned char const* m_TexPixelsAlpha8;       // Stolen ownership from ImFontAtlas::TexPixelsAlpha8.
+  int m_size;                                   // The size of m_TexPixelsAlpha8 in bytes.
+
+ public:
+  TexPixelsRGBA32Feeder(ImFontAtlas* font_atlas) : m_TexPixelsAlpha8(font_atlas->TexPixelsAlpha8), m_size(font_atlas->TexWidth * font_atlas->TexHeight)
+  {
+    // m_size must fit in an int; but 4 * m_size must fit in an uint32_t.
+    ASSERT(m_size <= 0x3fffffff);
+    // Prevent imgui from freeing this allocation.
+    font_atlas->TexPixelsAlpha8 = nullptr;
+  }
+
+  ~TexPixelsRGBA32Feeder() override
+  {
+    // Free the allocation that we borrowed from imgui.
+    ::ImGui::MemFree(const_cast<unsigned char*>(m_TexPixelsAlpha8));
+  }
+
+  uint32_t fragment_size() const override { return sizeof(unsigned int); }
+  int fragment_count() const override { return m_size; }
+  int next_batch() override { return m_size; }
+  void get_fragments(unsigned char* fragment_ptr) override
+  {
+    // See ImFontAtlas::GetTexDataAsRGBA32.
+    unsigned char const* src = m_TexPixelsAlpha8;
+    unsigned int* dst = reinterpret_cast<unsigned int*>(fragment_ptr);
+    for (int n = m_size; n > 0; --n)
+      *dst++ = IM_COL32(255, 255, 255, (unsigned int)(*src++));
+  }
+};
 
 // Just this compilation unit.
 using namespace imgui_ns;
@@ -320,28 +356,25 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
 
   // Build and load the texture atlas into a texture.
   vk::Extent2D extent;
-  std::byte const* texture_data;
   {
     int w, h;
     unsigned char* d = nullptr;
-    io.Fonts->GetTexDataAsRGBA32(&d, &w, &h);
+    io.Fonts->GetTexDataAsAlpha8(&d, &w, &h);
     extent.width = w;
     extent.height = h;
-    texture_data = reinterpret_cast<std::byte*>(d);
   }
   ImageKind const imgui_font_image_kind({
-    .format = vk::Format::eR8G8B8A8Unorm,       // This must be obviously a 32bit format, since we called GetTexDataAsRGBA32.
+    .format = vk::Format::eR8G8B8A8Unorm,       // This must be a 32bit format (we use TexPixelsRGBA32Feeder).
     .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
   });
   ImageViewKind const imgui_font_image_view_kind(imgui_font_image_kind, {});
   SamplerKind const imgui_font_sampler_kind(logical_device(), {});
-  m_font_texture = owning_window->upload_texture(texture_data, extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
-      COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
   io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set.m_handle)));
-  // Free memory allocated by GetTexDataAsRGBA32.
-  io.Fonts->ClearTexData();
+  m_font_texture = owning_window->upload_texture(std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
+      COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
   // Short cuts.
   Application const& application = owning_window->application();

@@ -122,8 +122,8 @@ class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
 #include "TimelineSemaphore.h"
 #endif
 
-#ifndef VULKAN_SEMAPHORE_WATCHER_DEFS_H
-#define VULKAN_SEMAPHORE_WATCHER_DEFS_H
+#ifndef VULKAN_SEMAPHORE_WATCHER_H_definitions
+#define VULKAN_SEMAPHORE_WATCHER_H_definitions
 
 namespace task {
 
@@ -240,4 +240,4 @@ void SemaphoreWatcher<BASE>::initialize_impl()
 
 } // namespace task
 
-#endif // VULKAN_SEMAPHORE_WATCHER_DEFS_H
+#endif // VULKAN_SEMAPHORE_WATCHER_H_definitions

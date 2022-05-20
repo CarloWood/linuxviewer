@@ -1,6 +1,8 @@
-#pragma once
+#ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
+#define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
 #include "FlatCreateInfo.h"
+#include "Pipeline.h"
 #include "utils/AIRefCount.h"
 #include "utils/Vector.h"
 #include <iosfwd>
@@ -19,6 +21,9 @@ class CharacteristicRange : public AIRefCount
 {
  public:
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
+
+ protected:
+  vulkan::pipeline::Pipeline m_pipeline;        // FIXME: is this correct? This way have a pipeline per Characteristic(Range)?!
 
  private:
   index_type const m_begin;
@@ -73,6 +78,9 @@ class CharacteristicRange : public AIRefCount
     pipeline_index |= Index{static_cast<unsigned int>(index - m_begin)};
   }
 
+  // Accessor.
+  vulkan::pipeline::Pipeline const& pipeline() const { return m_pipeline; }
+
 #ifdef CWDEBUG
   virtual void print_on(std::ostream& os) const = 0;
 #endif
@@ -90,3 +98,4 @@ class Characteristic : public CharacteristicRange
 
 } // namespace vulkan::pipeline
 
+#endif // VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H

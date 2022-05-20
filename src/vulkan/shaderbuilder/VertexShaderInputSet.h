@@ -1,8 +1,17 @@
-#pragma once
+#ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
+#define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
+#include "memory/DataFeeder.h"
+#include <vulkan/vulkan.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include <vector>
 #include <type_traits>
-#include <vulkan/vulkan.hpp>
+#include "debug.h"
+
+// Forward declaration
+namespace vulkan::pipeline {
+class CharacteristicRange;
+} // namespace vulkan::pipeline
 
 namespace vulkan::shaderbuilder {
 
@@ -11,7 +20,7 @@ struct VertexAttributes
 {
 };
 
-class VertexShaderInputSetBase
+class VertexShaderInputSetBase : public DataFeeder
 {
  private:
   vk::VertexInputRate m_input_rate;     // Per vertex (vk::VertexInputRate::eVertex) or per instance (vk::VertexInputRate::eInstance).
@@ -21,20 +30,21 @@ class VertexShaderInputSetBase
 
   // Accessor. The input rate of this set.
   vk::VertexInputRate input_rate() const { return m_input_rate; }
+};
 
-  // The total number of input entries (the number of times that get_input_entry will be called).
-  virtual int count() const = 0;
+class VertexShaderInputSetFeeder final : public DataFeeder
+{
+ private:
+  VertexShaderInputSetBase* m_input_set;                                                // The actual data feeder.
+  boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange const> m_input_set_owner;  // Must keep this alive. The input set pointed to by m_input_set
+                                                                                        // will be owned by the object derived from this.
+ public:
+  [[gnu::always_inline]] inline VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner);
 
-  // The next call to get_input_entry will initialize this many entries.
-  virtual int next_batch() const = 0;
-
-  // The size of one input entry.
-  // The returned size must be a multiple of the required alignment.
-  virtual uint32_t size() const = 0;
-
-  // This is called count() times to fill in the information of one input entry, where input_entry_index
-  // will run from 0 till count() (exclusive) and input_entry_ptr is incremented in steps of size().
-  virtual void get_input_entry(void* input_entry_ptr) = 0;
+  uint32_t fragment_size() const override { return m_input_set->fragment_size(); }
+  int fragment_count() const override { return m_input_set->fragment_count(); }
+  int next_batch() override { return m_input_set->next_batch(); }
+  void get_fragments(unsigned char* fragment_ptr) override { m_input_set->get_fragments(fragment_ptr); }
 };
 
 // ENTRY should be a struct existing solely of types specified in math/glsl.h,
@@ -80,12 +90,12 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
   VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::VertexAttributes<ENTRY>::input_rate) { }
 
  private:
-  uint32_t size() const override final
+  uint32_t fragment_size() const override final
   {
     return sizeof(ENTRY);
   }
 
-  int next_batch() const override
+  int next_batch() override
   {
     // Default value.
     return 1;
@@ -93,10 +103,30 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 
   virtual void create_entry(ENTRY* input_entry_ptr) = 0;
 
-  void get_input_entry(void* input_entry_ptr) override final
+  void get_fragments(unsigned char* fragment_ptr) override final
   {
-    create_entry(static_cast<ENTRY*>(input_entry_ptr));
+    ASSERT(reinterpret_cast<size_t>(fragment_ptr) % alignof(ENTRY) == 0);
+    create_entry(reinterpret_cast<ENTRY*>(fragment_ptr));
   }
 };
 
 } // namespace vulkan::shaderbuilder
+
+#endif // VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
+
+#ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
+#include "pipeline/CharacteristicRange.h"
+#endif
+
+#ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions
+#define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions
+
+namespace vulkan::shaderbuilder {
+
+//inline
+VertexShaderInputSetFeeder::VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner) :
+  m_input_set(input_set), m_input_set_owner(input_set_owner) { }
+
+} // namespace vulkan::shaderbuilder
+
+#endif // VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions

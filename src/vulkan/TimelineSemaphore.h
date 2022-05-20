@@ -68,8 +68,8 @@ class TimelineSemaphore
 #include "LogicalDevice.h"
 #endif
 
-#ifndef VULKAN_TIMELINE_SEMAPHORE_DEFS_H
-#define VULKAN_TIMELINE_SEMAPHORE_DEFS_H
+#ifndef VULKAN_TIMELINE_SEMAPHORE_H_definitions
+#define VULKAN_TIMELINE_SEMAPHORE_H_definitions
 
 namespace vulkan {
 
@@ -97,4 +97,4 @@ uint64_t TimelineSemaphore::get_counter_value() const
 
 } // namespace vulkan
 
-#endif // VULKAN_TIMELINE_SEMAPHORE_DEFS_H
+#endif // VULKAN_TIMELINE_SEMAPHORE_H_definitions

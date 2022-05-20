@@ -146,8 +146,7 @@ class Window : public task::SynchronousWindow
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
-        std::memcpy(copy_data_to_image->get_buf().data(), texture_data.image_data(), texture_data.size());
-
+        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
         copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
       // Update descriptor set.
@@ -189,8 +188,7 @@ class Window : public task::SynchronousWindow
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
-        std::memcpy(copy_data_to_image->get_buf().data(), texture_data.image_data(), texture_data.size());
-
+        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
         copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
       // Update descriptor set.
@@ -264,7 +262,6 @@ void main() {
   class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
-    vulkan::pipeline::Pipeline m_pipeline;
     std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
     std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
     std::vector<vk::PipelineColorBlendAttachmentState> const m_pipeline_color_blend_attachment_states{{
@@ -328,7 +325,7 @@ void main() {
     {
       // FIXME: This is a hack. The whole synchronous_initialize should not exist: we should be able to copy vertex buffers asynchronously.
       // Generate vertex buffers.
-      static_cast<Window*>(owning_window)->create_vertex_buffers(m_pipeline);
+      static_cast<Window*>(owning_window)->create_vertex_buffers(this);
     }
 
    public:
@@ -362,14 +359,14 @@ void main() {
     m_vh_graphics_pipeline = vh_graphics_pipeline(pipeline_handle);
   }
 
-  void create_vertex_buffers(vulkan::pipeline::Pipeline const& pipeline)
+  void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner)
   {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
 
-    for (vulkan::shaderbuilder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline.vertex_shader_input_sets())
+    for (vulkan::shaderbuilder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->pipeline().vertex_shader_input_sets())
     {
-      size_t entry_size = vertex_shader_input_set->size();
-      int count = vertex_shader_input_set->count();
+      size_t entry_size = vertex_shader_input_set->fragment_size();
+      int count = vertex_shader_input_set->fragment_count();
       size_t buffer_size = count * entry_size;
 
       m_vertex_buffers.push_back(vulkan::memory::Buffer(logical_device(), buffer_size,
@@ -381,15 +378,7 @@ void main() {
           vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput
           COMMA_CWDEBUG_ONLY(true));
 
-      // FIXME: write directly into allocated vulkan buffer?
-      std::vector<std::byte>& buf = copy_data_to_buffer->get_buf();
-      std::byte const* const end = buf.data() + buffer_size;
-      int batch_size;
-      for (std::byte* ptr = buf.data(); ptr != end; ptr += batch_size * entry_size)
-      {
-        batch_size = vertex_shader_input_set->next_batch();
-        vertex_shader_input_set->get_input_entry(ptr);
-      }
+      copy_data_to_buffer->set_data_feeder(std::make_unique<vulkan::shaderbuilder::VertexShaderInputSetFeeder>(vertex_shader_input_set, pipeline_owner));
       copy_data_to_buffer->run(vulkan::Application::instance().low_priority_queue());
     }
   }

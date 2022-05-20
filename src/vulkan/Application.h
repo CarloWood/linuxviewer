@@ -310,8 +310,8 @@ class Application
 #include "SynchronousWindow.h"
 #endif // VULKAN_APPLICATION_H
 
-#ifndef VULKAN_APPLICATION_defs_H
-#define VULKAN_APPLICATION_defs_H
+#ifndef VULKAN_APPLICATION_H_definitions
+#define VULKAN_APPLICATION_H_definitions
 
 namespace vulkan {
 
@@ -377,4 +377,4 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
 }
 
 } // namespace vulkan
-#endif // VULKAN_APPLICATION_defs_H
+#endif // VULKAN_APPLICATION_H_definitions

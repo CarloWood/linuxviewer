@@ -65,8 +65,8 @@ struct Image
 #include "LogicalDevice.h"
 #endif
 
-#ifndef VULKAN_MEMORY_IMAGE_DEFS_H
-#define VULKAN_MEMORY_IMAGE_DEFS_H
+#ifndef VULKAN_MEMORY_IMAGE_H_definitions
+#define VULKAN_MEMORY_IMAGE_H_definitions
 
 namespace vulkan::memory {
 
@@ -92,4 +92,4 @@ void Image::destroy()
 
 } // namespace vulkan::memory
 
-#endif // VULKAN_MEMORY_IMAGE_DEFS_H
+#endif // VULKAN_MEMORY_IMAGE_H_definitions

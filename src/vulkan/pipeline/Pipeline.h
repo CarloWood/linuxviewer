@@ -1,6 +1,6 @@
-#pragma once
+#ifndef VULKAN_PIPELINE_PIPELINE_H
+#define VULKAN_PIPELINE_PIPELINE_H
 
-#include "shaderbuilder/VertexShaderInputSet.h"
 #include "shaderbuilder/VertexAttribute.h"
 #include "shaderbuilder/ShaderInfo.h"
 #include "shaderbuilder/SPIRVCache.h"
@@ -12,6 +12,11 @@
 namespace task {
 class SynchronousWindow;
 } // namespace task
+
+namespace vulkan::shaderbuilder {
+class VertexShaderInputSetBase;
+template<typename ENTRY> class VertexShaderInputSet;
+} // namespace vulkan::shaderbuilder
 
 namespace vulkan::pipeline {
 
@@ -60,6 +65,19 @@ class Pipeline
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
 };
 
+} // namespace vulkan::pipeline
+
+#endif // VULKAN_PIPELINE_PIPELINE_H
+
+#ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
+#include "shaderbuilder/VertexShaderInputSet.h"
+#endif
+
+#ifndef VULKAN_PIPELINE_PIPELINE_H_definitions
+#define VULKAN_PIPELINE_PIPELINE_H_definitions
+
+namespace vulkan::pipeline {
+
 template<typename ENTRY>
 void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
@@ -77,3 +95,5 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
 }
 
 } // namespace vulkan::pipeline
+
+#endif // VULKAN_PIPELINE_PIPELINE_H_definitions

@@ -791,7 +791,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   }
 }
 
-vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, vk::Extent2D extent,
+vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
     COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const
 {
@@ -802,23 +802,13 @@ vulkan::Texture SynchronousWindow::upload_texture(void const* texture_data, vk::
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 
-#if 0 //FIXME: write and use task::CopyDataToImage
-  // Copy data.
-  {
-    vk_defaults::ImageSubresourceRange const image_subresource_range;
-    copy_data_to_image(data_size, texture_data, *texture.m_image, width, height, image_subresource_range, vk::ImageLayout::eUndefined,
-        vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead,
-        vk::PipelineStageFlagBits::eFragmentShader);
-  }
-#endif
   auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, data_size,
             texture.m_vh_image, extent, vk_defaults::ImageSubresourceRange{},
             vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
-  std::memcpy(copy_data_to_image->get_buf().data(), texture_data, data_size);
-
+  copy_data_to_image->set_data_feeder(std::move(texture_data_feeder));
   copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
 
   // Update descriptor set.

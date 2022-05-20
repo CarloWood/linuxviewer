@@ -24,7 +24,7 @@ class RandomPositions final : public vulkan::shaderbuilder::VertexShaderInputSet
 
  private:
   // Returns the number of instances.
-  int count() const override
+  int fragment_count() const override
   {
     return SampleParameters::s_max_object_count;
   }

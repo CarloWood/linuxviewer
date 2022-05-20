@@ -80,7 +80,7 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
   {
     vertex_binding_descriptions.push_back({
         .binding = binding,
-        .stride = vextex_input_set->size(),
+        .stride = vextex_input_set->fragment_size(),
         .inputRate = vextex_input_set->input_rate()});
     ++binding;
   }
