@@ -20,7 +20,6 @@ class PipelineCache;
 
 namespace synchronous {
 class MoveNewPipelines;
-class CreateVertexBuffers;
 } // namespace synchronous
 
 class PipelineFactory : public AIStatefulTask
@@ -46,7 +45,6 @@ class PipelineFactory : public AIStatefulTask
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   MultiLoop m_range_counters;
   boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
-  boost::intrusive_ptr<synchronous::CreateVertexBuffers> m_create_vertex_buffers_synchronously;
   // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
   PipelineFactoryIndex m_pipeline_factory_index;
 

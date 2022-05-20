@@ -318,12 +318,7 @@ void main() {
       m_vertex_input_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
-    }
 
-    // This is called *after* initialize. So m_pipeline is already initialized.
-    void synchronous_initialize(task::SynchronousWindow* owning_window) override
-    {
-      // FIXME: This is a hack. The whole synchronous_initialize should not exist: we should be able to copy vertex buffers asynchronously.
       // Generate vertex buffers.
       static_cast<Window*>(owning_window)->create_vertex_buffers(this);
     }

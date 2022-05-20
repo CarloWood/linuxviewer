@@ -84,74 +84,6 @@ void MoveNewPipelines::multiplex_impl(state_type run_state)
   }
 }
 
-// FIXME: This is a hack. Copying vertex buffers need their own approach, so they can be done async.
-// Task used to synchronously create vertex buffers and copy them to the GPU.
-class CreateVertexBuffers final : public vk_utils::TaskToTaskDeque<SynchronousTask, boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>>
-{
- protected:
-  /// The different states of the stateful task.
-  enum create_vertex_buffers_task_state_type {
-    CreateVertexBuffers_start = direct_base_type::state_end,
-    CreateVertexBuffers_need_action,
-    CreateVertexBuffers_done
-  };
-
- public:
-  /// One beyond the largest state of this task.
-  static constexpr state_type state_end = CreateVertexBuffers_done + 1;
-
- public:
-  CreateVertexBuffers(SynchronousWindow* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-    direct_base_type(owning_window COMMA_CWDEBUG_ONLY(debug))
-  {
-    DoutEntering(dc::vulkan, "CreateVertexBuffers::CreateVertexBuffers(" << owning_window << ") [" << this << "]")
-  }
-
- protected:
-  /// Call finish() (or abort()), not delete.
-  ~CreateVertexBuffers() override
-  {
-    DoutEntering(dc::vulkan, "CreateVertexBuffers::~CreateVertexBuffers() [" << this << "]");
-  }
-
-  /// Implemenation of state_str for run states.
-  char const* state_str_impl(state_type run_state) const override;
-
-  /// Handle mRunState.
-  void multiplex_impl(state_type run_state) override;
-};
-
-char const* CreateVertexBuffers::state_str_impl(state_type run_state) const
-{
-  switch (run_state)
-  {
-    AI_CASE_RETURN(CreateVertexBuffers_start);
-    AI_CASE_RETURN(CreateVertexBuffers_need_action);
-    AI_CASE_RETURN(CreateVertexBuffers_done);
-  }
-  AI_NEVER_REACHED
-}
-
-void CreateVertexBuffers::multiplex_impl(state_type run_state)
-{
-  switch (run_state)
-  {
-    case CreateVertexBuffers_start:
-      set_state(CreateVertexBuffers_need_action);
-      wait(need_action);
-      break;
-    case CreateVertexBuffers_need_action:
-      flush_new_data([this](Datum&& datum){ datum->synchronous_initialize(owning_window()); });
-      if (producer_not_finished())
-        break;
-      set_state(CreateVertexBuffers_done);
-      [[fallthrough]];
-    case CreateVertexBuffers_done:
-      finish();
-      break;
-  }
-}
-
 } // namespace synchronous
 
 PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
@@ -202,9 +134,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
       m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
       m_move_new_pipelines_synchronously->run();
-      // Start a synchronous task that will be run to create and copy vertex buffers.
-      m_create_vertex_buffers_synchronously = statefultask::create<synchronous::CreateVertexBuffers>(m_owning_window COMMA_CWDEBUG_ONLY(mSMDebug));
-      m_create_vertex_buffers_synchronously->run();
       // Wait until the user is done adding CharacteristicRange objects and called generate().
       set_state(PipelineFactory_initialized);
       wait(fully_initialized);
@@ -218,8 +147,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       for (int i = 0; i < m_characteristics.size(); ++i)
       {
         m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
-        // Inform the SynchronousWindow.
-        m_create_vertex_buffers_synchronously->have_new_datum(synchronous::CreateVertexBuffers::Datum{m_characteristics[i]});
         m_characteristics[i]->update(max_pipeline_index, m_characteristics[i]->iend() - 1);
       }
       // max_pipeline_index is now equal to the maximum value that a pipeline_index can be.
@@ -329,7 +256,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       set_state(PipelineFactory_done);
       [[fallthrough]];
     case PipelineFactory_done:
-      m_create_vertex_buffers_synchronously->set_producer_finished();
       m_move_new_pipelines_synchronously->set_producer_finished();
       finish();
       break;
