@@ -933,7 +933,8 @@ vk::UniqueSwapchainKHR LogicalDevice::create_swapchain(
     vk::SwapchainKHR vh_old_swapchain
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  Dout(dc::vulkan, "LogicalDevice::create_swapchain(" << extent << ", " << swapchain_kind << ", " << vh_old_swapchain << ")");
+  DoutEntering(dc::vulkan, "LogicalDevice::create_swapchain(" << extent << ", " << min_image_count << ", " <<
+      presentation_surface << ", " << swapchain_kind << ", " << vh_old_swapchain << ")");
   vk::UniqueSwapchainKHR swapchain = m_device->createSwapchainKHRUnique(swapchain_kind(extent, min_image_count, presentation_surface, vh_old_swapchain));
   DebugSetName(swapchain, debug_name, this);
   return swapchain;
