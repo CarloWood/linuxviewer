@@ -120,8 +120,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr condition_type connection_set_up = 1;
   static constexpr condition_type frame_timer = 2;
   static constexpr condition_type logical_device_index_available = 4;
-  static constexpr condition_type parent_window_created = 8;
-  static constexpr condition_type condition_pipeline_available = 16;
+  static constexpr condition_type imgui_font_texture_ready = 8;
+  static constexpr condition_type parent_window_created = 16;
+  static constexpr condition_type condition_pipeline_available = 32;
 
  protected:
   // Constructor
@@ -242,7 +243,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     SynchronousWindow_parents_logical_device_index_available,
     SynchronousWindow_logical_device_index_available,
     SynchronousWindow_acquire_queues,
-    SynchronousWindow_initialize_vukan,
+    SynchronousWindow_initialize_vulkan,
+    SynchronousWindow_imgui_font_texture_ready,
     SynchronousWindow_render_loop,
     SynchronousWindow_close
   };
@@ -416,8 +418,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
 
   vulkan::Texture upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
-      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
-      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const;
+      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
+      AIStatefulTask::condition_type texture_ready
+      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name));
 
   void detect_if_imgui_is_used();
 

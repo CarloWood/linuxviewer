@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "CopyDataToGPU.h"
 #include "StagingBufferParameters.h"
+#include "memory/StagingBuffer.h"
 
 namespace task {
 
@@ -34,8 +35,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
     {
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
       // Create staging buffer and map its memory to copy data from the CPU.
-      m_staging_buffer.m_buffer = vulkan::memory::Buffer(logical_device, m_data_size, vk::BufferUsageFlagBits::eTransferSrc,
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, vk::MemoryPropertyFlagBits::eHostVisible
+      m_staging_buffer.m_buffer = vulkan::memory::StagingBuffer(logical_device, m_data_size
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer.m_buffer")));
       m_staging_buffer.m_pointer = m_staging_buffer.m_buffer.map_memory();
       set_state(CopyDataToGPU_write);

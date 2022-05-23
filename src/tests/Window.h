@@ -133,11 +133,11 @@ class Window : public task::SynchronousWindow
 
         m_background_texture =
           vulkan::Texture(m_logical_device,
-              texture_data.extent(), background_image_view_kind, 0,
-              vk::MemoryPropertyFlagBits::eDeviceLocal,
+              texture_data.extent(), background_image_view_kind,
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
-              graphics_settings()
+              graphics_settings(),
+              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
               COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
@@ -176,11 +176,10 @@ class Window : public task::SynchronousWindow
 
         m_texture = vulkan::Texture(m_logical_device,
             texture_data.extent(), sample_image_view_kind,
-            0,
-            vk::MemoryPropertyFlagBits::eDeviceLocal,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
-            graphics_settings()
+            graphics_settings(),
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
@@ -365,9 +364,10 @@ void main() {
       int count = vertex_shader_input_set->fragment_count();
       size_t buffer_size = count * entry_size;
 
+      // Seems a compiler bug that I have to specify `vulkan::memory::Buffer` even when using emplace_back.
       m_vertex_buffers.push_back(vulkan::memory::Buffer(logical_device(), buffer_size,
-          vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-          0, vk::MemoryPropertyFlagBits::eDeviceLocal
+          { .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+            .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(m_vertex_buffers.size()) + "]"))));
 
       auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(logical_device(), buffer_size, m_vertex_buffers.back().m_vh_buffer, 0, vk::AccessFlags(0),

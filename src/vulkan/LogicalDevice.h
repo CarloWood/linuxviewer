@@ -287,6 +287,13 @@ class LogicalDevice
     m_vh_allocator.unmap_memory(vh_allocation);
   }
 
+  void get_allocation_memory_properties(VmaAllocation vh_allocation, vk::MemoryPropertyFlags& memory_property_flags_out) const
+  {
+    DoutEntering(dc::vulkan|dc::vkframe|continued_cf, "get_allocation_memory_properties(" << vh_allocation << ", {");
+    m_vh_allocator.get_allocation_memory_properties(vh_allocation, memory_property_flags_out);
+    Dout(dc::finish, memory_property_flags_out << "})");
+  }
+
 #ifdef CWDEBUG
   VmaAllocationInfo get_allocation_info(VmaAllocation vh_allocation) const
   {

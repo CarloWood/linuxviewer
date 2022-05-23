@@ -20,7 +20,8 @@ struct Attachment : public memory::Image
       VmaAllocationCreateFlags vma_allocation_create_flags,
       vk::MemoryPropertyFlagBits memory_property
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    memory::Image(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property
+    memory::Image(logical_device, extent, image_view_kind,
+        { .properties = memory_property, .vma_allocation_create_flags = vma_allocation_create_flags }
         COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
         COMMA_CWDEBUG_ONLY(ambifix(".m_image_view"))))

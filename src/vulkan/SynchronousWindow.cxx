@@ -10,10 +10,10 @@
 #include "pipeline/Handle.h"
 #include "pipeline/PipelineCache.h"
 #include "queues/CopyDataToImage.h"
+#include "memory/StagingBuffer.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"
-#include "vulkan/vk_format_utils.h"
 #include "utils/cpu_relax.h"
 #include "utils/u8string_to_filename.h"
 #ifdef CWDEBUG
@@ -21,6 +21,7 @@
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"
 #endif
+#include <vulkan/vk_format_utils.h>
 #include <algorithm>
 #include "debug.h"
 
@@ -118,7 +119,8 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(SynchronousWindow_parents_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_acquire_queues);
-    AI_CASE_RETURN(SynchronousWindow_initialize_vukan);
+    AI_CASE_RETURN(SynchronousWindow_initialize_vulkan);
+    AI_CASE_RETURN(SynchronousWindow_imgui_font_texture_ready);
     AI_CASE_RETURN(SynchronousWindow_render_loop);
     AI_CASE_RETURN(SynchronousWindow_close);
   }
@@ -250,9 +252,9 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           break;
         }
       }
-      set_state(SynchronousWindow_initialize_vukan);
+      set_state(SynchronousWindow_initialize_vulkan);
       [[fallthrough]];
-    case SynchronousWindow_initialize_vukan:
+    case SynchronousWindow_initialize_vulkan:
       copy_graphics_settings();
       set_default_clear_values(m_render_graph.m_default_color_clear_value, m_render_graph.m_default_depth_stencil_clear_value);
       prepare_swapchain();
@@ -265,8 +267,14 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_pipeline_layout();
       create_graphics_pipelines();
       if (m_use_imgui)                  // Set in create_descriptor_set by the user.
+      {
         create_imgui();
-
+        set_state(SynchronousWindow_imgui_font_texture_ready);
+        wait(imgui_font_texture_ready);
+        break;
+      }
+      [[fallthrough]];
+    case SynchronousWindow_imgui_font_texture_ready:
       set_state(SynchronousWindow_render_loop);
       // We already have a swapchain up there - but only now we can really render anything, so set it here.
       vulkan::SynchronousEngine::have_swapchain();
@@ -458,7 +466,7 @@ void SynchronousWindow::create_imgui()
   auto const only_attachment = attachment_descriptions.ibegin();        // attachment description #0
   auto const& attachment_description = attachment_descriptions[only_attachment];
 
-  m_imgui.init(this, attachment_description.samples
+  m_imgui.init(this, attachment_description.samples, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
 }
 
@@ -696,8 +704,7 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
   // Create staging buffer and map it's memory to copy data from the CPU.
   vulkan::StagingBufferParameters staging_buffer;
   {
-    staging_buffer.m_buffer = vulkan::memory::Buffer(m_logical_device, data_size, vk::BufferUsageFlagBits::eTransferSrc,
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT, vk::MemoryPropertyFlagBits::eHostVisible
+    staging_buffer.m_buffer = vulkan::memory::StagingBuffer(m_logical_device, data_size
         COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
     staging_buffer.m_pointer = staging_buffer.m_buffer.map_memory();
     std::memcpy(staging_buffer.m_pointer, data, data_size);
@@ -792,12 +799,17 @@ void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data,
 }
 
 vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
-    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set
-    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const
+    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
+    AIStatefulTask::condition_type texture_ready
+    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix))
 {
+  DoutEntering(dc::vulkan, "SynchronousWindow::upload_texture(" <<
+      texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind << ", " << vh_descriptor_set << ", " << texture_ready << ")");
+
   // Create texture parameters.
   vulkan::Texture texture(m_logical_device, extent,
-      image_view_kind, 0, vk::MemoryPropertyFlagBits::eDeviceLocal, sampler_kind, m_graphics_settings
+      image_view_kind, sampler_kind, m_graphics_settings,
+      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
       COMMA_CWDEBUG_ONLY(ambifix));
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
@@ -809,7 +821,7 @@ vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFe
             COMMA_CWDEBUG_ONLY(true));
 
   copy_data_to_image->set_data_feeder(std::move(texture_data_feeder));
-  copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
+  copy_data_to_image->run(vulkan::Application::instance().low_priority_queue(), this, texture_ready, signal_parent);
 
   // Update descriptor set.
   {

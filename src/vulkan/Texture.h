@@ -19,14 +19,13 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
-      VmaAllocationCreateFlags vma_allocation_create_flags,
-      vk::MemoryPropertyFlagBits memory_property,
-      vk::UniqueSampler&& sampler
+      vk::UniqueSampler&& sampler,
+      MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    memory::Image(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property
+    memory::Image(logical_device, extent, image_view_kind, memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
-        COMMA_CWDEBUG_ONLY(ambifix(".m_image_view")))),
+        COMMA_CWDEBUG_ONLY(".m_image_view" + ambifix))),
     m_sampler(std::move(sampler))
   {
   }
@@ -36,13 +35,13 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
-      VmaAllocationCreateFlags vma_allocation_create_flags,
-      vk::MemoryPropertyFlagBits memory_property,
       SamplerKind const& sampler_kind,
-      GraphicsSettingsPOD const& graphics_settings
+      GraphicsSettingsPOD const& graphics_settings,
+      MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    Texture(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property,
-        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(ambifix))
+    Texture(logical_device, extent, image_view_kind,
+        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(".m_sampler" + ambifix)),
+        memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix))
   {
   }
@@ -52,13 +51,13 @@ struct Texture : public memory::Image
       LogicalDevice const* logical_device,
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
-      VmaAllocationCreateFlags vma_allocation_create_flags,
-      vk::MemoryPropertyFlagBits memory_property,
       SamplerKindPOD const&& sampler_kind,
-      GraphicsSettingsPOD const& graphics_settings
+      GraphicsSettingsPOD const& graphics_settings,
+      MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    Texture(logical_device, extent, image_view_kind, vma_allocation_create_flags, memory_property,
-        { logical_device, std::move(sampler_kind) }, graphics_settings
+    Texture(logical_device, extent, image_view_kind,
+        { logical_device, std::move(sampler_kind) }, graphics_settings,
+        memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix))
   {
   }

@@ -117,7 +117,8 @@ class ImGui
   void create_frame_resources(FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
-  void init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
+  // Signals owning_window with imgui_font_texture_ready when uploading the font texture was finished.
+  void init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   // Called at the start of the render loop.

@@ -7,21 +7,19 @@ namespace vulkan::memory {
 Buffer::Buffer(
     LogicalDevice const* logical_device,
     vk::DeviceSize size,
-    vk::BufferUsageFlags usage,
-    VmaAllocationCreateFlags vma_allocation_create_flags,
-    vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
-    VmaAllocationInfo* allocation_info) : m_logical_device(logical_device), m_size(size)
+    MemoryCreateInfo memory_create_info
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+  m_logical_device(logical_device), m_size(size)
 {
   // VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
   // Requests possibility to map the allocation.
   // * If you use VMA_MEMORY_USAGE_AUTO or other VMA_MEMORY_USAGE_AUTO* value, you must use this flag to be able to map the allocation. Otherwise, mapping is incorrect.
   // * Declares that mapped memory will only be written sequentially, e.g. using memcpy() or a loop writing number-by-number, never read or accessed randomly,
   //   so a memory type can be selected that is uncached and write-combined.
-  ASSERT(!(memory_property & vk::MemoryPropertyFlagBits::eHostVisible) ||
-      (vma_allocation_create_flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT));
+  ASSERT(!(memory_create_info.properties & vk::MemoryPropertyFlagBits::eHostVisible) ||
+      (memory_create_info.vma_allocation_create_flags & VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT));
 
-  if (!(memory_property & vk::MemoryPropertyFlagBits::eHostCoherent))
+  if (!(memory_create_info.properties & vk::MemoryPropertyFlagBits::eHostCoherent))
   {
     // Allocate a multiple of non_coherent_atom_size bytes.
     m_size = ((m_size - 1) / logical_device->non_coherent_atom_size() + 1) * logical_device->non_coherent_atom_size();
@@ -29,14 +27,14 @@ Buffer::Buffer(
 
   vk::BufferCreateInfo buffer_create_info{
     .size = m_size,
-    .usage = usage
+    .usage = memory_create_info.usage
   };
   VmaAllocationCreateInfo vma_allocation_create_info{
-    .flags = vma_allocation_create_flags,
-    .usage = VMA_MEMORY_USAGE_AUTO
+    .flags = memory_create_info.vma_allocation_create_flags,
+    .usage = memory_create_info.vma_memory_usage
   };
 
-  m_vh_buffer = logical_device->create_buffer({}, buffer_create_info, vma_allocation_create_info, &m_vh_allocation, allocation_info
+  m_vh_buffer = logical_device->create_buffer({}, buffer_create_info, vma_allocation_create_info, &m_vh_allocation, memory_create_info.allocation_info_out
       COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
   DebugSetName(m_vh_buffer, ambifix(".m_vh_buffer"), logical_device);
 

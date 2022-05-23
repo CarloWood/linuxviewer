@@ -294,15 +294,16 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
       COMMA_CWDEBUG_ONLY(ambifix(".m_graphics_pipeline")));
 }
 
-void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFlagBits MSAASamples
+void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
-  DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ")");
+  DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ", " << MSAASamples << ", " << imgui_font_texture_ready << ")");
   check_version();
 
   // Remember which window is owning us.
   m_owning_window = owning_window;
 
+#if 0   // FIXME: remove this? It turns out not to be used.
   using dt = vk::DescriptorType;
 
   // 1: Create descriptor pool for imgui.
@@ -323,6 +324,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
 
   auto imgui_pool = logical_device()->create_descriptor_pool(pool_sizes, 1000
       COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("ImGui::init()::imguiPool")));
+#endif
 
   // 2: Initialize imgui library.
 
@@ -373,7 +375,7 @@ void ImGui::init(task::SynchronousWindow const* owning_window, vk::SampleCountFl
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
   io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set.m_handle)));
   m_font_texture = owning_window->upload_texture(std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
   // Short cuts.
@@ -861,11 +863,12 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
       frame_resources.m_vertex_buffer = memory::Buffer(
           device,
           vertex_size,
-          vk::BufferUsageFlagBits::eVertexBuffer,
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-          vk::MemoryPropertyFlagBits::eHostVisible
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")),
-          &allocation_info);
+          { .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+            .properties = vk::MemoryPropertyFlagBits::eHostVisible,
+            .vma_allocation_create_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            .vma_memory_usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+            .allocation_info_out = &allocation_info }
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")));
       frame_resources.m_mapped_vertex_buffer = static_cast<imgui::ImDrawVert*>(allocation_info.pMappedData);
     }
 
@@ -875,11 +878,12 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
       frame_resources.m_index_buffer = memory::Buffer(
           device,
           index_size,
-          vk::BufferUsageFlagBits::eIndexBuffer,
-          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
-          vk::MemoryPropertyFlagBits::eHostVisible
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")),
-          &allocation_info);
+          { .usage = vk::BufferUsageFlagBits::eIndexBuffer,
+            .properties = vk::MemoryPropertyFlagBits::eHostVisible,
+            .vma_allocation_create_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+            .vma_memory_usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+            .allocation_info_out = &allocation_info }
+          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")));
       frame_resources.m_mapped_index_buffer = static_cast<ImDrawIdx*>(allocation_info.pMappedData);
     }
   }

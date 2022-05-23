@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vk_mem_alloc.h>
+#include "vk_utils/print_flags.h"
 #include <vulkan/vulkan.hpp>
 #include "debug.h"
 
@@ -85,6 +86,13 @@ class Allocator
   void unmap_memory(VmaAllocation vh_allocation) const
   {
     vmaUnmapMemory(m_handle, vh_allocation);
+  }
+
+  void get_allocation_memory_properties(VmaAllocation vh_allocation, vk::MemoryPropertyFlags& memory_property_flags_out) const
+  {
+    VkMemoryPropertyFlags memory_property_flags;
+    vmaGetAllocationMemoryProperties(m_handle, vh_allocation, &memory_property_flags);
+    memory_property_flags_out = vk::MemoryPropertyFlags{memory_property_flags};
   }
 };
 

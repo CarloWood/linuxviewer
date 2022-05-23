@@ -9,6 +9,14 @@ class ImageViewKind;
 
 namespace memory {
 
+struct ImageMemoryCreateInfoDefaults
+{
+  vk::MemoryPropertyFlags     properties{};
+  VmaAllocationCreateFlags    vma_allocation_create_flags{};
+  VmaMemoryUsage              vma_memory_usage{VMA_MEMORY_USAGE_AUTO};
+  VmaAllocationInfo*          allocation_info_out{};
+};
+
 // Vulkan Image's parameters container class.
 struct Image
 {
@@ -16,16 +24,16 @@ struct Image
   vk::Image m_vh_image;                                 // Vulkan handle to the underlaying image, or VK_NULL_HANDLE when no image is represented.
   VmaAllocation m_vh_allocation{};                      // The memory allocation used for the image; only valid when m_vh_image is non-null.
 
+  using MemoryCreateInfo = ImageMemoryCreateInfoDefaults;
+
   Image() = default;
 
   Image(
     LogicalDevice const* logical_device,
     vk::Extent2D extent,
     ImageViewKind const& image_view_kind,
-    VmaAllocationCreateFlags vma_allocation_create_flags,
-    vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
-    VmaAllocationInfo* allocation_info = nullptr);
+    MemoryCreateInfo memory_create_info
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   Image(Image&& rhs) : m_logical_device(rhs.m_logical_device), m_vh_image(rhs.m_vh_image), m_vh_allocation(rhs.m_vh_allocation)
   {

@@ -8,7 +8,6 @@
 #include "queues/QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
 #include "vk_utils/find_missing_names.h"
-#include "vk_utils/print_using_to_string.h"
 #include "vk_utils/get_binary_file_contents.h"
 #include "debug/DebugSetName.h"
 #include "utils/is_power_of_two.h"

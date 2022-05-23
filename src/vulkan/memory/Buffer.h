@@ -8,6 +8,16 @@ class LogicalDevice;
 
 namespace memory {
 
+// These are the defaults for a plain Buffer. See StagingBuffer for different defaults.
+struct BufferMemoryCreateInfoDefaults
+{
+  vk::BufferUsageFlags        usage;                  // We have no default for usage, because a Buffer can be many things without one being more obvious.
+  vk::MemoryPropertyFlags     properties{};
+  VmaAllocationCreateFlags    vma_allocation_create_flags{};
+  VmaMemoryUsage              vma_memory_usage                  = VMA_MEMORY_USAGE_AUTO;
+  VmaAllocationInfo*          allocation_info_out{};
+};
+
 // Vulkan Buffer's parameters container class.
 struct Buffer
 {
@@ -16,12 +26,13 @@ struct Buffer
   VmaAllocation m_vh_allocation{};                      // The memory allocation used for the buffer; only valid when m_vh_buffer is non-null.
   vk::DeviceSize m_size{};                              // A copy of the size of the buffer (also stored in m_vh_allocation); only valid when m_vh_buffer is non-null.
 
+  using MemoryCreateInfo = BufferMemoryCreateInfoDefaults;
+
   Buffer() = default;
 
-  Buffer(LogicalDevice const* logical_device, vk::DeviceSize size, vk::BufferUsageFlags usage,
-    VmaAllocationCreateFlags vma_allocation_create_flags, vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
-    VmaAllocationInfo* allocation_info = nullptr);
+  Buffer(LogicalDevice const* logical_device, vk::DeviceSize size,
+      MemoryCreateInfo memory_create_info
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   Buffer(Buffer&& rhs) : m_logical_device(rhs.m_logical_device), m_vh_buffer(rhs.m_vh_buffer), m_vh_allocation(rhs.m_vh_allocation), m_size(rhs.m_size)
   {

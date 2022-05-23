@@ -9,19 +9,17 @@ Image::Image(
     LogicalDevice const* logical_device,
     vk::Extent2D extent,
     ImageViewKind const& image_view_kind,
-    VmaAllocationCreateFlags vma_allocation_create_flags,
-    vk::MemoryPropertyFlagBits memory_property
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
-    VmaAllocationInfo* allocation_info) : m_logical_device(logical_device)
+    MemoryCreateInfo memory_create_info
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) : m_logical_device(logical_device)
 {
   VmaAllocationCreateInfo vma_allocation_create_info{
-    .flags = vma_allocation_create_flags,
-    .usage = VMA_MEMORY_USAGE_AUTO
+    .flags = memory_create_info.vma_allocation_create_flags,
+    .usage = memory_create_info.vma_memory_usage
   };
 
-  m_vh_image = logical_device->create_image({}, image_view_kind.image_kind()(extent), vma_allocation_create_info, &m_vh_allocation, allocation_info
+  m_vh_image = logical_device->create_image({}, image_view_kind.image_kind()(extent), vma_allocation_create_info, &m_vh_allocation, memory_create_info.allocation_info_out
       COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
-  DebugSetName(m_vh_image, ambifix(".m_vh_image"), logical_device);
+  DebugSetName(m_vh_image, ".m_vh_image" + ambifix, logical_device);
 
 #ifdef CWDEBUG
   vk::MemoryRequirements image_memory_requirements = logical_device->get_image_memory_requirements(m_vh_image);
