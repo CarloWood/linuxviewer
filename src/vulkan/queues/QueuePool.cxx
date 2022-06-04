@@ -16,7 +16,7 @@ bool QueuePool::s_cleaned_up = false;
 #endif
 
 //static
-QueuePool& QueuePool::insert_key(ImmediateSubmitRequest const& submit_request)
+QueuePool& QueuePool::insert_key(map_type::rat& map_r, ImmediateSubmitRequest const& submit_request)
 {
   // QueuePool::clean_up should only be called after QueuePool will no longer be used at all.
   ASSERT(!s_cleaned_up);
@@ -24,16 +24,11 @@ QueuePool& QueuePool::insert_key(ImmediateSubmitRequest const& submit_request)
   // Treat the key as an uint64_t.
   uint64_t const key_as_uint64 = submit_request.queue_request_key().as_uint64();
 
+  // We need to create a new pool.
+
   // Grab write lock on s_map.
-  map_type::wat map_w(s_map);
+  map_type::wat map_w(map_r);   // Might throw std::exception if another thread is trying to convert map_type::rat to map_type::wat too.
 
-  // Because we had to release the read lock, it is possible that some other
-  // thread inserted this key in the meantime; so we have to check again if it exists.
-  QueuePool* pool = instance(map_w, key_as_uint64);
-  if (AI_UNLIKELY(pool))
-    return *pool;
-
-  // Doesn't exist. We need to create a new pool.
   QueuePool* new_pool = new QueuePool(submit_request.logical_device(), key_as_uint64);
 
   // Insert the new key into the slow map with a newly allocated QueuePool.

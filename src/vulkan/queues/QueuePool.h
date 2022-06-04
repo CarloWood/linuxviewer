@@ -58,7 +58,7 @@ class QueuePool
 
  private:
   // Add key by reinitializing the UltraHash and lookup_table.
-  static QueuePool& insert_key(ImmediateSubmitRequest const& submit_request);
+  static QueuePool& insert_key(map_type::rat& map_r, ImmediateSubmitRequest const& submit_request);
 
   [[gnu::always_inline]] static QueuePool* instance(map_type::rat const& map_r, uint64_t key_as_uint64)
   {
@@ -85,16 +85,26 @@ class QueuePool
     // This should be 0 clock cycles as it just aliases key.
     uint64_t const key_as_uint64 = submit_request.queue_request_key().as_uint64();
 
-    // Convert the key into a lookup table index and grab the QueuePool* from it.
-    QueuePool* pool = instance(map_type::rat(s_map), key_as_uint64);
-    if (AI_LIKELY(pool))
-      return *pool;
+    for (;;)
+    {
+      try
+      {
+        map_type::rat map_r(s_map);
 
-    // AIReadWriteSpinLock can not support converting a read lock into a write lock,
-    // therefore we had to release the read lock and will do the above check again
-    // while holding the write lock, in insert_key.
+        // Convert the key into a lookup table index and grab the QueuePool* from it.
+        QueuePool* pool = instance(map_r, key_as_uint64);
+        if (AI_LIKELY(pool))
+          return *pool;
 
-    return insert_key(submit_request);
+        return insert_key(map_r, submit_request);
+      }
+      catch(std::exception const&)
+      {
+        s_map.rd2wryield();
+      }
+    }
+
+    AI_NEVER_REACHED
   }
 
   static void clean_up();
