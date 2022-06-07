@@ -1017,7 +1017,7 @@ void LogicalDevice::merge_pipeline_caches(vk::PipelineCache vh_pipeline_cache, s
 #ifdef CWDEBUG
     THROW_ALERTC(result, "[DEVICE]->mergePipelineCaches([DST], [SRCS])", AIArgs("[DEVICE]", this->debug_name())("[DST]", vh_pipeline_cache)("[SRCS]", vhv_pipeline_caches));
 #else
-    THROW_ALERTC(result, "LogicalDevice::mergePipelineCaches([DST], [SRCS])", AIArgs("[DST]", vh_pipeline_cache)("[SRCS]", vhv_pipeline_caches));
+    THROW_ALERTC(result, "LogicalDevice::mergePipelineCaches([DST], <[N] other pipeline caches>)", AIArgs("[DST]", vh_pipeline_cache)("[N]", vhv_pipeline_caches.size()));
 #endif
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "queues/QueueFlags.h"
+#include "utils/print_using.h"
 #include <exception>
 #include <sstream>
 
@@ -48,7 +49,8 @@ struct OutOfQueues_Exception : public ExceptionString
   OutOfQueues_Exception(vulkan::QueueFlags queue_flags, uint32_t number_of_queues) :
     m_queue_flags(queue_flags), m_number_of_queues(number_of_queues)
   {
-    message() << "Trying to acquire a queue with flags " << m_queue_flags << ", but we have run out; there were only " << m_number_of_queues << " such queues.";
+    message() << "Trying to acquire a queue with flags " << utils::print_using(m_queue_flags, &vulkan::QueueFlags::print_on) <<
+      ", but we have run out; there were only " << m_number_of_queues << " such queues.";
   }
 };
 

@@ -7,7 +7,7 @@ namespace vulkan {
 utils::threading::Gate PersistentAsyncTask::s_until_persistent_tasks_terminated;
 std::atomic<int> PersistentAsyncTask::s_task_count;
 
-PersistentAsyncTask::PersistentAsyncTask(CWDEBUG_ONLY(bool debug)) : AsyncTask(debug)
+PersistentAsyncTask::PersistentAsyncTask(CWDEBUG_ONLY(bool debug)) : AsyncTask(CWDEBUG_ONLY(debug))
 {
   // Keep track of the number of running PersistentAsyncTask's.
   s_task_count.fetch_add(1, std::memory_order_relaxed);

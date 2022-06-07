@@ -7,6 +7,7 @@
 #include "utils/AIAlert.h"
 #include "debug.h"
 #include <boost/serialization/binary_object.hpp>
+#include <fstream>
 
 #ifdef CWDEBUG
 #include <boost/uuid/uuid_io.hpp>
