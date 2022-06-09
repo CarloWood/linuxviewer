@@ -357,7 +357,7 @@ class LogicalDevice
 
 namespace task {
 
-class LogicalDevice : public AIStatefulTask
+class LogicalDevice final : public AIStatefulTask
 {
  protected:
   vulkan::Application* m_application;
@@ -400,10 +400,9 @@ class LogicalDevice : public AIStatefulTask
   /// Call finish() (or abort()), not delete.
   ~LogicalDevice() override;
 
-  /// Implemenation of state_str for run states.
-  char const* state_str_impl(state_type run_state) const override final;
-
-  /// Handle mRunState.
+  // Implementation of virtual functions of AIStatefulTask.
+  char const* condition_str_impl(condition_type condition) const override;
+  char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
 };
 

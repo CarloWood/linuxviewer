@@ -1078,6 +1078,15 @@ void LogicalDevice::set_root_window(boost::intrusive_ptr<task::SynchronousWindow
   m_root_window = boost::const_pointer_cast<task::SynchronousWindow>(std::move(root_window));
 }
 
+char const* LogicalDevice::condition_str_impl(condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(window_available_condition);
+  }
+  return direct_base_type::condition_str_impl(condition);
+}
+
 char const* LogicalDevice::state_str_impl(state_type run_state) const
 {
   switch (run_state)

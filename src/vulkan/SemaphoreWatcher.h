@@ -82,6 +82,7 @@ class SemaphoreWatcher : public BASE
 
   using BASE::BASE;
   using state_type = typename BASE::state_type;
+  using condition_type = typename BASE::condition_type;
   using BASE::set_state;
   using BASE::yield;
   using BASE::wait;
@@ -93,6 +94,9 @@ class SemaphoreWatcher : public BASE
 
  protected:
   ~SemaphoreWatcher() override = default;
+
+  // Implementation of virtual functions of AIStatefulTask.
+  char const* condition_str_impl(condition_type condition) const override;
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
   void initialize_impl() override;
@@ -111,6 +115,7 @@ class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
   using SemaphoreWatcher<vulkan::AsyncTask>::SemaphoreWatcher;
 
  protected:
+  char const* condition_str_impl(condition_type condition) const override;
   void multiplex_impl(state_type run_state) override;
 };
 
@@ -130,7 +135,7 @@ namespace task {
 template<TaskType BASE>
 void SemaphoreWatcher<BASE>::add(vulkan::TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition)
 {
-  DoutEntering(dc::notice, "SemaphoreWatcher::add(" << timeline_semaphore << ", " << signal_value << ", " << task << ", " << condition << ")");
+  DoutEntering(dc::notice, "SemaphoreWatcher::add(" << timeline_semaphore << ", " << signal_value << ", " << task << ", " << task->print_conditions(condition) << ")");
   watch_set_type::wat watch_set_w(m_watch_set);
   SemaphoreWatcherIndex const wsi_end{watch_set_w->m_watch_data.size()};
   for (SemaphoreWatcherIndex wsi{0}; wsi != wsi_end; ++wsi)
@@ -202,6 +207,16 @@ bool SemaphoreWatcher<BASE>::poll()
     ++wsi;
   }
   return !watch_set_w->m_watch_data.empty();
+}
+
+template<TaskType BASE>
+char const* SemaphoreWatcher<BASE>::condition_str_impl(typename BASE::condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(have_semaphores);
+  }
+  return BASE::condition_str_impl(condition);
 }
 
 template<TaskType BASE>

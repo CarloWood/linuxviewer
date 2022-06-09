@@ -3,6 +3,15 @@
 
 namespace task {
 
+char const* AsyncSemaphoreWatcher::condition_str_impl(condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(poll_timer);
+  }
+  return SemaphoreWatcher<vulkan::AsyncTask>::condition_str_impl(condition);
+}
+
 void AsyncSemaphoreWatcher::multiplex_impl(state_type run_state)
 {
   switch (run_state)

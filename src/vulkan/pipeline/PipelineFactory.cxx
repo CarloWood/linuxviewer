@@ -43,7 +43,7 @@ class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask,
     DoutEntering(dc::vulkan, "MoveNewPipelines::~MoveNewPipelines() [" << this << "]");
   }
 
-  /// Implemenation of state_str for run states.
+  /// Implementation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
 
   /// Handle mRunState.
@@ -101,6 +101,16 @@ PipelineFactory::~PipelineFactory()
 void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
   m_characteristics.push_back(std::move(characteristic_range));
+}
+
+char const* PipelineFactory::condition_str_impl(condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(pipeline_cache_set_up);
+    AI_CASE_RETURN(fully_initialized);
+  }
+  return direct_base_type::condition_str_impl(condition);
 }
 
 char const* PipelineFactory::state_str_impl(state_type run_state) const

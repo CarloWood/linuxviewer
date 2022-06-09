@@ -50,7 +50,7 @@ class SynchronousTask : public AIStatefulTask
   SynchronousWindow* owning_window() const { return m_owner; }
 
  protected:
-  /// Implemenation of state_str for run states.
+  /// Implementation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
 
   /// Run bs_initialize.

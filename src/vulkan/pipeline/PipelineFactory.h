@@ -66,6 +66,7 @@ class PipelineFactory : public AIStatefulTask
  protected:
   ~PipelineFactory() override;
 
+  char const* condition_str_impl(condition_type condition) const override;
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
 

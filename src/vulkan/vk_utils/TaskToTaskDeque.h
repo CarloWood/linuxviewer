@@ -49,7 +49,7 @@ class TaskToTaskDeque : public BASE
   using Datum = DATUM;
 
  protected:
-  using direct_base_type = TaskToTaskDeque<BASE, DATUM>;
+  using direct_base_type = TaskToTaskDeque<BASE, DATUM>;                // Not ours, but that of the derived class.
   using deque_allocator_type = utils::DequeAllocator<DATUM>;
   using container_type = std::deque<DATUM, deque_allocator_type>;
   using new_data_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -125,6 +125,15 @@ class TaskToTaskDeque : public BASE
   void have_new_datum(DATUM&& datum);
   void set_producer_finished();         // After a call to this function, no more calls to have_new_datum will follow.
 
+ protected:
+  char const* condition_str_impl(AIStatefulTask::condition_type condition) const override
+  {
+    switch (condition)
+    {
+      AI_CASE_RETURN(need_action);
+    }
+    return BASE::condition_str_impl(condition);
+  }
 }; // MoveNewPipelines
 
 template<task::TaskType BASE, typename DATUM>

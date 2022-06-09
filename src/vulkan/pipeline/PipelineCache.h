@@ -62,10 +62,9 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
     DoutEntering(dc::statefultask(mSMDebug), "~PipelineCache() [" << (void*)this << "]");
   }
 
-  // Implemenation of state_str for run states.
+  // AIStatefulTask virtual function implementations.
+  char const* condition_str_impl(condition_type condition) const override;
   char const* state_str_impl(state_type run_state) const override;
-
-  // Handle mRunState.
   void multiplex_impl(state_type run_state) override;
 
  public:

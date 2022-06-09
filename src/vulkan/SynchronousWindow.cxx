@@ -109,6 +109,20 @@ void SynchronousWindow::register_attachment(SynchronousWindow::Attachment const*
   ASSERT(0 <= attachment->index().get_value() && attachment->index().get_value() < m_attachments.size());
 }
 
+char const* SynchronousWindow::condition_str_impl(condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(connection_set_up);
+    AI_CASE_RETURN(frame_timer);
+    AI_CASE_RETURN(logical_device_index_available);
+    AI_CASE_RETURN(imgui_font_texture_ready);
+    AI_CASE_RETURN(parent_window_created);
+    AI_CASE_RETURN(condition_pipeline_available);
+  }
+  return direct_base_type::condition_str_impl(condition);
+}
+
 char const* SynchronousWindow::state_str_impl(state_type run_state) const
 {
   switch (run_state)
@@ -804,7 +818,8 @@ vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFe
     COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::upload_texture(" <<
-      texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind << ", " << vh_descriptor_set << ", " << texture_ready << ")");
+      texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind <<
+      ", " << vh_descriptor_set << ", " << print_conditions(texture_ready) << ")");
 
   // Create texture parameters.
   vulkan::Texture texture(m_logical_device, extent,

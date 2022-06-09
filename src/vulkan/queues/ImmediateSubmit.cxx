@@ -23,6 +23,15 @@ ImmediateSubmit::~ImmediateSubmit()
   DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmit::~ImmediateSubmit() [" << this << "]");
 }
 
+char const* ImmediateSubmit::condition_str_impl(condition_type condition) const
+{
+  switch (condition)
+  {
+    AI_CASE_RETURN(submit_finished);
+  }
+  return direct_base_type::condition_str_impl(condition);
+}
+
 char const* ImmediateSubmit::state_str_impl(state_type run_state) const
 {
   // If this fails then a derived class forgot to add an AI_CASE_RETURN for this state.
