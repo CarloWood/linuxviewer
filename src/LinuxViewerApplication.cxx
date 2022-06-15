@@ -549,7 +549,7 @@ void main()
     };
 
     Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
-    presentation_surface().vh_graphics_queue().submit( { submit_info }, *frame_resources->m_command_buffers_completed );
+    presentation_surface().vh_graphics_queue().submit({ submit_info }, *frame_resources->m_command_buffers_completed);
 
     Dout(dc::vkframe, "Leaving Window::DrawSample.");
   }

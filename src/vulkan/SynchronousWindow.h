@@ -418,19 +418,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
-  void copy_data_to_image(uint32_t data_size, void const* data, vk::Image vh_target_image,
-    vk::Extent2D extent, vk::ImageSubresourceRange const& image_subresource_range,
-    vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
-    vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const;
-
   vulkan::Texture upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
       AIStatefulTask::condition_type texture_ready
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name));
 
   void detect_if_imgui_is_used();
-
-//  std::filesystem::path pipeline_cache_path() const;
 
  public:
   // The same type as the type defined in vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex,

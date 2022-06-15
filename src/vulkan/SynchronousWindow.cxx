@@ -708,112 +708,6 @@ void SynchronousWindow::set_image_memory_barrier(
   }
 }
 
-void SynchronousWindow::copy_data_to_image(uint32_t data_size, void const* data, vk::Image vh_target_image,
-    vk::Extent2D extent, vk::ImageSubresourceRange const& image_subresource_range,
-    vk::ImageLayout current_image_layout, vk::AccessFlags current_image_access, vk::PipelineStageFlags generating_stages,
-    vk::ImageLayout new_image_layout, vk::AccessFlags new_image_access, vk::PipelineStageFlags consuming_stages) const
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::copy_data_to_image(" << data_size << ", " << data << ", " << vh_target_image << ", " << extent << ", " <<
-      image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " << generating_stages << ", " <<
-      new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
-
-  // Create staging buffer and map it's memory to copy data from the CPU.
-  vulkan::StagingBufferParameters staging_buffer;
-  {
-    staging_buffer.m_buffer = vulkan::memory::StagingBuffer(m_logical_device, data_size
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::staging_buffer.m_buffer")));
-    staging_buffer.m_pointer = staging_buffer.m_buffer.map_memory();
-    std::memcpy(staging_buffer.m_pointer, data, data_size);
-    m_logical_device->flush_mapped_allocation(staging_buffer.m_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
-    staging_buffer.m_buffer.unmap_memory();
-  }
-
-  // We use a temporary command pool here.
-  using command_pool_type = vulkan::CommandPool<VK_COMMAND_POOL_CREATE_TRANSIENT_BIT>;
-
-  // Construct the temporary command pool.
-  command_pool_type tmp_command_pool(m_logical_device, m_presentation_surface.graphics_queue().queue_family()
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_pool")));
-
-  // Allocate a temporary command buffer from the temporary command pool.
-  vulkan::handle::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(
-      CWDEBUG_ONLY(debug_name_prefix("copy_data_to_image()::tmp_command_buffer")));
-
-  // Record command buffer which copies data from the staging buffer to the destination buffer.
-  {
-    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-
-    vk::ImageMemoryBarrier pre_transfer_image_memory_barrier{
-      .srcAccessMask = current_image_access,
-      .dstAccessMask = vk::AccessFlagBits::eTransferWrite,
-      .oldLayout = current_image_layout,
-      .newLayout = vk::ImageLayout::eTransferDstOptimal,
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = vh_target_image,
-      .subresourceRange = image_subresource_range
-    };
-    tmp_command_buffer->pipelineBarrier(generating_stages, vk::PipelineStageFlagBits::eTransfer, vk::DependencyFlags(0), {}, {}, { pre_transfer_image_memory_barrier });
-
-    std::vector<vk::BufferImageCopy> buffer_image_copy;
-    buffer_image_copy.reserve(image_subresource_range.levelCount);
-    for (uint32_t i = image_subresource_range.baseMipLevel; i < image_subresource_range.baseMipLevel + image_subresource_range.levelCount; ++i)
-    {
-      buffer_image_copy.emplace_back(vk::BufferImageCopy{
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource = vk::ImageSubresourceLayers{
-          .aspectMask = image_subresource_range.aspectMask,
-          .mipLevel = i,
-          .baseArrayLayer = image_subresource_range.baseArrayLayer,
-          .layerCount = image_subresource_range.layerCount
-        },
-        .imageOffset = vk::Offset3D{},
-        .imageExtent = vk::Extent3D{
-          .width = extent.width,
-          .height = extent.height,
-          .depth = 1
-        }
-      });
-    }
-    tmp_command_buffer->copyBufferToImage(staging_buffer.m_buffer.m_vh_buffer, vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
-
-    vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
-      .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
-      .dstAccessMask = new_image_access,
-      .oldLayout = vk::ImageLayout::eTransferDstOptimal,
-      .newLayout = new_image_layout,
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = vh_target_image,
-      .subresourceRange = image_subresource_range
-    };
-    tmp_command_buffer->pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, consuming_stages, vk::DependencyFlags(0), {}, {}, { post_transfer_image_memory_barrier });
-
-    tmp_command_buffer->end();
-  }
-
-  // Submit
-  {
-    vk::UniqueFence fence = m_logical_device->create_fence(false
-        COMMA_CWDEBUG_ONLY(mSMDebug, debug_name_prefix("copy_data_to_image()::fence")));
-
-    vk::SubmitInfo submit_info{
-      .waitSemaphoreCount = 0,
-      .pWaitSemaphores = nullptr,
-      .pWaitDstStageMask = nullptr,
-      .commandBufferCount = 1,
-      .pCommandBuffers = tmp_command_buffer.get_array()
-    };
-    m_presentation_surface.vh_graphics_queue().submit({ submit_info }, *fence);
-
-    vk::Result res = logical_device()->wait_for_fences({ *fence }, VK_FALSE, 1000000000);
-    if (res != vk::Result::eSuccess)
-      THROW_ALERTC(res, "waitForFences");
-  }
-}
-
 vulkan::Texture SynchronousWindow::upload_texture(std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
     AIStatefulTask::condition_type texture_ready
@@ -1129,7 +1023,7 @@ void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
   };
 
   Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *m_current_frame.m_frame_resources->m_command_buffers_completed << ")");
-  presentation_surface().vh_graphics_queue().submit( { submit_info }, *m_current_frame.m_frame_resources->m_command_buffers_completed );
+  presentation_surface().vh_graphics_queue().submit({ submit_info }, *m_current_frame.m_frame_resources->m_command_buffers_completed);
 }
 
 void SynchronousWindow::copy_graphics_settings()
