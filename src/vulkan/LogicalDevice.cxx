@@ -538,7 +538,6 @@ void LogicalDevice::prepare(
     .vkGetDeviceProcAddr = vkGetDeviceProcAddr
   };
   VmaAllocatorCreateInfo vma_allocator_create_info{
-    .flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
     .physicalDevice = m_vh_physical_device,
     .device = *m_device,
     .pVulkanFunctions = &vma_vulkan_functions,

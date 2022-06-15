@@ -49,6 +49,7 @@ QueuePool& QueuePool::insert_key(map_type::rat& map_r, ImmediateSubmitRequest co
 //static
 void QueuePool::clean_up()
 {
+  DoutEntering(dc::notice, "QueuePool::clean_up()");
   map_type::wat map_w(s_map);
 
   // Just free all memory.

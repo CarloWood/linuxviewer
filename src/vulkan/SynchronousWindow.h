@@ -27,9 +27,11 @@
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
+#include "statefultask/AIEngine.h"
+#include "statefultask/RunningTasksTracker.h"
+#include "statefultask/TaskCounterGate.h"
 #include "xcb-task/XcbConnection.h"
 #include "threadpool/Timer.h"
-#include "statefultask/AIEngine.h"
 #include "utils/Badge.h"
 #include "utils/UniqueID.h"
 #include "utils/Vector.h"
@@ -197,6 +199,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
 
   statefultask::TaskEvent m_logical_device_index_available_event;         // Triggered when m_logical_device_index is set.
+
+  // Accessed by tasks that depend on objects of this class (or derived classes).
+  statefultask::RunningTasksTracker m_dependent_tasks;                    // Tasks that should be aborted before this window is destructed.
+  statefultask::TaskCounterGate m_task_counter_gate;                      // Number of running task that we should wait for before this window is destructed.
 
   void close() { set_must_close(); }
 

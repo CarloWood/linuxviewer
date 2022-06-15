@@ -29,7 +29,12 @@ class CopyDataToBuffer final : public CopyDataToGPU
   {
     DoutEntering(dc::vulkan, "CopyDataToBuffer(" << logical_device << ", " << data_size << ", " << vh_target_buffer <<
         ", " << buffer_offset << ", " << current_buffer_access << ", " << generating_stages <<
-        ", " << new_buffer_access << ", " << consuming_stages << ")");
+        ", " << new_buffer_access << ", " << consuming_stages << ") [" << this << "]");
+  }
+
+  ~CopyDataToBuffer()
+  {
+    DoutEntering(dc::vulkan, "~CopyDataToBuffer() [" << this << "]");
   }
 
  private:

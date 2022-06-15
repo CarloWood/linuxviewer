@@ -8,6 +8,7 @@
 #include "GraphicsSettings.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
+#include "statefultask/RunningTasksTracker.h"
 #include "threadpool/AIThreadPool.h"
 #include "threadsafe/aithreadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
@@ -60,6 +61,9 @@ class Application
     medium,
     low
   };
+
+  // Accessed by tasks that depend on objects of this class (or derived classes).
+  statefultask::RunningTasksTracker m_dependent_tasks;                    // Tasks that should be aborted before the application is destructed.
 
   static Application& instance() { return *s_instance; }
 
@@ -194,6 +198,9 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+  // Closes all windows - resulting in the termination of the application.
+  void quit();
 
   // Accessor for the nmr for deque's.
   utils::NodeMemoryResource& deque512_nmr() { return m_deque512_nmr; }

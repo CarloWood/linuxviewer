@@ -18,7 +18,7 @@ class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask,
   SynchronousWindow::PipelineFactoryIndex m_factory_index;      // Index of the owning factory. There is a one-on-one relationship between PipelineFactory's and MoveNewPipelines's.
 
  protected:
-  /// The different states of the stateful task.
+  // The different states of the stateful task.
   enum move_new_pipelines_task_state_type {
     MoveNewPipelines_start = direct_base_type::state_end,
     MoveNewPipelines_need_action,
@@ -26,7 +26,7 @@ class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask,
   };
 
  public:
-  /// One beyond the largest state of this task.
+  // One beyond the largest state of this task.
   static constexpr state_type state_end = MoveNewPipelines_done + 1;
 
  public:
@@ -37,17 +37,22 @@ class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask,
   }
 
  protected:
-  /// Call finish() (or abort()), not delete.
+  // Call finish() (or abort()), not delete.
   ~MoveNewPipelines() override
   {
     DoutEntering(dc::vulkan, "MoveNewPipelines::~MoveNewPipelines() [" << this << "]");
   }
 
-  /// Implementation of state_str for run states.
+  // Implementation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
 
-  /// Handle mRunState.
+  // Handle mRunState.
   void multiplex_impl(state_type run_state) override;
+
+  // Program termination.
+  void abort_impl() override;
+
+  // If initialize_impl and/or finish_impl are added, then those must call SynchronousTask::initialize_impl and finish_impl.
 };
 
 char const* MoveNewPipelines::state_str_impl(state_type run_state) const
@@ -84,11 +89,18 @@ void MoveNewPipelines::multiplex_impl(state_type run_state)
   }
 }
 
+void MoveNewPipelines::abort_impl()
+{
+  DoutEntering(dc::notice, "MoveNewPipelines::abort_impl()");
+  flush_new_data([this](Datum&& datum){ Dout(dc::notice, "Still had {" << datum.first << ", " << *datum.second << "} in the deque."); });
+  owning_window()->pipeline_factory_done({}, m_factory_index);
+}
+
 } // namespace synchronous
 
 PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
     COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
-    m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass)
+    m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass), m_index(vulkan::Application::instance().m_dependent_tasks.add(this))
 {
   DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::PipelineFactory(" << owning_window << ", " << vh_pipeline_layout << ", " << vh_render_pass << ")");
 }
@@ -96,6 +108,8 @@ PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineL
 PipelineFactory::~PipelineFactory()
 {
   DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::~PipelineFactory() [" << this << "]");
+
+  vulkan::Application::instance().m_dependent_tasks.remove(m_index);
 }
 
 void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)

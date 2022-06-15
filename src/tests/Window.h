@@ -146,6 +146,7 @@ class Window : public task::SynchronousWindow
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
+        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_background_texture).
         copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
         copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
@@ -188,6 +189,7 @@ class Window : public task::SynchronousWindow
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
+        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_texture).
         copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
         copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
@@ -374,6 +376,7 @@ void main() {
           vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput
           COMMA_CWDEBUG_ONLY(true));
 
+      copy_data_to_buffer->set_resource_owner(this);    // Wait for this task to finish before destroying this window, because this window owns the buffer (m_vertex_buffers.back()).
       copy_data_to_buffer->set_data_feeder(std::make_unique<vulkan::shaderbuilder::VertexShaderInputSetFeeder>(vertex_shader_input_set, pipeline_owner));
       copy_data_to_buffer->run(vulkan::Application::instance().low_priority_queue());
     }

@@ -2,7 +2,9 @@
 #define VULKAN_SEMAPHORE_WATCHER_H
 
 #include "AsyncTask.h"
+#include "SynchronousTask.h"
 #include "utils/Vector.h"
+#include <type_traits>
 
 namespace vulkan {
 class TimelineSemaphore;

@@ -39,6 +39,8 @@ class PipelineFactory : public AIStatefulTask
   std::vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>> m_characteristics;
 
   // run
+  // initialize_impl.
+  statefultask::RunningTasksTracker::index_type m_index;
   // State PipelineFactory_start.
   boost::intrusive_ptr<PipelineCache> m_pipeline_cache_task;
   // State PipelineFactory_initialized.
@@ -75,7 +77,7 @@ class PipelineFactory : public AIStatefulTask
       COMMA_CWDEBUG_ONLY(bool debug = false));
 
   // Accessor.
-  SynchronousWindow const* owning_window() const { return m_owning_window; }
+  SynchronousWindow* owning_window() const { return m_owning_window; }
 
   void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }

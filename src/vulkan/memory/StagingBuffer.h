@@ -14,6 +14,15 @@ struct StagingBufferMemoryCreateInfoDefaults
   VmaAllocationInfo*          allocation_info_out{};
 };
 
+// Note it is better to use VMA_ALLOCATION_CREATE_MAPPED_BIT, see for example
+// https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html#:~:text=Staging%20copy%20for%20upload
+// and Eearslya (Vulkan discord): I suggest avoiding vmaMapMemory and vmaUnmapMemory entirely.
+//
+// As such, one should use a StagingBuffer by passing a memory_create_info that has
+// VMA_ALLOCATION_CREATE_MAPPED_BIT added to vma_allocation_create_flags and has
+// allocation_info_out set to a local VmaAllocationInfo object. A pointer to the
+// mapped memory then can be obtained from allocation_info_out->pMappedData.
+//
 struct StagingBuffer : Buffer
 {
   using MemoryCreateInfo = StagingBufferMemoryCreateInfoDefaults;

@@ -9,6 +9,7 @@
 #include "infos/InstanceCreateInfo.h"
 #include "evio/EventLoop.h"
 #include "resolver-task/DnsResolver.h"
+#include "utils/malloc_size.h"
 #include <algorithm>
 #include <chrono>
 #include "debug.h"
@@ -26,7 +27,7 @@ Application* Application::s_instance;
 //
 // Because this is a base class, virtual functions can't be used in the constructor.
 // Therefore initialization happens after construction.
-Application::Application() : m_dmri(m_mpp.instance()), m_thread_pool(1)
+Application::Application() : m_dmri(m_mpp.instance()), m_thread_pool(1), m_dependent_tasks(utils::max_malloc_size(4096))
 {
   DoutEntering(dc::vulkan, "vulkan::Application::Application()");
   s_instance = this;
@@ -189,6 +190,14 @@ void Application::initialize(int argc, char** argv)
 #endif
 }
 
+void Application::quit()
+{
+  DoutEntering(dc::vulkan, "vulkan::Application::quit()");
+  window_list_t::wat window_list_w(m_window_list);
+  for (auto&& window : *window_list_w)
+    window->close();
+}
+
 boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(
     std::unique_ptr<LogicalDevice>&& logical_device, boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)
 {
@@ -308,6 +317,9 @@ void Application::run()
   // Stop the broker tasks.
   m_xcb_connection_broker->terminate();
 
+  // Abort dependent tasks.
+  m_dependent_tasks.abort_all();
+
   // Application terminated cleanly.
   m_event_loop->join();
 }
@@ -324,6 +336,8 @@ void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactor
 
 void Application::pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache_task)
 {
+  DoutEntering(dc::vulkan, "Application::pipeline_factory_done(" << window << ", " << static_cast<AIStatefulTask*>(pipeline_cache_task.get()) << ")");
+
   std::u8string const pipeline_cache_name = window->pipeline_cache_name();
   pipeline_factory_list_container_t::iterator pipeline_cache_merger_iter;
   boost::intrusive_ptr<task::PipelineCache> merged_pipeline_cache;

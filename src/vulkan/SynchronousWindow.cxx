@@ -16,6 +16,7 @@
 #include "debug/DebugSetName.h"
 #include "utils/cpu_relax.h"
 #include "utils/u8string_to_filename.h"
+#include "utils/malloc_size.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
@@ -53,7 +54,8 @@ SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDE
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
   m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug))),
-  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0})
+  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}),
+  m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
@@ -967,6 +969,17 @@ void SynchronousWindow::finish_impl()
   // Finally, remove us from Application::window_list_t or else this SynchronousWindow
   // won't be destructed as the list stores boost::intrusive_ptr<task::SynchronousWindow>'s.
   m_application->remove(this);
+
+  // Abort all dependent tasks before destructing (this could even be done from the destructor,
+  // if it wasn't that we also guard members of derived classes).
+  m_dependent_tasks.abort_all();
+
+  // Run the synchronous tasks, to give them a chance to abort.
+  if (have_synchronous_task(atomic_flags()))
+    handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
+
+  // Wait for (certain) tasks to be finished.
+  m_task_counter_gate.wait();
 }
 
 //virtual
@@ -1182,6 +1195,7 @@ vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vk::P
 
 void SynchronousWindow::have_new_pipeline(vulkan::pipeline::Handle pipeline_handle, vk::UniquePipeline&& pipeline)
 {
+  DoutEntering(dc::vulkan, "SynchronousWindow::have_new_pipeline(" << pipeline_handle << ", " << *pipeline << ")");
   auto& factory_pipelines = m_pipelines[pipeline_handle.m_pipeline_factory_index];
   if (factory_pipelines.iend() <= pipeline_handle.m_pipeline_index)
     factory_pipelines.resize(pipeline_handle.m_pipeline_index.get_value() + 1);

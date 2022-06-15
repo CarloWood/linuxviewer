@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "CopyDataToGPU.h"
 #include "StagingBufferParameters.h"
+#include "SynchronousWindow.h"
 #include "memory/StagingBuffer.h"
 
 namespace task {
@@ -25,6 +26,24 @@ char const* CopyDataToGPU::state_str_impl(state_type run_state) const
 void CopyDataToGPU::initialize_impl()
 {
   set_state(CopyDataToGPU_start);
+  if (m_resource_owner)
+  {
+    try
+    {
+      m_resource_owner->m_task_counter_gate.increment();
+    }
+    catch (std::exception const&)
+    {
+      m_resource_owner = nullptr;       // Stop finish_impl from calling decrement().
+      abort();
+    }
+  }
+}
+
+void CopyDataToGPU::finish_impl()
+{
+  if (m_resource_owner)
+    m_resource_owner->m_task_counter_gate.decrement();
 }
 
 void CopyDataToGPU::multiplex_impl(state_type run_state)
@@ -35,9 +54,13 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
     {
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
       // Create staging buffer and map its memory to copy data from the CPU.
+      VmaAllocationInfo vma_allocation_info;
       m_staging_buffer.m_buffer = vulkan::memory::StagingBuffer(logical_device, m_data_size
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer.m_buffer")));
-      m_staging_buffer.m_pointer = m_staging_buffer.m_buffer.map_memory();
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer.m_buffer")),
+          vulkan::memory::StagingBuffer::MemoryCreateInfo{
+              .vma_allocation_create_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+              .allocation_info_out = &vma_allocation_info });
+      m_staging_buffer.m_pointer = vma_allocation_info.pMappedData;
       set_state(CopyDataToGPU_write);
     }
     [[fallthrough]];
@@ -60,9 +83,8 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
     case CopyDataToGPU_flush:
     {
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
-      // Once everything is written to the staging buffer, flush and unmap it.
+      // Once everything is written to the staging buffer and flush.
       logical_device->flush_mapped_allocation(m_staging_buffer.m_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
-      m_staging_buffer.m_buffer.unmap_memory();
       // Set callback to record command buffer to virtual function `record_command_buffer`,
       // the derived class is responsible for appropriate commands to copy the staging buffer to the right destination.
       m_submit_request.set_record_function([this](vulkan::handle::CommandBuffer command_buffer){

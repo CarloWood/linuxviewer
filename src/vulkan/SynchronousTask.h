@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statefultask/AIStatefulTask.h"
+#include "statefultask/RunningTasksTracker.h"
 
 namespace task {
 
@@ -14,14 +15,14 @@ class SynchronousTask : public AIStatefulTask
   using AIStatefulTask::target;
 
  private:
-  SynchronousWindow* m_owner;                // The SynchronousWindow that this object is a member of.
+  SynchronousWindow* m_owner;                                   // The SynchronousWindow that this object is a member of.
 
  public:
   // Constructor.
   SynchronousTask(SynchronousWindow* owner COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owner(owner) { }
 
  protected:
-  /// The base class of this task.
+  // The base class of this task.
   using direct_base_type = AIStatefulTask;
 
   // Allow only yielding to the same engine.
@@ -29,13 +30,13 @@ class SynchronousTask : public AIStatefulTask
   void yield_frame(unsigned int frames);
   void yield_ms(unsigned int ms);
 
-  /// The different states of the stateful task.
+  // The different states of the stateful task.
   enum synchronous_task_state_type {
     SynchronousTask_start = direct_base_type::state_end,
   };
 
  public:
-  /// One beyond the largest state of this task.
+  // One beyond the largest state of this task.
   static constexpr state_type state_end = SynchronousTask_start + 1;
 
   // Allow only running in the provided engine.
@@ -50,13 +51,13 @@ class SynchronousTask : public AIStatefulTask
   SynchronousWindow* owning_window() const { return m_owner; }
 
  protected:
-  /// Implementation of state_str for run states.
+  // Implementation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
 
-  /// Run bs_initialize.
+  // Run by bs_initialize.
   void initialize_impl() override;
 
-  /// Handle mRunState.
+  // Handle mRunState.
   void multiplex_impl(state_type run_state) override;
 };
 
