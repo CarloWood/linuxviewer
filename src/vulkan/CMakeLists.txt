@@ -112,6 +112,7 @@ target_link_libraries(vulkan_ObjLib
     ImGui::imgui
     Eigen3::Eigen
     Boost::serialization
+    Tracy::TracyClient
 )
 
 # Create an ALIAS target.

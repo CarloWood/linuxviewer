@@ -22,6 +22,7 @@
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"
 #endif
+#include <Tracy.hpp>
 #include <vulkan/vk_format_utils.h>
 #include <algorithm>
 #include "debug.h"
@@ -314,11 +315,13 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         {
           try
           {
+            ZoneScoped;
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
             m_timer.update();   // Keep track of FPS and stuff.
             consume_input_events();
             draw_frame();
+            FrameMark;
             m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
             wait(frame_timer);

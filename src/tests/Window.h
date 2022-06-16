@@ -398,8 +398,8 @@ void main() {
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
     DoutEntering(dc::vulkan, "Window::get_frame_rate_interval() [" << this << "]");
-    // Limit the frame rate of this window to 20 frames per second.
-    return threadpool::Interval<50, std::chrono::milliseconds>{};
+    // Limit the frame rate of this window to 1000 frames per second.
+    return threadpool::Interval<1, std::chrono::milliseconds>{};
   }
 
   //===========================================================================

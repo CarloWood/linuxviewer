@@ -47,13 +47,53 @@ FetchContent_MakeAvailable(gitache)
 # This project uses aicxx modules.
 include(cwm4/cmake/AICxxProject)
 
+#==============================================================================
+# OPTIONS
+
+# Option 'EnableTracy' is available when OptionEnableDebug is ON (otherwise OFF).
+cw_option(EnableTracy
+          "Enable profiling code using Tracy" OFF
+          "OptionEnableDebug" OFF
+)
+
+if (OptionEnableTracy)
+  message(DEBUG "OptionEnableTracy is ${OptionEnableTracy}")
+  set(TRACY_ENABLE 1)
+endif ()
+
+#==============================================================================
+
 # Exit if someone tries to contaminate the source directory with an in-source build.
 if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message(FATAL_ERROR "Please do out-of-source builds."
                       "Cleanup: \"rm -rf CMake CMakeCache.txt CMakeFiles/\"")
 endif ()
 
+# Generate project specific configure file.
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/config.h
+               @ONLY)
+
+# Declare aicxx submodules.
 include(AICxxSubmodules)
+
+# Tell cwds/sys.h that we have a config.h.
+target_compile_definitions(cwds_ObjLib
+  PRIVATE
+    HAVE_CONFIG_H
+)
+
+# Tell cwds where to find config.h.
+target_include_directories(cwds_ObjLib
+  PRIVATE
+    ${top_objdir}
+)
+
+# Link cwds with libTracyClient.a (needed for tracy::SetThreadName).
+target_link_libraries(cwds_ObjLib
+  PRIVATE
+    Tracy::TracyClient
+)
 
 # Extra clean up before removing directories.
 add_custom_target(maintainer-clean-extra

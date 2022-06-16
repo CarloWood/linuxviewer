@@ -61,3 +61,14 @@ add_library(ImGui::imgui ALIAS imgui_ObjLib)
 set(VMA_STATIC_VULKAN_FUNCTIONS OFF CACHE BOOL "Link statically with Vulkan API")
 set(VMA_DYNAMIC_VULKAN_FUNCTIONS ON CACHE BOOL "Fetch pointers to Vulkan functions internally (no static linking)")
 add_subdirectory(VulkanMemoryAllocator)
+
+# Add Tracy.
+if (TRACY_ENABLE)
+  # Add other options conditionally, because they'll clutter command line defines even when TRACY_ENABLE is OFF.
+  set(TRACY_ENABLE ON CACHE BOOL "Enable profiling")
+  set(TRACY_ONLY_LOCALHOST ON CACHE BOOL "Only listen on the localhost interface")
+else ()
+  # Must set TRACY_ENABLE explicitly to OFF; the default is ON.
+  set(TRACY_ENABLE OFF CACHE BOOL "Enable profiling")
+endif ()
+add_subdirectory(tracy)

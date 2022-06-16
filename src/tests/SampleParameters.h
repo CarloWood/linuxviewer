@@ -2,8 +2,8 @@
 
 struct SampleParameters
 {
-  static constexpr int s_max_object_count = 1000;
-  static constexpr int s_quad_tessellation = 40;
+  static constexpr int s_max_object_count = 2000;
+  static constexpr int s_quad_tessellation = 200;
 
   int ObjectCount;
   int PreSubmitCpuWorkTime;
