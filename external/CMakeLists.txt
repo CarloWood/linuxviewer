@@ -1,3 +1,5 @@
+message(STATUS "----------------------------------------------------\n** Configuring subdirectory external:")
+
 # imgui is weird.
 # It doesn't want you to build it using cmake. You have to pick the files you need yourself.
 

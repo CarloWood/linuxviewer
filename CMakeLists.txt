@@ -50,15 +50,30 @@ include(cwm4/cmake/AICxxProject)
 #==============================================================================
 # OPTIONS
 
-# Option 'EnableTracy' is available when OptionEnableDebug is ON (otherwise OFF).
+if (CW_BUILD_TYPE_IS_TRACY)
+  set(CW_BUILD_TYPE_IS_NOT_TRACY FALSE)
+  set(TRACY_ENABLE 1)
+  set(SetThreadName_module threadpool)
+else ()
+  # Enable the option below, so people can override linking with Tracy anyway.
+  set(CW_BUILD_TYPE_IS_NOT_TRACY TRUE)
+endif ()
+
+# Option 'EnableTracy' is only available when both CW_BUILD_TYPE_IS_NOT_TRACY
+# and CW_BUILD_TYPE_IS_NOT_RELEASE are TRUE (otherwise OFF).
 cw_option(EnableTracy
           "Enable profiling code using Tracy" OFF
-          "OptionEnableDebug" OFF
+          "CW_BUILD_TYPE_IS_NOT_TRACY;CW_BUILD_TYPE_IS_NOT_RELEASE" OFF
 )
 
 if (OptionEnableTracy)
   message(DEBUG "OptionEnableTracy is ${OptionEnableTracy}")
   set(TRACY_ENABLE 1)
+  if (OptionEnableLibcwd)
+    set(SetThreadName_module cwds)
+  else ()
+    set(SetThreadName_module threadpool)
+  endif ()
 endif ()
 
 #==============================================================================
@@ -74,26 +89,20 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/config.h
                @ONLY)
 
+# Tell cwds/sys.h that we have a config.h.
+add_definitions(-DHAVE_CONFIG_H)
+include_directories(${top_objdir})
+
 # Declare aicxx submodules.
 include(AICxxSubmodules)
 
-# Tell cwds/sys.h that we have a config.h.
-target_compile_definitions(cwds_ObjLib
-  PRIVATE
-    HAVE_CONFIG_H
-)
-
-# Tell cwds where to find config.h.
-target_include_directories(cwds_ObjLib
-  PRIVATE
-    ${top_objdir}
-)
-
-# Link cwds with libTracyClient.a (needed for tracy::SetThreadName).
-target_link_libraries(cwds_ObjLib
+if (SetThreadName_module)
+# Link with libTracyClient.a (needed for tracy::SetThreadName).
+target_link_libraries(${SetThreadName_module}_ObjLib
   PRIVATE
     Tracy::TracyClient
 )
+endif ()
 
 # Extra clean up before removing directories.
 add_custom_target(maintainer-clean-extra

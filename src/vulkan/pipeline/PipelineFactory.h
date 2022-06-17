@@ -2,6 +2,7 @@
 
 #include "CharacteristicRange.h"
 #include "statefultask/AIStatefulTask.h"
+#include "statefultask/RunningTasksTracker.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>

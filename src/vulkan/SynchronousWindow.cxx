@@ -81,7 +81,7 @@ vulkan::LogicalDevice* SynchronousWindow::get_logical_device() const
 
 void SynchronousWindow::register_render_pass(SynchronousWindow::RenderPass* render_pass)
 {
-#if CW_DEBUG
+#ifdef CWDEBUG
   std::string const& name = render_pass->name();
   auto res = std::find_if(m_render_passes.begin(), m_render_passes.end(), [&name](RenderPass* render_pass){ return render_pass->name() == name; });
   // Please use a unique name for each render pass.
@@ -305,7 +305,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         // Set a thread-local global variable that imgui uses to access its context.
         m_imgui.set_current_context();
       }
-#if CW_DEBUG
+#ifdef CWDEBUG
       RenderLoopEntered scoped(m_title.c_str());
 #endif
       int special_circumstances = atomic_flags();
