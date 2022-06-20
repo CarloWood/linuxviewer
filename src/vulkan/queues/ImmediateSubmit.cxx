@@ -44,6 +44,11 @@ char const* ImmediateSubmit::state_str_impl(state_type run_state) const
   AI_NEVER_REACHED
 }
 
+char const* ImmediateSubmit::task_name_impl() const
+{
+  return "ImmediateSubmit";
+}
+
 void ImmediateSubmit::multiplex_impl(state_type run_state)
 {
   switch (run_state)

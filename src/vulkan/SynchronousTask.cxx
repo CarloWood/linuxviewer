@@ -13,6 +13,11 @@ char const* SynchronousTask::state_str_impl(state_type run_state) const
   AI_NEVER_REACHED;
 }
 
+char const* SynchronousTask::task_name_impl() const
+{
+  return "SynchronousTask";
+}
+
 void SynchronousTask::initialize_impl()
 {
   // If there is a derived class immediately start with its first state; otherwise start with our first state.

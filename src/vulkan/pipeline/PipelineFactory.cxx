@@ -45,6 +45,7 @@ class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask,
 
   // Implementation of state_str for run states.
   char const* state_str_impl(state_type run_state) const override;
+  char const* task_name_impl() const override;
 
   // Handle mRunState.
   void multiplex_impl(state_type run_state) override;
@@ -64,6 +65,11 @@ char const* MoveNewPipelines::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(MoveNewPipelines_done);
   }
   AI_NEVER_REACHED
+}
+
+char const* MoveNewPipelines::task_name_impl() const
+{
+  return "MoveNewPipelines";
 }
 
 void MoveNewPipelines::multiplex_impl(state_type run_state)
@@ -138,6 +144,11 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_done);
   }
   AI_NEVER_REACHED
+}
+
+char const* PipelineFactory::task_name_impl() const
+{
+  return "PipelineFactory";
 }
 
 void PipelineFactory::multiplex_impl(state_type run_state)

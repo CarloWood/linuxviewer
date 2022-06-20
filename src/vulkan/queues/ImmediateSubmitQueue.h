@@ -35,6 +35,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Pers
   ~ImmediateSubmitQueue() override;
 
   char const* state_str_impl(state_type run_state) const override;
+  char const* task_name_impl() const override;
   void multiplex_impl(state_type run_state) override;
   void abort_impl() override;
 

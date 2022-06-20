@@ -144,6 +144,11 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
   AI_NEVER_REACHED;
 }
 
+char const* SynchronousWindow::task_name_impl() const
+{
+  return "SynchronousWindow";
+}
+
 void SynchronousWindow::initialize_impl()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::initialize_impl() [" << this << "]");

@@ -59,6 +59,11 @@ char const* PipelineCache::state_str_impl(state_type run_state) const
   AI_NEVER_REACHED
 }
 
+char const* PipelineCache::task_name_impl() const
+{
+  return "PipelineCache";
+}
+
 std::filesystem::path PipelineCache::get_filename() const
 {
   return vulkan::Application::instance().path_of(vulkan::Directory::cache) / utils::u8string_to_filename(u8"pipeline_cache of " + m_owning_factory->owning_window()->pipeline_cache_name());

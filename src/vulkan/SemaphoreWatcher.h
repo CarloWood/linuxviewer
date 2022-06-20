@@ -100,6 +100,7 @@ class SemaphoreWatcher : public BASE
   // Implementation of virtual functions of AIStatefulTask.
   char const* condition_str_impl(condition_type condition) const override;
   char const* state_str_impl(state_type run_state) const override;
+  char const* task_name_impl() const override;
   void multiplex_impl(state_type run_state) override;
   void initialize_impl() override;
 };
@@ -230,6 +231,16 @@ char const* SemaphoreWatcher<BASE>::state_str_impl(typename BASE::state_type run
     AI_CASE_RETURN(SemaphoreWatcher_done);
   }
   AI_NEVER_REACHED;
+}
+
+template<TaskType BASE>
+char const* SemaphoreWatcher<BASE>::task_name_impl() const
+{
+  if constexpr (std::is_same_v<BASE, SynchronousTask>)
+    return "SemaphoreWatcher<SynchronousTask>";
+  else if constexpr (std::is_same_v<BASE, vulkan::AsyncTask>)
+    return "SemaphoreWatcher<AsyncTask>";
+  return "SemaphoreWatcher<>";
 }
 
 template<TaskType BASE>

@@ -66,6 +66,7 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
   // Implementation of virtual functions of AIStatefulTask.
   char const* condition_str_impl(condition_type condition) const override;
   char const* state_str_impl(state_type run_state) const override;
+  char const* task_name_impl() const override;
   void multiplex_impl(state_type run_state) override;
 
 #ifdef CWDEBUG
