@@ -1,6 +1,7 @@
 #include "sys.h"
 
 #include "PresentationSurface.h"
+#include "SynchronousWindow.h"
 #include "debug/DebugSetName.h"
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
@@ -20,6 +21,9 @@ void PresentationSurface::print_on(std::ostream& os) const
 #endif
 
 void PresentationSurface::set_queues(Queue graphics_queue, Queue presentation_queue
+#ifdef TRACY_ENABLE
+    , task::SynchronousWindow const* owning_window
+#endif
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   // Only call set_queues once.
@@ -28,6 +32,17 @@ void PresentationSurface::set_queues(Queue graphics_queue, Queue presentation_qu
   DebugSetName(static_cast<vk::Queue>(m_graphics_queue), ambifix(".m_graphics_queue"));
   m_presentation_queue = presentation_queue;
   DebugSetName(static_cast<vk::Queue>(m_presentation_queue), ambifix(".m_presentation_queue"));
+#ifdef TRACY_ENABLE
+  m_tracy_contex = owning_window->logical_device()->tracy_context(m_presentation_queue
+      COMMA_CWDEBUG_ONLY(ambifix(".m_tracy_contex")));
+#endif
 }
+
+#ifdef TRACY_ENABLE
+PresentationSurface::~PresentationSurface()
+{
+  TracyVkDestroy(m_tracy_contex);
+}
+#endif
 
 } // namespace vulkan

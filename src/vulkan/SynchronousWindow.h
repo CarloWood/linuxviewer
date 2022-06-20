@@ -173,6 +173,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
                                                                           // the user is having other problems then losing key strokes.
   vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
   bool m_in_focus;                                                        // Cache value of decoded input events.
+#ifdef TRACY_ENABLE
+  bool m_is_tracy_window;                                                 // Set upon entering this window with the mouse; unset when a different window is entered.
+#endif
 
   using child_window_list_container_t = std::vector<SynchronousWindow*>;
   using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -285,6 +288,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     if (m_parent_window_task)
       m_parent_window_task->add_child_window_task(this);
   }
+#ifdef TRACY_ENABLE
+  void set_is_tracy_window(bool active)
+  {
+    DoutEntering(dc::notice, "SynchronousWindow::set_is_tracy_window(" << std::boolalpha << active << ") [" << this << "]");
+    m_is_tracy_window = active;
+  }
+#endif
 
   // The const on this method means that it is a thread-safe function. It still alters m_child_window_list.
   void add_child_window_task(SynchronousWindow* child_window_task) const

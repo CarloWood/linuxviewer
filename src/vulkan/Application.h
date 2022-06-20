@@ -143,6 +143,10 @@ class Application
   using pipeline_factory_list_t = aithreadsafe::Wrapper<pipeline_factory_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   pipeline_factory_list_t m_pipeline_factory_list;
 
+#ifdef TRACY_ENABLE
+  task::SynchronousWindow* m_tracy_window{};
+#endif
+
  private:
   friend class task::SynchronousWindow;
   void add(task::SynchronousWindow* window_task);
@@ -286,6 +290,9 @@ class Application
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);
   // Called by SynchronousWindow::pipeline_factory_done.
   void pipeline_factory_done(task::SynchronousWindow const* window, boost::intrusive_ptr<task::PipelineCache>&& pipeline_cache);
+
+  // Called by SynchronousWindow::consume_input_events.
+  void on_mouse_enter(task::SynchronousWindow* window, int x, int y, bool entered);
 
  protected:
   // Get the default DISPLAY name to use (can be overridden by parse_command_line_parameters).

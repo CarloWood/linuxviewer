@@ -87,6 +87,8 @@ class CommandBuffer
   vk::CommandBuffer* operator->() { return &m_vh_command_buffer; }
   vk::CommandBuffer const* operator->() const { return &m_vh_command_buffer; }
 
+  operator vk::CommandBuffer() const { return m_vh_command_buffer; }
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif

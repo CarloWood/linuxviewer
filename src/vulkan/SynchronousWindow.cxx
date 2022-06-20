@@ -320,13 +320,12 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         {
           try
           {
-            ZoneScoped;
+            ZoneScopedNC("SynchronousWindow_render_loop / no special circumstances", 0xf5d193) // Tracy
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
             m_timer.update();   // Keep track of FPS and stuff.
             consume_input_events();
             draw_frame();
-            FrameMark;
             m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
             wait(frame_timer);
@@ -433,6 +432,9 @@ void SynchronousWindow::acquire_queues()
     vh_presentation_queue = vh_graphics_queue;
 
   m_presentation_surface.set_queues(vh_graphics_queue, vh_presentation_queue
+#ifdef TRACY_ENABLE
+      , this
+#endif
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_presentation_surface")));
 }
 
@@ -541,7 +543,7 @@ void SynchronousWindow::consume_input_events()
         {
           m_imgui.on_mouse_enter(x, y, active);
         }
-        //FIXME: pass enter/leave event to application here.
+        vulkan::Application::instance().on_mouse_enter(this, x, y, active);
         break;
       case EventType::window_out_focus:
       case EventType::window_in_focus:
@@ -766,6 +768,7 @@ void SynchronousWindow::detect_if_imgui_is_used()
 
 void SynchronousWindow::start_frame()
 {
+  ZoneScopedN("start_frame");
   DoutEntering(dc::vkframe, "SynchronousWindow::start_frame()");
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
@@ -789,6 +792,7 @@ void SynchronousWindow::start_frame()
 
 void SynchronousWindow::finish_frame()
 {
+  ZoneScopedN("finish_frame");
   DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
 
   // Present frame
@@ -804,7 +808,19 @@ void SynchronousWindow::finish_frame()
       .pImageIndices = &swapchain_image_index
     };
 
-    vk::Result res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
+    vk::Result res;
+    {
+      ZoneScopedNC("presentKHR", 0xec705e);     // Color: Burnt Sienna
+      res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
+    }
+#ifdef TRACY_ENABLE
+    if (res == vk::Result::eSuccess || res == vk::Result::eSuboptimalKHR)
+    {
+      // Tracy can't deal with multiple windows; only call FrameMark for the window that has focus.
+      if (m_is_tracy_window)
+        FrameMark   // Tracy
+    }
+#endif
     switch (res)
     {
       case vk::Result::eSuccess:
@@ -824,6 +840,7 @@ void SynchronousWindow::finish_frame()
 
 void SynchronousWindow::acquire_image()
 {
+  ZoneScopedN("acquire_image");
   DoutEntering(dc::vkframe, "SynchronousWindow::acquire_image() [" << this << "]");
 
   // Acquire swapchain image.

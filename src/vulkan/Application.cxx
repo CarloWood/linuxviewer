@@ -392,4 +392,17 @@ void Application::pipeline_factory_done(task::SynchronousWindow const* window, b
   }
 }
 
+void Application::on_mouse_enter(task::SynchronousWindow* window, int x, int y, bool entered)
+{
+#ifdef TRACY_ENABLE
+  if (entered)
+  {
+    window->set_is_tracy_window(true);
+    if (m_tracy_window != window && m_tracy_window)
+      m_tracy_window->set_is_tracy_window(false);
+    m_tracy_window = window;
+  }
+#endif
+}
+
 } // namespace vulkan

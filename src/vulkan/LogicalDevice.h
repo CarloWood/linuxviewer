@@ -25,6 +25,10 @@
 #include "vk_utils/MemoryRequirementsPrinter.h"
 #include "debug/set_device.h"
 #endif
+#include <Tracy.hpp>
+#ifdef TRACY_ENABLE
+#include <TracyVulkan.hpp>
+#endif
 
 namespace task {
 class SynchronousWindow;
@@ -174,6 +178,7 @@ class LogicalDevice
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
+    ZoneScopedNC("wait_for_fences", 0x9C2022); // color: "Old Brick".
     DoutEntering(dc::vkframe, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
     return m_device->waitForFences(fences, wait_all, timeout);
   }
@@ -320,6 +325,18 @@ class LogicalDevice
 
   // End of API for access to m_vh_allocator.
   //---------------------------------------------------------------------------
+
+#ifdef TRACY_ENABLE
+  //---------------------------------------------------------------------------
+  // API for access for Tracy.
+  //
+
+  TracyVkCtx tracy_context(vulkan::Queue const& queue
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+
+  // End of API for access for Tracy.
+  //---------------------------------------------------------------------------
+#endif
 
   vk::UniquePipelineCache create_pipeline_cache(vk::PipelineCacheCreateInfo const& pipeline_cache_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;

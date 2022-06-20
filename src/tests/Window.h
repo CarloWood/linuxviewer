@@ -10,6 +10,7 @@
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
+#include <Tracy.hpp>
 
 #define ENABLE_IMGUI 1
 
@@ -435,6 +436,8 @@ void main() {
     if (++m_frame_count == 1)
       return;
 
+    ZoneScopedN("Window::draw_frame");
+
     ASSERT(m_sample_parameters.FrameResourcesCount >= 0);
     m_current_frame.m_resource_count = vulkan::FrameResourceIndex{static_cast<size_t>(m_sample_parameters.FrameResourcesCount)};        // Slider value.
     Dout(dc::vkframe, "m_current_frame.m_resource_count = " << m_current_frame.m_resource_count);
@@ -453,14 +456,20 @@ void main() {
     {
       auto frame_generation_begin_time = std::chrono::high_resolution_clock::now();
 
-      // Perform calculation influencing current frame.
-      PerformHardcoreCalculations(m_sample_parameters.PreSubmitCpuWorkTime);
+      {
+        // Perform calculation influencing current frame.
+        ZoneScopedNC("PerformHardcoreCalculations-pre", 0x20829C);      // Color: jelly bean (blue/cyan-ish).
+        PerformHardcoreCalculations(m_sample_parameters.PreSubmitCpuWorkTime);
+      }
 
       // Draw sample-specific data - includes command buffer submission!!
       DrawSample();
 
-      // Perform calculations influencing rendering of a next frame.
-      PerformHardcoreCalculations(m_sample_parameters.PostSubmitCpuWorkTime);
+      {
+        // Perform calculations influencing rendering of a next frame.
+        ZoneScopedNC("PerformHardcoreCalculations-post", 0x209C82);     // Color:: jungle green.
+        PerformHardcoreCalculations(m_sample_parameters.PostSubmitCpuWorkTime);
+      }
 
       auto frame_generation_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_generation_begin_time);
       float float_frame_generation_time = static_cast<float>(frame_generation_time.count() * 0.001f);
@@ -479,6 +488,7 @@ void main() {
 
   void DrawSample()
   {
+    ZoneScopedN("Window::DrawSample");
     DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
@@ -509,28 +519,37 @@ void main() {
 
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+    {
+      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "Main render");
+      command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_vh_graphics_pipeline)
-Dout(dc::warning, "Pipeline not available");
-else {
-    command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
-    command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
-    {
-      vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
-      vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
-      command_buffer->bindVertexBuffers(0, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
-    }
-    command_buffer->setViewport(0, { viewport });
-    command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
-    command_buffer->setScissor(0, { scissor });
-    command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+  Dout(dc::warning, "Pipeline not available");
+else
+{
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+      {
+        vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
+        vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
+        command_buffer->bindVertexBuffers(0, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
+      }
+      command_buffer->setViewport(0, { viewport });
+      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+      command_buffer->setScissor(0, { scissor });
+      command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
-    command_buffer->endRenderPass();
+      command_buffer->endRenderPass();
+      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
+    }
 #if ENABLE_IMGUI
-    command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
-    m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-    command_buffer->endRenderPass();
+    {
+      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "imgui render");
+      command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
+      command_buffer->endRenderPass();
+      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
+    }
 #endif
     command_buffer->end();
     Dout(dc::vkframe, "End recording command buffer.");
@@ -553,6 +572,7 @@ else {
 
   void draw_imgui() override final
   {
+    ZoneScopedN("Window::draw_imgui");
     DoutEntering(dc::vkframe, "Window::draw_imgui() [" << this << "]");
 
     ImGuiIO& io = ImGui::GetIO();

@@ -11,6 +11,7 @@
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include "debug.h"
+#include <Tracy.hpp>
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -810,6 +811,7 @@ bool ImGui::want_capture_mouse() const
 
 void ImGui::start_frame(float delta_s)
 {
+  ZoneScopedN("ImGui::start_frame");
   ImGuiIO& io = GetIO();
   io.DeltaTime = delta_s;               // Time elapsed since the previous frame (in seconds).
   NewFrame();

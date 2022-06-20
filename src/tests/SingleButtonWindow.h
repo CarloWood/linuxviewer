@@ -96,6 +96,7 @@ class SingleButtonWindow : public task::SynchronousWindow
 
   void draw_imgui() override final
   {
+    ZoneScopedN("SingleButtonWindow::draw_imgui");
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));

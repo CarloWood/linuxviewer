@@ -184,7 +184,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
             }
 
             // If different requests were given the same queue family, then it is still possible
-            // that we handed out too many queues, eg both did get queueCount, oops.
+            // that we handed out too many queues, e.g. both did get queueCount, oops.
             // It is too complicated to incorporate that into the limit above. Instead just do
             // a check here if the current loop went over that value, and if so - break out of this loop.
             uint32_t H_queue_family = 0;       // The number of queues from queue_family that have been handed out.
@@ -406,7 +406,11 @@ void LogicalDevice::prepare(
   ASSERT(m_transfer_request_cookie);
 
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
-    device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
+    device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME
+#if defined(TRACY_ENABLE) && defined(VK_EXT_calibrated_timestamps)
+        , VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+#endif
+        });
 
   auto required_extensions = device_create_info.device_extensions();
   Dout(dc::vulkan, "required_extensions = " << required_extensions);
@@ -1057,6 +1061,25 @@ LogicalDevice::LogicalDevice() : m_semaphore_watcher(statefultask::create<task::
 LogicalDevice::~LogicalDevice()
 {
 }
+
+#ifdef TRACY_ENABLE
+TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
+    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+{
+  static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  CommandPool<pool_type> tmp_command_pool(this, queue.queue_family()//);
+      COMMA_CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_pool")));
+  vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
+      CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_buffer")));
+  TracyVkCtx ctx = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
+      VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+      VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
+#ifdef CWDEBUG
+  TracyVkContextName(ctx, debug_name.object_name().c_str(), debug_name.object_name().size());
+#endif
+  return ctx;
+}
+#endif
 
 } // namespace vulkan
 
