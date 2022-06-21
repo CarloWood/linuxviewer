@@ -1063,7 +1063,7 @@ LogicalDevice::~LogicalDevice()
 }
 
 #ifdef TRACY_ENABLE
-TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
+utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue const& queue, FrameResourceIndex max_number_of_frame_resources
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -1071,13 +1071,18 @@ TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
       COMMA_CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_pool")));
   vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
       CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_buffer")));
-  TracyVkCtx ctx = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
-      VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
-      VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
+  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_contexts;
+  for (FrameResourceIndex i{0}; i != max_number_of_frame_resources; ++i)
+  {
+    TracyVkCtx context = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
+        VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
+    tracy_contexts.push_back(context);
 #ifdef CWDEBUG
-  TracyVkContextName(ctx, debug_name.object_name().c_str(), debug_name.object_name().size());
+    std::string context_name = debug_name.object_name() + " [" + to_string(i) + "]";
+    TracyVkContextName(tracy_contexts[i], context_name.c_str(), context_name.size());
 #endif
-  return ctx;
+  }
+  return tracy_contexts;
 }
 #endif
 

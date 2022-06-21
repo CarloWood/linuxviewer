@@ -491,14 +491,15 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Called by initialize_impl():
   virtual threadpool::Timer::Interval get_frame_rate_interval() const;
-  // Called by create_frame_resources():
-  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
   // Called by handle_window_size_changed():
   virtual void on_window_size_changed_pre();
   // Called by create_frame_resources() and handle_window_size_changed():
   virtual void on_window_size_changed_post();
 
  public:
+  // Called by create_frame_resources() (and PresentationSurface::set_queues when TRACY_ENABLE).
+  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
+
 #if 0
   void set_swapchain_render_pass(utils::Badge<vulkan::rendergraph::RenderPass>, vk::UniqueRenderPass&& render_pass)
   {

@@ -520,7 +520,7 @@ void main() {
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
-      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "Main render");
+      TracyVkZone(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer), "main_pass");
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_vh_graphics_pipeline)
@@ -540,15 +540,15 @@ else
       command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
       command_buffer->endRenderPass();
-      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
+      TracyVkCollect(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #if ENABLE_IMGUI
     {
-      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "imgui render");
+      TracyVkZone(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer), "imgui_pass");
       command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer->endRenderPass();
-      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
+      TracyVkCollect(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #endif
     command_buffer->end();

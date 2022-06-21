@@ -9,3 +9,11 @@
 #    define VULKAN_HPP_NO_UNION_CONSTRUCTORS
 #  endif
 #endif
+
+#ifdef TRACY_ENABLE
+#define TRACY_ONLY(x) x
+#define COMMA_TRACY_ONLY(x) , x
+#else
+#define TRACY_ONLY(x)
+#define COMMA_TRACY_ONLY(x)
+#endif

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "queues/Queue.h"
+#include "utils/Vector.h"
 #include "debug.h"
 #include <vulkan/vulkan.hpp>
 #include <array>
@@ -14,6 +15,11 @@ class SynchronousWindow;
 
 namespace vulkan {
 
+#ifdef TRACY_ENABLE
+struct FrameResourcesData;
+using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
+#endif
+
 #ifdef CWDEBUG
 class AmbifixOwner;
 #endif
@@ -24,7 +30,7 @@ class PresentationSurface
   Queue m_graphics_queue;
   Queue m_presentation_queue;
 #ifdef TRACY_ENABLE
-  TracyVkCtx m_tracy_contex;            // Tracy queue contex for profiling GPU 'zones'.
+  utils::Vector<TracyVkCtx, FrameResourceIndex> m_tracy_contex;     // Tracy queue contex for profiling GPU 'zones', one per frame resource.
 #endif
 
  public:
@@ -88,9 +94,9 @@ class PresentationSurface
   }
 
 #ifdef TRACY_ENABLE
-  TracyVkCtx tracy_context() const
+  TracyVkCtx tracy_context(FrameResourceIndex resource_index) const
   {
-    return m_tracy_contex;
+    return m_tracy_contex[resource_index];
   }
 #endif
 

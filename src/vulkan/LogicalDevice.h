@@ -37,6 +37,11 @@ class AsyncSemaphoreWatcher;
 
 namespace vulkan {
 
+#ifdef TRACY_ENABLE
+struct FrameResourcesData;
+using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
+#endif
+
 // Forward declarations.
 class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
@@ -331,7 +336,7 @@ class LogicalDevice
   // API for access for Tracy.
   //
 
-  TracyVkCtx tracy_context(vulkan::Queue const& queue
+  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(vulkan::Queue const& queue, FrameResourceIndex max_number_of_frame_resources
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   // End of API for access for Tracy.
