@@ -590,7 +590,13 @@ void SynchronousWindow::wait_for_all_fences() const
   for (auto&& resources : m_frame_resources_list)
     all_fences.push_back(*resources->m_command_buffers_completed);
 
-  vk::Result res = m_logical_device->wait_for_fences(all_fences, VK_TRUE, 1000000000);
+  vk::Result res;
+  {
+#ifdef TRACY_ENABLE
+    static char const zone_name[] = "wait for all_fences";
+#endif
+    res = m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)(all_fences, VK_TRUE, 1000000000);
+  }
   if (res != vk::Result::eSuccess)
     THROW_FALERTC(res, "wait_for_fences");
 }
@@ -703,7 +709,12 @@ void SynchronousWindow::set_image_memory_barrier(
     vk::Result res;
     do
     {
-      res = logical_device()->wait_for_fences({ *fence }, VK_TRUE, 300000000);
+      {
+#ifdef TRACY_ENABLE
+        static char const zone_name[] = "wait for set_image_memory_barrier()::fence";
+#endif
+        res = logical_device()->wait_for_fences TRACY_ONLY(<zone_name>)({ *fence }, VK_TRUE, 300000000);
+      }
       if (res != vk::Result::eTimeout)
         break;
       Dout(dc::notice, "wait_for_fences timed out " << count);
@@ -768,7 +779,6 @@ void SynchronousWindow::detect_if_imgui_is_used()
 
 void SynchronousWindow::start_frame()
 {
-  ZoneScopedN("start_frame");
   DoutEntering(dc::vkframe, "SynchronousWindow::start_frame()");
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
@@ -779,21 +789,39 @@ void SynchronousWindow::start_frame()
     draw_imgui();
   }
 
+#ifdef TRACY_ENABLE
+  ASSERT(s_tl_tracy_fiber_name);
+  // Set a different Tracy fiber name, depending on the current frame resource. multiplex
+  m_store_tracy_fiber_name = s_tl_tracy_fiber_name;
+  s_tl_tracy_fiber_name = tracy_fiber_name(m_current_frame.m_resource_index);
+  TracyFiberEnter(s_tl_tracy_fiber_name);
+
+  ZoneScopedN("start_frame");
+
+  static char const zone_name[] = "m_command_buffers_completed";
+#endif
 #if defined(CWDEBUG) && defined(NON_FATAL_LONG_FENCE_DELAY)
   // You might want to use this if a time out happens while debugging (for example stepping through code with a debugger).
-  while (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  while (m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     Dout(dc::warning, "WAITING FOR A FENCE TOOK TOO LONG!");
 #else
   // Normally, this is an error.
-  if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  if (m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");
 #endif
 }
 
 void SynchronousWindow::finish_frame()
 {
-  ZoneScopedN("finish_frame");
   DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
+
+#ifdef TRACY_ENABLE
+  // Undo the fiber switch of start_frame.
+  s_tl_tracy_fiber_name = m_store_tracy_fiber_name;
+  TracyFiberEnter(m_store_tracy_fiber_name);
+#endif
+
+  ZoneScopedN("finish_frame");
 
   // Present frame
   {
@@ -1011,12 +1039,18 @@ void SynchronousWindow::create_frame_resources()
     // A handle alias for the newly created frame resources object.
     auto& frame_resources = m_frame_resources_list[i];
 
-    // Create the 'command_buffers_completed' fence (even we only have a single command buffer right now).
+    // Create the 'command_buffers_completed' fence (using bufferS, even though we only have a single command buffer right now).
     frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, ambifix("->m_command_buffers_completed")));
 
     // Create the command buffer.
     frame_resources->m_command_buffer = frame_resources->m_command_pool.allocate_buffer(
         CWDEBUG_ONLY(ambifix("->m_command_buffer")));
+
+#ifdef TRACY_ENABLE
+    std::ostringstream fiber_name;
+    fiber_name << "[0x" << std::hex << static_cast<AIStatefulTask*>(this) << "] SynchronousWindow [" << i << "]";
+    m_tracy_fiber_names.push_back(strdup(fiber_name.str().c_str()));
+#endif
   }
 
   if (m_use_imgui)
@@ -1036,6 +1070,8 @@ void SynchronousWindow::create_frame_resources()
 
 void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
 {
+  ZoneScopedNC("submit", 0x5eec6f) // Tracy; color: pastel green
+
   vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   vk::SubmitInfo submit_info{
     .waitSemaphoreCount = 1,

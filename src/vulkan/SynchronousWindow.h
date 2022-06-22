@@ -235,6 +235,15 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  protected:
   utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
+#ifdef TRACY_ENABLE
+  char const* m_store_tracy_fiber_name;
+  utils::Vector<char const*, vulkan::FrameResourceIndex> m_tracy_fiber_names;
+
+  char const* tracy_fiber_name(vulkan::FrameResourceIndex resource_index) const
+  {
+    return m_tracy_fiber_names[resource_index];
+  }
+#endif
 
   // Initialized by create_imgui. Deinitialized by destruction.
   vk_utils::TimerData m_timer;

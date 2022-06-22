@@ -67,7 +67,7 @@ void RenderPass::update_image_views(Swapchain const& swapchain, FrameResourcesDa
   // Let attachment_nodes list all attachments known to this render pass.
   auto const& attachment_nodes = known_attachments();
 
-  // Run over all known attachments and push the corresponding image views of the current frame resources in order to the result vector.
+  // Run over all known attachments and write the corresponding image views of the current frame resources, in order, to m_attachment_image_views.
   for (auto i = attachment_nodes.ibegin(); i != attachment_nodes.iend(); ++i)
   {
     rendergraph::AttachmentIndex attachment_index = attachment_nodes[i].attachment()->render_graph_attachment_index();

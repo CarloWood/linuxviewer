@@ -181,9 +181,12 @@ class LogicalDevice
   [[gnu::always_inline]] inline void remove_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore) const;
   inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
+#ifdef TRACY_ENABLE
+  template<char const* zone_name>
+#endif
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
-    ZoneScopedNC("wait_for_fences", 0x9C2022); // color: "Old Brick".
+    ZoneScopedNC(zone_name, 0x9C2022); // color: "Old Brick".
     DoutEntering(dc::vkframe, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
     return m_device->waitForFences(fences, wait_all, timeout);
   }

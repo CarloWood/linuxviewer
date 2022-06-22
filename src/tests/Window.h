@@ -11,6 +11,7 @@
 #include <imgui.h>
 #include "debug.h"
 #include <Tracy.hpp>
+#include <TracyVulkan.hpp>
 
 #define ENABLE_IMGUI 1
 
