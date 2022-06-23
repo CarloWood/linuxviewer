@@ -11,7 +11,9 @@ project(linuxviewer
   DESCRIPTION "Viewer for SecondLife and OpenSim."
 )
 
+#==============================================================================
 # Begin of gitache configuration.
+
 set(GITACHE_PACKAGES magic_enum blaze libcwd_r wolfssl)
 
 # Is libfarmhash installed somewhere in a default path?
@@ -44,6 +46,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(gitache)
 # End of gitache configuration.
 
+#==============================================================================
 # This project uses aicxx modules.
 include(cwm4/cmake/AICxxProject)
 
@@ -75,6 +78,7 @@ if (OptionEnableTracy)
     set(SetThreadName_module threadpool)
   endif ()
 endif ()
+# End of OPTIONS section.
 
 #==============================================================================
 
@@ -84,6 +88,9 @@ if (${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
                       "Cleanup: \"rm -rf CMake CMakeCache.txt CMakeFiles/\"")
 endif ()
 
+#==============================================================================
+# CONFIG FILES
+
 # Generate project specific configure file.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/config.h
@@ -92,10 +99,14 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
 # Tell cwds/sys.h that we have a config.h.
 add_definitions(-DHAVE_CONFIG_H)
 include_directories(${top_objdir})
+# End of CONFIG FILES section.
+
+#==============================================================================
 
 # Declare aicxx submodules.
 include(AICxxSubmodules)
 
+# This must be done after including AICxxSubmodules.
 if (SetThreadName_module)
 # Link with libTracyClient.a (needed for tracy::SetThreadName).
 target_link_libraries(${SetThreadName_module}_ObjLib
