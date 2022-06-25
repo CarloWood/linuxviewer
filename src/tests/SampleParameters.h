@@ -8,15 +8,17 @@ struct SampleParameters
   int ObjectCount;
   int PreSubmitCpuWorkTime;
   int PostSubmitCpuWorkTime;
+  int SwapchainCount;
   int FrameResourcesCount;
   float m_frame_generation_time;
   float m_total_frame_time;
   bool m_show_fps = true;
 
   SampleParameters() :
-    ObjectCount(100),
-    PreSubmitCpuWorkTime(0),
-    PostSubmitCpuWorkTime(0),
+    ObjectCount(666),
+    PreSubmitCpuWorkTime(4),
+    PostSubmitCpuWorkTime(4),
+    SwapchainCount(2),
     FrameResourcesCount(1),
     m_frame_generation_time(0),
     m_total_frame_time(0)

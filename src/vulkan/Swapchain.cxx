@@ -195,6 +195,28 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
   owning_window->no_swapchain({});
 }
 
+
+bool Swapchain::change_image_count(utils::Badge<task::SynchronousWindow>, task::SynchronousWindow const* owning_window, uint32_t image_count)
+{
+  DoutEntering(dc::vulkan, "Swapchain::change_image_count(" << image_count << ")");
+
+  vk::PhysicalDevice vh_physical_device = owning_window->logical_device()->vh_physical_device();
+  PresentationSurface const& presentation_surface = owning_window->presentation_surface();
+  vk::SurfaceCapabilitiesKHR surface_capabilities = vh_physical_device.getSurfaceCapabilitiesKHR(presentation_surface.vh_surface());
+  uint32_t const desired_image_count = get_number_of_images(surface_capabilities, image_count);
+
+  Dout(dc::vulkan, "Requesting " << desired_image_count << " swap chain images.");
+
+  if (m_min_image_count == desired_image_count)
+    return false;
+
+  // Change number of minimum required swap chain images. This should succeed (I think) because
+  // get_number_of_images already clamped it between surface_capabilities.minImageCount and
+  // surface_capabilities.maxImageCount.
+  m_min_image_count = desired_image_count;
+  return true;
+}
+
 void Swapchain::recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix))
 {

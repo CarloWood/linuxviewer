@@ -451,6 +451,15 @@ void SynchronousWindow::create_swapchain_images()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_swapchain")));
 }
 
+void SynchronousWindow::change_number_of_swapchain_images(uint32_t image_count)
+{
+  if (m_swapchain.change_image_count({}, this, image_count))
+  {
+    // Trigger recreation of the swap chain.
+    m_window_events->recreate_swapchain({});
+  }
+}
+
 void SynchronousWindow::create_imageless_framebuffers()
 {
   prepare_begin_info_chains();
@@ -827,7 +836,7 @@ void SynchronousWindow::finish_frame()
   {
     vk::Result result = vk::Result::eSuccess;
     vk::SwapchainKHR vh_swapchain = *m_swapchain;
-    uint32_t swapchain_image_index = m_swapchain.current_index().get_value();
+    uint32_t const swapchain_image_index = m_swapchain.current_index().get_value();
     vk::PresentInfoKHR present_info{
       .waitSemaphoreCount = 1,
       .pWaitSemaphores = m_swapchain.vhp_current_rendering_finished_semaphore(),
@@ -847,6 +856,10 @@ void SynchronousWindow::finish_frame()
       // Tracy can't deal with multiple windows; only call FrameMark for the window that has focus.
       if (m_is_tracy_window)
         FrameMark   // Tracy
+    }
+    {
+      std::string msg = "presented image " + std::to_string(swapchain_image_index);
+      TracyMessage(msg.data(), msg.size());
     }
 #endif
     switch (res)

@@ -4,6 +4,7 @@
 #include "ImageKind.h"
 #include "rendergraph/Attachment.h"
 #include "utils/Vector.h"
+#include "Tracy.hpp"
 #include <vulkan/vulkan.hpp>
 #include <thread>
 #include <deque>
@@ -114,6 +115,9 @@ class Swapchain
   void recreate(task::SynchronousWindow* owning_window, vk::Extent2D window_extent
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix));
 
+  // Called from SynchronousWindow::change_number_of_swapchain_images.
+  bool change_image_count(utils::Badge<task::SynchronousWindow>, task::SynchronousWindow const* owning_window, uint32_t image_count);
+
   rendergraph::Attachment const& presentation_attachment() const
   {
     return m_presentation_attachment.value();
@@ -188,6 +192,11 @@ class Swapchain
   {
     m_resources[new_swapchain_index].swap_image_available_semaphore_with(m_acquire_semaphore);
     m_current_index = new_swapchain_index;
+#ifdef TRACY_ENABLE
+    std::ostringstream oss;
+    oss << "Acquired image " << m_current_index;
+    TracyMessage(oss.str().c_str(), oss.str().size());
+#endif
   }
 };
 

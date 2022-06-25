@@ -4,6 +4,7 @@
 #include "SpecialCircumstances.h"
 #include "InputEvent.h"
 #include "ImGui.h"
+#include "utils/Badge.h"
 
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
@@ -11,6 +12,10 @@ extern channel_ct xcb;
 extern channel_ct xcbmotion;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
+
+namespace task {
+class SynchronousWindow;
+} // namespace task
 
 namespace vulkan {
 
@@ -58,7 +63,7 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
   // Called when the close button is clicked.
   void On_WM_DELETE_WINDOW(uint32_t timestamp) override
   {
-    DoutEntering(dc::notice, "SynchronousWindow::On_WM_DELETE_WINDOW(" << timestamp << ") [" << this << "]");
+    DoutEntering(dc::notice, "WindowEvents::On_WM_DELETE_WINDOW(" << timestamp << ") [" << this << "]");
     // Lets not pass more events to a window that is going to destruct itself.
     // That is, any XCB events received after this WM_DELETE_WINDOW message will be ignored.
     m_input_event_buffer = nullptr;
@@ -74,7 +79,7 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
 
   void on_map_changed(bool minimized) override final
   {
-    DoutEntering(dc::notice, "SynchronousWindow::on_map_changed(" << std::boolalpha << minimized << ")");
+    DoutEntering(dc::notice, "WindowEvents::on_map_changed(" << std::boolalpha << minimized << ")");
     if (minimized)
       set_unmapped();
     else
@@ -216,6 +221,13 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
     // That thread then calls get_extent() to read the value that was *last* written to m_extent.
 
     // Unlock m_extent.
+  }
+
+  // Called from SynchronousWindow::change_number_of_swapchain_images to trigger recreation of the swapchain.
+  void recreate_swapchain(utils::Badge<task::SynchronousWindow>) const
+  {
+    // Didn't really change, but it does the job.
+    set_extent_changed();
   }
 };
 

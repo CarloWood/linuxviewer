@@ -194,6 +194,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Only provide read access to derive class, because m_graphics_settings is only a local cache and is overwritten when Application::m_graphics_settings is changed.
   vulkan::GraphicsSettingsPOD const& graphics_settings() const { return m_graphics_settings; }
 
+  // Optionally called from something like a Graphics Settings window.
+  void change_number_of_swapchain_images(uint32_t image_count);
+
  public:
   // Accessed by vulkan::rendergraph::Attachment::assign_unique_index().
   utils::UniqueIDContext<AttachmentIndex> attachment_index_context;       // Provides an unique index for registered attachments (through register_attachment).
@@ -508,13 +511,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  public:
   // Called by create_frame_resources() (and PresentationSurface::set_queues when TRACY_ENABLE).
   virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
-
-#if 0
-  void set_swapchain_render_pass(utils::Badge<vulkan::rendergraph::RenderPass>, vk::UniqueRenderPass&& render_pass)
-  {
-    m_swapchain.set_render_pass(std::move(render_pass));
-  }
-#endif
 
   // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
   virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;

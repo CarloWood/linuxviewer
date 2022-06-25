@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
     // Create a window.
     auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_request_cookie1);
 
-#if 1
+#if 0
     // Create a child window of root_window1. This has to be done before calling
     // `application.create_logical_device` below, which gobbles up the root_window1 pointer.
     root_window1->create_child_window<WindowEvents, SingleButtonWindow>(

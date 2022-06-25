@@ -577,6 +577,7 @@ else
     DoutEntering(dc::vkframe, "Window::draw_imgui() [" << this << "]");
 
     ImGuiIO& io = ImGui::GetIO();
+    int current_SwapchainCount = m_sample_parameters.SwapchainCount;
 
     //  bool show_demo_window = true;
     //  ShowDemoWindow(&show_demo_window);
@@ -589,6 +590,7 @@ else
     ImGui::Text("%s", hardware_name.c_str());
     ImGui::NewLine();
     ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);
+    ImGui::SliderInt("Swapchain image count", &m_sample_parameters.SwapchainCount, 1, 8);
     ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, static_cast<int>(m_frame_resources_list.size()));
     ImGui::SliderInt("Pre-submit CPU work time [ms]", &m_sample_parameters.PreSubmitCpuWorkTime, 0, 20);
     ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
@@ -596,6 +598,9 @@ else
     ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
 
     ImGui::End();
+
+    if (current_SwapchainCount != m_sample_parameters.SwapchainCount)
+      change_number_of_swapchain_images(m_sample_parameters.SwapchainCount);
   }
 
   virtual bool is_slow() const

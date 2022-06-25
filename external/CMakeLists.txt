@@ -70,7 +70,6 @@ if (TRACY_ENABLE)
   set(TRACY_ENABLE ON CACHE BOOL "Enable profiling")
   set(TRACY_ONLY_LOCALHOST ON CACHE BOOL "Only listen on the localhost interface")
   set(TRACY_FIBERS ON CACHE BOOL "Enable fibers")
-  set(TRACY_NO_CALLSTACK ON CACHE BOOL "No callstack retrieval") # If using callstacks macro's, turn this OFF and compile with -g -fno-omit-frame-pointer.
 else ()
   # Must set TRACY_ENABLE explicitly to OFF; the default is ON.
   set(TRACY_ENABLE OFF CACHE BOOL "Enable profiling")
