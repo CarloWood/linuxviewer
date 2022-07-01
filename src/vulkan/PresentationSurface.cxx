@@ -33,17 +33,15 @@ void PresentationSurface::set_queues(Queue graphics_queue, Queue presentation_qu
   m_presentation_queue = presentation_queue;
   DebugSetName(static_cast<vk::Queue>(m_presentation_queue), ambifix(".m_presentation_queue"));
 #ifdef TRACY_ENABLE
-  FrameResourceIndex max_number_of_frame_resources = owning_window->number_of_frame_resources();
-  m_tracy_contex = owning_window->logical_device()->tracy_context(m_presentation_queue, max_number_of_frame_resources
-      COMMA_CWDEBUG_ONLY(ambifix(".m_tracy_contex")));
+  m_tracy_context = owning_window->logical_device()->tracy_context(m_presentation_queue
+      COMMA_CWDEBUG_ONLY(ambifix(".m_tracy_context")));
 #endif
 }
 
 #ifdef TRACY_ENABLE
 PresentationSurface::~PresentationSurface()
 {
-  for (auto&& context : m_tracy_contex)
-    TracyVkDestroy(context);
+  TracyVkDestroy(m_tracy_context);
 }
 #endif
 

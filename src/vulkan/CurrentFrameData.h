@@ -1,12 +1,9 @@
 #pragma once
 
 #include "Swapchain.h"
-#include "utils/Vector.h"
+#include "FrameResourceIndex.h" // Also forward declares FrameResourcesData.
 
 namespace vulkan {
-
-struct FrameResourcesData;
-using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 
 // Struct for managing the frame rendering process.
 struct CurrentFrameData

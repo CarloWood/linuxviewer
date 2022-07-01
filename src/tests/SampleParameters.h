@@ -2,8 +2,8 @@
 
 struct SampleParameters
 {
-  static constexpr int s_max_object_count = 2000;
-  static constexpr int s_quad_tessellation = 200;
+  static constexpr int s_max_object_count = 3000;
+  static constexpr int s_quad_tessellation = 300;
 
   int ObjectCount;
   int PreSubmitCpuWorkTime;
@@ -15,11 +15,11 @@ struct SampleParameters
   bool m_show_fps = true;
 
   SampleParameters() :
-    ObjectCount(666),
+    ObjectCount(889),
     PreSubmitCpuWorkTime(4),
     PostSubmitCpuWorkTime(4),
-    SwapchainCount(2),
-    FrameResourcesCount(1),
+    SwapchainCount(3),
+    FrameResourcesCount(2),
     m_frame_generation_time(0),
     m_total_frame_time(0)
   {

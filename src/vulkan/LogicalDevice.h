@@ -8,6 +8,7 @@
 #include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
+#include "SwapchainIndex.h"
 #include "queues/Queue.h"
 #include "queues/QueueRequestKey.h"
 #include "queues/QueueReply.h"
@@ -16,7 +17,6 @@
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
 #include "utils/Badge.h"
-#include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <vk_mem_alloc.h>
@@ -28,6 +28,7 @@
 #include <Tracy.hpp>
 #ifdef TRACY_ENABLE
 #include <TracyVulkan.hpp>
+#include "FrameResourceIndex.h"
 #endif
 
 namespace task {
@@ -37,11 +38,6 @@ class AsyncSemaphoreWatcher;
 
 namespace vulkan {
 
-#ifdef TRACY_ENABLE
-struct FrameResourcesData;
-using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
-#endif
-
 // Forward declarations.
 class PhysicalDeviceFeatures;
 class DeviceCreateInfo;
@@ -49,8 +45,6 @@ class PresentationSurface;
 class CommandBuffer;
 class ImGui;
 class Ambifix;
-class Swapchain;
-using SwapchainIndex = utils::VectorIndex<Swapchain>;
 class RenderPass;
 class Application;
 class SamplerKind;
@@ -181,12 +175,8 @@ class LogicalDevice
   [[gnu::always_inline]] inline void remove_timeline_semaphore_poll(TimelineSemaphore const* timeline_semaphore) const;
   inline vk::UniqueSemaphore create_semaphore(CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   inline vk::UniqueFence create_fence(bool signaled COMMA_CWDEBUG_ONLY(bool debug_output, Ambifix const& debug_name)) const;
-#ifdef TRACY_ENABLE
-  template<char const* zone_name>
-#endif
   vk::Result wait_for_fences(vk::ArrayProxy<vk::Fence const> const& fences, vk::Bool32 wait_all, uint64_t timeout) const
   {
-    ZoneScopedNC(zone_name, 0x9C2022); // color: "Old Brick".
     DoutEntering(dc::vkframe, "LogicalDevice::wait_for_fences(" << fences << ", " << wait_all << ", " << timeout << ")");
     return m_device->waitForFences(fences, wait_all, timeout);
   }
@@ -340,6 +330,9 @@ class LogicalDevice
   //
 
   utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(vulkan::Queue const& queue, FrameResourceIndex max_number_of_frame_resources
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+
+  TracyVkCtx tracy_context(vulkan::Queue const& queue
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   // End of API for access for Tracy.

@@ -53,7 +53,6 @@ add_executable(frame_resources_count
   InstanceData.h
   SampleParameters.h
   SingleButtonWindow.h
-  SlowWindow.h
 )
 
 target_include_directories(frame_resources_count

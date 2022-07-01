@@ -7,6 +7,7 @@
 #include "AttachmentNode.h"
 #include "Attachment.h"
 #include "RenderPassSubpassData.h"
+#include "FrameResourceIndex.h"
 #include <string>
 #include <functional>
 #include <set>
@@ -142,13 +143,13 @@ class RenderPass
 
  public:
   void print_on(std::ostream& os) const;
+  std::string const& name() const { return m_name; }
 
 #ifdef CWDEBUG
  public:
   // Used by testsuite.
   bool remove_or_dontcare_attachments_empty() const { return m_remove_or_dontcare_attachments.empty(); }
 
-  std::string const& name() const { return m_name; }
   void print_vertices(std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id,
       std::vector<std::pair<int, int>>& forwards_edges, std::vector<std::pair<int, int>>& backwards_edges) const;
 

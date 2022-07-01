@@ -2,9 +2,9 @@
 
 #include "ResourceState.h"
 #include "ImageKind.h"
+#include "SwapchainIndex.h"
 #include "rendergraph/Attachment.h"
-#include "utils/Vector.h"
-#include "Tracy.hpp"
+#include <Tracy.hpp>
 #include <vulkan/vulkan.hpp>
 #include <thread>
 #include <deque>
@@ -18,8 +18,6 @@ namespace vulkan {
 
 class RenderPass;
 
-class Swapchain;
-using SwapchainIndex = utils::VectorIndex<Swapchain>;
 #ifdef CWDEBUG
 class AmbifixOwner;
 #endif
@@ -186,6 +184,11 @@ class Swapchain
   SwapchainIndex current_index() const
   {
     return m_current_index;
+  }
+
+  SwapchainIndex index_end() const
+  {
+    return m_vhv_images.iend();
   }
 
   void update_current_index(SwapchainIndex new_swapchain_index)

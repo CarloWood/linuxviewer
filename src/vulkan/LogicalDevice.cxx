@@ -1084,6 +1084,23 @@ utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue
   }
   return tracy_contexts;
 }
+
+TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
+    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+{
+  static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  CommandPool<pool_type> tmp_command_pool(this, queue.queue_family()//);
+      COMMA_CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_pool")));
+  vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
+      CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_buffer")));
+  TracyVkCtx context = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
+      VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
+#ifdef CWDEBUG
+  std::string context_name = debug_name.object_name();
+  TracyVkContextName(context, context_name.c_str(), context_name.size());
+#endif
+  return context;
+}
 #endif
 
 } // namespace vulkan

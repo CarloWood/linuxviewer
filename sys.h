@@ -11,9 +11,9 @@
 #endif
 
 #ifdef TRACY_ENABLE
-#define TRACY_ONLY(x) x
-#define COMMA_TRACY_ONLY(x) , x
+#define TRACY_ONLY(...) __VA_ARGS__
+#define COMMA_TRACY_ONLY(...) , __VA_ARGS__
 #else
-#define TRACY_ONLY(x)
-#define COMMA_TRACY_ONLY(x)
+#define TRACY_ONLY(...)
+#define COMMA_TRACY_ONLY(...)
 #endif

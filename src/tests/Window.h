@@ -12,6 +12,10 @@
 #include "debug.h"
 #include <Tracy.hpp>
 #include <TracyVulkan.hpp>
+#ifdef TRACY_ENABLE
+#include "tracy/SourceLocationDataIterator.h"
+#include "tracy/CwTracy.h"
+#endif
 
 #define ENABLE_IMGUI 1
 
@@ -431,7 +435,7 @@ void main() {
 
   void draw_frame() override
   {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; " << (is_slow() ? "SlowWindow" : "Window") << "]");
+    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; Window]");
 
     // Skip the first frame.
     if (++m_frame_count == 1)
@@ -521,7 +525,9 @@ void main() {
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
-      TracyVkZone(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer), "main_pass");
+      CwTracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer),
+          main_pass.name(), number_of_frame_resources(), m_current_frame.m_resource_index);
+
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_vh_graphics_pipeline)
@@ -541,15 +547,15 @@ else
       command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
       command_buffer->endRenderPass();
-      TracyVkCollect(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer));
+      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #if ENABLE_IMGUI
     {
-      TracyVkZone(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer), "imgui_pass");
+      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "imgui_pass");
       command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer->endRenderPass();
-      TracyVkCollect(presentation_surface().tracy_context(m_current_frame.m_resource_index), static_cast<vk::CommandBuffer>(command_buffer));
+      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #endif
     command_buffer->end();
@@ -601,10 +607,5 @@ else
 
     if (current_SwapchainCount != m_sample_parameters.SwapchainCount)
       change_number_of_swapchain_images(m_sample_parameters.SwapchainCount);
-  }
-
-  virtual bool is_slow() const
-  {
-    return false;
   }
 };

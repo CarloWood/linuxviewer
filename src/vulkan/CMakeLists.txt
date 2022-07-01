@@ -46,6 +46,7 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tracy/*.h
 )
 
 # The list of source files.

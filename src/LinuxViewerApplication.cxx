@@ -528,12 +528,16 @@ void main()
     auto command_buffer = frame_resources->m_command_buffer;
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    command_buffer->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
-    command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-    command_buffer->setViewport(0, { viewport });
-    command_buffer->setScissor(0, { scissor });
-    command_buffer->draw(3, 1, 0, 0);
-    command_buffer->endRenderPass();
+    {
+      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "final_pass");
+      command_buffer->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer->setViewport(0, { viewport });
+      command_buffer->setScissor(0, { scissor });
+      command_buffer->draw(3, 1, 0, 0);
+      command_buffer->endRenderPass();
+      TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
+    }
     command_buffer->end();
     Dout(dc::vkframe, "End recording command buffer.");
 

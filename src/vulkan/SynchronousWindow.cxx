@@ -22,6 +22,10 @@
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"
 #endif
+#ifdef TRACY_ENABLE
+#include "utils/at_scope_end.h"
+#include "tracy/CwTracy.h"
+#endif
 #include <Tracy.hpp>
 #include <vulkan/vk_format_utils.h>
 #include <algorithm>
@@ -54,7 +58,8 @@ vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_i
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
-  m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug))),
+  m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug)))
+  COMMA_TRACY_ONLY(tracy_acquired_image_tracy_context(8), tracy_acquired_image_busy(8)),
   attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}),
   m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
@@ -601,10 +606,8 @@ void SynchronousWindow::wait_for_all_fences() const
 
   vk::Result res;
   {
-#ifdef TRACY_ENABLE
-    static char const zone_name[] = "wait for all_fences";
-#endif
-    res = m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)(all_fences, VK_TRUE, 1000000000);
+    CwZoneScopedNC("wait for all_fences", 0x9C2022, number_of_frame_resources(), m_current_frame.m_resource_index);     // color: "Old Brick".
+    res = m_logical_device->wait_for_fences(all_fences, VK_TRUE, 1000000000);
   }
   if (res != vk::Result::eSuccess)
     THROW_FALERTC(res, "wait_for_fences");
@@ -719,10 +722,8 @@ void SynchronousWindow::set_image_memory_barrier(
     do
     {
       {
-#ifdef TRACY_ENABLE
-        static char const zone_name[] = "wait for set_image_memory_barrier()::fence";
-#endif
-        res = logical_device()->wait_for_fences TRACY_ONLY(<zone_name>)({ *fence }, VK_TRUE, 300000000);
+        ZoneScopedNC("wait for set_image_memory_barrier()::fence", 0x9C2022);     // color: "Old Brick".
+        res = logical_device()->wait_for_fences({ *fence }, VK_TRUE, 300000000);
       }
       if (res != vk::Result::eTimeout)
         break;
@@ -788,7 +789,9 @@ void SynchronousWindow::detect_if_imgui_is_used()
 
 void SynchronousWindow::start_frame()
 {
+  ZoneNamed(start_frame_scoped_zone, true);
   DoutEntering(dc::vkframe, "SynchronousWindow::start_frame()");
+
   m_current_frame.m_resource_index = (m_current_frame.m_resource_index + 1) % m_current_frame.m_resource_count;
   m_current_frame.m_frame_resources = m_frame_resources_list[m_current_frame.m_resource_index].get();
 
@@ -798,24 +801,14 @@ void SynchronousWindow::start_frame()
     draw_imgui();
   }
 
-#ifdef TRACY_ENABLE
-  ASSERT(s_tl_tracy_fiber_name);
-  // Set a different Tracy fiber name, depending on the current frame resource. multiplex
-  m_store_tracy_fiber_name = s_tl_tracy_fiber_name;
-  s_tl_tracy_fiber_name = tracy_fiber_name(m_current_frame.m_resource_index);
-  TracyFiberEnter(s_tl_tracy_fiber_name);
-
-  ZoneScopedN("start_frame");
-
-  static char const zone_name[] = "m_command_buffers_completed";
-#endif
+  CwZoneScopedNC("m_command_buffers_completed", 0x9C2022, number_of_frame_resources(), m_current_frame.m_resource_index);     // color: "Old Brick".
 #if defined(CWDEBUG) && defined(NON_FATAL_LONG_FENCE_DELAY)
   // You might want to use this if a time out happens while debugging (for example stepping through code with a debugger).
-  while (m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  while (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     Dout(dc::warning, "WAITING FOR A FENCE TOOK TOO LONG!");
 #else
   // Normally, this is an error.
-  if (m_logical_device->wait_for_fences TRACY_ONLY(<zone_name>)({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
+  if (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
     throw std::runtime_error("Waiting for a fence takes too long!");
 #endif
 }
@@ -824,80 +817,48 @@ void SynchronousWindow::finish_frame()
 {
   DoutEntering(dc::vkframe, "SynchronousWindow::finish_frame(...)");
 
-#ifdef TRACY_ENABLE
-  // Undo the fiber switch of start_frame.
-  s_tl_tracy_fiber_name = m_store_tracy_fiber_name;
-  TracyFiberEnter(m_store_tracy_fiber_name);
-#endif
-
-  ZoneScopedN("finish_frame");
-
   // Present frame
+
+  vk::Result result = vk::Result::eSuccess;
+  vk::SwapchainKHR vh_swapchain = *m_swapchain;
+  uint32_t const swapchain_image_index = m_swapchain.current_index().get_value();
+  vk::PresentInfoKHR present_info{
+    .waitSemaphoreCount = 1,
+    .pWaitSemaphores = m_swapchain.vhp_current_rendering_finished_semaphore(),
+    .swapchainCount = 1,
+    .pSwapchains = &vh_swapchain,
+    .pImageIndices = &swapchain_image_index
+  };
+
+  vk::Result res;
   {
-    vk::Result result = vk::Result::eSuccess;
-    vk::SwapchainKHR vh_swapchain = *m_swapchain;
-    uint32_t const swapchain_image_index = m_swapchain.current_index().get_value();
-    vk::PresentInfoKHR present_info{
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = m_swapchain.vhp_current_rendering_finished_semaphore(),
-      .swapchainCount = 1,
-      .pSwapchains = &vh_swapchain,
-      .pImageIndices = &swapchain_image_index
-    };
-
-    vk::Result res;
-    {
-      ZoneScopedNC("presentKHR", 0xec705e);     // Color: Burnt Sienna
-      res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
-    }
-#ifdef TRACY_ENABLE
-    if (res == vk::Result::eSuccess || res == vk::Result::eSuboptimalKHR)
-    {
-      // Tracy can't deal with multiple windows; only call FrameMark for the window that has focus.
-      if (m_is_tracy_window)
-        FrameMark   // Tracy
-    }
-    {
-      std::string msg = "presented image " + std::to_string(swapchain_image_index);
-      TracyMessage(msg.data(), msg.size());
-    }
-#endif
-    switch (res)
-    {
-      case vk::Result::eSuccess:
-        break;
-      case vk::Result::eSuboptimalKHR:
-        Dout(dc::warning, "presentKHR() returned eSuboptimalKHR!");
-        break;
-      case vk::Result::eErrorOutOfDateKHR:
-        // Force regeneration of the swapchain.
-        set_extent_changed();
-        throw vulkan::OutOfDateKHR_Exception();
-      default:
-        THROW_ALERTC(res, "Could not acquire swapchain image!");
-    }
+    CwZoneScopedNC("presentKHR", 0xec705e, m_swapchain.index_end(), m_swapchain.current_index());   // Color: Burnt Sienna
+    res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
   }
-}
+#ifdef TRACY_ENABLE
+  if (res == vk::Result::eSuccess || res == vk::Result::eSuboptimalKHR)
+  {
+    // Tracy can't deal with multiple windows; only call FrameMark for the window that has focus.
+    if (m_is_tracy_window)
+      FrameMark   // Tracy
+  }
+  {
+    std::string msg = "presented image " + to_string(m_swapchain.current_index());
+    TracyMessage(msg.data(), msg.size());
 
-void SynchronousWindow::acquire_image()
-{
-  ZoneScopedN("acquire_image");
-  DoutEntering(dc::vkframe, "SynchronousWindow::acquire_image() [" << this << "]");
-
-  // Acquire swapchain image.
-  vulkan::SwapchainIndex new_swapchain_index;
-  vk::Result res = m_logical_device->acquire_next_image(
-      *m_swapchain,
-      1000000000,
-      m_swapchain.vh_acquire_semaphore(),
-      vk::Fence(),
-      new_swapchain_index);
+    vulkan::SwapchainIndex swapchain_index = swapchain().current_index();
+    //Dout(dc::vulkan, "Calling TracyCZoneEnd while in fiber \"" << s_tl_tracy_fiber_name << "\" with ctx with id " <<
+    //    tracy_acquired_image_tracy_context[swapchain_index].id << " from " << this << "->tracy_acquired_image_tracy_context[" << swapchain_index << "]");
+    TracyCZoneEnd(tracy_acquired_image_tracy_context[swapchain_index]);
+    tracy_acquired_image_busy[swapchain_index] = false;
+  }
+#endif
   switch (res)
   {
     case vk::Result::eSuccess:
       break;
     case vk::Result::eSuboptimalKHR:
-      Dout(dc::warning, "acquire_next_image() returned eSuboptimalKHR!");
+      Dout(dc::warning, "presentKHR() returned eSuboptimalKHR!");
       break;
     case vk::Result::eErrorOutOfDateKHR:
       // Force regeneration of the swapchain.
@@ -906,8 +867,49 @@ void SynchronousWindow::acquire_image()
     default:
       THROW_ALERTC(res, "Could not acquire swapchain image!");
   }
+}
 
-  m_swapchain.update_current_index(new_swapchain_index);
+void SynchronousWindow::acquire_image()
+{
+  DoutEntering(dc::vkframe, "SynchronousWindow::acquire_image() [" << this << "]");
+  {
+    ZoneScopedN("acquire_image");
+
+    // Acquire swapchain image.
+    vulkan::SwapchainIndex new_swapchain_index;
+    vk::Result res = m_logical_device->acquire_next_image(
+        *m_swapchain,
+        1000000000,
+        m_swapchain.vh_acquire_semaphore(),
+        vk::Fence(),
+        new_swapchain_index);
+    switch (res)
+    {
+      case vk::Result::eSuccess:
+        break;
+      case vk::Result::eSuboptimalKHR:
+        Dout(dc::warning, "acquire_next_image() returned eSuboptimalKHR!");
+        break;
+      case vk::Result::eErrorOutOfDateKHR:
+        // Force regeneration of the swapchain.
+        set_extent_changed();
+        throw vulkan::OutOfDateKHR_Exception();
+      default:
+        THROW_ALERTC(res, "Could not acquire swapchain image!");
+    }
+
+    m_swapchain.update_current_index(new_swapchain_index);
+  }
+
+#ifdef TRACY_ENABLE
+  vulkan::SwapchainIndex swapchain_index = m_swapchain.current_index();
+  ASSERT(!tracy_acquired_image_busy[swapchain_index]);
+  //Dout(dc::vulkan, "Calling TracyCZone(ctx, \"acquire_next_image<---presentKHR<\") while in fiber \"" << s_tl_tracy_fiber_name << "\".");
+  CwTracyCZoneN(ctx, "acquire_next_image<---presentKHR<", 1, m_swapchain.index_end(), m_swapchain.current_index());
+  //Dout(dc::vulkan, "Storing ctx with id " << ctx.id << " in " << this << "->tracy_acquired_image_tracy_context[" << swapchain_index << "]");
+  tracy_acquired_image_tracy_context[swapchain_index] = ctx;
+  tracy_acquired_image_busy[swapchain_index] = true;
+#endif
 }
 
 void SynchronousWindow::finish_impl()
@@ -1058,12 +1060,6 @@ void SynchronousWindow::create_frame_resources()
     // Create the command buffer.
     frame_resources->m_command_buffer = frame_resources->m_command_pool.allocate_buffer(
         CWDEBUG_ONLY(ambifix("->m_command_buffer")));
-
-#ifdef TRACY_ENABLE
-    std::ostringstream fiber_name;
-    fiber_name << "[0x" << std::hex << static_cast<AIStatefulTask*>(this) << "] SynchronousWindow [" << i << "]";
-    m_tracy_fiber_names.push_back(strdup(fiber_name.str().c_str()));
-#endif
   }
 
   if (m_use_imgui)
@@ -1083,7 +1079,7 @@ void SynchronousWindow::create_frame_resources()
 
 void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
 {
-  ZoneScopedNC("submit", 0x5eec6f) // Tracy; color: pastel green
+  CwZoneScopedNC("submit", 0x5eec6f, number_of_frame_resources(), m_current_frame.m_resource_index); // Color: pastel green.
 
   vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
   vk::SubmitInfo submit_info{

@@ -34,11 +34,15 @@
 #include "threadpool/Timer.h"
 #include "utils/Badge.h"
 #include "utils/UniqueID.h"
-#include "utils/Vector.h"
+#include "FrameResourceIndex.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
 #ifdef CWDEBUG
 #include "cwds/tracked_intrusive_ptr.h"
+#endif
+#ifdef TRACY_ENABLE
+#include "TracyC.h"
+#include "utils/Array.h"
 #endif
 
 namespace xcb {
@@ -57,8 +61,6 @@ class LogicalDevice;
 class Ambifix;
 class AmbifixOwner;
 class Swapchain;
-
-using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
 
 namespace shaderbuilder {
 class SPIRVCache;
@@ -174,7 +176,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
   bool m_in_focus;                                                        // Cache value of decoded input events.
 #ifdef TRACY_ENABLE
+ protected:
   bool m_is_tracy_window;                                                 // Set upon entering this window with the mouse; unset when a different window is entered.
+  utils::Vector<TracyCZoneCtx, vulkan::SwapchainIndex> tracy_acquired_image_tracy_context;
+  utils::Vector<bool, vulkan::SwapchainIndex> tracy_acquired_image_busy;
+ private:
 #endif
 
   using child_window_list_container_t = std::vector<SynchronousWindow*>;
@@ -238,15 +244,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  protected:
   utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
   vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
-#ifdef TRACY_ENABLE
-  char const* m_store_tracy_fiber_name;
-  utils::Vector<char const*, vulkan::FrameResourceIndex> m_tracy_fiber_names;
-
-  char const* tracy_fiber_name(vulkan::FrameResourceIndex resource_index) const
-  {
-    return m_tracy_fiber_names[resource_index];
-  }
-#endif
 
   // Initialized by create_imgui. Deinitialized by destruction.
   vk_utils::TimerData m_timer;
