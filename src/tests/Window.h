@@ -10,11 +10,9 @@
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
-#include <Tracy.hpp>
-#include <TracyVulkan.hpp>
+#include "tracy/CwTracy.h"
 #ifdef TRACY_ENABLE
 #include "tracy/SourceLocationDataIterator.h"
-#include "tracy/CwTracy.h"
 #endif
 
 #define ENABLE_IMGUI 1

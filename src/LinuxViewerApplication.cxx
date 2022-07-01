@@ -23,6 +23,7 @@
 #include <functional>
 #include <regex>
 #include <iterator>
+#include <TracyVulkan.hpp>
 
 namespace utils { using namespace threading; }
 namespace http = evio::protocol::http;

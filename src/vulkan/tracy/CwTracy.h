@@ -1,5 +1,9 @@
 #pragma once
 
+#include <Tracy.hpp>
+#include <TracyVulkan.hpp>
+
+#ifdef TRACY_ENABLE
 #include "SourceLocationDataIterator.h"
 
 // Used to pass comma's.
@@ -125,3 +129,34 @@ struct CSourceLocationData : public ___tracy_source_location_data
         CwTracyCZoneNS( ctx, nullptr,        depth, active, number_of_indices, current_index)
 #define CwTracyCZone(   ctx,                        active, number_of_indices, current_index) \
         CwTracyCZoneN(  ctx, nullptr,               active, number_of_indices, current_index)
+
+#else
+
+#define CwTracyVkNamedZoneCS(ctx, varname, cmdbuf, name, color, depth, active, number_of_indices, current_index)
+#define CwTracyVkNamedZoneC(ctx, varname, cmdbuf, name, color, active, number_of_indices, current_index)
+#define CwTracyVkNamedZoneS(ctx, varname, cmdbuf, name, depth, active, number_of_indices, current_index)
+#define CwTracyVkNamedZone(ctx, varname, cmdbuf, name, active, number_of_indices, current_index)
+#define CwTracyVkZoneCS(ctx, cmdbuf, name, color, depth, number_of_indices, current_index)
+#define CwTracyVkZoneC(ctx, cmdbuf, name, color, number_of_indices, current_index)
+#define CwTracyVkZoneS(ctx, cmdbuf, name, depth, number_of_indices, current_index)
+#define CwTracyVkZone(ctx, cmdbuf, name, number_of_indices, current_index)
+
+#define CwZoneNamedNCS(varname, name, color, depth, active, number_of_indices, current_index)
+#define CwZoneNamedNC(varname, name, color, active, number_of_indices, current_index)
+#define CwZoneNamedNS(varname, name, depth, active, number_of_indices, current_index)
+#define CwZoneNamedN(varname, name, active, number_of_indices, current_index)
+#define CwZoneScopedNCS(name, color, depth, number_of_indices, current_index)
+#define CwZoneScopedNC(name, color, number_of_indices, current_index)
+#define CwZoneScopedNS(name, depth, number_of_indices, current_index)
+#define CwZoneScopedN(name, number_of_indices, current_index)
+
+#define CwTracyCZoneNCS(ctx, name, color, depth, active, number_of_indices, current_index)
+#define CwTracyCZoneNC(ctx, name, color, active, number_of_indices, current_index)
+#define CwTracyCZoneNS(ctx, name, depth, active, number_of_indices, current_index)
+#define CwTracyCZoneN(ctx, name, active, number_of_indices, current_index)
+#define CwTracyCZoneCS(ctx, color, depth, active, number_of_indices, current_index)
+#define CwTracyCZoneC(ctx, color, active, number_of_indices, current_index)
+#define CwTracyCZoneS(ctx, depth, active, number_of_indices, current_index)
+#define CwTracyCZone(ctx, active, number_of_indices, current_index)
+
+#endif

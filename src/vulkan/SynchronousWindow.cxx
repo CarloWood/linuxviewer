@@ -24,9 +24,8 @@
 #endif
 #ifdef TRACY_ENABLE
 #include "utils/at_scope_end.h"
-#include "tracy/CwTracy.h"
 #endif
-#include <Tracy.hpp>
+#include "tracy/CwTracy.h"
 #include <vulkan/vk_format_utils.h>
 #include <algorithm>
 #include "debug.h"
