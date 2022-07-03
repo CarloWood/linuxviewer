@@ -244,7 +244,7 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
+  vulkan::FrameResourceIndex max_number_of_frame_resources() const override
   {
     return vulkan::FrameResourceIndex{3};
   }

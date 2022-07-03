@@ -35,6 +35,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/tracy/*.cxx
 )
 
 file(GLOB HEADER_FILES

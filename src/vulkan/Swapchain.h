@@ -186,11 +186,6 @@ class Swapchain
     return m_current_index;
   }
 
-  SwapchainIndex index_end() const
-  {
-    return m_vhv_images.iend();
-  }
-
   void update_current_index(SwapchainIndex new_swapchain_index)
   {
     m_resources[new_swapchain_index].swap_image_available_semaphore_with(m_acquire_semaphore);

@@ -22,7 +22,7 @@
 
 #define CwTracyVkNamedZoneCOptS(ctx, varname, cmdbuf, name, color, depth, active, number_of_indices, current_index) \
   static utils::Vector<tracy::SourceLocationData, decltype(number_of_indices)> TracyConcat(__tracy_gpu_source_location, __LINE__){ \
-    tracy::SourceLocationDataIterator<decltype(number_of_indices)>(name, __FUNCTION__,  __FILE__, __LINE__, color), \
+    tracy::SourceLocationDataIterator(number_of_indices, name, __FUNCTION__,  __FILE__, __LINE__, color), \
     tracy::SourceLocationDataIterator(number_of_indices) }; \
   tracy::VkCtxScope varname(ctx, &TracyConcat(__tracy_gpu_source_location, __LINE__)[current_index], cmdbuf IF_TRACY_HAS_CALLSTACK_USE(depth), active)
 
@@ -53,7 +53,7 @@
 
 #define CwZoneNamedNCOptS(varname, name, color, depth, active, number_of_indices, current_index) \
   static utils::Vector<tracy::SourceLocationData, decltype(number_of_indices)> TracyConcat(__tracy_source_location, __LINE__){ \
-    tracy::SourceLocationDataIterator<decltype(number_of_indices)>(name, __FUNCTION__,  __FILE__, __LINE__, color), \
+    tracy::SourceLocationDataIterator(number_of_indices, name, __FUNCTION__,  __FILE__, __LINE__, color), \
     tracy::SourceLocationDataIterator(number_of_indices) }; \
   tracy::ScopedZone varname(&TracyConcat(__tracy_source_location, __LINE__)[current_index] IF_TRACY_HAS_CALLSTACK_USE(depth), active)
 
@@ -105,7 +105,7 @@ struct CSourceLocationData : public ___tracy_source_location_data
 
 #define CwTracyCZoneNCOptS(ctx, name, color, depth, active, number_of_indices, current_index) \
   static utils::Vector<tracy::CSourceLocationData, decltype(number_of_indices)> const TracyConcat(__tracy_source_location, __LINE__){ \
-    tracy::SourceLocationDataIterator<decltype(number_of_indices)>(name, __func__,  __FILE__, __LINE__, color), \
+    tracy::SourceLocationDataIterator(number_of_indices, name, __func__,  __FILE__, __LINE__, color), \
     tracy::SourceLocationDataIterator(number_of_indices) }; \
   TracyCZoneCtx ctx = tracy::cw_emit_zone_begin(&TracyConcat(__tracy_source_location, __LINE__)[current_index] IF_TRACY_HAS_CALLSTACK_USE(depth), active )
 

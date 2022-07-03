@@ -220,8 +220,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  static constexpr vulkan::FrameResourceIndex s_default_number_of_frame_resources{2};   // Default size of m_frame_resources_list.
-
+  static constexpr vulkan::FrameResourceIndex s_default_max_number_of_frame_resources{2};       // Default size of m_frame_resources_list.
+  static constexpr vulkan::SwapchainIndex s_default_max_number_of_swapchain_images{3};          // The default number of maximum number of swapchain images
+                                                                                                // that the application has to take into account (for example,
+                                                                                                // used for static creation of Tracy GPU zone labels).
   // Render graph nodes.
   using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
   using Attachment = vulkan::rendergraph::Attachment;                                   // Use to define attachments in derived Window class.
@@ -507,7 +509,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  public:
   // Called by create_frame_resources() (and PresentationSurface::set_queues when TRACY_ENABLE).
-  virtual vulkan::FrameResourceIndex number_of_frame_resources() const;
+  virtual vulkan::FrameResourceIndex max_number_of_frame_resources() const;
+
+  // Called by ... when TRACY_ENABLE.
+  virtual vulkan::SwapchainIndex max_number_of_swapchain_images() const;
 
   // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
   virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;
@@ -518,6 +523,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   void start_frame();
+  void wait_command_buffer_completed();
   void submit(vulkan::handle::CommandBuffer command_buffer);
   void finish_frame();
   void acquire_image();

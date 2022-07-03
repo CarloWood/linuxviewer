@@ -5,7 +5,7 @@ namespace vulkan {
 
 std::string to_string(SwapchainIndex index)
 {
-  std::string result = "SI";
+  std::string result = "s";
   result += std::to_string(index.get_value());
   return result;
 }

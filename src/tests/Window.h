@@ -85,10 +85,14 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  vulkan::FrameResourceIndex number_of_frame_resources() const override
+  vulkan::FrameResourceIndex max_number_of_frame_resources() const override
   {
-    DoutEntering(dc::vulkan, "Window::number_of_frame_resources() [" << this << "]");
     return vulkan::FrameResourceIndex{5};
+  }
+
+  vulkan::SwapchainIndex max_number_of_swapchain_images() const override
+  {
+    return vulkan::SwapchainIndex{8};
   }
 
   void create_descriptor_set() override
@@ -500,6 +504,9 @@ void main() {
 #if ENABLE_IMGUI
     imgui_pass.update_image_views(swapchain(), frame_resources);
 #endif
+#ifdef TRACY_ENABLE
+    vulkan::SwapchainIndex const swapchain_index = swapchain().current_index();
+#endif
 
     vk::Viewport viewport{
       .x = 0,
@@ -517,14 +524,22 @@ void main() {
 
     float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
+    wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
     auto command_buffer = frame_resources->m_command_buffer;
 
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
-      CwTracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer),
-          main_pass.name(), number_of_frame_resources(), m_current_frame.m_resource_index);
+#if 0
+      CwTracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(),
+          tracy::IndexPair(max_number_of_frame_resources(), vulkan::SwapchainIndex{0}, max_number_of_swapchain_images()),
+          tracy::IndexPair(m_current_frame.m_resource_index, swapchain_index, max_number_of_swapchain_images()));
+#endif
+      CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass1, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
+          max_number_of_frame_resources(), m_current_frame.m_resource_index);
+      CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass2, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
+          max_number_of_swapchain_images(), swapchain_index);
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
@@ -549,7 +564,15 @@ else
     }
 #if ENABLE_IMGUI
     {
-      TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "imgui_pass");
+#if 0
+      CwTracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(),
+          tracy::IndexPair(max_number_of_frame_resources(), vulkan::SwapchainIndex{0}, max_number_of_swapchain_images()),
+          tracy::IndexPair(m_current_frame.m_resource_index, swapchain_index, max_number_of_swapchain_images()));
+#endif
+      CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass1, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
+          max_number_of_frame_resources(), m_current_frame.m_resource_index);
+      CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass2, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
+          max_number_of_swapchain_images(), swapchain_index);
       command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer->endRenderPass();
@@ -594,8 +617,8 @@ else
     ImGui::Text("%s", hardware_name.c_str());
     ImGui::NewLine();
     ImGui::SliderInt("Scene complexity", &m_sample_parameters.ObjectCount, 10, m_sample_parameters.s_max_object_count);
-    ImGui::SliderInt("Swapchain image count", &m_sample_parameters.SwapchainCount, 1, 8);
-    ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, static_cast<int>(m_frame_resources_list.size()));
+    ImGui::SliderInt("Swapchain image count", &m_sample_parameters.SwapchainCount, 1, max_number_of_swapchain_images().get_value());
+    ImGui::SliderInt("Frame resources count", &m_sample_parameters.FrameResourcesCount, 1, max_number_of_frame_resources().get_value());
     ImGui::SliderInt("Pre-submit CPU work time [ms]", &m_sample_parameters.PreSubmitCpuWorkTime, 0, 20);
     ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
     ImGui::Text("Frame generation time: %5.2f ms", m_sample_parameters.m_frame_generation_time);
