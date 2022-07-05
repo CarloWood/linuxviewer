@@ -33,7 +33,7 @@ void PresentationSurface::set_queues(Queue graphics_queue, Queue presentation_qu
   m_presentation_queue = presentation_queue;
   DebugSetName(static_cast<vk::Queue>(m_presentation_queue), ambifix(".m_presentation_queue"));
 #ifdef TRACY_ENABLE
-  m_tracy_context = owning_window->logical_device()->tracy_context(m_presentation_queue
+  m_tracy_context = owning_window->logical_device()->tracy_context(m_graphics_queue
       COMMA_CWDEBUG_ONLY(ambifix(".m_tracy_context")));
 #endif
 }

@@ -379,10 +379,6 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
       extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
-  // Short cuts.
-  Application const& application = owning_window->application();
-  Queue const& queue = owning_window->presentation_surface().graphics_queue();
-
   // Create imgui pipeline layout.
   create_pipeline_layout(CWDEBUG_ONLY(ambifix));
   // Create imgui pipeline.
