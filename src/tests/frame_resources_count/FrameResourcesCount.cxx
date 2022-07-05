@@ -1,9 +1,8 @@
 #include "sys.h"
 #include "FrameResourcesCount.h"
 #include "Window.h"
-#include "WindowEvents.h"
 #include "LogicalDevice.h"
-#include "SingleButtonWindow.h"
+#include "../SingleButtonWindow.h"
 #include "utils/debug_ostream_operators.h"
 #include "debug.h"
 
@@ -21,7 +20,7 @@ int main(int argc, char* argv[])
     application.initialize(argc, argv);
 
     // Create a window.
-    auto root_window1 = application.create_root_window<WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_request_cookie1);
+    auto root_window1 = application.create_root_window<vulkan::WindowEvents, Window>({1000, 800}, LogicalDevice::root_window_request_cookie1);
 
 #if 0
     // Create a child window of root_window1. This has to be done before calling
