@@ -52,6 +52,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
   {
     case CopyDataToGPU_start:
     {
+      ZoneScopedN("CopyDataToGPU_start");
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
       // Create staging buffer and map its memory to copy data from the CPU.
       VmaAllocationInfo vma_allocation_info;
@@ -66,6 +67,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
     [[fallthrough]];
     case CopyDataToGPU_write:
     {
+      ZoneScopedN("CopyDataToGPU_write");
       // Copy data to the staging buffer.
       unsigned char* dst = static_cast<unsigned char*>(m_staging_buffer.m_pointer);
       uint32_t const fragment_size = m_data_feeder->fragment_size();
@@ -82,6 +84,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
     [[fallthrough]];
     case CopyDataToGPU_flush:
     {
+      ZoneScopedN("CopyDataToGPU_flush");
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
       // Once everything is written to the staging buffer and flush.
       logical_device->flush_mapped_allocation(m_staging_buffer.m_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
@@ -95,8 +98,11 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
       break;
     }
     case CopyDataToGPU_done:
+    {
+      ZoneScopedN("CopyDataToGPU_done");
       finish();
       break;
+    }
     default:
       direct_base_type::multiplex_impl(run_state);
       break;
