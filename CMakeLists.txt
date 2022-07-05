@@ -92,8 +92,8 @@ endif ()
 # CONFIG FILES
 
 # Tell cwds/sys.h that we have a config.h.
-add_definitions(-DHAVE_CONFIG_H)
-include_directories(${top_objdir})
+#add_definitions(-DHAVE_CONFIG_H)
+#include_directories(${top_objdir})
 # End of CONFIG FILES section.
 
 #==============================================================================
