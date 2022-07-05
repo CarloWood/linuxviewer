@@ -91,11 +91,6 @@ endif ()
 #==============================================================================
 # CONFIG FILES
 
-# Generate project specific configure file.
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
-               ${CMAKE_CURRENT_BINARY_DIR}/config.h
-               @ONLY)
-
 # Tell cwds/sys.h that we have a config.h.
 add_definitions(-DHAVE_CONFIG_H)
 include_directories(${top_objdir})
