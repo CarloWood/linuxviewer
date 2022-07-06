@@ -55,9 +55,9 @@ class SingleButtonWindow : public task::SynchronousWindow
   //
   //===========================================================================
 
-  void draw_frame() override
+  void render_frame() override
   {
-    DoutEntering(dc::vkframe, "SingleButtonWindow::draw_frame() [" << this << "]");
+    DoutEntering(dc::vkframe, "SingleButtonWindow::render_frame() [" << this << "]");
 
     start_frame();
     acquire_image();                    // Can throw vulkan::OutOfDateKHR_Exception.

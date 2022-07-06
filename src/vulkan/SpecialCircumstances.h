@@ -26,7 +26,7 @@ class SpecialCircumstances
   static constexpr int extent_changed_bit = 1;          // Set after m_extent was changed, so signal the render_loop that the window was resized.
   static constexpr int must_close_bit = 2;              // Set when the window must close.
   static constexpr int have_no_swapchain_bit = 4;       // Set when the swapchain is being rebuilt.
-  static constexpr int have_synchronous_task_bit = 8;   // Set when there is a task to perform that can not run asynchronously (while draw_frame is being called).
+  static constexpr int have_synchronous_task_bit = 8;   // Set when there is a task to perform that can not run asynchronously (while render_frame is being called).
   static constexpr int minimized_bit = 16;              // Set when the render loop doesn't want to draw because it assumes the window is minimized.
   static constexpr int map_changed_bit = 32;            // Set when a the window was just (un)minimized.
 

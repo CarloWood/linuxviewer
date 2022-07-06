@@ -35,7 +35,7 @@ foreach(subdir IN LISTS RESOURCES_SUBDIRS)
   list(APPEND RESOURCES_TARGETS ${resources_dst_files})
 endforeach()
 
-add_custom_target(resources ALL DEPENDS ${RESOURCES_TARGETS})
+add_custom_target(frame_resources_count_resources ALL DEPENDS ${RESOURCES_TARGETS})
 
 #==============================================================================
 

@@ -329,7 +329,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
             m_frame_rate_limiter.start(m_frame_rate_interval);
             m_timer.update();   // Keep track of FPS and stuff.
             consume_input_events();
-            draw_frame();
+            render_frame();
             m_delay_by_completed_draw_frames.step({});
             yield(m_application->m_medium_priority_queue);
             wait(frame_timer);

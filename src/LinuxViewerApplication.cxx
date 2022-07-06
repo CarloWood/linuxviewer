@@ -469,9 +469,9 @@ void main()
   //
   //===========================================================================
 
-  void draw_frame() override
+  void render_frame() override
   {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "]");
+    DoutEntering(dc::vkframe, "Window::render_frame() [frame:" << (m_frame_count + 1) << "; " << this << "]");
 
     // Skip the first frame.
     if (++m_frame_count == 1)
@@ -489,7 +489,7 @@ void main()
     // Draw scene/prepare scene's command buffers.
     {
       // Draw sample-specific data - includes command buffer submission!!
-      DrawSample();
+      draw_frame();
     }
 
     // Draw GUI and present swapchain image.
@@ -497,12 +497,12 @@ void main()
 
     auto total_frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - frame_begin_time);
 
-    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+    Dout(dc::vkframe, "Leaving Window::render_frame with total_frame_time = " << total_frame_time);
   }
 
-  void DrawSample()
+  void draw_frame()
   {
-    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
+    DoutEntering(dc::vkframe, "Window::draw_frame() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
     auto swapchain_extent = swapchain().extent();
@@ -556,7 +556,7 @@ void main()
     Dout(dc::vkframe, "Submitting command buffer: submit({" << submit_info << "}, " << *frame_resources->m_command_buffers_completed << ")");
     presentation_surface().vh_graphics_queue().submit({ submit_info }, *frame_resources->m_command_buffers_completed);
 
-    Dout(dc::vkframe, "Leaving Window::DrawSample.");
+    Dout(dc::vkframe, "Leaving Window::draw_frame.");
   }
 };
 

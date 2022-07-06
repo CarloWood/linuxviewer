@@ -8,7 +8,7 @@ namespace task {
 class SynchronousWindow;
 
 // Tasks that will be executed from the render loop, synchronous with
-// (not at the same time as) drawing the frame (the call to draw_frame()).
+// (not at the same time as) rendering the frame (the call to render_frame()).
 class SynchronousTask : public AIStatefulTask
 {
  private:

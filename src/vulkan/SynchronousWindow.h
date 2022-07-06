@@ -491,7 +491,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // SynchronousWindow_render_loop:
   void consume_input_events();
   virtual void draw_imgui() { }
-  virtual void draw_frame() = 0;
+  virtual void render_frame() = 0;
 
   // Called by create_imageless_framebuffers and handle_window_size_changed.
   void recreate_framebuffers(vk::Extent2D extent, uint32_t layers);

@@ -27,15 +27,15 @@ class Window : public task::SynchronousWindow
 
  private:
   // Additional image (view) kind.
-  static vulkan::ImageKind const s_vector_image_kind;
-  static vulkan::ImageViewKind const s_vector_image_view_kind;
+//  static vulkan::ImageKind const s_vector_image_kind;
+//  static vulkan::ImageViewKind const s_vector_image_view_kind;
 
   // Define renderpass / attachment objects.
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth",    s_depth_image_view_kind};
-  Attachment   position{this, "position", s_vector_image_view_kind};
-  Attachment     normal{this, "normal",   s_vector_image_view_kind};
-  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
+//  Attachment   position{this, "position", s_vector_image_view_kind};
+//  Attachment     normal{this, "normal",   s_vector_image_view_kind};
+//  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
   // Vertex buffers.
   using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
@@ -435,15 +435,15 @@ void main() {
     while (calculations_time < 1000 * duration);
   }
 
-  void draw_frame() override
+  void render_frame() override
   {
-    DoutEntering(dc::vkframe, "Window::draw_frame() [frame:" << m_frame_count << "; " << this << "; Window]");
+    DoutEntering(dc::vkframe, "Window::render_frame() [frame:" << m_frame_count << "; " << this << "; Window]");
 
     // Skip the first frame.
     if (++m_frame_count == 1)
       return;
 
-    ZoneScopedN("Window::draw_frame");
+    ZoneScopedN("Window::render_frame");
 
     ASSERT(m_sample_parameters.FrameResourcesCount >= 0);
     m_current_frame.m_resource_count = vulkan::FrameResourceIndex{static_cast<size_t>(m_sample_parameters.FrameResourcesCount)};        // Slider value.
@@ -470,7 +470,7 @@ void main() {
       }
 
       // Draw sample-specific data - includes command buffer submission!!
-      DrawSample();
+      draw_frame();
 
       {
         // Perform calculations influencing rendering of a next frame.
@@ -490,13 +490,13 @@ void main() {
     float float_frame_time = static_cast<float>(total_frame_time.count() * 0.001f);
     m_sample_parameters.m_total_frame_time = m_sample_parameters.m_total_frame_time * 0.99f + float_frame_time * 0.01f;
 
-    Dout(dc::vkframe, "Leaving Window::draw_frame with total_frame_time = " << total_frame_time);
+    Dout(dc::vkframe, "Leaving Window::render_frame with total_frame_time = " << total_frame_time);
   }
 
-  void DrawSample()
+  void draw_frame()
   {
-    ZoneScopedN("Window::DrawSample");
-    DoutEntering(dc::vkframe, "Window::DrawSample() [" << this << "]");
+    ZoneScopedN("Window::draw_frame");
+    DoutEntering(dc::vkframe, "Window::draw_frame() [" << this << "]");
     vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
 
     auto swapchain_extent = swapchain().extent();
@@ -584,7 +584,7 @@ else
 
     submit(command_buffer);
 
-    Dout(dc::vkframe, "Leaving Window::DrawSample.");
+    Dout(dc::vkframe, "Leaving Window::draw_frame.");
   }
 
   //===========================================================================
