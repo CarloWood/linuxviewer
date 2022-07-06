@@ -343,6 +343,7 @@ void Application::pipeline_factory_done(task::SynchronousWindow const* window, b
   boost::intrusive_ptr<task::PipelineCache> merged_pipeline_cache;
   // A factory stopped running.
   PipelineCacheMerger* pipeline_cache_merger = nullptr;
+  bool last_window = false;
   {
     pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
     pipeline_cache_merger_iter = pipeline_factory_list_w->find(pipeline_cache_name);
@@ -368,8 +369,7 @@ void Application::pipeline_factory_done(task::SynchronousWindow const* window, b
     }
     // Was this the last window?
     windows_with_pipeline_cache_name.erase(iter);
-    if (windows_with_pipeline_cache_name.empty())
-      merged_pipeline_cache = std::move(pipeline_cache_merger_iter->second.merged_pipeline_cache);
+    last_window = windows_with_pipeline_cache_name.empty();
   }
   if (pipeline_cache_merger)
   {
@@ -383,9 +383,10 @@ void Application::pipeline_factory_done(task::SynchronousWindow const* window, b
     pipeline_cache_task->signal(task::PipelineCache::factory_finished);
   }
   // Was this the last window (now with unlocked m_pipeline_factory_list)?
-  if (merged_pipeline_cache)
+  if (last_window)
   {
     Dout(dc::notice, "That was the last factory with name " << pipeline_cache_name << ".");
+    merged_pipeline_cache = std::move(pipeline_cache_merger_iter->second.merged_pipeline_cache);
     // We merged all pipeline caches. Now make it write to disk.
     ASSERT(merged_pipeline_cache->running());
     merged_pipeline_cache->set_producer_finished();
