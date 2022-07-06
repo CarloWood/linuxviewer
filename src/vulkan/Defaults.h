@@ -198,6 +198,19 @@ VK_DEFAULTS_DECLARE(SubpassDescription)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
+VK_DEFAULTS_DECLARE(PipelineColorBlendAttachmentState)
+{
+  PipelineColorBlendAttachmentState()
+  {
+    setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha);
+    setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha);
+    setSrcAlphaBlendFactor(vk::BlendFactor::eOne);
+    setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+  }
+
+  VK_DEFAULTS_DEBUG_MEMBERS
+};
+
 using SubpassIndex = utils::VectorIndex<SubpassDescription>;
 
 #ifdef CWDEBUG
@@ -233,7 +246,6 @@ DECLARE_PRINT_MEMBERS_CLASS(VertexInputBindingDescription)
 DECLARE_PRINT_MEMBERS_CLASS(VertexInputAttributeDescription)
 DECLARE_PRINT_MEMBERS_CLASS(Viewport)
 DECLARE_PRINT_MEMBERS_CLASS(Rect2D)
-DECLARE_PRINT_MEMBERS_CLASS(PipelineColorBlendAttachmentState)
 DECLARE_PRINT_MEMBERS_CLASS(Offset2D)
 DECLARE_PRINT_MEMBERS_CLASS(SpecializationInfo)
 DECLARE_PRINT_MEMBERS_CLASS(SpecializationMapEntry)
