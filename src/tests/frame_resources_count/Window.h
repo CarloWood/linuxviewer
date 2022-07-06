@@ -623,7 +623,6 @@ else
     ImGui::SliderInt("Post-submit CPU work time [ms]", &m_sample_parameters.PostSubmitCpuWorkTime, 0, 20);
     ImGui::Text("Frame generation time: %5.2f ms", m_sample_parameters.m_frame_generation_time);
     ImGui::Text("Total frame time: %5.2f ms", m_sample_parameters.m_total_frame_time);
-
     ImGui::End();
 
     if (current_SwapchainCount != m_sample_parameters.SwapchainCount)

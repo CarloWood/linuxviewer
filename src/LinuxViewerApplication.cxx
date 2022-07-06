@@ -524,6 +524,7 @@ void main()
 
 //    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
+    wait_command_buffer_completed();
     m_logical_device->reset_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed });
 
     auto command_buffer = frame_resources->m_command_buffer;
