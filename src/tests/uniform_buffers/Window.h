@@ -1,7 +1,8 @@
 #pragma once
 
 #include "UniformBuffersTest.h"
-#include "vulkan/SynchronousWindow.h"
+#include "SynchronousWindow.h"
+#include "memory/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -30,6 +31,7 @@ class Window : public task::SynchronousWindow
 
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::Pipeline m_vh_graphics_pipeline;
+  vulkan::memory::UniformBuffer m_buffer;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -62,6 +64,9 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 
+    m_buffer = vulkan::memory::UniformBuffer(logical_device(), sizeof(float)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_buffer")));
+
     std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
       {
         .binding = 0,
@@ -79,10 +84,11 @@ class Window : public task::SynchronousWindow
       }
     };
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
-    {
-      .type = vk::DescriptorType::eCombinedImageSampler,
-      .descriptorCount = 2
-    }};
+      {
+        .type = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = 2
+      }
+    };
 
     m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
