@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ImmediateSubmit.h"
-#include "StagingBufferParameters.h"
+#include "memory/StagingBuffer.h"
 #include "memory/DataFeeder.h"
 #include "statefultask/RunningTasksTracker.h"
 #include <vector>
@@ -12,7 +12,7 @@ class CopyDataToGPU : public ImmediateSubmit
 {
  protected:
   std::unique_ptr<vulkan::DataFeeder> m_data_feeder;
-  vulkan::StagingBufferParameters m_staging_buffer;
+  vulkan::memory::StagingBuffer m_staging_buffer;
   uint32_t m_data_size;
   SynchronousWindow* m_resource_owner;                          // If any resources that this task uses are part of a window, then this should be set.
   statefultask::RunningTasksTracker::index_type m_index;        // Our index, if added to m_resource_owner.

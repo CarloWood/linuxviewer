@@ -31,11 +31,13 @@ struct UniformBuffer : Buffer
           memory_create_info.allocation_info_out }
         COMMA_CWDEBUG_ONLY(ambifix))
     {
+#if CW_DEBUG
       vk::MemoryPropertyFlags memory_property_flags;
       logical_device->get_allocation_memory_properties(m_vh_allocation, &memory_property_flags);
       // See https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html#:~:text=Advanced%20data%20uploading
       // If this flag is not set then a staging buffer is necessary!
       ASSERT((memory_property_flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
+#endif
     }
 };
 

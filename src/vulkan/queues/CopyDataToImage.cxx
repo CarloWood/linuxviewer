@@ -1,6 +1,5 @@
 #include "sys.h"
 #include "CopyDataToImage.h"
-#include "StagingBufferParameters.h"
 
 namespace task {
 
@@ -44,7 +43,7 @@ void CopyDataToImage::record_command_buffer(vulkan::handle::CommandBuffer comman
       }
     });
   }
-  command_buffer->copyBufferToImage(m_staging_buffer.m_buffer.m_vh_buffer, m_vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
+  command_buffer->copyBufferToImage(m_staging_buffer.m_vh_buffer, m_vh_target_image, vk::ImageLayout::eTransferDstOptimal, buffer_image_copy);
 
   vk::ImageMemoryBarrier post_transfer_image_memory_barrier{
     .srcAccessMask = vk::AccessFlagBits::eTransferWrite,
