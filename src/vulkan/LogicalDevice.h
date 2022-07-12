@@ -94,8 +94,12 @@ class LogicalDevice
   vk::UniqueDevice m_device;                            // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
+
+  // Physical device properties.
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
+  uint32_t m_max_bound_descriptor_sets;                 // Each pipeline object can use up to m_max_bound_descriptor_sets descriptor sets.
+
   uint32_t m_memory_type_count;                         // The number of memory types of this GPU.
   uint32_t m_memory_heap_count;                         // The number of heaps of this GPU.
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.

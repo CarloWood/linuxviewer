@@ -1043,6 +1043,12 @@ void SynchronousWindow::create_frame_resources()
   DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
   vulkan::FrameResourceIndex const number_of_frame_resources = this->max_number_of_frame_resources();
+
+#if 0 //FIXME: is this how I want to do this? Overlapping as in "overlapping frames", or "frames in flight".
+  // Create all overlapping descriptor sets.
+  auto overlapping_descriptor_sets = allocate_descriptor_sets();
+#endif
+
   Dout(dc::vulkan, "Creating " << number_of_frame_resources.get_value() << " frame resources.");
   m_frame_resources_list.resize(number_of_frame_resources.get_value());
   for (vulkan::FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
@@ -1067,6 +1073,11 @@ void SynchronousWindow::create_frame_resources()
     // Create the command buffer.
     frame_resources->m_command_buffer = frame_resources->m_command_pool.allocate_buffer(
         CWDEBUG_ONLY(ambifix("->m_command_buffer")));
+
+#if 0 // FIXME: See FIXME above.
+    // Move the overlapping descriptor set into m_frame_resources_list.
+    frame_resources->m_overlapping_descriptor_set = std::move(overlapping_descriptor_sets[i]);
+#endif
   }
 
   if (m_use_imgui)

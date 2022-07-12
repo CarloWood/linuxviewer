@@ -31,7 +31,7 @@ class Window : public task::SynchronousWindow
 
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::Pipeline m_vh_graphics_pipeline;
-  vulkan::memory::UniformBuffer m_buffer;
+  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_buffer;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -55,6 +55,11 @@ class Window : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
+  vulkan::FrameResourceIndex max_number_of_frame_resources() const override
+  {
+    return vulkan::FrameResourceIndex{1};
+  }
+
   vulkan::SwapchainIndex max_number_of_swapchain_images() const override
   {
     return vulkan::SwapchainIndex{4};
@@ -64,39 +69,58 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 
-    m_buffer = vulkan::memory::UniformBuffer(logical_device(), sizeof(float)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_buffer")));
-
     std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
       {
         .binding = 0,
-        .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,
         .descriptorCount = 1,
-        .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        .pImmutableSamplers = nullptr
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
       },
       {
         .binding = 1,
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        .pImmutableSamplers = nullptr
       }
     };
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
       {
+        .type = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 10   //FIXME: why 10? Randomly copied from https://vkguide.dev/docs/chapter-4/descriptors_code/#allocating-descriptor-sets
+      },
+      {
         .type = vk::DescriptorType::eCombinedImageSampler,
-        .descriptorCount = 2
+        .descriptorCount = 1
       }
     };
 
     m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
+
+    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
+      m_buffer.emplace_back(logical_device(), sizeof(float)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_buffer[" + to_string(i) + "]")));
+
+    // Information about the buffer we want to point at in the descriptor.
+    std::vector<vk::DescriptorBufferInfo> buffer_infos = {
+      {
+        .buffer = m_buffer.begin()->m_vh_buffer,
+        .offset = 0,
+        .range = sizeof(float)
+      }
+    };
+
+    //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
+    uint32_t binding = 0;
+    logical_device()->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, buffer_infos);
+
+    // Fill the buffer...
+    *(float*)(m_buffer.begin()->m_pointer) = 0.5;
   }
 
   void create_textures() override
   {
-    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::reate_textures() [" << this << "]");
 
     // Sample texture.
     {
@@ -137,7 +161,7 @@ class Window : public task::SynchronousWindow
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
+        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
       }
     }
   }
@@ -153,6 +177,10 @@ class Window : public task::SynchronousWindow
   static constexpr std::string_view uniform_buffer_controlled_triangle_vert_glsl = R"glsl(
 #version 450
 
+layout(set = 0, binding = 0) uniform TopPosition {
+    float x;
+} v12345678;
+
 layout(location = 0) out vec2 v_Texcoord;
 
 vec2 positions[3] = vec2[](
@@ -163,6 +191,7 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
+  positions[0].x = /*TopPosition::m_top_position;*/ v12345678.x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
@@ -170,7 +199,7 @@ void main()
 
   static constexpr std::string_view uniform_buffer_controlled_triangle_frag_glsl = R"glsl(
 #version 450
-layout(set=0, binding=0) uniform sampler2D u_Vort3Texture;
+layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
 
@@ -395,7 +424,8 @@ else
 
     //ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(reinterpret_cast<char const*>(application().application_name().c_str()), nullptr, ImGuiWindowFlags_None);
-    ImGui::SliderFloat("Top position", &m_top_position, 0.0, 1.0);
+    ImGui::SliderFloat("Top position", &m_top_position, -1.0, 1.0);
     ImGui::End();
+    *(float*)(m_buffer.begin()->m_pointer) = m_top_position;
   }
 };

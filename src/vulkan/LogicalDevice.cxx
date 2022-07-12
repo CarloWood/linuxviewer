@@ -7,6 +7,7 @@
 #include "queues/QueueFamilyProperties.h"
 #include "queues/QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
+//#include "descriptor/DescriptorSetIndex.h"
 #include "vk_utils/find_missing_names.h"
 #include "vk_utils/get_binary_file_contents.h"
 #include "debug/DebugSetName.h"
@@ -452,10 +453,21 @@ void LogicalDevice::prepare(
 #ifdef CWDEBUG
     debug::Mark mark;
 #endif
-    auto properties = m_vh_physical_device.getProperties();
+    vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceInlineUniformBlockProperties> properties_chain;
+    auto& properties2                     = properties_chain.get<vk::PhysicalDeviceProperties2>();
+    m_vh_physical_device.getProperties2(&properties2);
+    vk::PhysicalDeviceProperties& properties = properties2.properties;
+    // Exposition only currently (not yet used).
+    [[maybe_unused]] auto& inline_uniform_block_properties = properties_chain.get<vk::PhysicalDeviceInlineUniformBlockProperties>();
+
     Dout(dc::vulkan, properties);
-    m_non_coherent_atom_size = properties.limits.nonCoherentAtomSize;
-    m_max_sampler_anisotropy = properties.limits.maxSamplerAnisotropy;
+    m_non_coherent_atom_size    = properties.limits.nonCoherentAtomSize;
+    m_max_sampler_anisotropy    = properties.limits.maxSamplerAnisotropy;
+    m_max_bound_descriptor_sets = properties.limits.maxBoundDescriptorSets;
+
+    Dout(dc::vulkan, "m_non_coherent_atom_size = " << m_non_coherent_atom_size);
+    Dout(dc::vulkan, "m_max_sampler_anisotropy = " << m_max_sampler_anisotropy);
+    Dout(dc::vulkan, "m_max_bound_descriptor_sets = " << m_max_bound_descriptor_sets);
   }
   Dout(dc::vulkan, "Physical Device Memory Properties:");
   {
@@ -873,16 +885,16 @@ DescriptorSetParameters LogicalDevice::create_descriptor_resources(
   vk::UniqueDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(layout_bindings
       COMMA_CWDEBUG_ONLY(ambifix(".m_layout")));
 
-  vk::UniqueDescriptorPool descriptor_pool = create_descriptor_pool(pool_sizes, 1
+  vk::UniqueDescriptorPool descriptor_pool = create_descriptor_pool(pool_sizes, 10      //FIXME: why 10? See https://vkguide.dev/docs/chapter-4/descriptors_code "Allocating descriptor sets".
       COMMA_CWDEBUG_ONLY(ambifix(".m_pool")));
 
   std::vector<vk::UniqueDescriptorSet> descriptor_sets = allocate_descriptor_sets({ *descriptor_set_layout }, *descriptor_pool
       COMMA_CWDEBUG_ONLY(ambifix(".m_handle")));
 
   return {
+   .m_layout = std::move(descriptor_set_layout),
    .m_pool = std::move(descriptor_pool),
-   .m_handle = std::move(descriptor_sets[0]),
-   .m_layout = std::move(descriptor_set_layout)
+   .m_handle = std::move(descriptor_sets[0])
   };
 }
 
