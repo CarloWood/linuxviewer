@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shaderbuilder/ShaderVariableLayouts.h"
 #include "shaderbuilder/ShaderVariableLayout.h"
 #include "math/glsl.h"
 

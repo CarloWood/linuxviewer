@@ -1,6 +1,7 @@
 #pragma once
 
-#include "shaderbuilder/UniformAttributes.h"
+#include "shaderbuilder/ShaderVariableLayouts.h"
+#include "shaderbuilder/ShaderVariableLayout.h"
 #include "math/glsl.h"
 
 // Struct describing data type and format of uniform block.
@@ -12,7 +13,7 @@ struct TopPosition
 namespace vulkan::shaderbuilder {
 
 template<>
-struct UniformAttributes<TopPosition>
+struct ShaderVariableLayouts<TopPosition>
 {
   static constexpr std::array<ShaderVariableLayout, 1> layouts = {{
     { Type::Float, "TopPosition::x", offsetof(TopPosition, x) },

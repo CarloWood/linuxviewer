@@ -1,7 +1,7 @@
 #pragma once
 
+#include "shaderbuilder/ShaderVariableLayouts.h"
 #include "shaderbuilder/ShaderVariableLayout.h"
-#include "shaderbuilder/VertexShaderInputSet.h"
 #include "math/glsl.h"
 
 // Struct describing data type and format of vertex attributes.

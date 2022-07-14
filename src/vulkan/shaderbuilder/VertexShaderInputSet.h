@@ -1,6 +1,7 @@
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 #define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
+#include "ShaderVariableLayouts.h"
 #include "memory/DataFeeder.h"
 #include <vulkan/vulkan.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -51,6 +52,8 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 //
 // For example, if ENTRY is `InstanceData`, which is defined as
 //
+// #include "ShaderVariableLayouts.h"
+// #include "ShaderVariableLayout.h"
 // #include "math/glsl.h"
 //
 // struct InstanceData
@@ -76,13 +79,6 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // } // namespace vulkan::shaderbuilder
 //
 // This can simply be done immediately below the struct.
-
-// This template struct must be specialized for each shader variable struct.
-// See VertexShaderInputSet for more info and example.
-template<typename ENTRY>
-struct ShaderVariableLayouts
-{
-};
 
 template<typename ENTRY>
 class VertexShaderInputSet : public VertexShaderInputSetBase
