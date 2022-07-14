@@ -31,15 +31,15 @@ using ImDrawIdx = unsigned short;
 
 } // namespace imgui
 
-// Describe the ImDrawVert's vertex attributes in terms of this dummy struct,
+// Describe the ImDrawVert's member layouts in terms of this dummy struct,
 // since it only uses things like sizeof and offsetof.
 namespace vulkan::shaderbuilder {
 
 template<>
-struct ShaderVariableAttributes<imgui::ImDrawVert>
+struct ShaderVariableLayouts<imgui::ImDrawVert>
 {
   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
-  static constexpr std::array<ShaderVariableAttribute, 3> attributes = {{
+  static constexpr std::array<ShaderVariableLayout, 3> layouts = {{
     { Type::vec2, "ImDrawVert::pos", offsetof(imgui::ImDrawVert, pos) },
     { Type::vec2, "ImDrawVert::uv", offsetof(imgui::ImDrawVert, uv) },
     { Type::u8vec4, "ImDrawVert::col", offsetof(imgui::ImDrawVert, col) }

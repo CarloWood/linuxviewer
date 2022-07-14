@@ -184,14 +184,14 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   }
 
   auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
-  auto vertex_attribute_descriptions = pipeline.vertex_attribute_descriptions();
+  auto vertex_input_attribute_descriptions = pipeline.vertex_input_attribute_descriptions();
 
   vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
     .flags = {},
     .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descriptions.size()),
     .pVertexBindingDescriptions = vertex_binding_descriptions.data(),
-    .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size()),
-    .pVertexAttributeDescriptions = vertex_attribute_descriptions.data()
+    .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_attribute_descriptions.size()),
+    .pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data()
   };
 
   vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{

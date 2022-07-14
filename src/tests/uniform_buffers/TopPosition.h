@@ -14,7 +14,7 @@ namespace vulkan::shaderbuilder {
 template<>
 struct UniformAttributes<TopPosition>
 {
-  static constexpr std::array<ShaderVariableAttribute, 1> attributes = {{
+  static constexpr std::array<ShaderVariableLayout, 1> layouts = {{
     { Type::Float, "TopPosition::x", offsetof(TopPosition, x) },
   }};
 };

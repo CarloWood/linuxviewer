@@ -327,7 +327,7 @@ void main() {
       }
 
       m_vertex_input_binding_descriptions = m_pipeline.vertex_binding_descriptions();
-      m_vertex_input_attribute_descriptions = m_pipeline.vertex_attribute_descriptions();
+      m_vertex_input_attribute_descriptions = m_pipeline.vertex_input_attribute_descriptions();
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 

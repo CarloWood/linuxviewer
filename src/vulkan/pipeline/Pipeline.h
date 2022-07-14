@@ -21,7 +21,7 @@ namespace vulkan::shaderbuilder {
 class VertexShaderInputSetBase;
 template<typename ENTRY> class VertexShaderInputSet;
 
-struct ShaderVariableAttribute;
+struct ShaderVariableLayout;
 
 } // namespace vulkan::shaderbuilder
 
@@ -30,8 +30,8 @@ namespace vulkan::pipeline {
 class Pipeline
 {
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
-  boost::ptr_set<shaderbuilder::ShaderVariableAttribute> m_shader_variable_attributes;  // All existing attributes of the above input sets.
-  shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for m_vertex_attributes.
+  boost::ptr_set<shaderbuilder::ShaderVariableLayout> m_shader_variable_layouts;        // All existing layouts of the above input sets (including declaration function).
+  shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for vertex attributes (VertexAttribute).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
 
@@ -57,7 +57,7 @@ class Pipeline
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer,
-      boost::ptr_set<shaderbuilder::ShaderVariableAttribute> const* variable_attributes = nullptr);
+      boost::ptr_set<shaderbuilder::ShaderVariableLayout> const* shader_variable_layouts = nullptr);
 
   // Accessors.
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
@@ -67,7 +67,7 @@ class Pipeline
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
 
   // Returns information on what was added with add_vertex_input_binding.
-  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions() const;
+  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions() const;
 
   // Returns information on what was added with build_shader.
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
@@ -81,7 +81,7 @@ class Pipeline
 #include "shaderbuilder/VertexShaderInputSet.h"
 #endif
 #ifndef VULKAN_SHADERBUILDER_VERTEX_ATTRIBUTE_ENTRY_H
-#include "shaderbuilder/VertexAttributeEntry.h"
+#include "shaderbuilder/VertexAttribute.h"
 #endif
 
 #ifndef VULKAN_PIPELINE_PIPELINE_H_definitions
@@ -94,12 +94,12 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
 {
   shaderbuilder::BindingIndex binding = m_vertex_shader_input_sets.iend();
   // Register ENTRY as vertex shader input.
-  for (auto&& attribute : shaderbuilder::ShaderVariableAttributes<ENTRY>::attributes)
+  for (auto&& shader_variable_layout : shaderbuilder::ShaderVariableLayouts<ENTRY>::layouts)
   {
-    auto res = m_shader_variable_attributes.insert(new shaderbuilder::VertexAttributeEntry(binding, attribute));
+    auto res = m_shader_variable_layouts.insert(new shaderbuilder::VertexAttribute(binding, shader_variable_layout));
     // All used names must be unique.
     if (!res.second)
-      THROW_ALERT("Duplicated vertex attribute id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", attribute.m_glsl_id_str));
+      THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", shader_variable_layout.m_glsl_id_str));
   }
   // Keep track of all VertexShaderInputSetBase objects.
   m_vertex_shader_input_sets.push_back(&vertex_shader_input_set);

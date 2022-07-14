@@ -9,9 +9,9 @@ namespace vulkan::pipeline {
 std::string_view Pipeline::preprocess(
     shaderbuilder::ShaderInfo const& shader_info,
     std::string& glsl_source_code_buffer,
-    boost::ptr_set<shaderbuilder::ShaderVariableAttribute> const* variable_attributes)
+    boost::ptr_set<shaderbuilder::ShaderVariableLayout> const* shader_variable_layouts)
 {
-  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << variable_attributes << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << shader_variable_layouts << ") [" << this << "]");
 
   std::string_view source = shader_info.glsl_template_code();
 
@@ -23,11 +23,11 @@ std::string_view Pipeline::preprocess(
   size_t source_code_size_estimate = std::strlen(version_header) + source.length();
 
   std::string declarations;
-  bool const has_variable_attributes = variable_attributes && !variable_attributes->empty();
-  if (has_variable_attributes)
+  bool const has_shader_variable_layouts = shader_variable_layouts && !shader_variable_layouts->empty();
+  if (has_shader_variable_layouts)
   {
-    for (shaderbuilder::ShaderVariableAttribute const& attribute : *variable_attributes)
-      declarations += attribute.declaration(this);
+    for (shaderbuilder::ShaderVariableLayout const& shader_variable_layout : *shader_variable_layouts)
+      declarations += shader_variable_layout.declaration(this);
     declarations += '\n';
   }
   source_code_size_estimate += declarations.size();
@@ -41,15 +41,15 @@ std::string_view Pipeline::preprocess(
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
-  if (has_variable_attributes)
+  if (has_shader_variable_layouts)
   {
-    // variable_attributes contains a number of strings that we need to find in source.
+    // shader_variable_layouts contains a number of strings that we need to find in source.
     // They may occur zero or more times.
-    for (auto&& attribute : *variable_attributes)
+    for (auto&& shader_variable_layout : *shader_variable_layouts)
     {
-      std::string const match_string = attribute.m_glsl_id_str;
+      std::string const match_string = shader_variable_layout.m_glsl_id_str;
       for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
-        positions[pos] = std::make_pair(match_string, attribute.name());
+        positions[pos] = std::make_pair(match_string, shader_variable_layout.name());
     }
   }
 
@@ -86,25 +86,25 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
   return vertex_binding_descriptions;
 }
 
-std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_attribute_descriptions() const
+std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribute_descriptions() const
 {
-  std::vector<vk::VertexInputAttributeDescription> vertex_attribute_descriptions;
-  for (shaderbuilder::ShaderVariableAttribute const& attribute : m_shader_variable_attributes)
+  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
+  for (shaderbuilder::ShaderVariableLayout const& shader_variable_layout : m_shader_variable_layouts)
   {
-    // Only do this for VertexAttributeEntry objects in the set.
-    if (attribute.m_declaration != &shaderbuilder::VertexAttributeEntry::declaration)
+    // Only do this for VertexAttribute objects in the set.
+    if (shader_variable_layout.m_declaration != &shaderbuilder::VertexAttribute::declaration)
       continue;
-    shaderbuilder::VertexAttributeEntry const* vertex_attribute_entry = static_cast<shaderbuilder::VertexAttributeEntry const*>(&attribute);
-    auto location = m_vertex_shader_location_context.locations.find(&attribute);
+    shaderbuilder::VertexAttribute const* vertex_attribute = static_cast<shaderbuilder::VertexAttribute const*>(&shader_variable_layout);
+    auto location = m_vertex_shader_location_context.locations.find(&shader_variable_layout);
     ASSERT(location != m_vertex_shader_location_context.locations.end());
-    shaderbuilder::TypeInfo type_info(attribute.m_glsl_type);
-    vertex_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
+    shaderbuilder::TypeInfo type_info(shader_variable_layout.m_glsl_type);
+    vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
         .location = location->second,
-        .binding = static_cast<uint32_t>(vertex_attribute_entry->binding.get_value()),
+        .binding = static_cast<uint32_t>(vertex_attribute->binding.get_value()),
         .format = type_info.format,
-        .offset = attribute.m_offset});
+        .offset = shader_variable_layout.m_offset});
   }
-  return vertex_attribute_descriptions;
+  return vertex_input_attribute_descriptions;
 }
 
 void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
@@ -116,7 +116,7 @@ void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
   switch (shader_info.stage())
   {
     case vk::ShaderStageFlagBits::eVertex:
-      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_shader_variable_attributes);
+      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_shader_variable_layouts);
       break;
     default:
       glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);

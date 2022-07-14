@@ -1,15 +1,15 @@
 #include "sys.h"
 
-#include "VertexAttributeEntry.h"
+#include "VertexAttribute.h"
 #include "pipeline/Pipeline.h"
 #include <string>
 
 namespace vulkan::shaderbuilder {
 
 //static
-std::string VertexAttributeEntry::declaration(ShaderVariableAttribute const* base, pipeline::Pipeline* pipeline)
+std::string VertexAttribute::declaration(ShaderVariableLayout const* base, pipeline::Pipeline* pipeline)
 {
-  VertexAttributeEntry const* self = static_cast<VertexAttributeEntry const*>(base);
+  VertexAttribute const* self = static_cast<VertexAttribute const*>(base);
   LocationContext& context = pipeline->vertex_shader_location_context();
 
   std::ostringstream oss;

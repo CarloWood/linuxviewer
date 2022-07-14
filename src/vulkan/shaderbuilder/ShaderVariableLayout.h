@@ -134,12 +134,12 @@ struct TypeInfo
   TypeInfo(Type type);
 };
 
-struct ShaderVariableAttribute
+struct ShaderVariableLayout
 {
   Type const m_glsl_type;                       // The glsl type of the variable.
   char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
-  uint32_t const m_offset;                      // The offset of the attribute inside its C++ ENTRY struct.
-  std::string (*m_declaration)(ShaderVariableAttribute const*, pipeline::Pipeline*);    // Pseudo virtual function that generates the declaration.
+  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
+  std::string (*m_declaration)(ShaderVariableLayout const*, pipeline::Pipeline*);    // Pseudo virtual function that generates the declaration.
 
   std::string name() const;
   std::string declaration(pipeline::Pipeline* pipeline) const
@@ -149,8 +149,8 @@ struct ShaderVariableAttribute
     return m_declaration(this, pipeline);
   }
 
-  // ShaderVariableAttribute are put in a boost::ptr_set. Provide a sorting function.
-  bool operator<(ShaderVariableAttribute const& other) const
+  // ShaderVariableLayout are put in a boost::ptr_set. Provide a sorting function.
+  bool operator<(ShaderVariableLayout const& other) const
   {
     return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
   }

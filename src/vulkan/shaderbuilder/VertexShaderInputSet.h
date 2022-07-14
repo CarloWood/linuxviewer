@@ -45,8 +45,8 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // ENTRY should be a struct existing solely of types specified in math/glsl.h,
 // but I don't think that can be checked with a concept :/.
 //
-// Also vulkan::shaderbuilder::ShaderVariableAttributes<ENTRY> must be overloaded and
-// specify the static constexpr members `input_rate` and `attributes`, where
+// Also vulkan::shaderbuilder::ShaderVariableLayouts<ENTRY> must be overloaded and
+// specify the static constexpr members `input_rate` and `layouts`, where
 // the latter lists all of the members of ENTRY.
 //
 // For example, if ENTRY is `InstanceData`, which is defined as
@@ -64,10 +64,10 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // namespace vulkan::shaderbuilder {
 //
 // template<>
-// struct ShaderVariableAttributes<InstanceData>
+// struct ShaderVariableLayouts<InstanceData>
 // {
 //   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eInstance;     // This is per instance data.
-//   static constexpr std::array<ShaderVariableAttribute, 2> attributes = {{
+//   static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
 //     { Type::vec4, "InstanceData::m_position", offsetof(InstanceData, m_position) },
 //     { Type::mat4, "InstanceData::m_matrix", offsetof(InstanceData, m_matrix) }
 //   }};
@@ -80,7 +80,7 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // This template struct must be specialized for each shader variable struct.
 // See VertexShaderInputSet for more info and example.
 template<typename ENTRY>
-struct ShaderVariableAttributes
+struct ShaderVariableLayouts
 {
 };
 
@@ -89,7 +89,7 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 {
  public:
   // Constructor. Pass the input rate to the base class, extracting that info from ENTRY.
-  VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::ShaderVariableAttributes<ENTRY>::input_rate) { }
+  VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::ShaderVariableLayouts<ENTRY>::input_rate) { }
 
  private:
   uint32_t fragment_size() const override final

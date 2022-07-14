@@ -1,5 +1,6 @@
 #include "sys.h"
-#include "ShaderVariableAttribute.h"
+#include "ShaderVariableLayout.h"
+#include "VertexAttribute.h"
 #include "debug.h"
 #include <magic_enum.hpp>
 #include <sstream>
@@ -313,7 +314,7 @@ TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(type2size(
 {
 }
 
-std::string ShaderVariableAttribute::name() const
+std::string ShaderVariableLayout::name() const
 {
   std::ostringstream oss;
   oss << 'v' << std::hash<std::string>{}(m_glsl_id_str);
@@ -321,7 +322,7 @@ std::string ShaderVariableAttribute::name() const
 }
 
 #ifdef CWDEBUG
-void ShaderVariableAttribute::print_on(std::ostream& os) const
+void ShaderVariableLayout::print_on(std::ostream& os) const
 {
   using namespace magic_enum::ostream_operators;
 
@@ -329,7 +330,12 @@ void ShaderVariableAttribute::print_on(std::ostream& os) const
 
   os << "m_glsl_type:" << m_glsl_type <<
       ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
-      ", m_offset:" << m_offset;
+      ", m_offset:" << m_offset <<
+      ", m_declaration:";
+  if (m_declaration == &VertexAttribute::declaration)
+    os << "&VertexAttribute::declaration";
+  else
+    os << (void*)m_declaration;
 
   os << '}';
 }
