@@ -4,6 +4,17 @@
 
 namespace glsl {
 
+// Allowed types for glsl.
+using Float  = float;
+using Double = double;
+using Bool   = bool;
+using Int    = int32_t;
+using Uint   = uint32_t;
+using Int8   = int8_t;
+using Uint8  = uint8_t;
+using Int16  = int16_t;
+using Uint16 = uint16_t;
+
 // All of these types must be dense float arrays.
 
 using vec2 = Eigen::Vector2f;

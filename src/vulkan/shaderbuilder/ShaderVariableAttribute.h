@@ -2,14 +2,17 @@
 
 #include <vulkan/vulkan.hpp>
 #include "utils/Vector.h"
+#include <functional>
 #include <cstring>
 #include <iosfwd>
 #include <map>
 #include <cstdint>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::pipeline {
+class Pipeline;
+} // namespace vulkan::pipeline
 
-class VertexShaderInputSetBase;
+namespace vulkan::shaderbuilder {
 
 // Bit encoding of Type:
 //
@@ -20,7 +23,7 @@ class VertexShaderInputSetBase;
 //        rrr: the number of rows.
 //        ccc: the number of columns.
 //
-static constexpr inline int encode(int rows, int cols, int typesize, int typemask)
+static consteval int encode(int rows, int cols, int typesize, int typemask)
 {
   return rows + (cols << 3) + (typesize << 6) + (typemask << 9);
 }
@@ -131,45 +134,30 @@ struct TypeInfo
   TypeInfo(Type type);
 };
 
-struct VertexAttribute;
-
-struct LocationContext
-{
-  uint32_t next_location = 0;
-  std::map<VertexAttribute const*, uint32_t> locations;
-
-  void update_location(VertexAttribute const* vertex_attribute_entry);
-};
-
-struct VertexAttribute
+struct ShaderVariableAttribute
 {
   Type const m_glsl_type;                       // The glsl type of the variable.
   char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
   uint32_t const m_offset;                      // The offset of the attribute inside its C++ ENTRY struct.
+  std::string (*m_declaration)(ShaderVariableAttribute const*, pipeline::Pipeline*);    // Pseudo virtual function that generates the declaration.
 
   std::string name() const;
-  std::string declaration(LocationContext& context) const;
+  std::string declaration(pipeline::Pipeline* pipeline) const
+  {
+    // Set m_declaration when constructing the derived class. It's like a virtual function.
+    ASSERT(m_declaration);
+    return m_declaration(this, pipeline);
+  }
+
+  // ShaderVariableAttribute are put in a boost::ptr_set. Provide a sorting function.
+  bool operator<(ShaderVariableAttribute const& other) const
+  {
+    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
+  }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
-};
-
-using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
-
-struct VertexAttributeEntry
-{
-  BindingIndex binding;
-  VertexAttribute vertex_attribute;
-
-  VertexAttributeEntry(BindingIndex binding_, VertexAttribute const& vertex_attribute_) :
-    binding(binding_), vertex_attribute(vertex_attribute_) { }
-
-  // VertexAttributeEntry are put in a std::set. Provide a sorting function.
-  bool operator<(VertexAttributeEntry const& other) const
-  {
-    return strcmp(vertex_attribute.m_glsl_id_str, other.vertex_attribute.m_glsl_id_str) < 0;
-  }
 };
 
 } // namespace vulkan::shaderbuilder

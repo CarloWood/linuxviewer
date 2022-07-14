@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ShaderCompiler.h"
-#include "VertexAttribute.h"
 #include "ShaderInfo.h"
 #include "utils/Badge.h"
 #include <vulkan/vulkan.hpp>

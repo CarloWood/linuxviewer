@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "VertexAttribute.h"
+#include "ShaderVariableAttribute.h"
 #include "debug.h"
 #include <magic_enum.hpp>
 #include <sstream>
@@ -313,30 +313,15 @@ TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(type2size(
 {
 }
 
-void LocationContext::update_location(VertexAttribute const* vertex_attribute)
-{
-  locations[vertex_attribute] = next_location;
-  next_location += TypeInfo{vertex_attribute->m_glsl_type}.number_of_attribute_indices;
-}
-
-std::string VertexAttribute::name() const
+std::string ShaderVariableAttribute::name() const
 {
   std::ostringstream oss;
   oss << 'v' << std::hash<std::string>{}(m_glsl_id_str);
   return oss.str();
 }
 
-std::string VertexAttribute::declaration(LocationContext& context) const
-{
-  std::ostringstream oss;
-  TypeInfo glsl_type_info(m_glsl_type);
-  oss << "layout(location = " << context.next_location << ") in " << glsl_type_info.name << ' ' << name() << ";\t// " << m_glsl_id_str << "\n";
-  context.update_location(this);
-  return oss.str();
-}
-
 #ifdef CWDEBUG
-void VertexAttribute::print_on(std::ostream& os) const
+void ShaderVariableAttribute::print_on(std::ostream& os) const
 {
   using namespace magic_enum::ostream_operators;
 

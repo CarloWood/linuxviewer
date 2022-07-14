@@ -36,10 +36,10 @@ using ImDrawIdx = unsigned short;
 namespace vulkan::shaderbuilder {
 
 template<>
-struct VertexAttributes<imgui::ImDrawVert>
+struct ShaderVariableAttributes<imgui::ImDrawVert>
 {
   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
-  static constexpr std::array<VertexAttribute, 3> attributes = {{
+  static constexpr std::array<ShaderVariableAttribute, 3> attributes = {{
     { Type::vec2, "ImDrawVert::pos", offsetof(imgui::ImDrawVert, pos) },
     { Type::vec2, "ImDrawVert::uv", offsetof(imgui::ImDrawVert, uv) },
     { Type::u8vec4, "ImDrawVert::col", offsetof(imgui::ImDrawVert, col) }
