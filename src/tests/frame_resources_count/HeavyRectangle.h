@@ -74,7 +74,7 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
   }
 
   // Returns the number of vertices.
-  int fragment_count() const override
+  int chunk_count() const override
   {
     return batch_size * iside * iside;
   }

@@ -69,14 +69,14 @@ struct TexPixelsRGBA32Feeder final : public DataFeeder
     ::ImGui::MemFree(const_cast<unsigned char*>(m_TexPixelsAlpha8));
   }
 
-  uint32_t fragment_size() const override { return sizeof(unsigned int); }
-  int fragment_count() const override { return m_size; }
+  uint32_t chunk_size() const override { return sizeof(unsigned int); }
+  int chunk_count() const override { return m_size; }
   int next_batch() override { return m_size; }
-  void get_fragments(unsigned char* fragment_ptr) override
+  void get_chunks(unsigned char* chunk_ptr) override
   {
     // See ImFontAtlas::GetTexDataAsRGBA32.
     unsigned char const* src = m_TexPixelsAlpha8;
-    unsigned int* dst = reinterpret_cast<unsigned int*>(fragment_ptr);
+    unsigned int* dst = reinterpret_cast<unsigned int*>(chunk_ptr);
     for (int n = m_size; n > 0; --n)
       *dst++ = IM_COL32(255, 255, 255, (unsigned int)(*src++));
   }

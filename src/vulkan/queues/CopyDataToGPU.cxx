@@ -64,14 +64,14 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
       ZoneScopedN("CopyDataToGPU_write");
       // Copy data to the staging buffer.
       unsigned char* dst = static_cast<unsigned char*>(m_staging_buffer.m_pointer);
-      uint32_t const fragment_size = m_data_feeder->fragment_size();
-      int const fragment_count = m_data_feeder->fragment_count();
-      int fragments;
-      for (int total_fragments = 0; total_fragments < fragment_count; total_fragments += fragments)
+      uint32_t const chunk_size = m_data_feeder->chunk_size();
+      int const chunk_count = m_data_feeder->chunk_count();
+      int chunks;
+      for (int total_chunks = 0; total_chunks < chunk_count; total_chunks += chunks)
       {
-        fragments = m_data_feeder->next_batch();
-        m_data_feeder->get_fragments(dst);
-        dst += fragments * fragment_size;
+        chunks = m_data_feeder->next_batch();
+        m_data_feeder->get_chunks(dst);
+        dst += chunks * chunk_size;
       }
       set_state(CopyDataToGPU_flush);
     }

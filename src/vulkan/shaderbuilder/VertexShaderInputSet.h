@@ -37,10 +37,10 @@ class VertexShaderInputSetFeeder final : public DataFeeder
  public:
   [[gnu::always_inline]] inline VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner);
 
-  uint32_t fragment_size() const override { return m_input_set->fragment_size(); }
-  int fragment_count() const override { return m_input_set->fragment_count(); }
+  uint32_t chunk_size() const override { return m_input_set->chunk_size(); }
+  int chunk_count() const override { return m_input_set->chunk_count(); }
   int next_batch() override { return m_input_set->next_batch(); }
-  void get_fragments(unsigned char* fragment_ptr) override { m_input_set->get_fragments(fragment_ptr); }
+  void get_chunks(unsigned char* chunk_ptr) override { m_input_set->get_chunks(chunk_ptr); }
 };
 
 // ENTRY should be a struct existing solely of types specified in math/glsl.h,
@@ -88,7 +88,7 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
   VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::ShaderVariableLayouts<ENTRY>::input_rate) { }
 
  private:
-  uint32_t fragment_size() const override final
+  uint32_t chunk_size() const override final
   {
     return sizeof(ENTRY);
   }
@@ -101,10 +101,10 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 
   virtual void create_entry(ENTRY* input_entry_ptr) = 0;
 
-  void get_fragments(unsigned char* fragment_ptr) override final
+  void get_chunks(unsigned char* chunk_ptr) override final
   {
-    ASSERT(reinterpret_cast<size_t>(fragment_ptr) % alignof(ENTRY) == 0);
-    create_entry(reinterpret_cast<ENTRY*>(fragment_ptr));
+    ASSERT(reinterpret_cast<size_t>(chunk_ptr) % alignof(ENTRY) == 0);
+    create_entry(reinterpret_cast<ENTRY*>(chunk_ptr));
   }
 };
 

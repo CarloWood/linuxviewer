@@ -57,10 +57,10 @@ class ImageDataFeeder final : public vulkan::DataFeeder
     stbi_image_free(m_image_data);
   }
 
-  uint32_t fragment_size() const override { return m_size; }
-  int fragment_count() const override { return 1; }
+  uint32_t chunk_size() const override { return m_size; }
+  int chunk_count() const override { return 1; }
   int next_batch() override { return 1; }
-  void get_fragments(unsigned char* fragment_ptr) override { std::memcpy(fragment_ptr, m_image_data, m_size); }
+  void get_chunks(unsigned char* chunk_ptr) override { std::memcpy(chunk_ptr, m_image_data, m_size); }
 };
 
 } // namespace stbi

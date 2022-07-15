@@ -2,6 +2,7 @@
 
 #include "HeavyRectangle.h"
 #include "RandomPositions.h"
+#include "PushConstant.h"
 #include "SampleParameters.h"
 #include "FrameResourcesCount.h"
 #include "queues/CopyDataToBuffer.h"
@@ -372,8 +373,8 @@ void main() {
 
     for (vulkan::shaderbuilder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->pipeline().vertex_shader_input_sets())
     {
-      size_t entry_size = vertex_shader_input_set->fragment_size();
-      int count = vertex_shader_input_set->fragment_count();
+      size_t entry_size = vertex_shader_input_set->chunk_size();
+      int count = vertex_shader_input_set->chunk_count();
       size_t buffer_size = count * entry_size;
 
       vk::Buffer new_buffer;
@@ -522,7 +523,7 @@ void main() {
       .extent = swapchain_extent
     };
 
-    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+    PushConstant scaling_factor = { static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height) };
 
     wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
@@ -555,7 +556,8 @@ else
         command_buffer->bindVertexBuffers(0, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
       }
       command_buffer->setViewport(0, { viewport });
-      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof( float ), &scaling_factor);
+      //FIXME: this should become something like: update_push_constant(scaling_factor, command_buffer);
+      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant), &scaling_factor);
       command_buffer->setScissor(0, { scissor });
       command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }

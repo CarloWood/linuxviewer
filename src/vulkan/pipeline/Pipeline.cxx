@@ -79,7 +79,7 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
   {
     vertex_binding_descriptions.push_back({
         .binding = binding,
-        .stride = vextex_input_set->fragment_size(),
+        .stride = vextex_input_set->chunk_size(),
         .inputRate = vextex_input_set->input_rate()});
     ++binding;
   }
@@ -111,6 +111,7 @@ void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
     shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
+  Debug(attach_gdb());
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
   switch (shader_info.stage())
