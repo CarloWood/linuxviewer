@@ -112,7 +112,16 @@ void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   std::string glsl_source_code_buffer;
-  std::string_view glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_shader_variable_layouts);
+  std::string_view glsl_source_code;
+  switch (shader_info.stage())
+  {
+    case vk::ShaderStageFlagBits::eVertex:
+      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_shader_variable_layouts);
+      break;
+    default:
+      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);
+      break;
+  }
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
