@@ -232,9 +232,10 @@ class Window : public task::SynchronousWindow
   }
 
   static constexpr std::string_view intel_vert_glsl = R"glsl(
-layout( push_constant ) uniform Scaling {
-  float AspectScale;
-} PushConstant;
+//FIXME: this should be generated
+layout(push_constant) uniform PushConstant {
+  float aspect_scale;
+} v12345678;
 
 out gl_PerVertex
 {
@@ -250,7 +251,8 @@ void main()
   v_Distance = 1.0 - InstanceData::m_position.z;        // Darken with distance
 
   vec4 position = VertexData::m_position;
-  position.y *= PushConstant.AspectScale;               // Adjust to screen aspect ration
+  //position.y *= PushConstant::aspect_scale;             // Adjust to screen aspect ration
+  position.y *= v12345678.aspect_scale;             // Adjust to screen aspect ration
   position.xy *= pow( v_Distance, 0.5 );                // Scale with distance
   gl_Position = position + InstanceData::m_position;
 }
@@ -265,10 +267,11 @@ layout(location = 1) in float v_Distance;
 
 layout(location = 0) out vec4 o_Color;
 
-void main() {
-  vec4 background_image = texture( u_BackgroundTexture, v_Texcoord );
-  vec4 benchmark_image = texture( u_BenchmarkTexture, v_Texcoord );
-  o_Color = v_Distance * mix( background_image, benchmark_image, benchmark_image.a );
+void main()
+{
+  vec4 background_image = texture(u_BackgroundTexture, v_Texcoord);
+  vec4 benchmark_image = texture(u_BenchmarkTexture, v_Texcoord);
+  o_Color = v_Distance * mix(background_image, benchmark_image, benchmark_image.a);
 }
 )glsl";
 
@@ -356,10 +359,6 @@ void main() {
     auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
-
-    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory2.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
-    pipeline_factory2.generate(this);
   }
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override

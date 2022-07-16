@@ -12,7 +12,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 1
+#define ENABLE_IMGUI 0
 
 class Window : public task::SynchronousWindow
 {
@@ -177,6 +177,11 @@ class Window : public task::SynchronousWindow
   static constexpr std::string_view uniform_buffer_controlled_triangle_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
+// FIXME: this should be generated.
+ layout(set = 0, binding = 0) uniform TopPosition {
+    float x;
+} v12345678;
+
 vec2 positions[3] = vec2[](
     vec2(0.0, -1.0),
     vec2(-1.0, 1.0),
@@ -185,7 +190,8 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  positions[0].x = TopPosition::x;
+  //positions[0].x = TopPosition::x;
+  positions[0].x = v12345678.x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
