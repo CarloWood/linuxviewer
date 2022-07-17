@@ -4,6 +4,7 @@
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/pipeline/Pipeline.h"
+#include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -296,6 +297,23 @@ void main()
 }
 )glsl";
 
+  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
+  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
+
+  void register_shader_templates() override
+  {
+    using namespace vulkan::shaderbuilder;
+    std::vector<ShaderInfo> shader_info = {
+      { vk::ShaderStageFlagBits::eVertex,   "triangle.vert.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "triangle.frag.glsl" }
+    };
+    shader_info[0].load(triangle_vert_glsl);
+    shader_info[1].load(triangle_frag_glsl);
+    auto indices = application().register_shaders(std::move(shader_info));
+    m_shader_vert = indices[0];
+    m_shader_frag = indices[1];
+  }
+
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
@@ -305,18 +323,11 @@ void main()
 
     {
       using namespace vulkan::shaderbuilder;
-
-      ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "triangle.vert.glsl");
-      ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "triangle.frag.glsl");
-
-      shader_vert.load(triangle_vert_glsl);
-      shader_frag.load(triangle_frag_glsl);
-
       ShaderCompiler compiler;
 
-      pipeline.build_shader(this, shader_vert, compiler
+      pipeline.build_shader(this, m_shader_vert, compiler
           COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
-      pipeline.build_shader(this, shader_frag, compiler
+      pipeline.build_shader(this, m_shader_frag, compiler
           COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
     }
 

@@ -4,6 +4,7 @@
 #include "SynchronousWindow.h"
 #include "memory/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
+#include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
@@ -28,6 +29,9 @@ class Window : public task::SynchronousWindow
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
   vulkan::Texture m_texture;
+
+  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
+  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
 
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::Pipeline m_vh_graphics_pipeline;
@@ -212,6 +216,20 @@ void main()
 }
 )glsl";
 
+  void register_shader_templates() override
+  {
+    using namespace vulkan::shaderbuilder;
+    std::vector<ShaderInfo> shader_info = {
+      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle.vert.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle.frag.glsl" }
+    };
+    shader_info[0].load(uniform_buffer_controlled_triangle_vert_glsl);
+    shader_info[1].load(uniform_buffer_controlled_triangle_frag_glsl);
+    auto indices = application().register_shaders(std::move(shader_info));
+    m_shader_vert = indices[0];
+    m_shader_frag = indices[1];
+  }
+
   class UniformBuffersTestPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
@@ -235,17 +253,15 @@ void main()
       {
         using namespace vulkan::shaderbuilder;
 
-        ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "uniform_buffer_controlled_triangle.vert.glsl");
-        ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle.frag.glsl");
-
-        shader_vert.load(uniform_buffer_controlled_triangle_vert_glsl);
-        shader_frag.load(uniform_buffer_controlled_triangle_frag_glsl);
+        Window* window = static_cast<Window*>(owning_window);
+        ShaderIndex shader_vert_index = window->m_shader_vert;
+        ShaderIndex shader_frag_index = window->m_shader_frag;
 
         ShaderCompiler compiler;
 
-        m_pipeline.build_shader(owning_window, shader_vert, compiler
+        m_pipeline.build_shader(owning_window, shader_vert_index, compiler
             COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristic::pipeline" }));
-        m_pipeline.build_shader(owning_window, shader_frag, compiler
+        m_pipeline.build_shader(owning_window, shader_frag_index, compiler
             COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristic::pipeline" }));
       }
 

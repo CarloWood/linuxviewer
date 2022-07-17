@@ -2,6 +2,7 @@
 #define VULKAN_PIPELINE_PIPELINE_H
 
 #include "shaderbuilder/ShaderInfo.h"
+#include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/SPIRVCache.h"
 #include "shaderbuilder/LocationContext.h"
 #include "debug/DebugSetName.h"
@@ -39,15 +40,15 @@ class Pipeline
   template<typename ENTRY>
   void add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
 
-  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler,
+  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
       shaderbuilder::SPIRVCache& spirv_cache
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
-  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler
+  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   {
     shaderbuilder::SPIRVCache tmp_spirv_cache;
-    build_shader(owning_window, shader_info, compiler, tmp_spirv_cache COMMA_CWDEBUG_ONLY(ambifix));
+    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache COMMA_CWDEBUG_ONLY(ambifix));
   }
 
   // Create glsl code from template source code.

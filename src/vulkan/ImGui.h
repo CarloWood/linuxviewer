@@ -6,6 +6,7 @@
 #include "DescriptorSetParameters.h"
 #include "shaderbuilder/ShaderVariableLayouts.h"
 #include "shaderbuilder/ShaderVariableLayout.h"
+#include "shaderbuilder/ShaderIndex.h"
 #include "pipeline/Pipeline.h"
 #include "debug/DebugSetName.h"
 #include "debug.h"
@@ -96,6 +97,8 @@ class ImGui
   vk::UniquePipeline m_graphics_pipeline;
   std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
   ImGuiContext* m_context;                              // The ImGui context of this ImGui instance.
+  shaderbuilder::ShaderIndex m_shader_vert;
+  shaderbuilder::ShaderIndex m_shader_frag;
 #ifdef CWDEBUG
   int m_last_x = {};
   int m_last_y = {};
@@ -108,6 +111,7 @@ class ImGui
   inline LogicalDevice const* logical_device() const;
 
   void setup_render_state(handle::CommandBuffer command_buffer, void* draw_data_void_ptr, ImGui_FrameResourcesData& frame_resources, vk::Viewport const& viewport);
+  void register_shader_templates();
   void create_descriptor_set(
       CWDEBUG_ONLY(Ambifix const& ambifix));
   void create_pipeline_layout(

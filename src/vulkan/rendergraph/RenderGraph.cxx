@@ -470,6 +470,7 @@ class TestWindow : public task::SynchronousWindow
 
  private:
   void create_render_graph() override { }
+  void register_shader_templates() override { }
   void create_descriptor_set() override { }
   void create_textures() override { }
   void create_pipeline_layout() override { }

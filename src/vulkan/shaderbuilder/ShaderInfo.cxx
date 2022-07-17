@@ -79,6 +79,7 @@ ShaderInfo& ShaderInfo::load(std::string_view source)
   return *this;
 }
 
+#if 0
 vk::UniqueShaderModule ShaderInfo::compile_and_create_module(
     task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, std::string_view glsl_source_code
     COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
@@ -88,6 +89,7 @@ vk::UniqueShaderModule ShaderInfo::compile_and_create_module(
   return compiler.compile_and_create({}, owning_window->logical_device(), *this, glsl_source_code
       COMMA_CWDEBUG_ONLY(debug_name));
 }
+#endif
 
 void ShaderInfo::cleanup_source_code()
 {

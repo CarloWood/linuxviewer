@@ -8,6 +8,7 @@
 #include "queues/CopyDataToBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vulkan/SynchronousWindow.h"
+#include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
@@ -37,6 +38,9 @@ class Window : public task::SynchronousWindow
 //  Attachment   position{this, "position", s_vector_image_view_kind};
 //  Attachment     normal{this, "normal",   s_vector_image_view_kind};
 //  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
+
+  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
+  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
 
   // Vertex buffers.
   using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
@@ -275,6 +279,20 @@ void main()
 }
 )glsl";
 
+  void register_shader_templates() override
+  {
+    using namespace vulkan::shaderbuilder;
+    std::vector<ShaderInfo> shader_info = {
+      { vk::ShaderStageFlagBits::eVertex,   "intel.vert.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "intel.frag.glsl" }
+    };
+    shader_info[0].load(intel_vert_glsl);
+    shader_info[1].load(intel_frag_glsl);
+    auto indices = application().register_shaders(std::move(shader_info));
+    m_shader_vert = indices[0];
+    m_shader_frag = indices[1];
+  }
+
   class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
@@ -316,17 +334,15 @@ void main()
       {
         using namespace vulkan::shaderbuilder;
 
-        ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "intel.vert.glsl");
-        ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "intel.frag.glsl");
-
-        shader_vert.load(intel_vert_glsl);
-        shader_frag.load(intel_frag_glsl);
+        Window* window = static_cast<Window*>(owning_window);
+        ShaderIndex shader_vert_index = window->m_shader_vert;
+        ShaderIndex shader_frag_index = window->m_shader_frag;
 
         ShaderCompiler compiler;
 
-        m_pipeline.build_shader(owning_window, shader_vert, compiler
+        m_pipeline.build_shader(owning_window, shader_vert_index, compiler
             COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
-        m_pipeline.build_shader(owning_window, shader_frag, compiler
+        m_pipeline.build_shader(owning_window, shader_frag_index, compiler
             COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
       }
 

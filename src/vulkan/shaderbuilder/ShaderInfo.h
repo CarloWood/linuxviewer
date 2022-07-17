@@ -21,7 +21,9 @@ class ShaderCompilerOptions;
 class ShaderInfo
 {
  protected:
-  vk::ShaderStageFlagBits const m_stage;                // The stage that this shader will be used in.
+  vk::ShaderStageFlagBits m_stage;                      // The stage that this shader will be used in. This value is never changed, but can't be const because
+                                                        // ShaderInfo needs to be stored in a vector; which requires move semantics (in cause the vector needs
+                                                        // to reallocate) which requires (move) assignment to work.
   std::string m_name;                                   // Shader name, used for diagnostics.
   std::string m_glsl_template_code;                     // GLSL template source code; loaded with load().
   ShaderCompilerOptions m_compiler_options;             // Compile options to use.
@@ -77,10 +79,12 @@ class ShaderInfo
   void cleanup_source_code();
   void reset();
 
+#if 0
   // Compile and forget. This does not store the resulting SPIR-V code.
   vk::UniqueShaderModule compile_and_create_module(
       task::SynchronousWindow const* owning_window, ShaderCompiler const& compiler, std::string_view glsl_source_code
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
+#endif
 
 #ifdef CWDEBUG
   static void print_source_code_on(std::ostream& os, std::string const& source_code);

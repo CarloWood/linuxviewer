@@ -156,6 +156,20 @@ void main()
 }
 )glsl";
 
+void ImGui::register_shader_templates()
+{
+  using namespace vulkan::shaderbuilder;
+  std::vector<ShaderInfo> shader_info = {
+    { vk::ShaderStageFlagBits::eVertex,   "imgui.vert.glsl" },
+    { vk::ShaderStageFlagBits::eFragment, "imgui.frag.glsl" }
+  };
+  shader_info[0].load(imgui_vert_glsl);
+  shader_info[1].load(imgui_frag_glsl);
+  auto indices = m_owning_window->application().register_shaders(std::move(shader_info));
+  m_shader_vert = indices[0];
+  m_shader_frag = indices[1];
+}
+
 void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
@@ -168,18 +182,11 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 
   {
     using namespace vulkan::shaderbuilder;
-
-    ShaderInfo shader_vert(vk::ShaderStageFlagBits::eVertex, "imgui.vert.glsl");
-    ShaderInfo shader_frag(vk::ShaderStageFlagBits::eFragment, "imgui.frag.glsl");
-
-    shader_vert.load(imgui_vert_glsl);
-    shader_frag.load(imgui_frag_glsl);
-
     ShaderCompiler compiler;
 
-    pipeline.build_shader(m_owning_window, shader_vert, compiler
+    pipeline.build_shader(m_owning_window, m_shader_vert, compiler
         COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
-    pipeline.build_shader(m_owning_window, shader_frag, compiler
+    pipeline.build_shader(m_owning_window, m_shader_frag, compiler
         COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
   }
 
@@ -353,6 +360,9 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   gui_style.Colors[ImGuiCol_WindowBg] = ImVec4( 0.06f, 0.07f, 0.08f, 0.8f );
   gui_style.Colors[ImGuiCol_PlotHistogram] = ImVec4( 0.20f, 0.40f, 0.60f, 1.0f );
   gui_style.Colors[ImGuiCol_PlotHistogramHovered] = ImVec4( 0.20f, 0.45f, 0.90f, 1.0f );
+
+  // Register the imgui shaders with the application.
+  register_shader_templates();
 
   // Create imgui descriptor set and layout. This must be done before calling upload_texture below.
   create_descriptor_set(CWDEBUG_ONLY(ambifix));

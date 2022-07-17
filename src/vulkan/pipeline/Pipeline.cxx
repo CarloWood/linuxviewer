@@ -108,11 +108,12 @@ std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribut
 }
 
 void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
-    shaderbuilder::ShaderInfo const& shader_info, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
+    shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
+  shaderbuilder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
   switch (shader_info.stage())
   {
     case vk::ShaderStageFlagBits::eVertex:

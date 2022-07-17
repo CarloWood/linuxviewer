@@ -6,6 +6,8 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
+#include "shaderbuilder/ShaderInfo.h"
+#include "shaderbuilder/ShaderIndex.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"
@@ -17,6 +19,7 @@
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
+#include <deque>
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessenger.h"
@@ -131,6 +134,11 @@ class Application
  private:
   static Application* s_instance;                       // There can only be one instance of Application. Allow global access.
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
+
+  // Storage for all shader templates.
+  using shader_info_list_container_t = std::deque<vulkan::shaderbuilder::ShaderInfo>;
+  using shader_info_list_t = aithreadsafe::Wrapper<shader_info_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  mutable shader_info_list_t m_shader_info_list;        // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
   // We have one of these for each pipeline cache filename.
   struct PipelineCacheMerger
@@ -285,6 +293,13 @@ class Application
     if (GraphicsSettings::wat(m_graphics_settings)->set_max_anisotropy({}, max_anisotropy))
       synchronize_graphics_settings();
   }
+
+  // Called by user functions (e.g. Window::register_shaders).
+  // Marked const because it is thread-safe; it isn't really const.
+  std::vector<vulkan::shaderbuilder::ShaderIndex> register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) const;
+
+  // Return a reference to the ShaderInfo that corresponds to shader_index, as added by a call to register_shaders.
+  vulkan::shaderbuilder::ShaderInfo const& get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const;
 
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);

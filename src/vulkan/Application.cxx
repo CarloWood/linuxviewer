@@ -3,6 +3,7 @@
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
 #include "PersistentAsyncTask.h"
+#include "shaderbuilder/ShaderIndex.h"
 #include "pipeline/PipelineCache.h"
 #include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
@@ -12,6 +13,7 @@
 #include "utils/malloc_size.h"
 #include <algorithm>
 #include <chrono>
+#include <iterator>
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessengerCreateInfoEXT.h"
@@ -322,6 +324,31 @@ void Application::run()
 
   // Application terminated cleanly.
   m_event_loop->join();
+}
+
+// This member function isn't really const; it is thread-safe.
+std::vector<vulkan::shaderbuilder::ShaderIndex> Application::register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
+{
+  DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list[0] << ")");
+  using namespace vulkan::shaderbuilder;
+  ShaderIndex next_index{0};
+  size_t number_of_new_shaders = new_shader_info_list.size();
+  {
+    shader_info_list_t::wat shader_info_list_w(m_shader_info_list);
+    next_index += shader_info_list_w->size();
+    shader_info_list_w->insert(shader_info_list_w->end(), std::make_move_iterator(new_shader_info_list.begin()), std::make_move_iterator(new_shader_info_list.end()));
+  }
+  std::vector<ShaderIndex> new_indices(number_of_new_shaders);
+  for (size_t i = 0; i < number_of_new_shaders; ++i)
+    new_indices[i] = next_index + i;
+  return new_indices;
+}
+
+vulkan::shaderbuilder::ShaderInfo const& Application::get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const
+{
+  shader_info_list_t::rat shader_info_list_r(m_shader_info_list);
+  // We can return a reference because m_shader_info_list is a deque for which references are not invalidated by inserting more elements at the end.
+  return (*shader_info_list_r)[shader_index.get_value()];
 }
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)
