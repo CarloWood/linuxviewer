@@ -329,7 +329,7 @@ void Application::run()
 // This member function isn't really const; it is thread-safe.
 std::vector<vulkan::shaderbuilder::ShaderIndex> Application::register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list[0] << ")");
+  DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list << ")");
   using namespace vulkan::shaderbuilder;
   ShaderIndex next_index{0};
   size_t number_of_new_shaders = new_shader_info_list.size();

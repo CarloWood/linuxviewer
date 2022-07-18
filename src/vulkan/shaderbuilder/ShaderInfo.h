@@ -18,6 +18,11 @@ namespace vulkan::shaderbuilder {
 
 class ShaderCompilerOptions;
 
+#ifdef CWDEBUG
+// This class defines a print_on method.
+using utils::has_print_on::operator<<;
+#endif
+
 class ShaderInfo
 {
  protected:
