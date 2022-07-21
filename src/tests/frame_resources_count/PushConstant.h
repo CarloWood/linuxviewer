@@ -16,7 +16,7 @@ template<>
 struct ShaderVariableLayouts<PushConstant>
 {
   static constexpr std::array<ShaderVariableLayout, 1> layouts = {{
-    { Type::Float, "PushConstant::scaling_factor", offsetof(PushConstant, aspect_scale) },
+    { Type::Float, "PushConstant::aspect_scale", offsetof(PushConstant, aspect_scale) },
   }};
 };
 

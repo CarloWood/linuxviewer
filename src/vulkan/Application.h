@@ -8,6 +8,7 @@
 #include "GraphicsSettings.h"
 #include "shaderbuilder/ShaderInfo.h"
 #include "shaderbuilder/ShaderIndex.h"
+#include "shaderbuilder/ShaderVariableLayout.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"
@@ -139,6 +140,10 @@ class Application
   using shader_info_list_container_t = std::deque<vulkan::shaderbuilder::ShaderInfo>;
   using shader_info_list_t = aithreadsafe::Wrapper<shader_info_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable shader_info_list_t m_shader_info_list;        // Mutable because it is updated by register_shaders, which is threadsafe-"const".
+
+  using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderVariableLayout const*>;
+  using glsl_id_strs_t = aithreadsafe::Wrapper<glsl_id_strs_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  mutable glsl_id_strs_t m_glsl_id_strs;
 
   // We have one of these for each pipeline cache filename.
   struct PipelineCacheMerger
@@ -294,6 +299,10 @@ class Application
       synchronize_graphics_settings();
   }
 
+  // Marked const because it is thread-safe; it isn't really const.
+  template<typename ENTRY>
+  void register_attribute() /*threadsafe-*/const;
+
   // Called by user functions (e.g. Window::register_shaders).
   // Marked const because it is thread-safe; it isn't really const.
   std::vector<vulkan::shaderbuilder::ShaderIndex> register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) const;
@@ -405,5 +414,19 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
   return window_task;
 }
 
+template<typename ENTRY>
+void Application::register_attribute() /*threadsafe-*/const
+{
+  using namespace vulkan::shaderbuilder;
+  glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
+  for (ShaderVariableLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
+  {
+    auto res = glsl_id_strs_w->emplace(layout.m_glsl_id_str, &layout);
+    // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+    ASSERT(res.second);
+  }
+}
+
 } // namespace vulkan
+
 #endif // VULKAN_APPLICATION_H_definitions

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iterator>
+#include <cctype>
 #include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessengerCreateInfoEXT.h"
@@ -336,11 +337,61 @@ std::vector<vulkan::shaderbuilder::ShaderIndex> Application::register_shaders(st
   {
     shader_info_list_t::wat shader_info_list_w(m_shader_info_list);
     next_index += shader_info_list_w->size();
+    // Move the new ShaderInfo objects into m_shader_info_list.
     shader_info_list_w->insert(shader_info_list_w->end(), std::make_move_iterator(new_shader_info_list.begin()), std::make_move_iterator(new_shader_info_list.end()));
   }
+  // Fill the result vector with the new indices.
   std::vector<ShaderIndex> new_indices(number_of_new_shaders);
   for (size_t i = 0; i < number_of_new_shaders; ++i)
     new_indices[i] = next_index + i;
+
+  // Check that all identifiers that should be replaced are known.
+  {
+    shader_info_list_t::rat shader_info_list_r(m_shader_info_list);
+    for (size_t i = 0; i < number_of_new_shaders; ++i)
+    {
+      ShaderInfo const& shader_info = shader_info_list_r->operator[](new_indices[i].get_value());
+      std::string_view const& code = shader_info.glsl_template_code();
+      size_t len = code.size();
+      // Skip to the first space (ie, the space in 'int main') in case code begins with "identifier::". This way avoiding to need to check for begin.
+      char const* begin = code.data();
+      char const* ptr = static_cast<char const*>(std::memchr(begin, ' ', len));
+      while (ptr)
+      {
+        // Adjust for the remaining length.
+        len -= ptr - begin;
+        begin = ptr;
+        // Find the first/next colon.
+        ptr = static_cast<char const*>(std::memchr(begin, ':', len));
+        // Stop of there are less than two charactes left, including the found colon, if any.
+        if (!ptr || len < (ptr - begin) + 2UL)
+          break;
+        // Skip the found colon.
+        ++ptr;
+        // Is this a double colon?
+        if (*ptr == ':')
+        {
+          char const* start = ptr - 2;
+          while (std::isalnum(*start) || *start == '_')
+            --start;
+          ++start;
+          char const* end = ptr + 1;
+          while (std::isalnum(*end) || *end == '_')
+            ++end;
+          ptr = end;
+          std::string s(start, end);
+          glsl_id_strs_t::rat glsl_id_strs_r(m_glsl_id_strs);
+          auto shader_variable_layout = glsl_id_strs_r->find(s);
+          if (shader_variable_layout == glsl_id_strs_r->end())
+          {
+            THROW_ALERT("The shader [SHADER] is using the identifier [ID], but no such identifier was registered.",
+                AIArgs("[SHADER]", shader_info.name())("[ID]", s));
+          }
+        }
+      }
+    }
+  }
+
   return new_indices;
 }
 

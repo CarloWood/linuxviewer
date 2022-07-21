@@ -2,6 +2,7 @@
 
 #include "UniformBuffersTest.h"
 #include "SynchronousWindow.h"
+#include "TopPosition.h"
 #include "memory/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
@@ -13,7 +14,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 0
+#define ENABLE_IMGUI 1
 
 class Window : public task::SynchronousWindow
 {
@@ -30,12 +31,18 @@ class Window : public task::SynchronousWindow
 
   vulkan::Texture m_texture;
 
-  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
-  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
+  vulkan::shaderbuilder::ShaderIndex m_shader1_vert;
+  vulkan::shaderbuilder::ShaderIndex m_shader2_vert;
+  vulkan::shaderbuilder::ShaderIndex m_shader1_frag;
+  vulkan::shaderbuilder::ShaderIndex m_shader2_frag;
 
-  vk::UniquePipelineLayout m_pipeline_layout;
-  vk::Pipeline m_vh_graphics_pipeline;
-  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_buffer;
+  vk::UniquePipelineLayout m_pipeline_layout1;
+  vk::UniquePipelineLayout m_pipeline_layout2;
+  vk::Pipeline m_vh_graphics_pipeline1;
+  vk::Pipeline m_vh_graphics_pipeline2;
+  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_top_buffer;
+  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_left_buffer;
+  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_bottom_buffer;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -69,11 +76,14 @@ class Window : public task::SynchronousWindow
     return vulkan::SwapchainIndex{4};
   }
 
+  vulkan::DescriptorSetParameters m_left_descriptor_set;
+  vulkan::DescriptorSetParameters m_bottom_descriptor_set;
+
   void create_descriptor_set() override
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 
-    std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
+    std::vector<vk::DescriptorSetLayoutBinding> top_layout_bindings = {
       {
         .binding = 0,
         .descriptorType = vk::DescriptorType::eUniformBuffer,
@@ -87,6 +97,22 @@ class Window : public task::SynchronousWindow
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
       }
     };
+    std::vector<vk::DescriptorSetLayoutBinding> left_layout_bindings = {
+      {
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+      }
+    };
+    std::vector<vk::DescriptorSetLayoutBinding> bottom_layout_bindings = {
+      {
+        .binding = 0,
+        .descriptorType = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 1,
+        .stageFlags = vk::ShaderStageFlagBits::eVertex,
+      }
+    };
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
       {
         .type = vk::DescriptorType::eUniformBuffer,
@@ -98,17 +124,43 @@ class Window : public task::SynchronousWindow
       }
     };
 
-    m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
+    m_descriptor_set = logical_device()->create_descriptor_resources(top_layout_bindings, pool_sizes
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
+    m_left_descriptor_set = logical_device()->create_descriptor_resources(left_layout_bindings, pool_sizes
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_left_descriptor_set")));
+    m_bottom_descriptor_set = logical_device()->create_descriptor_resources(bottom_layout_bindings, pool_sizes
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_bottom_descriptor_set")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_buffer.emplace_back(logical_device(), sizeof(float)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_buffer[" + to_string(i) + "]")));
+      m_top_buffer.emplace_back(logical_device(), sizeof(float)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer[" + to_string(i) + "]")));
+
+    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
+      m_left_buffer.emplace_back(logical_device(), sizeof(float)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_left_buffer[" + to_string(i) + "]")));
+
+    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
+      m_bottom_buffer.emplace_back(logical_device(), sizeof(float)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_bottom_buffer[" + to_string(i) + "]")));
 
     // Information about the buffer we want to point at in the descriptor.
-    std::vector<vk::DescriptorBufferInfo> buffer_infos = {
+    std::vector<vk::DescriptorBufferInfo> top_buffer_infos = {
       {
-        .buffer = m_buffer.begin()->m_vh_buffer,
+        .buffer = m_top_buffer.begin()->m_vh_buffer,
+        .offset = 0,
+        .range = sizeof(float)
+      }
+    };
+    std::vector<vk::DescriptorBufferInfo> left_buffer_infos = {
+      {
+        .buffer = m_left_buffer.begin()->m_vh_buffer,
+        .offset = 0,
+        .range = sizeof(float)
+      }
+    };
+    std::vector<vk::DescriptorBufferInfo> bottom_buffer_infos = {
+      {
+        .buffer = m_bottom_buffer.begin()->m_vh_buffer,
         .offset = 0,
         .range = sizeof(float)
       }
@@ -116,10 +168,14 @@ class Window : public task::SynchronousWindow
 
     //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
     uint32_t binding = 0;
-    logical_device()->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, buffer_infos);
+    logical_device()->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, top_buffer_infos);
+    logical_device()->update_descriptor_set(*m_left_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
+    logical_device()->update_descriptor_set(*m_bottom_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
     // Fill the buffer...
-    *(float*)(m_buffer.begin()->m_pointer) = 0.5;
+    *(float*)(m_top_buffer.begin()->m_pointer) = 0.5;
+    *(float*)(m_left_buffer.begin()->m_pointer) = 0.5;
+    *(float*)(m_bottom_buffer.begin()->m_pointer) = 0.5;
   }
 
   void create_textures() override
@@ -174,17 +230,25 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
 
-    m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { }
+    m_pipeline_layout1 = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout, *m_left_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+    m_pipeline_layout2 = m_logical_device->create_pipeline_layout({ *m_left_descriptor_set.m_layout, *m_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
   }
 
-  static constexpr std::string_view uniform_buffer_controlled_triangle_vert_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
- layout(set = 0, binding = 0) uniform TopPosition {
+layout(set = 0, binding = 0) uniform TopPosition {
     float x;
-} v12345678;
+} top12345678;
+layout(set = 1, binding = 0) uniform LeftPosition {
+    float y;
+} left12345678;
+layout(set = 2, binding = 0) uniform BottomPosition {
+    float x;
+} bottom12345678;
 
 vec2 positions[3] = vec2[](
     vec2(0.0, -1.0),
@@ -194,14 +258,47 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  //positions[0].x = TopPosition::x;
-  positions[0].x = v12345678.x;
+  //positions[0].x = TopPosition::x - 1.0;
+  positions[0].x = top12345678.x - 1.0;
+  positions[1].y = left12345678.y;
+  positions[2].x = bottom12345678.x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
 )glsl";
 
-  static constexpr std::string_view uniform_buffer_controlled_triangle_frag_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle2_vert_glsl = R"glsl(
+layout(location = 0) out vec2 v_Texcoord;
+
+// FIXME: this should be generated.
+layout(set = 0, binding = 0) uniform TopPosition {
+    float x;
+} top12345678;
+layout(set = 1, binding = 0) uniform LeftPosition {
+    float y;
+} left12345678;
+layout(set = 2, binding = 0) uniform BottomPosition {
+    float x;
+} bottom12345678;
+
+vec2 positions[3] = vec2[](
+    vec2(0.0, -1.0),
+    vec2(0.0, 1.0),
+    vec2(1.0, 1.0)
+);
+
+void main()
+{
+  //positions[0].x = TopPosition::x;
+  positions[0].x = top12345678.x;
+  positions[1].y = left12345678.y;
+  positions[2].x = bottom12345678.x;
+  gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+  v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
+}
+)glsl";
+
+  static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
 #version 450
 layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
@@ -216,21 +313,44 @@ void main()
 }
 )glsl";
 
+  static constexpr std::string_view uniform_buffer_controlled_triangle2_frag_glsl = R"glsl(
+#version 450
+layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
+
+layout(location = 0) in vec2 v_Texcoord;
+
+layout(location = 0) out vec4 outColor;
+
+void main()
+{
+  vec4 vort3_image = texture(u_Vort3Texture, v_Texcoord);
+  outColor = vort3_image;
+}
+)glsl";
+
   void register_shader_templates() override
   {
+    application().register_attribute<TopPosition>();
+
     using namespace vulkan::shaderbuilder;
     std::vector<ShaderInfo> shader_info = {
-      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle.vert.glsl" },
-      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle.frag.glsl" }
+      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle1.vert.glsl" },
+      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle2.vert.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle1.frag.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle2.frag.glsl" }
     };
-    shader_info[0].load(uniform_buffer_controlled_triangle_vert_glsl);
-    shader_info[1].load(uniform_buffer_controlled_triangle_frag_glsl);
+    shader_info[0].load(uniform_buffer_controlled_triangle1_vert_glsl);
+    shader_info[1].load(uniform_buffer_controlled_triangle2_vert_glsl);
+    shader_info[2].load(uniform_buffer_controlled_triangle1_frag_glsl);
+    shader_info[3].load(uniform_buffer_controlled_triangle2_frag_glsl);
     auto indices = application().register_shaders(std::move(shader_info));
-    m_shader_vert = indices[0];
-    m_shader_frag = indices[1];
+    m_shader1_vert = indices[0];
+    m_shader2_vert = indices[1];
+    m_shader1_frag = indices[2];
+    m_shader2_frag = indices[3];
   }
 
-  class UniformBuffersTestPipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class UniformBuffersTestPipelineCharacteristicBase : public vulkan::pipeline::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -239,7 +359,8 @@ void main()
       vk::DynamicState::eScissor
     };
 
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+   protected:
+    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int i)
     {
       // Register the vectors that we will fill.
       flat_create_info.add(m_pipeline.shader_stage_create_infos());
@@ -254,43 +375,66 @@ void main()
         using namespace vulkan::shaderbuilder;
 
         Window* window = static_cast<Window*>(owning_window);
-        ShaderIndex shader_vert_index = window->m_shader_vert;
-        ShaderIndex shader_frag_index = window->m_shader_frag;
+        ShaderIndex shader_vert_index = (i == 1) ? window->m_shader1_vert : window->m_shader2_vert;
+        ShaderIndex shader_frag_index = (i == 1) ? window->m_shader1_frag : window->m_shader2_frag;
 
         ShaderCompiler compiler;
 
         m_pipeline.build_shader(owning_window, shader_vert_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristic::pipeline" }));
+            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::pipeline" }));
         m_pipeline.build_shader(owning_window, shader_frag_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristic::pipeline" }));
+            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::pipeline" }));
       }
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
     }
 
    public:
-    UniformBuffersTestPipelineCharacteristic() = default;
-
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
-      os << "{ (UniformBuffersTestPipelineCharacteristic*)" << this << " }";
+      os << "{ (UniformBuffersTestPipelineCharacteristicBase*)" << this << " }";
     }
 #endif
+  };
+
+  class UniformBuffersTestPipelineCharacteristic1 : public UniformBuffersTestPipelineCharacteristicBase
+  {
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    {
+      initializeX(flat_create_info, owning_window, 1);
+    }
+  };
+
+  class UniformBuffersTestPipelineCharacteristic2 : public UniformBuffersTestPipelineCharacteristicBase
+  {
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    {
+      initializeX(flat_create_info, owning_window, 2);
+    }
   };
 
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
-    auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory.add_characteristic<UniformBuffersTestPipelineCharacteristic>(this);
+    auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    pipeline_factory.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
     pipeline_factory.generate(this);
+
+    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
+    pipeline_factory2.generate(this);
   }
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
   {
-    m_vh_graphics_pipeline = vh_graphics_pipeline(pipeline_handle);
+    if (!m_vh_graphics_pipeline1)
+      m_vh_graphics_pipeline1 = vh_graphics_pipeline(pipeline_handle);
+    else if (!m_vh_graphics_pipeline2)
+      m_vh_graphics_pipeline2 = vh_graphics_pipeline(pipeline_handle);
+    else
+      ASSERT(false);
   }
 
   //===========================================================================
@@ -381,15 +525,22 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_vh_graphics_pipeline)
+if (!m_vh_graphics_pipeline1 || !m_vh_graphics_pipeline2)
   Dout(dc::warning, "Pipeline not available");
 else
 {
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
       command_buffer->setViewport(0, { viewport });
       command_buffer->setScissor(0, { scissor });
-//      command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout1, 0,
+          { *m_descriptor_set.m_handle, *m_left_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
+
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline1);
+      command_buffer->draw(3, 1, 0, 0);
+
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout2, 0,
+          { *m_left_descriptor_set.m_handle, *m_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
+
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline2);
       command_buffer->draw(3, 1, 0, 0);
 }
       command_buffer->endRenderPass();
@@ -426,7 +577,9 @@ else
     return static_cast<UniformBuffersTest const&>(task::SynchronousWindow::application());
   }
 
-  float m_top_position{};
+  float m_top_position{0.5};
+  float m_left_position{0};
+  float m_bottom_position{0.5};
 
   void draw_imgui() override final
   {
@@ -440,8 +593,12 @@ else
 
     //ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(reinterpret_cast<char const*>(application().application_name().c_str()), nullptr, ImGuiWindowFlags_None);
-    ImGui::SliderFloat("Top position", &m_top_position, -1.0, 1.0);
+    ImGui::SliderFloat("Top position", &m_top_position, 0.0, 1.0);
+    ImGui::SliderFloat("Left position", &m_left_position, -1.0, 1.0);
+    ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
-    *(float*)(m_buffer.begin()->m_pointer) = m_top_position;
+    *(float*)(m_top_buffer.begin()->m_pointer) = m_top_position;
+    *(float*)(m_left_buffer.begin()->m_pointer) = m_left_position;
+    *(float*)(m_bottom_buffer.begin()->m_pointer) = m_bottom_position;
   }
 };

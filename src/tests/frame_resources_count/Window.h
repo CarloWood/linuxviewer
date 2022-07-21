@@ -282,6 +282,10 @@ void main()
   void register_shader_templates() override
   {
     using namespace vulkan::shaderbuilder;
+    application().register_attribute<VertexData>();
+    application().register_attribute<InstanceData>();
+    application().register_attribute<PushConstant>();
+
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "intel.vert.glsl" },
       { vk::ShaderStageFlagBits::eFragment, "intel.frag.glsl" }
