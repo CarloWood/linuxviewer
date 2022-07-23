@@ -275,7 +275,7 @@ void Application::remove(task::SynchronousWindow* window_task)
       window_list_w->end());
 }
 
-void Application::create_instance(vulkan::InstanceCreateInfo const& instance_create_info)
+void Application::create_instance(InstanceCreateInfo const& instance_create_info)
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_instance(" << instance_create_info.read_access() << ")");
 
@@ -328,29 +328,51 @@ void Application::run()
 }
 
 // This member function isn't really const; it is thread-safe.
-std::vector<vulkan::shaderbuilder::ShaderIndex> Application::register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
+std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vector<shaderbuilder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list << ")");
-  using namespace vulkan::shaderbuilder;
-  ShaderIndex next_index{0};
-  size_t number_of_new_shaders = new_shader_info_list.size();
-  {
-    shader_info_list_t::wat shader_info_list_w(m_shader_info_list);
-    next_index += shader_info_list_w->size();
-    // Move the new ShaderInfo objects into m_shader_info_list.
-    shader_info_list_w->insert(shader_info_list_w->end(), std::make_move_iterator(new_shader_info_list.begin()), std::make_move_iterator(new_shader_info_list.end()));
-  }
-  // Fill the result vector with the new indices.
-  std::vector<ShaderIndex> new_indices(number_of_new_shaders);
+  using namespace shaderbuilder;
+  // The word 'new' here purely refers to the fact that they are passed to this function as new ShaderInfo objects (so we are allowed to call hash());
+  // if the hash of any of the 'new' ShaderInfo object is already known then we return the old ShaderIndex and discard the ShaderInfo object.
+  size_t const number_of_new_shaders = new_shader_info_list.size();
+  // Calculate the hash of each new ShaderInfo objects.
+  std::vector<std::size_t> hashes(number_of_new_shaders);
   for (size_t i = 0; i < number_of_new_shaders; ++i)
-    new_indices[i] = next_index + i;
-
-  // Check that all identifiers that should be replaced are known.
+    hashes[i] = new_shader_info_list[i].hash();
+  // The result vector with the indices; new indices when the hash didn't exist already, otherwise the old index.
+  std::vector<ShaderIndex> new_indices(number_of_new_shaders);
+  ShaderIndex first_new_index{0};
+  int duplicates = 0;
   {
-    shader_info_list_t::rat shader_info_list_r(m_shader_info_list);
+    shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
+    first_new_index += shader_infos_r->deque.size();  // Initialize first_new_index to the next free index.
+    ShaderIndex next_index = first_new_index;
     for (size_t i = 0; i < number_of_new_shaders; ++i)
     {
-      ShaderInfo const& shader_info = shader_info_list_r->operator[](new_indices[i].get_value());
+      auto res = shader_infos_r->hash_to_index.insert({ hashes[i], next_index });
+      // Fill new_indices with a new index or the one that belongs to this hash.
+      new_indices[i] = res.second ? next_index++ : res.first->second;
+      duplicates += res.second;
+    }
+  }
+  {
+    shaderbuilder::ShaderInfos::wat shader_infos_w(m_shader_infos);
+    // Move the new ShaderInfo objects into m_shader_infos.
+    for (size_t i = 0; i < number_of_new_shaders; ++i)
+    {
+      if (new_indices[i] >= first_new_index)
+        shader_infos_w->deque.push_back(std::move(new_shader_info_list[i]));
+    }
+  }
+  // Check that all identifiers that should be replaced are known.
+  {
+    shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
+    for (size_t i = 0; i < number_of_new_shaders; ++i)
+    {
+      // No need to check old entries.
+      if (new_indices[i] < first_new_index)
+        continue;
+      ShaderInfo const& shader_info = shader_infos_r->deque.at(new_indices[i]);
       std::string_view const& code = shader_info.glsl_template_code();
       size_t len = code.size();
       // Skip to the first space (ie, the space in 'int main') in case code begins with "identifier::". This way avoiding to need to check for begin.
@@ -395,11 +417,11 @@ std::vector<vulkan::shaderbuilder::ShaderIndex> Application::register_shaders(st
   return new_indices;
 }
 
-vulkan::shaderbuilder::ShaderInfo const& Application::get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const
+shaderbuilder::ShaderInfo const& Application::get_shader_info(shaderbuilder::ShaderIndex shader_index) const
 {
-  shader_info_list_t::rat shader_info_list_r(m_shader_info_list);
-  // We can return a reference because m_shader_info_list is a deque for which references are not invalidated by inserting more elements at the end.
-  return (*shader_info_list_r)[shader_index.get_value()];
+  shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
+  // We can return a reference because m_shader_infos_r->list is a deque for which references are not invalidated by inserting more elements at the end.
+  return shader_infos_r->deque[shader_index];
 }
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)

@@ -6,9 +6,8 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
-#include "shaderbuilder/ShaderInfo.h"
-#include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/ShaderVariableLayout.h"
+#include "shaderbuilder/ShaderInfos.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"
@@ -137,10 +136,11 @@ class Application
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
 
   // Storage for all shader templates.
-  using shader_info_list_container_t = std::deque<vulkan::shaderbuilder::ShaderInfo>;
-  using shader_info_list_t = aithreadsafe::Wrapper<shader_info_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
-  mutable shader_info_list_t m_shader_info_list;        // Mutable because it is updated by register_shaders, which is threadsafe-"const".
+  mutable vulkan::shaderbuilder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
+  // Map ShaderVariableLayout::m_glsl_id_str to the ShaderVariableLayout object that uses it.
+  // Used in Application::register_shaders to check that all identifiers of the form "ENTRY::variable" that appear in
+  // the shader template code were registered.
   using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderVariableLayout const*>;
   using glsl_id_strs_t = aithreadsafe::Wrapper<glsl_id_strs_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable glsl_id_strs_t m_glsl_id_strs;

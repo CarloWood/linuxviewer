@@ -4,8 +4,10 @@
 #include "utils/Badge.h"
 #include <shaderc/shaderc.h>
 #include <vulkan/vulkan.hpp>
+#include <boost/container_hash/hash.hpp>
 #include <string_view>
 #include <vector>
+#include <set>
 #include "debug.h"
 
 namespace vulkan {
@@ -27,6 +29,8 @@ class ShaderCompilerOptions
 {
  private:
   shaderc_compile_options_t m_options;
+  std::map<std::string, std::string> m_macro_definitions;       // Macro definitions that are set. Used to calculate a hash for the ShaderCompilerOptions.
+  size_t m_hash{};                                              // The final hash (zero when no macro definitions were added).
 
  public:
   // Default constructor.
@@ -38,7 +42,8 @@ class ShaderCompilerOptions
   }
 
   // Copy constructor.
-  ShaderCompilerOptions(ShaderCompilerOptions const& compiler_options) : m_options(shaderc_compile_options_clone(compiler_options.m_options))
+  ShaderCompilerOptions(ShaderCompilerOptions const& compiler_options) :
+    m_options(shaderc_compile_options_clone(compiler_options.m_options)), m_macro_definitions(compiler_options.m_macro_definitions), m_hash(compiler_options.m_hash)
   {
   }
 
@@ -46,12 +51,16 @@ class ShaderCompilerOptions
   ShaderCompilerOptions(ShaderCompilerOptions&& compiler_options) : m_options(nullptr)
   {
     std::swap(m_options, compiler_options.m_options);
+    std::swap(m_macro_definitions, compiler_options.m_macro_definitions);
+    std::swap(m_hash, compiler_options.m_hash);
   }
 
   ShaderCompilerOptions& operator=(ShaderCompilerOptions const& compiler_options)
   {
     shaderc_compile_options_release(m_options);
     m_options = shaderc_compile_options_clone(compiler_options.m_options);
+    m_macro_definitions = compiler_options.m_macro_definitions;
+    m_hash = compiler_options.m_hash;
     return *this;
   }
 
@@ -60,6 +69,9 @@ class ShaderCompilerOptions
     shaderc_compile_options_release(m_options);
     m_options = compiler_options.m_options;
     compiler_options.m_options = nullptr;
+    m_macro_definitions = std::move(compiler_options.m_macro_definitions);
+    m_hash = compiler_options.m_hash;
+    compiler_options.m_hash = 0;
     return *this;
   }
 
@@ -81,8 +93,30 @@ class ShaderCompilerOptions
   // value_length should be 0u.
   ShaderCompilerOptions& add_macro_definition(char const* name, size_t name_length, char const* value, size_t value_length)
   {
+    // Do not add more macro definitions after the hash was already calculated.
+    ASSERT(m_hash == 0);
     shaderc_compile_options_add_macro_definition(m_options, name, name_length, value, value_length);
+    std::string const macro_name(name, name_length);
+    std::string const value_str(value, value_length);
+    m_macro_definitions[macro_name] = value_str;
     return *this;
+  }
+
+  void calculate_hash()
+  {
+    m_hash = 0xd74a35751489f799;        // Random non-zero value for the case that there are no macro definitions.
+    boost::hash<std::string> string_hash;
+    for (std::map<std::string, std::string>::value_type const& definition : m_macro_definitions)
+      boost::hash_combine(m_hash, string_hash(definition.first + "=" + definition.second));
+    // Free memory.
+    m_macro_definitions.clear();
+  }
+
+  std::size_t hash() const
+  {
+    // First call calculate_hash().
+    ASSERT(m_hash != 0);
+    return m_hash;
   }
 
   // Sets the compiler mode to generate debug information in the output.

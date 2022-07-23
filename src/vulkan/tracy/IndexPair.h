@@ -1,5 +1,7 @@
 #pragma once
 
+#include "debug.h"
+
 namespace tracy {
 
 // Mimic a utils::VectorIndex type, while in reality wrapping those of those.

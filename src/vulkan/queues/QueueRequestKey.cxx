@@ -2,6 +2,8 @@
 #include "QueueRequestKey.h"
 #ifdef CWDEBUG
 #include <iostream>
+#include <iomanip>
+#include "debug.h"
 #endif
 
 namespace vulkan {

@@ -27,7 +27,7 @@ class ShaderInfo
 {
  protected:
   vk::ShaderStageFlagBits m_stage;                      // The stage that this shader will be used in. This value is never changed, but can't be const because
-                                                        // ShaderInfo needs to be stored in a vector; which requires move semantics (in cause the vector needs
+                                                        // ShaderInfo needs to be stored in a vector; which requires move semantics (in case the vector needs
                                                         // to reallocate) which requires (move) assignment to work.
   std::string m_name;                                   // Shader name, used for diagnostics.
   std::string m_glsl_template_code;                     // GLSL template source code; loaded with load().
@@ -69,6 +69,16 @@ class ShaderInfo
   {
     m_compiler_options = std::move(compiler_options);
     return *this;
+  }
+
+  // Calculate a hash. Only call this function once after full initialization.
+  size_t hash()
+  {
+    m_compiler_options.calculate_hash();
+    size_t hash = static_cast<size_t>(m_stage);
+    boost::hash_combine(hash, boost::hash<std::string>{}(m_glsl_template_code));
+    boost::hash_combine(hash, m_compiler_options.hash());
+    return hash;
   }
 
   // Accessors.

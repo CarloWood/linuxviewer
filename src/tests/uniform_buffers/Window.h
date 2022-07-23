@@ -3,6 +3,8 @@
 #include "UniformBuffersTest.h"
 #include "SynchronousWindow.h"
 #include "TopPosition.h"
+#include "LeftPosition.h"
+#include "BottomPosition.h"
 #include "memory/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
@@ -31,10 +33,13 @@ class Window : public task::SynchronousWindow
 
   vulkan::Texture m_texture;
 
-  vulkan::shaderbuilder::ShaderIndex m_shader1_vert;
-  vulkan::shaderbuilder::ShaderIndex m_shader2_vert;
-  vulkan::shaderbuilder::ShaderIndex m_shader1_frag;
-  vulkan::shaderbuilder::ShaderIndex m_shader2_frag;
+  enum class LocalShaderIndex {
+    vertex1,
+    vertex2,
+    frag1,
+    frag2
+  };
+  utils::Array<vulkan::shaderbuilder::ShaderIndex, 4, LocalShaderIndex> m_shader_indices;
 
   vk::UniquePipelineLayout m_pipeline_layout1;
   vk::UniquePipelineLayout m_pipeline_layout2;
@@ -180,7 +185,7 @@ class Window : public task::SynchronousWindow
 
   void create_textures() override
   {
-    DoutEntering(dc::vulkan, "Window::reate_textures() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
 
     // Sample texture.
     {
@@ -231,9 +236,9 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
 
     m_pipeline_layout1 = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout, *m_left_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout1")));
     m_pipeline_layout2 = m_logical_device->create_pipeline_layout({ *m_left_descriptor_set.m_layout, *m_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout2")));
   }
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
@@ -260,7 +265,9 @@ void main()
 {
   //positions[0].x = TopPosition::x - 1.0;
   positions[0].x = top12345678.x - 1.0;
+  //positions[1].y = LeftPosition::y;
   positions[1].y = left12345678.y;
+  //positions[2].x = BottomPosition::x - 1.0;
   positions[2].x = bottom12345678.x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
@@ -291,7 +298,9 @@ void main()
 {
   //positions[0].x = TopPosition::x;
   positions[0].x = top12345678.x;
+  //positions[1].y = LeftPosition::y;
   positions[1].y = left12345678.y;
+  //positions[2].x = BottomPosition::x;
   positions[2].x = bottom12345678.x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
@@ -299,7 +308,7 @@ void main()
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
-#version 450
+// FIXME: this should be generated.
 layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
@@ -314,7 +323,7 @@ void main()
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle2_frag_glsl = R"glsl(
-#version 450
+// FIXME: this should be generated.
 layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
@@ -330,9 +339,17 @@ void main()
 
   void register_shader_templates() override
   {
+    DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
+
+    // Each uniform buffer *instance* must be associated with a different C++ type.
+    // Of course, normally you'd use an array instead.
     application().register_attribute<TopPosition>();
+    application().register_attribute<LeftPosition>();
+    application().register_attribute<BottomPosition>();
 
     using namespace vulkan::shaderbuilder;
+
+    // Create a ShaderInfo instance for each shader, initializing it with the stage that the shader will be used in and the template code that it exists of.
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle1.vert.glsl" },
       { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle2.vert.glsl" },
@@ -343,11 +360,17 @@ void main()
     shader_info[1].load(uniform_buffer_controlled_triangle2_vert_glsl);
     shader_info[2].load(uniform_buffer_controlled_triangle1_frag_glsl);
     shader_info[3].load(uniform_buffer_controlled_triangle2_frag_glsl);
+
+    // Inform the application about the shaders that we use.
+    // This will call hash() on each ShaderInfo object (which may only called once), and then store it only when that hash doesn't exist yet.
+    // Since the hash is calculated over the template code (excluding generated declaration), the declarations are fixed for given template
+    // code. The declaration determine the mapping between descriptor set, and binding number, and shader variable.
     auto indices = application().register_shaders(std::move(shader_info));
-    m_shader1_vert = indices[0];
-    m_shader2_vert = indices[1];
-    m_shader1_frag = indices[2];
-    m_shader2_frag = indices[3];
+
+    // Copy the returned "shader indices" into our local array.
+    ASSERT(indices.size() == m_shader_indices.size());
+    for (int i = 0; i < 4; ++i)
+      m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
   class UniformBuffersTestPipelineCharacteristicBase : public vulkan::pipeline::Characteristic
@@ -360,7 +383,7 @@ void main()
     };
 
    protected:
-    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int i)
+    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
     {
       // Register the vectors that we will fill.
       flat_create_info.add(m_pipeline.shader_stage_create_infos());
@@ -375,8 +398,8 @@ void main()
         using namespace vulkan::shaderbuilder;
 
         Window* window = static_cast<Window*>(owning_window);
-        ShaderIndex shader_vert_index = (i == 1) ? window->m_shader1_vert : window->m_shader2_vert;
-        ShaderIndex shader_frag_index = (i == 1) ? window->m_shader1_frag : window->m_shader2_frag;
+        ShaderIndex shader_vert_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::vertex1] : window->m_shader_indices[LocalShaderIndex::vertex2];
+        ShaderIndex shader_frag_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::frag1] : window->m_shader_indices[LocalShaderIndex::frag2];
 
         ShaderCompiler compiler;
 
@@ -429,6 +452,7 @@ void main()
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
   {
+    DoutEntering(dc::notice, "Window::new_pipeline(" << pipeline_handle << ") [" << this << "]");
     if (!m_vh_graphics_pipeline1)
       m_vh_graphics_pipeline1 = vh_graphics_pipeline(pipeline_handle);
     else if (!m_vh_graphics_pipeline2)

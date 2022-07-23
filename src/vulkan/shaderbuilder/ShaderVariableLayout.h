@@ -7,6 +7,7 @@
 #include <iosfwd>
 #include <map>
 #include <cstdint>
+#include "debug.h"
 
 namespace vulkan::pipeline {
 class Pipeline;

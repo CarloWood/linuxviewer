@@ -281,6 +281,8 @@ void main()
 
   void register_shader_templates() override
   {
+    DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
+
     using namespace vulkan::shaderbuilder;
     application().register_attribute<VertexData>();
     application().register_attribute<InstanceData>();
