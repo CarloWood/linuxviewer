@@ -385,6 +385,8 @@ void main()
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
     {
+      DoutEntering(dc::vulkan, "initializeX(..., " << pipeline << ")");
+
       // Register the vectors that we will fill.
       flat_create_info.add(m_pipeline.shader_stage_create_infos());
       flat_create_info.add(m_pipeline_color_blend_attachment_states);
@@ -555,16 +557,17 @@ else
 {
       command_buffer->setViewport(0, { viewport });
       command_buffer->setScissor(0, { scissor });
+
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline1);
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout1, 0,
           { *m_descriptor_set.m_handle, *m_left_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline1);
       command_buffer->draw(3, 1, 0, 0);
 
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline2);
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout2, 0,
           { *m_left_descriptor_set.m_handle, *m_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline2);
       command_buffer->draw(3, 1, 0, 0);
 }
       command_buffer->endRenderPass();

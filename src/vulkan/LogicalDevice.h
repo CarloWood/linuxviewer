@@ -129,6 +129,7 @@ class LogicalDevice
   bool supports_cache_control() const { return m_supports_cache_control; }
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
+  uint32_t max_bound_descriptor_sets() const { return m_max_bound_descriptor_sets; }
   bool has_explicit_transfer_support() const { return m_queue_families.has_explicit_transfer_support(); }
   QueueRequestKey::request_cookie_type transfer_request_cookie() const { return m_transfer_request_cookie; }
 

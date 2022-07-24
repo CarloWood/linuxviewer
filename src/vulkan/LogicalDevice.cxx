@@ -357,7 +357,30 @@ void LogicalDevice::prepare(
       // 1.1 features.
       { },
       // 1.2 features.
-      { .imagelessFramebuffer = true,           // Mandatory feature.
+      { .descriptorIndexing = true,             // Mandatory feature. See VUID-VkDeviceCreateInfo-ppEnabledExtensionNames-02833.
+        // Other descriptor indexing features:
+        .shaderInputAttachmentArrayDynamicIndexing          = false,
+        .shaderUniformTexelBufferArrayDynamicIndexing       = false,
+        .shaderStorageTexelBufferArrayDynamicIndexing       = false,
+        .shaderUniformBufferArrayNonUniformIndexing         = false,
+        .shaderSampledImageArrayNonUniformIndexing          = false,
+        .shaderStorageBufferArrayNonUniformIndexing         = false,
+        .shaderStorageImageArrayNonUniformIndexing          = false,
+        .shaderInputAttachmentArrayNonUniformIndexing       = false,
+        .shaderUniformTexelBufferArrayNonUniformIndexing    = false,
+        .shaderStorageTexelBufferArrayNonUniformIndexing    = false,
+        .descriptorBindingUniformBufferUpdateAfterBind      = false,
+        .descriptorBindingSampledImageUpdateAfterBind       = false,
+        .descriptorBindingStorageImageUpdateAfterBind       = false,
+        .descriptorBindingStorageBufferUpdateAfterBind      = false,
+        .descriptorBindingUniformTexelBufferUpdateAfterBind = false,
+        .descriptorBindingStorageTexelBufferUpdateAfterBind = false,
+        .descriptorBindingUpdateUnusedWhilePending          = false,
+        .descriptorBindingPartiallyBound                    = false,
+        .descriptorBindingVariableDescriptorCount           = false,
+        .runtimeDescriptorArray                             = false,
+
+        .imagelessFramebuffer = true,           // Mandatory feature.
         .separateDepthStencilLayouts = true },  // Optional feature.
       // 1.3 features.
       { .pipelineCreationCacheControl = true }  // Optional feature.
@@ -407,11 +430,16 @@ void LogicalDevice::prepare(
   ASSERT(m_transfer_request_cookie);
 
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
-    device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
+
+  // Mandatory extensions.
+  device_create_info.addDeviceExtentions({
+      // This engine uses descriptor indexing.
+      VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
 #if defined(TRACY_ENABLE) && defined(VK_EXT_calibrated_timestamps)
-        , VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
+    , VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME
 #endif
-        });
+      });
 
   auto required_extensions = device_create_info.device_extensions();
   Dout(dc::vulkan, "required_extensions = " << required_extensions);
