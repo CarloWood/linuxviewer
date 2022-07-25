@@ -96,6 +96,11 @@ std::ostream& operator<<(std::ostream& os, PhysicalDeviceVulkan12Features const&
 std::ostream& operator<<(std::ostream& os, PipelineCacheCreateInfo const& pipeline_cache_create_info);
 std::ostream& operator<<(std::ostream& os, SemaphoreSignalInfo const& semaphores_signal_info);
 std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_wait_info);
+std::ostream& operator<<(std::ostream& os, DescriptorSetLayoutBinding const& descriptor_set_layout_binding);
+std::ostream& operator<<(std::ostream& os, DescriptorPoolSize const& descriptor_pool_size);
+std::ostream& operator<<(std::ostream& os, DescriptorImageInfo const& descriptor_image_info);
+std::ostream& operator<<(std::ostream& os, DescriptorBufferInfo const& descriptor_buffer_info);
+std::ostream& operator<<(std::ostream& os, PushConstantRange const& push_constant_range);
 
 } // namespace vk
 

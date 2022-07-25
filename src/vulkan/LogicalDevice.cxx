@@ -910,6 +910,8 @@ DescriptorSetParameters LogicalDevice::create_descriptor_resources(
     std::vector<vk::DescriptorPoolSize> const& pool_sizes
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
 {
+  DoutEntering(dc::vulkan|continued_cf, ambifix.object_name() << " = LogicalDevice::create_descriptor_resources(" << layout_bindings << ", " << pool_sizes << ") = ");
+
   vk::UniqueDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(layout_bindings
       COMMA_CWDEBUG_ONLY(ambifix(".m_layout")));
 
@@ -919,6 +921,7 @@ DescriptorSetParameters LogicalDevice::create_descriptor_resources(
   std::vector<vk::UniqueDescriptorSet> descriptor_sets = allocate_descriptor_sets({ *descriptor_set_layout }, *descriptor_pool
       COMMA_CWDEBUG_ONLY(ambifix(".m_handle")));
 
+  Dout(dc::finish, "{ .m_layout = " << *descriptor_set_layout << ", .m_pool = " << *descriptor_pool << ", .m_handle = " << *descriptor_sets[0] << " }");
   return {
    .m_layout = std::move(descriptor_set_layout),
    .m_pool = std::move(descriptor_pool),
@@ -935,6 +938,9 @@ void LogicalDevice::update_descriptor_set(
     std::vector<vk::DescriptorBufferInfo> const& buffer_infos,
     std::vector<vk::BufferView> const& buffer_views) const
 {
+  DoutEntering(dc::vulkan, "LogicalDevice::update_descriptor_set(" <<
+      vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << image_infos << ", " << buffer_infos << ", " << buffer_views << ")");
+
   vk::WriteDescriptorSet descriptor_writes{
     .dstSet = vh_descriptor_set,
     .dstBinding = binding,
@@ -954,6 +960,9 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
     std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_layout(" <<
+      vhv_descriptor_set_layouts << ", " << push_constant_ranges << ", " << debug_name.object_name() << ")");
+
   vk::PipelineLayoutCreateInfo layout_create_info{
     .flags = {},
     .setLayoutCount = static_cast<uint32_t>(vhv_descriptor_set_layouts.size()),
@@ -962,9 +971,9 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
     .pPushConstantRanges = push_constant_ranges.data()
   };
 
-  vk::UniquePipelineLayout pipline_layout = m_device->createPipelineLayoutUnique(layout_create_info);
-  DebugSetName(pipline_layout, debug_name, this);
-  return pipline_layout;
+  vk::UniquePipelineLayout pipeline_layout = m_device->createPipelineLayoutUnique(layout_create_info);
+  DebugSetName(pipeline_layout, debug_name, this);
+  return pipeline_layout;
 }
 
 vk::UniqueSwapchainKHR LogicalDevice::create_swapchain(

@@ -278,12 +278,12 @@ void main()
 layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
-layout(set = 0, binding = 0) uniform TopPosition {
-    float x;
-} top12345678;
-layout(set = 1, binding = 0) uniform LeftPosition {
+layout(set = 0, binding = 0) uniform LeftPosition {
     float y;
 } left12345678;
+layout(set = 1, binding = 0) uniform TopPosition {
+    float x;
+} top12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
     float x;
 } bottom12345678;
@@ -439,25 +439,28 @@ void main()
     }
   };
 
+  vulkan::pipeline::FactoryHandle m_pipeline_factory1;
+  vulkan::pipeline::FactoryHandle m_pipeline_factory2;
+
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
-    auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
-    pipeline_factory.generate(this);
+    m_pipeline_factory1 = create_pipeline_factory(*m_pipeline_layout1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
+    m_pipeline_factory1.generate(this);
 
-    auto pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
-    pipeline_factory2.generate(this);
+    m_pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
+    m_pipeline_factory2.generate(this);
   }
 
   void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
   {
     DoutEntering(dc::notice, "Window::new_pipeline(" << pipeline_handle << ") [" << this << "]");
-    if (!m_vh_graphics_pipeline1)
+    if (pipeline_handle.m_pipeline_factory_index == m_pipeline_factory1)
       m_vh_graphics_pipeline1 = vh_graphics_pipeline(pipeline_handle);
-    else if (!m_vh_graphics_pipeline2)
+    else if (pipeline_handle.m_pipeline_factory_index == m_pipeline_factory2)
       m_vh_graphics_pipeline2 = vh_graphics_pipeline(pipeline_handle);
     else
       ASSERT(false);
@@ -486,6 +489,14 @@ void main()
     ZoneScopedN("Window::render_frame");
 
     ++m_frame_count;
+#if 0
+    if (m_frame_count >= 30)
+    {
+      if (m_frame_count == 30)
+        close();
+      return;
+    }
+#endif
 
     auto frame_begin_time = std::chrono::high_resolution_clock::now();
 

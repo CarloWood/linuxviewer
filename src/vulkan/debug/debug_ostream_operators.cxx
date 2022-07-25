@@ -315,6 +315,57 @@ std::ostream& operator<<(std::ostream& os, SemaphoreWaitInfo const& semaphores_w
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
+{
+  os << '{';
+  os << "binding:" << descriptor_set_layout_binding.binding <<
+      ", descriptorType:" << descriptor_set_layout_binding.descriptorType <<
+      ", descriptorCount:" << descriptor_set_layout_binding.descriptorCount <<
+      ", stageFlags:" << descriptor_set_layout_binding.stageFlags <<
+      ", pImmutableSamplers:" << descriptor_set_layout_binding.pImmutableSamplers;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, DescriptorPoolSize const& descriptor_pool_size)
+{
+  os << '{';
+  os << "type:" << descriptor_pool_size.type <<
+      ", descriptorCount:" << descriptor_pool_size.descriptorCount;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, DescriptorImageInfo const& descriptor_image_info)
+{
+  os << '{';
+  os << "sampler:" << descriptor_image_info.sampler <<
+      ", imageView:" << descriptor_image_info.imageView <<
+      ", imageLayout:" << descriptor_image_info.imageLayout;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, DescriptorBufferInfo const& descriptor_buffer_info)
+{
+  os << '{';
+  os << "buffer:" << descriptor_buffer_info.buffer <<
+      ", offset:" << descriptor_buffer_info.offset <<
+      ", range:" << descriptor_buffer_info.range;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, PushConstantRange const& push_constant_range)
+{
+  os << '{';
+  os << "stageFlags:" << push_constant_range.stageFlags <<
+      ", offset:" << push_constant_range.offset <<
+      ", size:" << push_constant_range.size;
+  os << '}';
+  return os;
+}
+
 #endif
 
 } // namespace vk

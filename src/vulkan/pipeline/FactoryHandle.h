@@ -21,12 +21,18 @@ class FactoryHandle
   PipelineFactoryIndex m_factory_index;
 
  public:
+  FactoryHandle() = default;
   FactoryHandle(PipelineFactoryIndex factory_index) : m_factory_index(factory_index) { }
 
   template<ConceptPipelineCharacteristic CHARACTERISTIC, typename... ARGS>
   void add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args);
 
   void generate(task::SynchronousWindow const* owning_window);
+
+  friend bool operator==(FactoryHandle h1, FactoryHandle h2)
+  {
+    return h1.m_factory_index == h2.m_factory_index;
+  }
 };
 
 } // namespace vulkan::pipeline
