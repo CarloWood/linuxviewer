@@ -4,19 +4,23 @@
 
 namespace glsl {
 
+// GLSL has the notation matCxR - with C cols and R rows.
+// Eigen, and this library if I can help it, puts rows first.
+// The type used for vectors are all column-vectors (with 1 column).
+
 // Allowed types for glsl.
 using Float  = float;
 using vec2   = Eigen::Vector2f;
 using vec3   = Eigen::Vector3f;
 using vec4   = Eigen::Vector4f;
 using mat2   = Eigen::Matrix2f;
-using mat3x2 = Eigen::Matrix<float, 3, 2>;
-using mat4x2 = Eigen::Matrix<float, 4, 2>;
-using mat2x3 = Eigen::Matrix<float, 2, 3>;
+using mat3x2 = Eigen::Matrix<float, 2, 3>;
+using mat4x2 = Eigen::Matrix<float, 2, 4>;
+using mat2x3 = Eigen::Matrix<float, 3, 2>;
 using mat3   = Eigen::Matrix3f;
-using mat4x3 = Eigen::Matrix<float, 4, 3>;
-using mat2x4 = Eigen::Matrix<float, 2, 4>;
-using mat3x4 = Eigen::Matrix<float, 3, 4>;
+using mat4x3 = Eigen::Matrix<float, 3, 4>;
+using mat2x4 = Eigen::Matrix<float, 4, 2>;
+using mat3x4 = Eigen::Matrix<float, 4, 3>;
 using mat4   = Eigen::Matrix4f;
 
 using Double  = double;
@@ -24,13 +28,13 @@ using dvec2   = Eigen::Vector2d;
 using dvec3   = Eigen::Vector3d;
 using dvec4   = Eigen::Vector4d;
 using dmat2   = Eigen::Matrix2d;
-using dmat3x2 = Eigen::Matrix<double, 3, 2>;
-using dmat4x2 = Eigen::Matrix<double, 4, 2>;
-using dmat2x3 = Eigen::Matrix<double, 2, 3>;
+using dmat3x2 = Eigen::Matrix<double, 2, 3>;
+using dmat4x2 = Eigen::Matrix<double, 2, 4>;
+using dmat2x3 = Eigen::Matrix<double, 3, 2>;
 using dmat3   = Eigen::Matrix3d;
-using dmat4x3 = Eigen::Matrix<double, 4, 3>;
-using dmat2x4 = Eigen::Matrix<double, 2, 4>;
-using dmat3x4 = Eigen::Matrix<double, 3, 4>;
+using dmat4x3 = Eigen::Matrix<double, 3, 4>;
+using dmat2x4 = Eigen::Matrix<double, 4, 2>;
+using dmat3x4 = Eigen::Matrix<double, 4, 3>;
 using dmat4   = Eigen::Matrix4d;
 
 using Bool   = bool;

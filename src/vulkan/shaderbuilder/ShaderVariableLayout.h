@@ -17,12 +17,29 @@ namespace vulkan::shaderbuilder {
 
 // Bit encoding of Type:
 //
-// ttttsssrrrccc
+// ttttssscccrrr
+//
+// row=0 -> [ e00,  e10 ]
+// row=1 -> [ e01,  e11 ]
+// row=2 -> [ e02,  e12 ]
+// row=3 -> [ e03,  e13 ]  is stored in memory as { e00, e01, e02, e03, e10, e11, e12, e13 } (column-major).
+//             ^     ^
+//             |     |
+//           col=0 col=1
 //
 // where tttt: the underlaying type.
 //        sss: the size of the underlaying C++ type of one element.
-//        rrr: the number of rows.
 //        ccc: the number of columns.
+//        rrr: the number of rows.
+//
+// GLSL has the notation matCxR - with C cols and R rows.
+// Eigen, and this library if I can help it, puts rows first.
+//
+// Vectors in glsl are neither row- or colum-vectors; or both. When multiplying a matrix with a vector
+// (matNxM * vecN --> vecM) then the vector is treated like a column vector and the result is a column vector.
+// But when multiplying a vector with a matrix (vecM * matNxM --> vecN) then the vector is treated like a
+// row vector and the result is a row vector. When multiplying a vector with a vector (vecN * vecN --> vecN)
+// they are are multiplied component-wise ({ x1, y1, z1 } * { x2, y2, z2 } = { x1 * x2, y1 *y2, z1 * z2 }).
 //
 static consteval int encode(int rows, int cols, int typesize, int typemask)
 {
@@ -39,6 +56,7 @@ static constexpr int unorm8_mask  = 6;
 static constexpr int snorm16_mask  = 7;
 static constexpr int unorm16_mask  = 8;
 
+// The vectors are encoded as column-vectors, because that's what the corresponding Eigen types are that we use.
 enum class Type
 {
   Float = encode(1, 1, sizeof(float), float_mask),
@@ -46,13 +64,13 @@ enum class Type
   vec3  = encode(3, 1, sizeof(float), float_mask),
   vec4  = encode(4, 1, sizeof(float), float_mask),
   mat2  = encode(2, 2, sizeof(float), float_mask),
-  mat3x2= encode(3, 2, sizeof(float), float_mask),
-  mat4x2= encode(4, 2, sizeof(float), float_mask),
-  mat2x3= encode(2, 3, sizeof(float), float_mask),
+  mat3x2= encode(2, 3, sizeof(float), float_mask),
+  mat4x2= encode(2, 4, sizeof(float), float_mask),
+  mat2x3= encode(3, 2, sizeof(float), float_mask),
   mat3  = encode(3, 3, sizeof(float), float_mask),
-  mat4x3= encode(4, 3, sizeof(float), float_mask),
-  mat2x4= encode(2, 4, sizeof(float), float_mask),
-  mat3x4= encode(3, 4, sizeof(float), float_mask),
+  mat4x3= encode(3, 4, sizeof(float), float_mask),
+  mat2x4= encode(4, 2, sizeof(float), float_mask),
+  mat3x4= encode(4, 3, sizeof(float), float_mask),
   mat4  = encode(4, 4, sizeof(float), float_mask),
 
   Double  = encode(1, 1, sizeof(double), double_mask),
@@ -60,13 +78,13 @@ enum class Type
   dvec3   = encode(3, 1, sizeof(double), double_mask),
   dvec4   = encode(4, 1, sizeof(double), double_mask),
   dmat2   = encode(2, 2, sizeof(double), double_mask),
-  dmat3x2 = encode(3, 2, sizeof(double), double_mask),
-  dmat4x2 = encode(4, 2, sizeof(double), double_mask),
-  dmat2x3 = encode(2, 3, sizeof(double), double_mask),
+  dmat3x2 = encode(2, 3, sizeof(double), double_mask),
+  dmat4x2 = encode(2, 4, sizeof(double), double_mask),
+  dmat2x3 = encode(3, 2, sizeof(double), double_mask),
   dmat3   = encode(3, 3, sizeof(double), double_mask),
-  dmat4x3 = encode(4, 3, sizeof(double), double_mask),
-  dmat2x4 = encode(2, 4, sizeof(double), double_mask),
-  dmat3x4 = encode(3, 4, sizeof(double), double_mask),
+  dmat4x3 = encode(3, 4, sizeof(double), double_mask),
+  dmat2x4 = encode(4, 2, sizeof(double), double_mask),
+  dmat3x4 = encode(4, 3, sizeof(double), double_mask),
   dmat4   = encode(4, 4, sizeof(double), double_mask),
 
   Bool  = encode(1, 1, sizeof(bool), bool_mask),
