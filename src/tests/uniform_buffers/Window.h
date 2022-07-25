@@ -178,9 +178,9 @@ class Window : public task::SynchronousWindow
     logical_device()->update_descriptor_set(*m_bottom_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
     // Fill the buffer...
-    *(float*)(m_top_buffer.begin()->m_pointer) = 0.5;
-    *(float*)(m_left_buffer.begin()->m_pointer) = 0.5;
-    *(float*)(m_bottom_buffer.begin()->m_pointer) = 0.5;
+    ((TopPosition*)(m_top_buffer.begin()->m_pointer))->x = 0.5;
+    ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = 0.5;
+    ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = 0.5;
   }
 
   void create_textures() override
@@ -252,6 +252,7 @@ layout(set = 1, binding = 0) uniform LeftPosition {
     float y;
 } left12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
+    vec2 unused;
     float x;
 } bottom12345678;
 
@@ -285,6 +286,7 @@ layout(set = 1, binding = 0) uniform TopPosition {
     float x;
 } top12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
+    vec2 unused;
     float x;
 } bottom12345678;
 
@@ -635,8 +637,8 @@ else
     ImGui::SliderFloat("Left position", &m_left_position, -1.0, 1.0);
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
-    *(float*)(m_top_buffer.begin()->m_pointer) = m_top_position;
-    *(float*)(m_left_buffer.begin()->m_pointer) = m_left_position;
-    *(float*)(m_bottom_buffer.begin()->m_pointer) = m_bottom_position;
+    ((TopPosition*)(m_top_buffer.begin()->m_pointer))->x = m_top_position;
+    ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = m_left_position;
+    ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = m_bottom_position;
   }
 };
