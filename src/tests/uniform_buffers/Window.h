@@ -246,7 +246,9 @@ layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
 layout(set = 0, binding = 0) uniform TopPosition {
+    dmat4x2 unused1;
     float x;
+    double unused2;
 } top12345678;
 layout(set = 1, binding = 0) uniform LeftPosition {
     mat4 unused;
@@ -285,7 +287,9 @@ layout(set = 0, binding = 0) uniform LeftPosition {
     float y;
 } left12345678;
 layout(set = 1, binding = 0) uniform TopPosition {
+    dmat4x2 unused1;
     float x;
+    double unused2;
 } top12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
     vec2 unused;
