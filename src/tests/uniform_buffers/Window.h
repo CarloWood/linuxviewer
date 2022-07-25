@@ -137,15 +137,15 @@ class Window : public task::SynchronousWindow
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_bottom_descriptor_set")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_top_buffer.emplace_back(logical_device(), sizeof(float)
+      m_top_buffer.emplace_back(logical_device(), sizeof(TopPosition)
         COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer[" + to_string(i) + "]")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_left_buffer.emplace_back(logical_device(), sizeof(float)
+      m_left_buffer.emplace_back(logical_device(), sizeof(LeftPosition)
         COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_left_buffer[" + to_string(i) + "]")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_bottom_buffer.emplace_back(logical_device(), sizeof(float)
+      m_bottom_buffer.emplace_back(logical_device(), sizeof(BottomPosition)
         COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_bottom_buffer[" + to_string(i) + "]")));
 
     // Information about the buffer we want to point at in the descriptor.
@@ -153,21 +153,21 @@ class Window : public task::SynchronousWindow
       {
         .buffer = m_top_buffer.begin()->m_vh_buffer,
         .offset = 0,
-        .range = sizeof(float)
+        .range = sizeof(TopPosition)
       }
     };
     std::vector<vk::DescriptorBufferInfo> left_buffer_infos = {
       {
         .buffer = m_left_buffer.begin()->m_vh_buffer,
         .offset = 0,
-        .range = sizeof(float)
+        .range = sizeof(LeftPosition)
       }
     };
     std::vector<vk::DescriptorBufferInfo> bottom_buffer_infos = {
       {
         .buffer = m_bottom_buffer.begin()->m_vh_buffer,
         .offset = 0,
-        .range = sizeof(float)
+        .range = sizeof(BottomPosition)
       }
     };
 
@@ -249,6 +249,7 @@ layout(set = 0, binding = 0) uniform TopPosition {
     float x;
 } top12345678;
 layout(set = 1, binding = 0) uniform LeftPosition {
+    mat4 unused;
     float y;
 } left12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
@@ -280,6 +281,7 @@ layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
 layout(set = 0, binding = 0) uniform LeftPosition {
+    mat4 unused;
     float y;
 } left12345678;
 layout(set = 1, binding = 0) uniform TopPosition {
