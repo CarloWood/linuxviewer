@@ -114,7 +114,7 @@ VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 #endif
 
-  constexpr DebugUtilsMessengerCreateInfoEXT() : vk::DebugUtilsMessengerCreateInfoEXT{
+  DebugUtilsMessengerCreateInfoEXT() : vk::DebugUtilsMessengerCreateInfoEXT{
 #ifdef CWDEBUG
     .messageSeverity         = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
     .messageType             = default_messageType,

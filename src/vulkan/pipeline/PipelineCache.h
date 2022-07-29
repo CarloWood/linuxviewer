@@ -1,5 +1,8 @@
 #pragma once
 
+#ifndef PIPELINE_PIPELINE_CACHE_H
+#define PIPELINE_PIPELINE_CACHE_H
+
 #include "vk_utils/TaskToTaskDeque.h"
 #include "statefultask/AIStatefulTask.h"
 #include "threadsafe/aithreadsafe.h"
@@ -15,6 +18,8 @@
 #include <cstdlib>
 
 namespace task {
+
+class PipelineFactory;
 
 class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::UniquePipelineCache> // Other PipelineCache tasks can pass their pipeline cache for merging.
 {
@@ -78,16 +83,7 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
 #endif
 
  public:
-  PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug = false)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
-  {
-    Debug(m_create_ambifix = vulkan::Ambifix("PipelineCache", "[" + utils::ulong_to_base(reinterpret_cast<uint64_t>(this), "0123456789abcdef") + "]"));
-
-    // We depend on the owning window, but should not be aborted at program termination.
-    // Note: increment() can, theoretically, throw -- but that should never happen in
-    // this case: a PipelineCache is created in PipelineFactory_start, but all PipelineFactory
-    // tasks are aborted before the owning window enters m_task_counter_gate.wait().
-    m_owning_factory->owning_window()->m_task_counter_gate.increment();
-  }
+  PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug = false));
 
   std::filesystem::path get_filename() const;
 
@@ -106,3 +102,5 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
 };
 
 } // namespace task
+
+#endif // PIPELINE_PIPELINE_CACHE_H

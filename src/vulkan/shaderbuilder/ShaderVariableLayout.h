@@ -1,7 +1,9 @@
 #pragma once
 
+#include "math/glsl.h"
 #include <vulkan/vulkan.hpp>
 #include "utils/Vector.h"
+#include "utils/log2.h"
 #include <functional>
 #include <cstring>
 #include <iosfwd>
@@ -15,144 +17,267 @@ class Pipeline;
 
 namespace vulkan::shaderbuilder {
 
-// Bit encoding of Type:
-//
-// ttttssscccrrr
-//
-// row=0 -> [ e00,  e10 ]
-// row=1 -> [ e01,  e11 ]
-// row=2 -> [ e02,  e12 ]
-// row=3 -> [ e03,  e13 ]  is stored in memory as { e00, e01, e02, e03, e10, e11, e12, e13 } (column-major).
-//             ^     ^
-//             |     |
-//           col=0 col=1
-//
-// where tttt: the underlaying type.
-//        sss: the size of the underlaying C++ type of one element.
-//        ccc: the number of columns.
-//        rrr: the number of rows.
-//
-// GLSL has the notation matCxR - with C cols and R rows.
-// Eigen, and this library if I can help it, puts rows first.
-//
-// Vectors in glsl are neither row- or colum-vectors; or both. When multiplying a matrix with a vector
-// (matNxM * vecN --> vecM) then the vector is treated like a column vector and the result is a column vector.
-// But when multiplying a vector with a matrix (vecM * matNxM --> vecN) then the vector is treated like a
-// row vector and the result is a row vector. When multiplying a vector with a vector (vecN * vecN --> vecN)
-// they are are multiplied component-wise ({ x1, y1, z1 } * { x2, y2, z2 } = { x1 * x2, y1 *y2, z1 * z2 }).
-//
-static consteval int encode(int rows, int cols, int typesize, int typemask)
+// We need all members to be public because I want to use this as an aggregrate type.
+struct Type
 {
-  return rows + (cols << 3) + (typesize << 6) + (typemask << 9);
-}
+  static constexpr uint32_t standard_width_in_bits = std::bit_width(static_cast<uint32_t>(glsl::number_of_standards - 1));
+  static constexpr uint32_t rows_width_in_bits = 3;      // 1, 2, 3 or 4.
+  static constexpr uint32_t cols_width_in_bits = 3;      // 1, 2, 3 or 4.
+  static_assert(standard_width_in_bits + rows_width_in_bits + cols_width_in_bits == 8, "That doesn't fit");
+  static constexpr uint32_t base_type_width_in_bits = std::bit_width(static_cast<uint32_t>(glsl::number_of_base_types));        // 4 bits
+  static constexpr uint32_t log2_alignment_width_in_bits = 8 - base_type_width_in_bits;       // Possible alignments are 4, 8, 16 and 32. So 2 bits would be sufficient (we use 3).
+  static constexpr uint32_t size_width_in_bits = 8;
+  static constexpr uint32_t array_stride_width_in_bits = 8;
 
-static constexpr int float_mask   = 0;
-static constexpr int double_mask  = 1;
-static constexpr int bool_mask    = 2;
-static constexpr int int32_mask   = 3;
-static constexpr int uint32_mask  = 4;
-static constexpr int snorm8_mask  = 5;
-static constexpr int unorm8_mask  = 6;
-static constexpr int snorm16_mask  = 7;
-static constexpr int unorm16_mask  = 8;
+  uint32_t       m_standard:standard_width_in_bits;             // See glsl::Standard.
+  uint32_t           m_rows:rows_width_in_bits;                 // If rows is 1 then also cols is 1 and this is a Scalar.
+  uint32_t           m_cols:cols_width_in_bits;                 // If cols is 1 then this is a Scalar or a Vector.
+  uint32_t      m_base_type:base_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlaying scalar type.
+  uint32_t m_log2_alignment:log2_alignment_width_in_bits{};     // The log2 of the alignment of this type when not used in an array.
+  uint32_t           m_size:size_width_in_bits;                 // The (padded) size of this type when not used in an array.
+  uint32_t   m_array_stride:array_stride_width_in_bits{};
 
-// The vectors are encoded as column-vectors, because that's what the corresponding Eigen types are that we use.
-enum class Type
-{
-  Float = encode(1, 1, sizeof(float), float_mask),
-  vec2  = encode(2, 1, sizeof(float), float_mask),
-  vec3  = encode(3, 1, sizeof(float), float_mask),
-  vec4  = encode(4, 1, sizeof(float), float_mask),
-  mat2  = encode(2, 2, sizeof(float), float_mask),
-  mat3x2= encode(2, 3, sizeof(float), float_mask),
-  mat4x2= encode(2, 4, sizeof(float), float_mask),
-  mat2x3= encode(3, 2, sizeof(float), float_mask),
-  mat3  = encode(3, 3, sizeof(float), float_mask),
-  mat4x3= encode(3, 4, sizeof(float), float_mask),
-  mat2x4= encode(4, 2, sizeof(float), float_mask),
-  mat3x4= encode(4, 3, sizeof(float), float_mask),
-  mat4  = encode(4, 4, sizeof(float), float_mask),
+ public:
+  glsl::Standard standard() const { return static_cast<glsl::Standard>(m_standard); }
+  int rows() const { return m_rows; }
+  int cols() const { return m_cols; }
+  glsl::Kind kind() const { return (m_rows == 1) ? glsl::Scalar : (m_cols == 1) ? glsl::Vector : glsl::Matrix; }
+  glsl::TypeIndex base_type() const { return static_cast<glsl::TypeIndex>(m_base_type); }
+  int alignment() const { return 1 << m_log2_alignment; }
+  int size() const { return m_size; }
+  int array_stride() const { return m_array_stride; }
+  // This applies to Vertex Attributes (aka, see https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html 4.4.1).
+  // An array consumes this per index.
+  int consumed_locations() const { return ((m_base_type == glsl::eDouble && m_rows >= 3) ? 2 : 1) * m_cols; }
 
-  Double  = encode(1, 1, sizeof(double), double_mask),
-  dvec2   = encode(2, 1, sizeof(double), double_mask),
-  dvec3   = encode(3, 1, sizeof(double), double_mask),
-  dvec4   = encode(4, 1, sizeof(double), double_mask),
-  dmat2   = encode(2, 2, sizeof(double), double_mask),
-  dmat3x2 = encode(2, 3, sizeof(double), double_mask),
-  dmat4x2 = encode(2, 4, sizeof(double), double_mask),
-  dmat2x3 = encode(3, 2, sizeof(double), double_mask),
-  dmat3   = encode(3, 3, sizeof(double), double_mask),
-  dmat4x3 = encode(3, 4, sizeof(double), double_mask),
-  dmat2x4 = encode(4, 2, sizeof(double), double_mask),
-  dmat3x4 = encode(4, 3, sizeof(double), double_mask),
-  dmat4   = encode(4, 4, sizeof(double), double_mask),
-
-  Bool  = encode(1, 1, sizeof(bool), bool_mask),
-  bvec2 = encode(2, 1, sizeof(bool), bool_mask),
-  bvec3 = encode(3, 1, sizeof(bool), bool_mask),
-  bvec4 = encode(4, 1, sizeof(bool), bool_mask),
-
-  Int   = encode(1, 1, sizeof(int32_t), int32_mask),
-  ivec2 = encode(2, 1, sizeof(int32_t), int32_mask),
-  ivec3 = encode(3, 1, sizeof(int32_t), int32_mask),
-  ivec4 = encode(4, 1, sizeof(int32_t), int32_mask),
-
-  Uint  = encode(1, 1, sizeof(uint32_t), uint32_mask),
-  uvec2 = encode(2, 1, sizeof(uint32_t), uint32_mask),
-  uvec3 = encode(3, 1, sizeof(uint32_t), uint32_mask),
-  uvec4 = encode(4, 1, sizeof(uint32_t), uint32_mask),
-
-  Int8  =  encode(1, 1, sizeof(int8_t), snorm8_mask),
-  i8vec2 = encode(2, 1, sizeof(int8_t), snorm8_mask),
-  i8vec3 = encode(3, 1, sizeof(int8_t), snorm8_mask),
-  i8vec4 = encode(4, 1, sizeof(int8_t), snorm8_mask),
-
-  Uint8  = encode(1, 1, sizeof(uint8_t), unorm8_mask),
-  u8vec2 = encode(2, 1, sizeof(uint8_t), unorm8_mask),
-  u8vec3 = encode(3, 1, sizeof(uint8_t), unorm8_mask),
-  u8vec4 = encode(4, 1, sizeof(uint8_t), unorm8_mask),
-
-  Int16  =  encode(1, 1, sizeof(int16_t), snorm16_mask),
-  i16vec2 = encode(2, 1, sizeof(int16_t), snorm16_mask),
-  i16vec3 = encode(3, 1, sizeof(int16_t), snorm16_mask),
-  i16vec4 = encode(4, 1, sizeof(int16_t), snorm16_mask),
-
-  Uint16  = encode(1, 1, sizeof(uint16_t), unorm16_mask),
-  u16vec2 = encode(2, 1, sizeof(uint16_t), unorm16_mask),
-  u16vec3 = encode(3, 1, sizeof(uint16_t), unorm16_mask),
-  u16vec4 = encode(4, 1, sizeof(uint16_t), unorm16_mask)
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
-inline int decode_rows(Type type)
+static_assert(sizeof(Type) == sizeof(uint32_t), "Size of Type is too large for encoding.");
+
+namespace standards {
+  using TI = glsl::TypeIndex;
+} // namespace standards
+
+namespace vertex_attributes {
+using namespace standards;
+
+constexpr Type encode(int rows, int cols, int base_type)
 {
-  return static_cast<int>(type) & 0x7;
+  return Type{
+    .m_standard = glsl::vertex_attributes,
+    .m_rows = static_cast<uint32_t>(rows),
+    .m_cols = static_cast<uint32_t>(cols),
+    .m_base_type = static_cast<uint32_t>(base_type),
+    .m_size = (base_type == TI::eDouble) ? 8U : 4U
+  };
 }
 
-inline int decode_cols(Type type)
+// All the vectors are encoded as column-vectors, because you have to pick something.
+struct Type
 {
-  return (static_cast<int>(type) >> 3) & 0x7;
+  static constexpr auto Float   = encode(1, 1, TI::eFloat);
+  static constexpr auto vec2    = encode(2, 1, TI::eFloat);
+  static constexpr auto vec3    = encode(3, 1, TI::eFloat);
+  static constexpr auto vec4    = encode(4, 1, TI::eFloat);
+  static constexpr auto mat2    = encode(2, 2, TI::eFloat);
+  static constexpr auto mat3x2  = encode(2, 3, TI::eFloat);
+  static constexpr auto mat4x2  = encode(2, 4, TI::eFloat);
+  static constexpr auto mat2x3  = encode(3, 2, TI::eFloat);
+  static constexpr auto mat3    = encode(3, 3, TI::eFloat);
+  static constexpr auto mat4x3  = encode(3, 4, TI::eFloat);
+  static constexpr auto mat2x4  = encode(4, 2, TI::eFloat);
+  static constexpr auto mat3x4  = encode(4, 3, TI::eFloat);
+  static constexpr auto mat4    = encode(4, 4, TI::eFloat);
+
+  static constexpr auto Double  = encode(1, 1, TI::eDouble);
+  static constexpr auto dvec2   = encode(2, 1, TI::eDouble);
+  static constexpr auto dvec3   = encode(3, 1, TI::eDouble);
+  static constexpr auto dvec4   = encode(4, 1, TI::eDouble);
+  static constexpr auto dmat2   = encode(2, 2, TI::eDouble);
+  static constexpr auto dmat3x2 = encode(2, 3, TI::eDouble);
+  static constexpr auto dmat4x2 = encode(2, 4, TI::eDouble);
+  static constexpr auto dmat2x3 = encode(3, 2, TI::eDouble);
+  static constexpr auto dmat3   = encode(3, 3, TI::eDouble);
+  static constexpr auto dmat4x3 = encode(3, 4, TI::eDouble);
+  static constexpr auto dmat2x4 = encode(4, 2, TI::eDouble);
+  static constexpr auto dmat3x4 = encode(4, 3, TI::eDouble);
+  static constexpr auto dmat4   = encode(4, 4, TI::eDouble);
+
+  static constexpr auto Bool    = encode(1, 1, TI::eBool);
+  static constexpr auto bvec2   = encode(2, 1, TI::eBool);
+  static constexpr auto bvec3   = encode(3, 1, TI::eBool);
+  static constexpr auto bvec4   = encode(4, 1, TI::eBool);
+
+  static constexpr auto Int     = encode(1, 1, TI::eInt);
+  static constexpr auto ivec2   = encode(2, 1, TI::eInt);
+  static constexpr auto ivec3   = encode(3, 1, TI::eInt);
+  static constexpr auto ivec4   = encode(4, 1, TI::eInt);
+
+  static constexpr auto Uint    = encode(1, 1, TI::eUint);
+  static constexpr auto uvec2   = encode(2, 1, TI::eUint);
+  static constexpr auto uvec3   = encode(3, 1, TI::eUint);
+  static constexpr auto uvec4   = encode(4, 1, TI::eUint);
+
+  static constexpr auto Int8    = encode(1, 1, TI::eInt8);
+  static constexpr auto i8vec2  = encode(2, 1, TI::eInt8);
+  static constexpr auto i8vec3  = encode(3, 1, TI::eInt8);
+  static constexpr auto i8vec4  = encode(4, 1, TI::eInt8);
+
+  static constexpr auto Uint8   = encode(1, 1, TI::eUint8);
+  static constexpr auto u8vec2  = encode(2, 1, TI::eUint8);
+  static constexpr auto u8vec3  = encode(3, 1, TI::eUint8);
+  static constexpr auto u8vec4  = encode(4, 1, TI::eUint8);
+
+  static constexpr auto Int16   = encode(1, 1, TI::eInt16);
+  static constexpr auto i16vec2 = encode(2, 1, TI::eInt16);
+  static constexpr auto i16vec3 = encode(3, 1, TI::eInt16);
+  static constexpr auto i16vec4 = encode(4, 1, TI::eInt16);
+
+  static constexpr auto Uint16  = encode(1, 1, TI::eUint16);
+  static constexpr auto u16vec2 = encode(2, 1, TI::eUint16);
+  static constexpr auto u16vec3 = encode(3, 1, TI::eUint16);
+  static constexpr auto u16vec4 = encode(4, 1, TI::eUint16);
+};
+
+struct Tag
+{
+  using Type = Type;
+};
+
+} // namespace vertex_attributes
+
+namespace std140 {
+using namespace standards;
+
+constexpr Type encode(int rows, int cols, int base_type)
+{
+  return Type{
+    .m_standard = glsl::std140,
+    .m_rows = static_cast<uint32_t>(rows),
+    .m_cols = static_cast<uint32_t>(cols),
+    .m_base_type = static_cast<uint32_t>(base_type),
+    .m_size = (base_type == TI::eDouble) ? 8U : 4U      // FIXME?
+  };
 }
 
-inline int decode_typesize(Type type)
+// All the vectors are encoded as column-vectors, because you have to pick something.
+struct Type
 {
-  return (static_cast<int>(type) >> 6) & 0x7;
+  static constexpr auto Float   = encode(1, 1, TI::eFloat);
+  static constexpr auto vec2    = encode(2, 1, TI::eFloat);
+  static constexpr auto vec3    = encode(3, 1, TI::eFloat);
+  static constexpr auto vec4    = encode(4, 1, TI::eFloat);
+  static constexpr auto mat2    = encode(2, 2, TI::eFloat);
+  static constexpr auto mat3x2  = encode(2, 3, TI::eFloat);
+  static constexpr auto mat4x2  = encode(2, 4, TI::eFloat);
+  static constexpr auto mat2x3  = encode(3, 2, TI::eFloat);
+  static constexpr auto mat3    = encode(3, 3, TI::eFloat);
+  static constexpr auto mat4x3  = encode(3, 4, TI::eFloat);
+  static constexpr auto mat2x4  = encode(4, 2, TI::eFloat);
+  static constexpr auto mat3x4  = encode(4, 3, TI::eFloat);
+  static constexpr auto mat4    = encode(4, 4, TI::eFloat);
+
+  static constexpr auto Double  = encode(1, 1, TI::eDouble);
+  static constexpr auto dvec2   = encode(2, 1, TI::eDouble);
+  static constexpr auto dvec3   = encode(3, 1, TI::eDouble);
+  static constexpr auto dvec4   = encode(4, 1, TI::eDouble);
+  static constexpr auto dmat2   = encode(2, 2, TI::eDouble);
+  static constexpr auto dmat3x2 = encode(2, 3, TI::eDouble);
+  static constexpr auto dmat4x2 = encode(2, 4, TI::eDouble);
+  static constexpr auto dmat2x3 = encode(3, 2, TI::eDouble);
+  static constexpr auto dmat3   = encode(3, 3, TI::eDouble);
+  static constexpr auto dmat4x3 = encode(3, 4, TI::eDouble);
+  static constexpr auto dmat2x4 = encode(4, 2, TI::eDouble);
+  static constexpr auto dmat3x4 = encode(4, 3, TI::eDouble);
+  static constexpr auto dmat4   = encode(4, 4, TI::eDouble);
+
+  static constexpr auto Bool    = encode(1, 1, TI::eBool);
+  static constexpr auto bvec2   = encode(2, 1, TI::eBool);
+  static constexpr auto bvec3   = encode(3, 1, TI::eBool);
+  static constexpr auto bvec4   = encode(4, 1, TI::eBool);
+};
+
+struct Tag
+{
+  using tag_type = Tag;
+  using Type = Type;
+};
+
+} // namespace std140
+
+namespace std430 {
+using namespace standards;
+
+constexpr Type encode(int rows, int cols, int base_type)
+{
+  return Type{
+    .m_standard = glsl::std430,
+    .m_rows = static_cast<uint32_t>(rows),
+    .m_cols = static_cast<uint32_t>(cols),
+    .m_base_type = static_cast<uint32_t>(base_type),
+    .m_size = (base_type == TI::eDouble) ? 8U : 4U      // FIXME?
+  };
 }
 
-inline int decode_typemask(Type type)
+// All the vectors are encoded as column-vectors, because you have to pick something.
+struct Type
 {
-  return static_cast<int>(type) >> 9;
-}
+  static constexpr auto Float   = encode(1, 1, TI::eFloat);
+  static constexpr auto vec2    = encode(2, 1, TI::eFloat);
+  static constexpr auto vec3    = encode(3, 1, TI::eFloat);
+  static constexpr auto vec4    = encode(4, 1, TI::eFloat);
+  static constexpr auto mat2    = encode(2, 2, TI::eFloat);
+  static constexpr auto mat3x2  = encode(2, 3, TI::eFloat);
+  static constexpr auto mat4x2  = encode(2, 4, TI::eFloat);
+  static constexpr auto mat2x3  = encode(3, 2, TI::eFloat);
+  static constexpr auto mat3    = encode(3, 3, TI::eFloat);
+  static constexpr auto mat4x3  = encode(3, 4, TI::eFloat);
+  static constexpr auto mat2x4  = encode(4, 2, TI::eFloat);
+  static constexpr auto mat3x4  = encode(4, 3, TI::eFloat);
+  static constexpr auto mat4    = encode(4, 4, TI::eFloat);
+
+  static constexpr auto Double  = encode(1, 1, TI::eDouble);
+  static constexpr auto dvec2   = encode(2, 1, TI::eDouble);
+  static constexpr auto dvec3   = encode(3, 1, TI::eDouble);
+  static constexpr auto dvec4   = encode(4, 1, TI::eDouble);
+  static constexpr auto dmat2   = encode(2, 2, TI::eDouble);
+  static constexpr auto dmat3x2 = encode(2, 3, TI::eDouble);
+  static constexpr auto dmat4x2 = encode(2, 4, TI::eDouble);
+  static constexpr auto dmat2x3 = encode(3, 2, TI::eDouble);
+  static constexpr auto dmat3   = encode(3, 3, TI::eDouble);
+  static constexpr auto dmat4x3 = encode(3, 4, TI::eDouble);
+  static constexpr auto dmat2x4 = encode(4, 2, TI::eDouble);
+  static constexpr auto dmat3x4 = encode(4, 3, TI::eDouble);
+  static constexpr auto dmat4   = encode(4, 4, TI::eDouble);
+
+  static constexpr auto Bool    = encode(1, 1, TI::eBool);
+  static constexpr auto bvec2   = encode(2, 1, TI::eBool);
+  static constexpr auto bvec3   = encode(3, 1, TI::eBool);
+  static constexpr auto bvec4   = encode(4, 1, TI::eBool);
+};
+
+struct Tag
+{
+  using tag_type = Tag;
+  using Type = Type;
+};
+
+} // namespace std430
 
 struct TypeInfo
 {
-  char const* name;                             // glsl name
-  size_t const size;                            // The size of the type in bytes (in C++).
+  std::string name;                             // glsl name
+  size_t const size;                            // The size of the type in bytes.
   int const number_of_attribute_indices;        // The number of sequential attribute indices that will be consumed.
   vk::Format const format;                      // The format to use for this type.
 
   TypeInfo(Type type);
 };
 
+// Must be an aggregate type.
 struct ShaderVariableLayout
 {
   Type const m_glsl_type;                       // The glsl type of the variable.
@@ -180,3 +305,38 @@ struct ShaderVariableLayout
 };
 
 } // namespace vulkan::shaderbuilder
+
+// Not sure where to put the 'standards' structs... lets put them in glsl for now.
+namespace glsl {
+
+struct per_vertex_data : vulkan::shaderbuilder::vertex_attributes::Tag
+{
+  using tag_type = per_vertex_data;
+  static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
+};
+
+struct per_instance_data : vulkan::shaderbuilder::vertex_attributes::Tag
+{
+  using tag_type = per_instance_data;
+  static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eInstance;     // This is per instance data.
+};
+
+// From https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html 4.4.5. Uniform and Shader Storage Block Layout Qualifiers:
+//
+// The std140 and std430 qualifiers override only the packed, shared, std140, and std430 qualifiers; other qualifiers are inherited.
+// The std430 qualifier is supported only for shader storage blocks; a shader using the std430 qualifier on a uniform block will
+// result in a compile-time error, unless it is also declared with push_constant.
+//
+// There is an extention that allows to use std430, but we don't use that yet.
+struct uniform_std140 : vulkan::shaderbuilder::std140::Tag
+{
+};
+
+// From the same paragraph:
+//
+// However, when push_constant is declared, the default layout of the buffer will be std430. There is no method to globally set this default.
+struct push_constant_std430 : vulkan::shaderbuilder::std430::Tag
+{
+};
+
+} // glsl

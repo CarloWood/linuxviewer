@@ -23,7 +23,7 @@
 
 namespace imgui {
 
-struct ImDrawVert
+struct ImDrawVert : glsl::per_vertex_data
 {
   glsl::vec2 pos;
   glsl::vec2 uv;
@@ -39,9 +39,8 @@ using ImDrawIdx = unsigned short;
 namespace vulkan::shaderbuilder {
 
 template<>
-struct ShaderVariableLayouts<imgui::ImDrawVert>
+struct ShaderVariableLayouts<imgui::ImDrawVert> : ShaderVariableLayoutsTraits<imgui::ImDrawVert>
 {
-  static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
   static constexpr std::array<ShaderVariableLayout, 3> layouts = {{
     { Type::vec2, "ImDrawVert::pos", offsetof(imgui::ImDrawVert, pos) },
     { Type::vec2, "ImDrawVert::uv", offsetof(imgui::ImDrawVert, uv) },

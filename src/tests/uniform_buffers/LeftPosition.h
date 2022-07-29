@@ -5,7 +5,7 @@
 #include "math/glsl.h"
 
 // Struct describing data type and format of uniform block.
-struct LeftPosition
+struct LeftPosition : glsl::uniform_std140
 {
   glsl::mat4 unused;
   glsl::Float y;
@@ -14,7 +14,7 @@ struct LeftPosition
 namespace vulkan::shaderbuilder {
 
 template<>
-struct ShaderVariableLayouts<LeftPosition>
+struct ShaderVariableLayouts<LeftPosition> : ShaderVariableLayoutsTraits<LeftPosition>
 {
   static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
     { Type::mat4, "LeftPosition::unused", offsetof(LeftPosition, unused) },

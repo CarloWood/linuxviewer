@@ -19,7 +19,6 @@
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
 #include "queues/QueueReply.h"
-#include "pipeline/PipelineFactory.h"
 #include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
@@ -53,6 +52,9 @@ namespace task {
 class LogicalDevice;
 class SynchronousTask;
 class SynchronousWindow;
+namespace synchronous {
+class MoveNewPipelines;
+} // namespace synchronous
 } // namespace task
 
 namespace vulkan {
@@ -449,7 +451,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  public:
   // The same type as the type defined in vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex,
   // task::PipelineFactory, task::SynchronousWindow and vulkan::Application with the same name.
-  using PipelineFactoryIndex = task::PipelineFactory::PipelineFactoryIndex;
+  using PipelineFactoryIndex = vulkan::pipeline::Handle::PipelineFactoryIndex;
 
  protected:
   utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;

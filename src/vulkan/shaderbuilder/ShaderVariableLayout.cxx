@@ -9,83 +9,53 @@ namespace vulkan::shaderbuilder {
 
 namespace {
 
-#define AI_TYPE_CASE_RETURN(x) do { case Type::x: return #x; } while(0)
-
-char const* type2name(Type glsl_type)
+std::string type2name(Type glsl_type)
 {
-  switch (glsl_type)
+  glsl::TypeIndex base_type = glsl_type.base_type();
+  int rows = glsl_type.rows();
+  int cols = glsl_type.cols();
+  glsl::Kind kind = glsl_type.kind();
+
+  // Check out of range.
+  ASSERT(0 <= base_type && base_type < glsl::number_of_base_types);
+  ASSERT(1 <= rows && rows <= 4);
+  ASSERT(1 <= cols && cols <= 4);
+  // Row-vectors are not used in this rows/cols encoding.
+  ASSERT(!(rows == 1 && cols > 1));
+  // There are only matrices of float and double.
+  ASSERT(kind != glsl::Matrix || (base_type == glsl::eFloat || base_type == glsl::eDouble));
+
+  std::string type_name;
+  switch (base_type)
   {
-    case Type::Float: return "float";
-    AI_TYPE_CASE_RETURN(vec2);
-    AI_TYPE_CASE_RETURN(vec3);
-    AI_TYPE_CASE_RETURN(vec4);
-    AI_TYPE_CASE_RETURN(mat2);
-    AI_TYPE_CASE_RETURN(mat3x2);
-    AI_TYPE_CASE_RETURN(mat4x2);
-    AI_TYPE_CASE_RETURN(mat2x3);
-    AI_TYPE_CASE_RETURN(mat3);
-    AI_TYPE_CASE_RETURN(mat4x3);
-    AI_TYPE_CASE_RETURN(mat2x4);
-    AI_TYPE_CASE_RETURN(mat3x4);
-    AI_TYPE_CASE_RETURN(mat4);
-
-    case Type::Double: return "double";
-    AI_TYPE_CASE_RETURN(dvec2);
-    AI_TYPE_CASE_RETURN(dvec3);
-    AI_TYPE_CASE_RETURN(dvec4);
-    AI_TYPE_CASE_RETURN(dmat2);
-    AI_TYPE_CASE_RETURN(dmat3x2);
-    AI_TYPE_CASE_RETURN(dmat4x2);
-    AI_TYPE_CASE_RETURN(dmat2x3);
-    AI_TYPE_CASE_RETURN(dmat3);
-    AI_TYPE_CASE_RETURN(dmat4x3);
-    AI_TYPE_CASE_RETURN(dmat2x4);
-    AI_TYPE_CASE_RETURN(dmat3x4);
-    AI_TYPE_CASE_RETURN(dmat4);
-
-    case Type::Bool: return "bool";
-    AI_TYPE_CASE_RETURN(bvec2);
-    AI_TYPE_CASE_RETURN(bvec3);
-    AI_TYPE_CASE_RETURN(bvec4);
-
-    case Type::Int: return "int";
-    AI_TYPE_CASE_RETURN(ivec2);
-    AI_TYPE_CASE_RETURN(ivec3);
-    AI_TYPE_CASE_RETURN(ivec4);
-
-    case Type::Uint: return "uint";
-    AI_TYPE_CASE_RETURN(uvec2);
-    AI_TYPE_CASE_RETURN(uvec3);
-    AI_TYPE_CASE_RETURN(uvec4);
-
-    case Type::Int8: return "float";
-    case Type::i8vec2: return "vec2";
-    case Type::i8vec3: return "vec3";
-    case Type::i8vec4: return "vec4";
-
-    case Type::Uint8: return "float";
-    case Type::u8vec2: return "vec2";
-    case Type::u8vec3: return "vec3";
-    case Type::u8vec4: return "vec4";
-
-    case Type::Int16: return "float";
-    case Type::i16vec2: return "vec2";
-    case Type::i16vec3: return "vec3";
-    case Type::i16vec4: return "vec4";
-
-    case Type::Uint16: return "float";
-    case Type::u16vec2: return "vec2";
-    case Type::u16vec3: return "vec3";
-    case Type::u16vec4: return "vec4";
+    case glsl::eDouble:
+      type_name = 'd';
+      break;
+    case glsl::eBool:
+      type_name = 'b';
+      break;
+    case glsl::eUint:
+      type_name = 'u';
+      break;
+    case glsl::eInt:
+      type_name = 'i';
+      break;
+    default:
+      break;
   }
-  AI_NEVER_REACHED
-}
-
-#undef AI_TYPE_CASE_RETURN
-
-size_t type2size(Type glsl_type)
-{
-  return decode_rows(glsl_type) * decode_cols(glsl_type) * decode_typesize(glsl_type);
+  switch (kind)
+  {
+    case glsl::Scalar:
+      type_name = to_string(base_type);
+      break;
+    case glsl::Vector:
+      type_name += "vec" + std::to_string(rows);
+      break;
+    case glsl::Matrix:
+      type_name += "mat" + std::to_string(cols) + "x" + std::to_string(rows);
+      break;
+  }
+  return type_name;
 }
 
 // The following format must be supported by Vulkan (so no test is necessary):
@@ -139,10 +109,11 @@ size_t type2size(Type glsl_type)
 vk::Format type2format(Type glsl_type)
 {
   vk::Format format;
-  int rows = decode_rows(glsl_type);
-  switch (decode_typemask(glsl_type))
+  int rows = glsl_type.rows();
+  glsl::TypeIndex base_type = glsl_type.base_type();
+  switch (base_type)
   {
-    case float_mask:
+    case glsl::eFloat:
       // 32_SFLOAT
       switch (rows)
       {
@@ -160,7 +131,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case double_mask:
+    case glsl::eDouble:
       // 64_SFLOAT
       switch (rows)
       {
@@ -178,7 +149,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case bool_mask:
+    case glsl::eBool:
       // 8_UINT
       switch (rows)
       {
@@ -196,7 +167,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case int32_mask:
+    case glsl::eInt:
       // 32_SINT
       switch (rows)
       {
@@ -214,7 +185,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case uint32_mask:
+    case glsl::eUint:
       // 32_UINT
       switch (rows)
       {
@@ -232,7 +203,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case snorm8_mask:
+    case glsl::eInt8:
       // int8_t
       switch (rows)
       {
@@ -250,7 +221,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case unorm8_mask:
+    case glsl::eUint8:
       // uint8_t
       switch (rows)
       {
@@ -268,7 +239,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case snorm16_mask:
+    case glsl::eInt16:
       // int16_t
       switch (rows)
       {
@@ -286,7 +257,7 @@ vk::Format type2format(Type glsl_type)
           break;
       }
       break;
-    case unorm16_mask:
+    case glsl::eUint16:
       // uint16_t
       switch (rows)
       {
@@ -310,7 +281,7 @@ vk::Format type2format(Type glsl_type)
 
 } // namespace
 
-TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(type2size(glsl_type)), number_of_attribute_indices((size - 1) / 16 + 1), format(type2format(glsl_type))
+TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(glsl_type.size()), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
 {
 }
 
@@ -322,6 +293,19 @@ std::string ShaderVariableLayout::name() const
 }
 
 #ifdef CWDEBUG
+void Type::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "m_standard:" << to_string(standard()) <<
+      ", m_rows:" << m_rows <<
+      ", m_cols:" << m_cols <<
+      ", m_base_type:" << base_type() <<
+      ", m_log2_alignment:" << m_log2_alignment <<
+      ", m_size:" << m_size <<
+      ", m_array_stride:" << m_array_stride;
+  os << '}';
+}
+
 void ShaderVariableLayout::print_on(std::ostream& os) const
 {
   using namespace magic_enum::ostream_operators;

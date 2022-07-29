@@ -344,9 +344,11 @@ class Application
 };
 
 } // namespace vulkan
-
-#include "SynchronousWindow.h"
 #endif // VULKAN_APPLICATION_H
+
+#ifndef VULKAN_SYNCHRONOUS_WINDOW_H
+#include "SynchronousWindow.h"
+#endif
 
 #ifndef VULKAN_APPLICATION_H_definitions
 #define VULKAN_APPLICATION_H_definitions

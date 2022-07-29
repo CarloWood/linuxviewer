@@ -5,7 +5,7 @@
 #include "math/glsl.h"
 
 // Struct describing data type and format of instance attributes.
-struct InstanceData
+struct InstanceData : glsl::per_instance_data
 {
   glsl::vec4 m_position;
 };
@@ -13,9 +13,8 @@ struct InstanceData
 namespace vulkan::shaderbuilder {
 
 template<>
-struct ShaderVariableLayouts<InstanceData>
+struct ShaderVariableLayouts<InstanceData> : ShaderVariableLayoutsTraits<InstanceData>
 {
-  static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eInstance;     // This is per instance data.
   static constexpr std::array<ShaderVariableLayout, 1> layouts = {{
     { Type::vec4, "InstanceData::m_position", offsetof(InstanceData, m_position) }
   }};

@@ -1,5 +1,6 @@
 #include "sys.h"
 #include "PipelineCache.h"
+#include "PipelineFactory.h"
 #include "LogicalDevice.h"
 #include "Application.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
@@ -32,6 +33,17 @@ std::ostream& operator<<(std::ostream& os, vk::PipelineCacheHeaderVersionOne con
 #endif
 
 namespace task {
+
+PipelineCache::PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
+{
+  Debug(m_create_ambifix = vulkan::Ambifix("PipelineCache", "[" + utils::ulong_to_base(reinterpret_cast<uint64_t>(this), "0123456789abcdef") + "]"));
+
+  // We depend on the owning window, but should not be aborted at program termination.
+  // Note: increment() can, theoretically, throw -- but that should never happen in
+  // this case: a PipelineCache is created in PipelineFactory_start, but all PipelineFactory
+  // tasks are aborted before the owning window enters m_task_counter_gate.wait().
+  m_owning_factory->owning_window()->m_task_counter_gate.increment();
+}
 
 char const* PipelineCache::condition_str_impl(condition_type condition) const
 {

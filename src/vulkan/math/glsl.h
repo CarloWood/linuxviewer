@@ -4,9 +4,56 @@
 
 namespace glsl {
 
+static constexpr int number_of_standards = 4;
+enum Standard {
+  vertex_attributes,
+  std140,
+  std430,
+  scalar
+};
+
+// Basic types.
+
+// Builtin-types indices.
+static constexpr int number_of_builtin_types = 5;
+static constexpr int number_of_base_types = 9;
+enum TypeIndex {
+  eFloat  = 0,
+  eDouble = 1,
+  eBool   = 2,
+  eInt    = 3,
+  eUint   = 4,
+  // The following types are only for vertex_attributes; they do not exist in glsl.
+  eInt8   = 5,
+  eUint8  = 6,
+  eInt16  = 7,
+  eUint16 = 8
+};
+
+std::string to_string(TypeIndex type_index);    // Prints the glsl type, not the name of the enum (aka, prints all lower case and without the leading 'e').
+
+enum Kind {
+  Scalar,
+  Vector,
+  Matrix
+};
+
+#ifdef CWDEBUG
+std::string to_string(Standard standard);
+std::ostream& operator<<(std::ostream& os, TypeIndex type_index);
+#endif
+
 // GLSL has the notation matCxR - with C cols and R rows.
 // Eigen, and this library if I can help it, puts rows first.
 // The type used for vectors are all column-vectors (with 1 column).
+//
+// The basic types of GLSL can be found here: https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.pdf [4.1 Basic Types].
+//
+// Note: vectors in glsl are neither row- or colum-vectors; or both. When multiplying a matrix with a vector
+// (matNxM * vecN --> vecM) then the vector is treated like a column vector and the result is a column vector.
+// But when multiplying a vector with a matrix (vecM * matNxM --> vecN) then the vector is treated like a
+// row vector and the result is a row vector. When multiplying a vector with a vector (vecN * vecN --> vecN)
+// they are are multiplied component-wise ({ x1, y1, z1 } * { x2, y2, z2 } = { x1 * x2, y1 *y2, z1 * z2 }).
 
 // Allowed types for glsl.
 using Float  = float;
@@ -36,6 +83,8 @@ using dmat4x3 = Eigen::Matrix<double, 3, 4>;
 using dmat2x4 = Eigen::Matrix<double, 4, 2>;
 using dmat3x4 = Eigen::Matrix<double, 4, 3>;
 using dmat4   = Eigen::Matrix4d;
+
+// There are no matrices for boolean or integers.
 
 using Bool   = bool;
 using bvec2  = Eigen::Matrix<bool, 2, 1>;

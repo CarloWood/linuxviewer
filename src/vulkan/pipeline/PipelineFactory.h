@@ -1,4 +1,5 @@
-#pragma once
+#ifndef PIPELINE_PIPELINE_FACTORY_H
+#define PIPELINE_PIPELINE_FACTORY_H
 
 #include "CharacteristicRange.h"
 #include "statefultask/AIStatefulTask.h"
@@ -87,7 +88,27 @@ class PipelineFactory : public AIStatefulTask
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
-  boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task() { return std::move(m_pipeline_cache_task); }
+  inline boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task();
 };
 
 } // namespace task
+#endif // PIPELINE_PIPELINE_FACTORY_H
+
+#ifndef PIPELINE_PIPELINE_CACHE_H
+#include "PipelineCache.h"
+#endif
+
+// Define inlined functions that use PipelineCache (see https://stackoverflow.com/a/71470522/1487069).
+#ifndef PIPELINE_PIPELINE_FACTORY_H_definitions
+#define PIPELINE_PIPELINE_FACTORY_H_definitions
+
+namespace task {
+
+boost::intrusive_ptr<PipelineCache> PipelineFactory::detach_pipeline_cache_task()
+{
+  return std::move(m_pipeline_cache_task);
+}
+
+} // namespace task
+
+#endif // PIPELINE_PIPELINE_FACTORY_H_definitions

@@ -18,6 +18,9 @@
 
 #define ENABLE_IMGUI 1
 
+static constexpr int top_position_array_size = 32;
+static constexpr int top_position_array_index = 27;
+
 class Window : public task::SynchronousWindow
 {
  private:
@@ -137,7 +140,7 @@ class Window : public task::SynchronousWindow
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_bottom_descriptor_set")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_top_buffer.emplace_back(logical_device(), sizeof(TopPosition)
+      m_top_buffer.emplace_back(logical_device(), top_position_array_size * sizeof(TopPosition)
         COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer[" + to_string(i) + "]")));
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
@@ -153,7 +156,7 @@ class Window : public task::SynchronousWindow
       {
         .buffer = m_top_buffer.begin()->m_vh_buffer,
         .offset = 0,
-        .range = sizeof(TopPosition)
+        .range = top_position_array_size * sizeof(TopPosition)
       }
     };
     std::vector<vk::DescriptorBufferInfo> left_buffer_infos = {
@@ -178,7 +181,8 @@ class Window : public task::SynchronousWindow
     logical_device()->update_descriptor_set(*m_bottom_descriptor_set.m_handle, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
     // Fill the buffer...
-    ((TopPosition*)(m_top_buffer.begin()->m_pointer))->x = 0.5;
+    for (int i = 0; i < top_position_array_size; ++i)
+      ((TopPosition*)(m_top_buffer.begin()->m_pointer))[i].x = 0.8;
     ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = 0.5;
     ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = 0.5;
   }
@@ -245,10 +249,16 @@ class Window : public task::SynchronousWindow
 layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
-layout(set = 0, binding = 0) uniform TopPosition {
-    dmat4x2 unused1;
+struct TopPosition {
+//    dmat4x2 unused1;
     float x;
-    double unused2;
+//    float unused1;
+//    double unused2;
+//    float unused2;
+//    float unused3;
+};
+layout(std140, set = 0, binding = 0) uniform TopPositionArray {
+    TopPosition top_position[32];
 } top12345678;
 layout(set = 1, binding = 0) uniform LeftPosition {
     mat4 unused;
@@ -268,7 +278,7 @@ vec2 positions[3] = vec2[](
 void main()
 {
   //positions[0].x = TopPosition::x - 1.0;
-  positions[0].x = top12345678.x - 1.0;
+  positions[0].x = top12345678.top_position[0].x - 1.0;
   //positions[1].y = LeftPosition::y;
   positions[1].y = left12345678.y;
   //positions[2].x = BottomPosition::x - 1.0;
@@ -282,14 +292,20 @@ void main()
 layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
+struct TopPosition {
+//    dmat4x2 unused1;
+    float x;
+//    float unused1;
+//    double unused2;
+//    float unused2;
+//    float unused3;
+};
 layout(set = 0, binding = 0) uniform LeftPosition {
     mat4 unused;
     float y;
 } left12345678;
-layout(set = 1, binding = 0) uniform TopPosition {
-    dmat4x2 unused1;
-    float x;
-    double unused2;
+layout(set = 1, binding = 0) uniform TopPositionArray {
+    TopPosition top_position[32];
 } top12345678;
 layout(set = 2, binding = 0) uniform BottomPosition {
     vec2 unused;
@@ -305,7 +321,7 @@ vec2 positions[3] = vec2[](
 void main()
 {
   //positions[0].x = TopPosition::x;
-  positions[0].x = top12345678.x;
+  positions[0].x = top12345678.top_position[0].x;
   //positions[1].y = LeftPosition::y;
   positions[1].y = left12345678.y;
   //positions[2].x = BottomPosition::x;
@@ -643,7 +659,8 @@ else
     ImGui::SliderFloat("Left position", &m_left_position, -1.0, 1.0);
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
-    ((TopPosition*)(m_top_buffer.begin()->m_pointer))->x = m_top_position;
+    ((TopPosition*)(m_top_buffer.begin()->m_pointer))[0].x = m_top_position;
+    ((TopPosition*)(m_top_buffer.begin()->m_pointer))[1].x = m_top_position + 0.1;
     ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = m_left_position;
     ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = m_bottom_position;
   }

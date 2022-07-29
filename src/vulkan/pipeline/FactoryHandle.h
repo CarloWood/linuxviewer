@@ -37,8 +37,15 @@ class FactoryHandle
 
 } // namespace vulkan::pipeline
 
-#include "SynchronousWindow.h"
 #endif // VULKAN_PIPELINE_FACTORY_HANDLE_H
+
+#ifndef VULKAN_SYNCHRONOUS_WINDOW_H
+#include "SynchronousWindow.h"
+#endif
+
+#ifndef PIPELINE_PIPELINE_FACTORY_H
+#include "PipelineFactory.h"
+#endif
 
 #ifndef VULKAN_PIPELINE_FACTORY_HANDLE_H_definitions
 #define VULKAN_PIPELINE_FACTORY_HANDLE_H_definitions

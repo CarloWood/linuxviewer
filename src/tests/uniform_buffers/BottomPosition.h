@@ -5,7 +5,7 @@
 #include "math/glsl.h"
 
 // Struct describing data type and format of uniform block.
-struct BottomPosition
+struct BottomPosition : glsl::uniform_std140
 {
   glsl::vec2 unused;
   glsl::Float x;
@@ -14,7 +14,7 @@ struct BottomPosition
 namespace vulkan::shaderbuilder {
 
 template<>
-struct ShaderVariableLayouts<BottomPosition>
+struct ShaderVariableLayouts<BottomPosition> : ShaderVariableLayoutsTraits<BottomPosition>
 {
   static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
     { Type::vec2, "BottomPosition::unused", offsetof(BottomPosition, unused) },

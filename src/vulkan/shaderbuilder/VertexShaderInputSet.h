@@ -56,7 +56,7 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // #include "ShaderVariableLayout.h"
 // #include "math/glsl.h"
 //
-// struct InstanceData
+// struct InstanceData : glsl::per_instance_data
 // {
 //   glsl::vec4 m_position;
 //   glsl::mat4 m_matrix;
@@ -67,9 +67,8 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // namespace vulkan::shaderbuilder {
 //
 // template<>
-// struct ShaderVariableLayouts<InstanceData>
+// struct ShaderVariableLayouts<InstanceData> : ShaderVariableLayoutsTraits<InstanceData>
 // {
-//   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eInstance;     // This is per instance data.
 //   static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
 //     { Type::vec4, "InstanceData::m_position", offsetof(InstanceData, m_position) },
 //     { Type::mat4, "InstanceData::m_matrix", offsetof(InstanceData, m_matrix) }

@@ -544,7 +544,7 @@ void main()
       .extent = swapchain_extent
     };
 
-    PushConstant scaling_factor = { static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height) };
+    PushConstant scaling_factor = { .aspect_scale = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height) };
 
     wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
