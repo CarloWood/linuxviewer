@@ -423,6 +423,7 @@ void Application::register_attribute() /*threadsafe-*/const
   glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
   for (ShaderVariableLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
   {
+    Dout(dc::notice, "layout = " << layout);
     auto res = glsl_id_strs_w->emplace(layout.m_glsl_id_str, &layout);
     // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
     ASSERT(res.second);

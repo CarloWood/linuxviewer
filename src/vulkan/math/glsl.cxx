@@ -6,9 +6,9 @@
 
 namespace glsl {
 
-std::string to_string(TypeIndex type_index)
+std::string to_string(ScalarIndex scalar_type)
 {
-  switch (type_index)
+  switch (scalar_type)
   {
     case eFloat:
       return "float";
@@ -21,7 +21,7 @@ std::string to_string(TypeIndex type_index)
     case eUint:
       return "uint";
     default:
-      THROW_ALERT("glsl::to_string called for extended type [INDEX].", AIArgs("[INDEX]", (int)type_index));
+      THROW_ALERT("glsl::to_string called for extended type [INDEX].", AIArgs("[INDEX]", (int)scalar_type));
   }
   AI_NEVER_REACHED
 }
@@ -43,9 +43,9 @@ std::string to_string(Standard standard)
   AI_NEVER_REACHED
 }
 
-std::ostream& operator<<(std::ostream& os, TypeIndex type_index)
+std::ostream& operator<<(std::ostream& os, ScalarIndex scalar_type)
 {
-  switch (type_index)
+  switch (scalar_type)
   {
     case eFloat:
       os << "eFloat";

@@ -24,15 +24,15 @@ struct Type
   static constexpr uint32_t rows_width_in_bits = 3;      // 1, 2, 3 or 4.
   static constexpr uint32_t cols_width_in_bits = 3;      // 1, 2, 3 or 4.
   static_assert(standard_width_in_bits + rows_width_in_bits + cols_width_in_bits == 8, "That doesn't fit");
-  static constexpr uint32_t base_type_width_in_bits = std::bit_width(static_cast<uint32_t>(glsl::number_of_base_types));        // 4 bits
-  static constexpr uint32_t log2_alignment_width_in_bits = 8 - base_type_width_in_bits;       // Possible alignments are 4, 8, 16 and 32. So 2 bits would be sufficient (we use 3).
+  static constexpr uint32_t scalar_type_width_in_bits = std::bit_width(static_cast<uint32_t>(glsl::number_of_scalar_types));    // 4 bits
+  static constexpr uint32_t log2_alignment_width_in_bits = 8 - scalar_type_width_in_bits;       // Possible alignments are 4, 8, 16 and 32. So 2 bits would be sufficient (we use 3).
   static constexpr uint32_t size_width_in_bits = 8;
   static constexpr uint32_t array_stride_width_in_bits = 8;
 
   uint32_t       m_standard:standard_width_in_bits;             // See glsl::Standard.
   uint32_t           m_rows:rows_width_in_bits;                 // If rows is 1 then also cols is 1 and this is a Scalar.
   uint32_t           m_cols:cols_width_in_bits;                 // If cols is 1 then this is a Scalar or a Vector.
-  uint32_t      m_base_type:base_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlaying scalar type.
+  uint32_t      m_scalar_type:scalar_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlaying scalar type.
   uint32_t m_log2_alignment:log2_alignment_width_in_bits{};     // The log2 of the alignment of this type when not used in an array.
   uint32_t           m_size:size_width_in_bits;                 // The (padded) size of this type when not used in an array.
   uint32_t   m_array_stride:array_stride_width_in_bits{};
@@ -42,13 +42,13 @@ struct Type
   int rows() const { return m_rows; }
   int cols() const { return m_cols; }
   glsl::Kind kind() const { return (m_rows == 1) ? glsl::Scalar : (m_cols == 1) ? glsl::Vector : glsl::Matrix; }
-  glsl::TypeIndex base_type() const { return static_cast<glsl::TypeIndex>(m_base_type); }
+  glsl::ScalarIndex scalar_type() const { return static_cast<glsl::ScalarIndex>(m_scalar_type); }
   int alignment() const { return 1 << m_log2_alignment; }
   int size() const { return m_size; }
   int array_stride() const { return m_array_stride; }
   // This applies to Vertex Attributes (aka, see https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html 4.4.1).
   // An array consumes this per index.
-  int consumed_locations() const { return ((m_base_type == glsl::eDouble && m_rows >= 3) ? 2 : 1) * m_cols; }
+  int consumed_locations() const { return ((m_scalar_type == glsl::eDouble && m_rows >= 3) ? 2 : 1) * m_cols; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -58,20 +58,25 @@ struct Type
 static_assert(sizeof(Type) == sizeof(uint32_t), "Size of Type is too large for encoding.");
 
 namespace standards {
-  using TI = glsl::TypeIndex;
+using TI = glsl::ScalarIndex;
+
+uint32_t alignment(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
+uint32_t size(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
+uint32_t array_stride(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
+
 } // namespace standards
 
 namespace vertex_attributes {
 using namespace standards;
 
-constexpr Type encode(int rows, int cols, int base_type)
+constexpr Type encode(int rows, int cols, int scalar_type)
 {
   return Type{
     .m_standard = glsl::vertex_attributes,
     .m_rows = static_cast<uint32_t>(rows),
     .m_cols = static_cast<uint32_t>(cols),
-    .m_base_type = static_cast<uint32_t>(base_type),
-    .m_size = (base_type == TI::eDouble) ? 8U : 4U
+    .m_scalar_type = static_cast<uint32_t>(scalar_type),
+    .m_size = (scalar_type == TI::eDouble) ? 8U : 4U
   };
 }
 
@@ -152,14 +157,14 @@ struct Tag
 namespace std140 {
 using namespace standards;
 
-constexpr Type encode(int rows, int cols, int base_type)
+constexpr Type encode(int rows, int cols, int scalar_type)
 {
   return Type{
     .m_standard = glsl::std140,
     .m_rows = static_cast<uint32_t>(rows),
     .m_cols = static_cast<uint32_t>(cols),
-    .m_base_type = static_cast<uint32_t>(base_type),
-    .m_size = (base_type == TI::eDouble) ? 8U : 4U      // FIXME?
+    .m_scalar_type = static_cast<uint32_t>(scalar_type),
+    .m_size = (scalar_type == TI::eDouble) ? 8U : 4U      // FIXME?
   };
 }
 
@@ -211,14 +216,14 @@ struct Tag
 namespace std430 {
 using namespace standards;
 
-constexpr Type encode(int rows, int cols, int base_type)
+constexpr Type encode(int rows, int cols, int scalar_type)
 {
   return Type{
     .m_standard = glsl::std430,
     .m_rows = static_cast<uint32_t>(rows),
     .m_cols = static_cast<uint32_t>(cols),
-    .m_base_type = static_cast<uint32_t>(base_type),
-    .m_size = (base_type == TI::eDouble) ? 8U : 4U      // FIXME?
+    .m_scalar_type = static_cast<uint32_t>(scalar_type),
+    .m_size = (scalar_type == TI::eDouble) ? 8U : 4U      // FIXME?
   };
 }
 

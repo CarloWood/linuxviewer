@@ -15,9 +15,9 @@ enum Standard {
 // Basic types.
 
 // Builtin-types indices.
-static constexpr int number_of_builtin_types = 5;
-static constexpr int number_of_base_types = 9;
-enum TypeIndex {
+static constexpr int number_of_glsl_types = 5;
+static constexpr int number_of_scalar_types = 9;
+enum ScalarIndex {
   eFloat  = 0,
   eDouble = 1,
   eBool   = 2,
@@ -30,7 +30,7 @@ enum TypeIndex {
   eUint16 = 8
 };
 
-std::string to_string(TypeIndex type_index);    // Prints the glsl type, not the name of the enum (aka, prints all lower case and without the leading 'e').
+std::string to_string(ScalarIndex scalar_type);    // Prints the glsl type, not the name of the enum (aka, prints all lower case and without the leading 'e').
 
 enum Kind {
   Scalar,
@@ -40,7 +40,7 @@ enum Kind {
 
 #ifdef CWDEBUG
 std::string to_string(Standard standard);
-std::ostream& operator<<(std::ostream& os, TypeIndex type_index);
+std::ostream& operator<<(std::ostream& os, ScalarIndex scalar_type);
 #endif
 
 // GLSL has the notation matCxR - with C cols and R rows.
