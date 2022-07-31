@@ -35,7 +35,8 @@ struct Type
   uint32_t      m_scalar_type:scalar_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlaying scalar type.
   uint32_t m_log2_alignment:log2_alignment_width_in_bits{};     // The log2 of the alignment of this type when not used in an array.
   uint32_t           m_size:size_width_in_bits;                 // The (padded) size of this type when not used in an array.
-  uint32_t   m_array_stride:array_stride_width_in_bits{};
+  uint32_t   m_array_stride:array_stride_width_in_bits{};       // The (padded) size of this type when used in an array (always >= m_size).
+                                                                // This size also fullfills the alignment: array_stride % alignment == 0.
 
  public:
   glsl::Standard standard() const { return static_cast<glsl::Standard>(m_standard); }
@@ -43,12 +44,12 @@ struct Type
   int cols() const { return m_cols; }
   glsl::Kind kind() const { return (m_rows == 1) ? glsl::Scalar : (m_cols == 1) ? glsl::Vector : glsl::Matrix; }
   glsl::ScalarIndex scalar_type() const { return static_cast<glsl::ScalarIndex>(m_scalar_type); }
-  int alignment() const { return 1 << m_log2_alignment; }
-  int size() const { return m_size; }
-  int array_stride() const { return m_array_stride; }
+  int alignment() const { ASSERT(m_standard != glsl::vertex_attributes); return 1 << m_log2_alignment; }
+  int size() const { ASSERT(m_standard != glsl::vertex_attributes); return m_size; }
+  int array_stride() const { ASSERT(m_standard != glsl::vertex_attributes); return m_array_stride; }
   // This applies to Vertex Attributes (aka, see https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html 4.4.1).
   // An array consumes this per index.
-  int consumed_locations() const { return ((m_scalar_type == glsl::eDouble && m_rows >= 3) ? 2 : 1) * m_cols; }
+  int consumed_locations() const { ASSERT(m_standard == glsl::vertex_attributes); return ((m_scalar_type == glsl::eDouble && m_rows >= 3) ? 2 : 1) * m_cols; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -60,9 +61,61 @@ static_assert(sizeof(Type) == sizeof(uint32_t), "Size of Type is too large for e
 namespace standards {
 using TI = glsl::ScalarIndex;
 
-uint32_t alignment(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
-uint32_t size(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
-uint32_t array_stride(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols);
+// Return the GLSL alignment of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t alignment(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
+{
+  using namespace glsl;
+  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+
+  // This function should not be called for vertex attribute types.
+  ASSERT(scalar_type < number_of_glsl_types);
+
+  // All scalar types have a minimum size of 4.
+  uint32_t const scalar_size = (scalar_type == eDouble) ? 8 : 4;
+
+  // The alignment is equal to the size of the (underlaying) scalar type if the standard
+  // is `scalar`, and also when the type just is a scalar.
+  if (kind == Scalar || standard == glsl::scalar)
+    return scalar_size;
+
+  // In the case of a vector that is multiplied with 2 or 4 (a vector with 3 rows takes the
+  // same space as a vector with 4 rows).
+  uint32_t const vector_alignment = scalar_size * ((rows == 2) ? 2 : 4);
+
+  if (kind == Vector)
+    return vector_alignment;
+
+  // For matrices round that up to the alignment of a vec4 if the standard is `std140`.
+  return (standard == glsl::std140) ? std::max(vector_alignment, 16U) : vector_alignment;
+}
+
+// Return the GLSL size of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t size(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
+{
+  using namespace glsl;
+  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+
+  // Non-matrices have the same size as in the standard 'scalar' case.
+  if (kind != Matrix || standard == glsl::scalar)
+    return alignment(standard, scalar_type, 1, 1) * rows * cols;
+
+  // Matrices are layed out as arrays of `cols` column-vectors.
+  // The alignment of the matrix is equal to the alignment of one such column-vector, also known as the matrix-stride.
+  uint32_t const matrix_stride = alignment(standard, scalar_type, rows, cols);
+
+  // The size of the matrix is simple the size of one of its column-vectors times the number of columns.
+  return cols * matrix_stride;
+}
+
+// Return the GLSL array_stride of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t array_stride(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
+{
+  // The array stride is equal to the largest of alignment and size.
+  uint32_t array_stride = std::max(alignment(standard, scalar_type, rows, cols), size(standard, scalar_type, rows, cols));
+
+  // In the case of std140 that must be rounded up to 16.
+  return (standard == glsl::std140) ? std::max(array_stride, 16U) : array_stride;
+}
 
 } // namespace standards
 
@@ -155,127 +208,23 @@ struct Tag
 } // namespace vertex_attributes
 
 namespace std140 {
-using namespace standards;
-
-constexpr Type encode(int rows, int cols, int scalar_type)
-{
-  return Type{
-    .m_standard = glsl::std140,
-    .m_rows = static_cast<uint32_t>(rows),
-    .m_cols = static_cast<uint32_t>(cols),
-    .m_scalar_type = static_cast<uint32_t>(scalar_type),
-    .m_size = (scalar_type == TI::eDouble) ? 8U : 4U      // FIXME?
-  };
-}
-
-// All the vectors are encoded as column-vectors, because you have to pick something.
-struct Type
-{
-  static constexpr auto Float   = encode(1, 1, TI::eFloat);
-  static constexpr auto vec2    = encode(2, 1, TI::eFloat);
-  static constexpr auto vec3    = encode(3, 1, TI::eFloat);
-  static constexpr auto vec4    = encode(4, 1, TI::eFloat);
-  static constexpr auto mat2    = encode(2, 2, TI::eFloat);
-  static constexpr auto mat3x2  = encode(2, 3, TI::eFloat);
-  static constexpr auto mat4x2  = encode(2, 4, TI::eFloat);
-  static constexpr auto mat2x3  = encode(3, 2, TI::eFloat);
-  static constexpr auto mat3    = encode(3, 3, TI::eFloat);
-  static constexpr auto mat4x3  = encode(3, 4, TI::eFloat);
-  static constexpr auto mat2x4  = encode(4, 2, TI::eFloat);
-  static constexpr auto mat3x4  = encode(4, 3, TI::eFloat);
-  static constexpr auto mat4    = encode(4, 4, TI::eFloat);
-
-  static constexpr auto Double  = encode(1, 1, TI::eDouble);
-  static constexpr auto dvec2   = encode(2, 1, TI::eDouble);
-  static constexpr auto dvec3   = encode(3, 1, TI::eDouble);
-  static constexpr auto dvec4   = encode(4, 1, TI::eDouble);
-  static constexpr auto dmat2   = encode(2, 2, TI::eDouble);
-  static constexpr auto dmat3x2 = encode(2, 3, TI::eDouble);
-  static constexpr auto dmat4x2 = encode(2, 4, TI::eDouble);
-  static constexpr auto dmat2x3 = encode(3, 2, TI::eDouble);
-  static constexpr auto dmat3   = encode(3, 3, TI::eDouble);
-  static constexpr auto dmat4x3 = encode(3, 4, TI::eDouble);
-  static constexpr auto dmat2x4 = encode(4, 2, TI::eDouble);
-  static constexpr auto dmat3x4 = encode(4, 3, TI::eDouble);
-  static constexpr auto dmat4   = encode(4, 4, TI::eDouble);
-
-  static constexpr auto Bool    = encode(1, 1, TI::eBool);
-  static constexpr auto bvec2   = encode(2, 1, TI::eBool);
-  static constexpr auto bvec3   = encode(3, 1, TI::eBool);
-  static constexpr auto bvec4   = encode(4, 1, TI::eBool);
-};
-
-struct Tag
-{
-  using tag_type = Tag;
-  using Type = Type;
-};
-
+static constexpr glsl::Standard glsl_standard = glsl::std140;
+#include "base_types.h"
 } // namespace std140
 
 namespace std430 {
-using namespace standards;
-
-constexpr Type encode(int rows, int cols, int scalar_type)
-{
-  return Type{
-    .m_standard = glsl::std430,
-    .m_rows = static_cast<uint32_t>(rows),
-    .m_cols = static_cast<uint32_t>(cols),
-    .m_scalar_type = static_cast<uint32_t>(scalar_type),
-    .m_size = (scalar_type == TI::eDouble) ? 8U : 4U      // FIXME?
-  };
-}
-
-// All the vectors are encoded as column-vectors, because you have to pick something.
-struct Type
-{
-  static constexpr auto Float   = encode(1, 1, TI::eFloat);
-  static constexpr auto vec2    = encode(2, 1, TI::eFloat);
-  static constexpr auto vec3    = encode(3, 1, TI::eFloat);
-  static constexpr auto vec4    = encode(4, 1, TI::eFloat);
-  static constexpr auto mat2    = encode(2, 2, TI::eFloat);
-  static constexpr auto mat3x2  = encode(2, 3, TI::eFloat);
-  static constexpr auto mat4x2  = encode(2, 4, TI::eFloat);
-  static constexpr auto mat2x3  = encode(3, 2, TI::eFloat);
-  static constexpr auto mat3    = encode(3, 3, TI::eFloat);
-  static constexpr auto mat4x3  = encode(3, 4, TI::eFloat);
-  static constexpr auto mat2x4  = encode(4, 2, TI::eFloat);
-  static constexpr auto mat3x4  = encode(4, 3, TI::eFloat);
-  static constexpr auto mat4    = encode(4, 4, TI::eFloat);
-
-  static constexpr auto Double  = encode(1, 1, TI::eDouble);
-  static constexpr auto dvec2   = encode(2, 1, TI::eDouble);
-  static constexpr auto dvec3   = encode(3, 1, TI::eDouble);
-  static constexpr auto dvec4   = encode(4, 1, TI::eDouble);
-  static constexpr auto dmat2   = encode(2, 2, TI::eDouble);
-  static constexpr auto dmat3x2 = encode(2, 3, TI::eDouble);
-  static constexpr auto dmat4x2 = encode(2, 4, TI::eDouble);
-  static constexpr auto dmat2x3 = encode(3, 2, TI::eDouble);
-  static constexpr auto dmat3   = encode(3, 3, TI::eDouble);
-  static constexpr auto dmat4x3 = encode(3, 4, TI::eDouble);
-  static constexpr auto dmat2x4 = encode(4, 2, TI::eDouble);
-  static constexpr auto dmat3x4 = encode(4, 3, TI::eDouble);
-  static constexpr auto dmat4   = encode(4, 4, TI::eDouble);
-
-  static constexpr auto Bool    = encode(1, 1, TI::eBool);
-  static constexpr auto bvec2   = encode(2, 1, TI::eBool);
-  static constexpr auto bvec3   = encode(3, 1, TI::eBool);
-  static constexpr auto bvec4   = encode(4, 1, TI::eBool);
-};
-
-struct Tag
-{
-  using tag_type = Tag;
-  using Type = Type;
-};
-
+static constexpr glsl::Standard glsl_standard = glsl::std430;
+#include "base_types.h"
 } // namespace std430
+
+namespace scalar {
+static constexpr glsl::Standard glsl_standard = glsl::scalar;
+#include "base_types.h"
+} // namespace scalar
 
 struct TypeInfo
 {
   std::string name;                             // glsl name
-  size_t const size;                            // The size of the type in bytes.
   int const number_of_attribute_indices;        // The number of sequential attribute indices that will be consumed.
   vk::Format const format;                      // The format to use for this type.
 
@@ -333,15 +282,18 @@ struct per_instance_data : vulkan::shaderbuilder::vertex_attributes::Tag
 // result in a compile-time error, unless it is also declared with push_constant.
 //
 // There is an extention that allows to use std430, but we don't use that yet.
-struct uniform_std140 : vulkan::shaderbuilder::std140::Tag
-{
-};
+using uniform_std140 = vulkan::shaderbuilder::std140::Tag;
 
 // From the same paragraph:
 //
 // However, when push_constant is declared, the default layout of the buffer will be std430. There is no method to globally set this default.
-struct push_constant_std430 : vulkan::shaderbuilder::std430::Tag
-{
-};
+using push_constant_std430 = vulkan::shaderbuilder::std430::Tag;
+
+// The following layouts might require an extension.
+#if 0
+using uniform_std430 = vulkan::shaderbuilder::std430::Tag;
+using uniform_scalar = vulkan::shaderbuilder::scalar::Tag;
+using push_constant_scalar = vulkan::shaderbuilder::scalar::Tag;
+#endif
 
 } // glsl

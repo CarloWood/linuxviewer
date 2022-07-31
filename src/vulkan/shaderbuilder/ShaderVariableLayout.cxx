@@ -281,7 +281,7 @@ vk::Format type2format(Type glsl_type)
 
 } // namespace
 
-TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), size(glsl_type.size()), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
+TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
 {
 }
 
@@ -325,63 +325,4 @@ void ShaderVariableLayout::print_on(std::ostream& os) const
 }
 #endif
 
-namespace standards {
-
-// Return the GLSL alignment of a scalar, vector or matrix type under the given standard.
-uint32_t alignment(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
-{
-  using namespace glsl;
-  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
-
-  // This function should not be called for vertex attribute types.
-  ASSERT(scalar_type < number_of_glsl_types);
-
-  // All scalar types have a minimum size of 4.
-  uint32_t const scalar_size = (scalar_type == eDouble) ? 8 : 4;
-
-  // The alignment is equal to the size of the (underlaying) scalar type if the standard
-  // is `scalar`, and also when the type just is a scalar.
-  if (kind == Scalar || standard == glsl::scalar)
-    return scalar_size;
-
-  // In the case of a vector that is multiplied with 2 or 4 (a vector with 3 rows takes the
-  // same space as a vector with 4 rows).
-  uint32_t const vector_alignment = scalar_size * ((rows == 2) ? 2 : 4);
-
-  if (kind == Vector)
-    return vector_alignment;
-
-  // For matrices round that up to the alignment of a vec4 if the standard is `std140`.
-  return (standard == glsl::std140) ? std::max(vector_alignment, 16U) : vector_alignment;
-}
-
-// Return the GLSL size of a scalar, vector or matrix type under the given standard.
-uint32_t size(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
-{
-  using namespace glsl;
-  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
-
-  // Non-matrices have the same size as in the standard 'scalar' case.
-  if (kind != Matrix || standard == glsl::scalar)
-    return alignment(standard, scalar_type, 1, 1) * rows * cols;
-
-  // Matrices are layed out as arrays of `cols` column-vectors.
-  // The alignment of the matrix is equal to the alignment of one such column-vector, also known as the matrix-stride.
-  uint32_t const matrix_stride = alignment(standard, scalar_type, rows, cols);
-
-  // The size of the matrix is simple the size of one of its column-vectors times the number of columns.
-  return cols * matrix_stride;
-}
-
-// Return the GLSL array_stride of a scalar, vector or matrix type under the given standard.
-uint32_t array_stride(glsl::Standard standard, glsl::ScalarIndex scalar_type, int rows, int cols)
-{
-  // The array stride is equal to the largest of alignment and size.
-  uint32_t array_stride = std::max(alignment(standard, scalar_type, rows, cols), size(standard, scalar_type, rows, cols));
-
-  // In the case of std140 that must be rounded up to 16.
-  return (standard == glsl::std140) ? std::max(array_stride, 16U) : array_stride;
-}
-
-} // namespace standards
 } // namespace vulkan::shaderbuilder
