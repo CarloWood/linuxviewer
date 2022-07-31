@@ -8,7 +8,6 @@
 struct VertexData : glsl::per_vertex_data
 {
   glsl::vec4 m_position;
-  glsl::Float m_unused;
   glsl::vec2 m_texture_coordinates;
 };
 
