@@ -11,7 +11,7 @@ class RenderPass : public rendergraph::RenderPass
 {
  private:
   task::SynchronousWindow* m_owning_window;
-  vk::UniqueRenderPass m_render_pass;           // The underlaying Vulkan render pass.
+  vk::UniqueRenderPass m_render_pass;           // The underlying Vulkan render pass.
   vk::UniqueFramebuffer m_framebuffer;          // The imageless framebuffer used by this render pass.
 
   // initialize_begin_info_chain():

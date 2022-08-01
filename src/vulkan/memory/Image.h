@@ -21,7 +21,7 @@ struct ImageMemoryCreateInfoDefaults
 struct Image
 {
   LogicalDevice const* m_logical_device{};              // The associated logical device; only valid when m_vh_image is non-null.
-  vk::Image m_vh_image;                                 // Vulkan handle to the underlaying image, or VK_NULL_HANDLE when no image is represented.
+  vk::Image m_vh_image;                                 // Vulkan handle to the underlying image, or VK_NULL_HANDLE when no image is represented.
   VmaAllocation m_vh_allocation{};                      // The memory allocation used for the image; only valid when m_vh_image is non-null.
 
   using MemoryCreateInfo = ImageMemoryCreateInfoDefaults;

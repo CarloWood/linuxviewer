@@ -132,7 +132,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   // Constructor
-  boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlaying application, which terminates when the last such reference is destructed.
+  boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlying application, which terminates when the last such reference is destructed.
   vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
                                                                           // SynchronousWindow_logical_device_index_available.
  private:

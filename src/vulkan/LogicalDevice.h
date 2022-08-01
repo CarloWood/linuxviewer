@@ -90,7 +90,7 @@ struct UnsupportedQueueFlagsException : std::exception {
 class LogicalDevice
 {
  private:
-  vk::PhysicalDevice m_vh_physical_device;              // The underlaying physical device.
+  vk::PhysicalDevice m_vh_physical_device;              // The underlying physical device.
   vk::UniqueDevice m_device;                            // A handle to the logical device.
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
@@ -119,7 +119,7 @@ class LogicalDevice
 
   void prepare(vk::Instance vh_vulkan_instance, DispatchLoader& dispatch_loader, task::SynchronousWindow const* window_task_ptr);
 
-  // Accessor for underlaying physical and logical device.
+  // Accessor for underlying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
   vk::Device vh_logical_device(utils::Badge<ImGui>) const { return *m_device; }
 

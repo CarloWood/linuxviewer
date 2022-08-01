@@ -60,7 +60,7 @@ namespace handle {
 //   ...
 //   command_buffer->end();
 //
-// Finally, a vulkan::CommandBuffer* can be converted to the underlaying
+// Finally, a vulkan::CommandBuffer* can be converted to the underlying
 // vk::CommandBuffer, so that it can be submitted using:
 //
 //   ...
@@ -71,7 +71,7 @@ namespace handle {
 class CommandBuffer
 {
  private:
-  vk::CommandBuffer m_vh_command_buffer;           // The underlaying vulkan handle.
+  vk::CommandBuffer m_vh_command_buffer;           // The underlying vulkan handle.
 
   // Needed to allocate new buffers.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>

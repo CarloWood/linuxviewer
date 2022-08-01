@@ -32,7 +32,7 @@ struct Type
   uint32_t       m_standard:standard_width_in_bits;             // See glsl::Standard.
   uint32_t           m_rows:rows_width_in_bits;                 // If rows is 1 then also cols is 1 and this is a Scalar.
   uint32_t           m_cols:cols_width_in_bits;                 // If cols is 1 then this is a Scalar or a Vector.
-  uint32_t      m_scalar_type:scalar_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlaying scalar type.
+  uint32_t      m_scalar_type:scalar_type_width_in_bits;            // This type when this is a Scalar, otherwise the underlying scalar type.
   uint32_t m_log2_alignment:log2_alignment_width_in_bits{};     // The log2 of the alignment of this type when not used in an array.
   uint32_t           m_size:size_width_in_bits;                 // The (padded) size of this type when not used in an array.
   uint32_t   m_array_stride:array_stride_width_in_bits{};       // The (padded) size of this type when used in an array (always >= m_size).
@@ -73,7 +73,7 @@ constexpr uint32_t alignment(glsl::Standard standard, glsl::ScalarIndex scalar_t
   // All scalar types have a minimum size of 4.
   uint32_t const scalar_size = (scalar_type == eDouble) ? 8 : 4;
 
-  // The alignment is equal to the size of the (underlaying) scalar type if the standard
+  // The alignment is equal to the size of the (underlying) scalar type if the standard
   // is `scalar`, and also when the type just is a scalar.
   if (kind == Scalar || standard == glsl::scalar)
     return scalar_size;
