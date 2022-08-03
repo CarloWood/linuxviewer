@@ -1,3 +1,63 @@
+### Shader variable layouts ###
+
+The user must define a template specialization of ShaderVariableLayouts
+that reflects the layout of custom structs, before defining those structs.
+
+Such definitions make use of predefined types for all basic types (scalars,
+vectors and matrices and defined by GLSL). The exact definition of those
+types depend on the chosen standard (scalar, std140 or std430).
+
+One might think that it would be possible to include a namespace prior to
+declaring the layout specialization, but since those are defined in a header
+it is a bad idea to begin with a `using namespace std140;` or something
+like that, and it is not allowed to do that inside a struct or class.
+
+Therefore, the standard is declared by deriving from a base class
+that defines the required types, but otherwise has a size of zero:
+
+    struct MyFoo;
+    namespace vulkan::shaderbuilder {
+
+    template<>
+    struct ShaderVariableLayouts<MyFoo> : standards::std140
+    {
+      MEMBER(Float, m_f),
+      MEMBER(mat4, m_matrix)
+    };
+
+    } // namespace vulkan::shaderbuilder
+
+where the class `standards::std140` defined the types `Float` and `mat4`
+that were used. `MEMBER` is a macro that hides gory details.
+
+Note that neither `Float` nor `mat4` are types that can contain a float or
+a matrix of floats respectively. Instead, they are types that encode things
+like alignment, size, array stride and offset (the latter if used in a
+struct - like is the case here (`struct MyFoo`)).
+
+The reason this information is encoded in a type is because it is used
+to perform calculation in constexpr functions, and you can't pass constexpr
+as arguments to functions. This means that the types need to be specializations
+of template class, and specializations can only be added in the namespace
+that defined it. In other words, the "returned" types cannot be defined in
+their own namespace; they have to be specializations by standard themselves.
+
+This is why -say- a `Float` (as used above) is really (derived from) a specialization of
+`vulkan::shaderbuilder::standards::Layout`:
+
+    namespace vulkan::shaderbuilder::standards {
+
+    template<Standard standard, uint32_t alignment, uint32_t size, uint32_t array_stride, uint32_t offset>
+    struct Layout;
+
+And the basic types are specializations of
+
+    template<ScalarIndex scalar_type, int rows, int cols,
+             Standard standard, uint32_t alignment, uint32_t size, uint32_t array_stride, uint32_t offset>
+    struct BasicType : Layout<standard, alignment, size, array_stride, offset>
+    {
+    };
+
 ### Shader preprocessing ###
 
 The vulkan engine can generate shader variable declarations and then compile

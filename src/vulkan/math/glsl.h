@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Core>
+#include "debug.h"
 
 namespace glsl {
 
@@ -137,5 +138,62 @@ static_assert(
     sizeof(mat3x4) == 3 * 4 * sizeof(float) &&
     sizeof(mat4)   == 4 * 4 * sizeof(float),
     "Required because we treat these as an array of floats.");
+
+// Return the GLSL alignment of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t alignment(Standard standard, ScalarIndex scalar_type, int rows, int cols)
+{
+  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+
+  // This function should never be called for vertex attribute types.
+  // Those types do not have the traits of a standard; so it makes no sense to try and use whatever
+  // this function would return. If this fails there is a bug in the code.
+//  assert(scalar_type < number_of_glsl_types);
+
+  // All scalar types have a minimum size of 4.
+  uint32_t const scalar_size = (scalar_type == eDouble) ? 8 : 4;
+
+  // The alignment is equal to the size of the (underlying) scalar type if the standard
+  // is `scalar`, and also when the type just is a scalar.
+  if (kind == Scalar || standard == scalar)
+    return scalar_size;
+
+  // In the case of a vector that is multiplied with 2 or 4 (a vector with 3 rows takes the
+  // same space as a vector with 4 rows).
+  uint32_t const vector_alignment = scalar_size * ((rows == 2) ? 2 : 4);
+
+  if (kind == Vector)
+    return vector_alignment;
+
+  // For matrices round that up to the alignment of a vec4 if the standard is `std140`.
+  return (standard == std140) ? std::max(vector_alignment, 16U) : vector_alignment;
+}
+
+// Return the GLSL size of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t size(Standard standard, ScalarIndex scalar_type, int rows, int cols)
+{
+  using namespace glsl;
+  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+
+  // Non-matrices have the same size as in the standard 'scalar' case.
+  if (kind != Matrix || standard == scalar)
+    return alignment(standard, scalar_type, 1, 1) * rows * cols;
+
+  // Matrices are layed out as arrays of `cols` column-vectors.
+  // The alignment of the matrix is equal to the alignment of one such column-vector, also known as the matrix-stride.
+  uint32_t const matrix_stride = alignment(standard, scalar_type, rows, cols);
+
+  // The size of the matrix is simple the size of one of its column-vectors times the number of columns.
+  return cols * matrix_stride;
+}
+
+// Return the GLSL array_stride of a scalar, vector or matrix type under the given standard.
+constexpr uint32_t array_stride(Standard standard, ScalarIndex scalar_type, int rows, int cols)
+{
+  // The array stride is equal to the largest of alignment and size.
+  uint32_t array_stride = std::max(alignment(standard, scalar_type, rows, cols), size(standard, scalar_type, rows, cols));
+
+  // In the case of std140 that must be rounded up to 16.
+  return (standard == std140) ? std::max(array_stride, 16U) : array_stride;
+}
 
 } // namespace glsl

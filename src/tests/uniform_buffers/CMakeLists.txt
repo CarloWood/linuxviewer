@@ -5,6 +5,9 @@ project(linux_vulkan_engine
 
 include(AICxxProject)
 
+# Required for reflection_test2.
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 #==============================================================================
 # RESOURCES
 #
@@ -61,4 +64,19 @@ target_link_libraries(uniform_buffers_test
     ImGui::imgui
     ${AICXX_OBJECTS_LIST}
     dns::dns
+)
+
+add_executable(reflection_test2
+  reflection_test2.cpp
+)
+
+target_include_directories(reflection_test2
+  PRIVATE
+    ${CMAKE_SOURCE_DIR}/src/vulkan
+)
+
+target_link_libraries(reflection_test2
+  PRIVATE
+    AICxx::cwds
+    Eigen3::Eigen
 )
