@@ -43,7 +43,7 @@ std::string_view Pipeline::preprocess(
 
   if (has_shader_variable_layouts)
   {
-    // shader_variable_layouts contains a number of strings that we need to find in source.
+    // shader_variable_layouts contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
     for (auto&& shader_variable_layout : *shader_variable_layouts)
     {

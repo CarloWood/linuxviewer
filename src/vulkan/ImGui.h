@@ -23,7 +23,7 @@ namespace imgui {
 struct ImDrawVert;
 } // namespace imgui
 
-// Describe the ImDrawVert's member layouts in terms of this dummy struct,
+// Describe the ImDrawVert's vertex input attribute layouts in terms of this dummy struct,
 // since it only uses things like sizeof and offsetof.
 template<>
 struct vulkan::shaderbuilder::ShaderVariableLayouts<imgui::ImDrawVert> : glsl::per_vertex_data
