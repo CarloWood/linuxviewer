@@ -9,7 +9,7 @@ namespace vulkan::shaderbuilder {
 
 namespace {
 
-std::string type2name(Type glsl_type)
+std::string type2name(BasicType glsl_type)
 {
   glsl::ScalarIndex scalar_type = glsl_type.scalar_type();
   int rows = glsl_type.rows();
@@ -106,7 +106,7 @@ std::string type2name(Type glsl_type)
 // VK_FORMAT_R32G32B32A32_SINT
 // VK_FORMAT_R32G32B32A32_SFLOAT
 
-vk::Format type2format(Type glsl_type)
+vk::Format type2format(BasicType glsl_type)
 {
   vk::Format format;
   int rows = glsl_type.rows();
@@ -281,7 +281,7 @@ vk::Format type2format(Type glsl_type)
 
 } // namespace
 
-TypeInfo::TypeInfo(Type glsl_type) : name(type2name(glsl_type)), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
+TypeInfo::TypeInfo(BasicType glsl_type) : name(type2name(glsl_type)), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
 {
 }
 
@@ -293,7 +293,7 @@ std::string ShaderVariableLayout::name() const
 }
 
 #ifdef CWDEBUG
-void Type::print_on(std::ostream& os) const
+void BasicType::print_on(std::ostream& os) const
 {
   os << '{';
   os << "m_standard:" << to_string(standard()) <<

@@ -421,13 +421,35 @@ void Application::register_attribute() /*threadsafe-*/const
 {
   using namespace vulkan::shaderbuilder;
   glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
+  uint32_t required_offset = 0;
+#if 0 // FIXME: ShaderVariableLayouts<ENTRY>::members contains the required offsets, not the actual ones?
   for (ShaderVariableLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
   {
     Dout(dc::notice, "layout = " << layout);
+    // Don't check layout when the 'standard' is vertex_attributes; in that case the layout doesn't matter at all.
+    bool check_layout = layout.valid_alignment_and_size();
+    if (check_layout)
+    {
+      // Update the offset with the alignment of the current member.
+      uint32_t alignment = layout.alignment();
+      required_offset += alignment - 1;
+      required_offset -= required_offset % alignment;
+      if (layout.m_offset != required_offset)
+      {
+        THROW_FALERT("Incorrect offset ([OFFSET]) of [ID_STR], should be [REQUIRED].",
+            AIArgs("[OFFSET]", layout.m_offset)("[ID_STR]", layout.m_glsl_id_str)("[REQUIRED]", required_offset));
+      }
+    }
     auto res = glsl_id_strs_w->emplace(layout.m_glsl_id_str, &layout);
     // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
     ASSERT(res.second);
+    if (check_layout)
+    {
+      // Update offset with the size of the current member.
+      required_offset += layout.size();
+    }
   }
+#endif
 }
 
 } // namespace vulkan

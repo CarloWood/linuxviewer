@@ -50,34 +50,30 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // specify the static constexpr members `input_rate` and `layouts`, where
 // the latter lists all of the members of ENTRY.
 //
-// For example, if ENTRY is `InstanceData`, which is defined as
+// For example, if ENTRY is `InstanceData`, one has to specify the layout in advance:
 //
 // #include "ShaderVariableLayouts.h"
-// #include "ShaderVariableLayout.h"
-// #include "math/glsl.h"
 //
-// struct InstanceData : glsl::per_instance_data
+// struct InstanceData;
+//
+// template<>
+// struct vulkan::shaderbuilder::ShaderVariableLayouts<InstanceData> : glsl::per_instance_data
+// {
+//   using containing_class = InstanceData;
+//   static constexpr auto members = make_members(
+//     MEMBER(vec4, m_position),
+//     MEMBER(mat4, m_matrix)
+//   );
+// };
+//
+// This can simply be done immediately before the struct itself.
+//
+// struct InstanceData
 // {
 //   glsl::vec4 m_position;
 //   glsl::mat4 m_matrix;
 // };
 //
-// Then you also have to specify
-//
-// namespace vulkan::shaderbuilder {
-//
-// template<>
-// struct ShaderVariableLayouts<InstanceData> : ShaderVariableLayoutsTraits<InstanceData>
-// {
-//   static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
-//     { Type::vec4, "InstanceData::m_position", offsetof(InstanceData, m_position) },
-//     { Type::mat4, "InstanceData::m_matrix", offsetof(InstanceData, m_matrix) }
-//   }};
-// };
-//
-// } // namespace vulkan::shaderbuilder
-//
-// This can simply be done immediately below the struct.
 
 template<typename ENTRY>
 class VertexShaderInputSet : public VertexShaderInputSetBase

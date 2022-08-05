@@ -1,25 +1,22 @@
 #pragma once
 
 #include "shaderbuilder/ShaderVariableLayouts.h"
-#include "shaderbuilder/ShaderVariableLayout.h"
-#include "math/glsl.h"
+
+struct BottomPosition;
+
+template<>
+struct vulkan::shaderbuilder::ShaderVariableLayouts<BottomPosition> : glsl::uniform_std140
+{
+  using containing_class = BottomPosition;
+  static constexpr auto members = make_members(
+    MEMBER(vec2, unused),
+    MEMBER(Float, x)
+  );
+};
 
 // Struct describing data type and format of uniform block.
-struct BottomPosition : glsl::uniform_std140
+struct BottomPosition
 {
   glsl::vec2 unused;
   glsl::Float x;
 };
-
-namespace vulkan::shaderbuilder {
-
-template<>
-struct ShaderVariableLayouts<BottomPosition> : ShaderVariableLayoutsTraits<BottomPosition>
-{
-  static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
-    { Type::vec2, "BottomPosition::unused", offsetof(BottomPosition, unused) },
-    { Type::Float, "BottomPosition::x", offsetof(BottomPosition, x) }
-  }};
-};
-
-} // namespace vulkan::shaderbuilder

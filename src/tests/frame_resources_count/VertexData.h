@@ -1,25 +1,21 @@
 #pragma once
 
 #include "shaderbuilder/ShaderVariableLayouts.h"
-#include "shaderbuilder/ShaderVariableLayout.h"
-#include "math/glsl.h"
+
+struct VertexData;
+
+template<>
+struct vulkan::shaderbuilder::ShaderVariableLayouts<VertexData> : glsl::per_vertex_data
+{
+  static constexpr auto members = make_members(
+    MEMBER(vec4, m_position),
+    MEMBER(vec2, m_texture_coordinates)
+  );
+};
 
 // Struct describing data type and format of vertex attributes.
-struct VertexData : glsl::per_vertex_data
+struct VertexData
 {
   glsl::vec4 m_position;
   glsl::vec2 m_texture_coordinates;
 };
-
-namespace vulkan::shaderbuilder {
-
-template<>
-struct ShaderVariableLayouts<VertexData> : ShaderVariableLayoutsTraits<VertexData>
-{
-  static constexpr std::array<ShaderVariableLayout, 2> layouts = {{
-    { Type::vec4, "VertexData::m_position", offsetof(VertexData, m_position) },
-    { Type::vec2, "VertexData::m_texture_coordinates", offsetof(VertexData, m_texture_coordinates) }
-  }};
-};
-
-} // namespace vulkan::shaderbuilder

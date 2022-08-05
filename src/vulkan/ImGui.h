@@ -5,7 +5,6 @@
 #include "memory/Buffer.h"
 #include "DescriptorSetParameters.h"
 #include "shaderbuilder/ShaderVariableLayouts.h"
-#include "shaderbuilder/ShaderVariableLayout.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "pipeline/Pipeline.h"
 #include "debug/DebugSetName.h"
@@ -14,7 +13,6 @@
 #include "CommandBuffer.h"      // handle::CommandBuffer
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
-#include "math/glsl.h"          // glsl::vec2
 #include "vk_utils/TimerData.h"
 
 // Theoretically we should include imgui.h to get the definition of ImDrawVert.
@@ -22,8 +20,25 @@
 // same memory layout. We can even put this dummy struct in a namespace.
 
 namespace imgui {
+struct ImDrawVert;
+} // namespace imgui
 
-struct ImDrawVert : glsl::per_vertex_data
+// Describe the ImDrawVert's member layouts in terms of this dummy struct,
+// since it only uses things like sizeof and offsetof.
+template<>
+struct vulkan::shaderbuilder::ShaderVariableLayouts<imgui::ImDrawVert> : glsl::per_vertex_data
+{
+  using containing_class = imgui::ImDrawVert;
+  static constexpr auto members = make_members(
+    MEMBER(vec2, pos),
+    MEMBER(vec2, uv),
+    MEMBER(u8vec4, col)
+  );
+};
+
+namespace imgui {
+
+struct ImDrawVert
 {
   glsl::vec2 pos;
   glsl::vec2 uv;
@@ -33,22 +48,6 @@ struct ImDrawVert : glsl::per_vertex_data
 using ImDrawIdx = unsigned short;
 
 } // namespace imgui
-
-// Describe the ImDrawVert's member layouts in terms of this dummy struct,
-// since it only uses things like sizeof and offsetof.
-namespace vulkan::shaderbuilder {
-
-template<>
-struct ShaderVariableLayouts<imgui::ImDrawVert> : ShaderVariableLayoutsTraits<imgui::ImDrawVert>
-{
-  static constexpr std::array<ShaderVariableLayout, 3> layouts = {{
-    { Type::vec2, "ImDrawVert::pos", offsetof(imgui::ImDrawVert, pos) },
-    { Type::vec2, "ImDrawVert::uv", offsetof(imgui::ImDrawVert, uv) },
-    { Type::u8vec4, "ImDrawVert::col", offsetof(imgui::ImDrawVert, col) }
-  }};
-};
-
-} // namespace vulkan::shaderbuilder
 
 namespace imgui {
 

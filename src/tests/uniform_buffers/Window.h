@@ -250,7 +250,7 @@ layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
 struct TopPosition {
-    dmat4x2 unused1;
+    mat2 unused1;
     float x;
 //    float unused1;
 //    double unused2;
@@ -293,7 +293,7 @@ layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
 struct TopPosition {
-    dmat4x2 unused1;
+    mat2 unused1;
     float x;
 //    float unused1;
 //    double unused2;
