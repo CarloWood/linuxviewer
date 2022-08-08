@@ -9,9 +9,9 @@ namespace vulkan::pipeline {
 std::string_view Pipeline::preprocess(
     shaderbuilder::ShaderInfo const& shader_info,
     std::string& glsl_source_code_buffer,
-    boost::ptr_set<shaderbuilder::ShaderVertexInputAttributeLayout> const* shader_variable_layouts)
+    std::set<shaderbuilder::VertexAttribute> const* vertex_attributes)
 {
-  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << shader_variable_layouts << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << vertex_attributes << ") [" << this << "]");
 
   std::string_view source = shader_info.glsl_template_code();
 
@@ -23,10 +23,10 @@ std::string_view Pipeline::preprocess(
   size_t source_code_size_estimate = std::strlen(version_header) + source.length();
 
   std::string declarations;
-  bool const has_shader_variable_layouts = shader_variable_layouts && !shader_variable_layouts->empty();
-  if (has_shader_variable_layouts)
+  bool const has_vertex_attributes = vertex_attributes && !vertex_attributes->empty();
+  if (has_vertex_attributes)
   {
-    for (shaderbuilder::ShaderVertexInputAttributeLayout const& shader_variable_layout : *shader_variable_layouts)
+    for (shaderbuilder::VertexAttribute const& shader_variable_layout : *vertex_attributes)
       declarations += shader_variable_layout.declaration(this);
     declarations += '\n';
   }
@@ -41,11 +41,11 @@ std::string_view Pipeline::preprocess(
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
-  if (has_shader_variable_layouts)
+  if (has_vertex_attributes)
   {
-    // shader_variable_layouts contains a number of strings that we need to find in the source.
+    // vertex_attributes contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
-    for (auto&& shader_variable_layout : *shader_variable_layouts)
+    for (auto&& shader_variable_layout : *vertex_attributes)
     {
       std::string const match_string = shader_variable_layout.m_glsl_id_str;
       for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
@@ -89,18 +89,15 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
 std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribute_descriptions() const
 {
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (shaderbuilder::ShaderVertexInputAttributeLayout const& shader_variable_layout : m_shader_variable_layouts)
+  for (shaderbuilder::VertexAttribute const& shader_variable_layout : m_vertex_attributes)
   {
-    // Only do this for VertexAttribute objects in the set.
-    if (shader_variable_layout.m_declaration != &shaderbuilder::VertexAttribute::declaration)
-      continue;
     shaderbuilder::VertexAttribute const* vertex_attribute = static_cast<shaderbuilder::VertexAttribute const*>(&shader_variable_layout);
     auto location = m_vertex_shader_location_context.locations.find(&shader_variable_layout);
     ASSERT(location != m_vertex_shader_location_context.locations.end());
-    shaderbuilder::TypeInfo type_info(shader_variable_layout.m_glsl_type);
+    shaderbuilder::TypeInfo type_info(shader_variable_layout.m_base_type);
     vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
         .location = location->second,
-        .binding = static_cast<uint32_t>(vertex_attribute->binding.get_value()),
+        .binding = static_cast<uint32_t>(vertex_attribute->m_binding.get_value()),
         .format = type_info.format,
         .offset = shader_variable_layout.m_offset});
   }
@@ -117,7 +114,7 @@ void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
   switch (shader_info.stage())
   {
     case vk::ShaderStageFlagBits::eVertex:
-      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_shader_variable_layouts);
+      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_vertex_attributes);
       break;
     default:
       glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);

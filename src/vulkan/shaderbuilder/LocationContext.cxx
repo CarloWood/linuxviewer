@@ -1,13 +1,13 @@
 #include "sys.h"
 #include "LocationContext.h"
-#include "ShaderVertexInputAttributeLayout.h"
+#include "VertexAttribute.h"
 
 namespace vulkan::shaderbuilder {
 
-void LocationContext::update_location(ShaderVertexInputAttributeLayout const* shader_variable_layout)
+void LocationContext::update_location(VertexAttribute const* vertex_attribute)
 {
-  locations[shader_variable_layout] = next_location;
-  next_location += TypeInfo{shader_variable_layout->m_glsl_type}.number_of_attribute_indices;
+  locations[vertex_attribute] = next_location;
+  next_location += TypeInfo{vertex_attribute->m_base_type}.number_of_attribute_indices;
 }
 
 } // namespace vulkan::shaderbuilder

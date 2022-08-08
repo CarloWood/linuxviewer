@@ -8,7 +8,6 @@
 #include "debug/DebugSetName.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
-#include <boost/ptr_container/ptr_set.hpp>
 #include <vector>
 #include <set>
 #include <tuple>
@@ -25,7 +24,7 @@ namespace vulkan::shaderbuilder {
 class VertexShaderInputSetBase;
 template<typename ENTRY> class VertexShaderInputSet;
 
-struct ShaderVertexInputAttributeLayout;
+struct VertexAttribute;
 
 } // namespace vulkan::shaderbuilder
 
@@ -34,7 +33,7 @@ namespace vulkan::pipeline {
 class Pipeline
 {
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
-  boost::ptr_set<shaderbuilder::ShaderVertexInputAttributeLayout> m_shader_variable_layouts;        // All existing layouts of the above input sets (including declaration function).
+  std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing layouts of the above input sets (including declaration function).
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for vertex attributes (VertexAttribute).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
@@ -61,7 +60,7 @@ class Pipeline
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer,
-      boost::ptr_set<shaderbuilder::ShaderVertexInputAttributeLayout> const* shader_variable_layouts = nullptr);
+      std::set<shaderbuilder::VertexAttribute> const* vertex_attributes = nullptr);
 
   // Accessors.
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
@@ -101,15 +100,16 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
 
   BindingIndex binding = m_vertex_shader_input_sets.iend();
 
-  // Insert a new VertexAttribute into m_shader_variable_layouts for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
+  // Insert a new VertexAttribute into m_vertex_attributes for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
   auto insert_vertex_attribute = [&, this]<
       typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>(
           MemberLayout<
               ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
       {
-        ShaderVertexInputAttributeLayout shader_vertex_input_attribute_layout{
-          .m_glsl_type = {
+        VertexAttribute vertex_attribute{
+          .m_binding = binding,
+          .m_base_type = {
             .m_standard = Standard,
             .m_rows = Rows,
             .m_cols = Cols,
@@ -120,12 +120,11 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
           .m_glsl_id_str = GlslIdStr.chars.data(),
           .m_offset = Offset
         };
-#if 0 // FIXME - see discord todo list
-        auto res = m_shader_variable_layouts.insert(new VertexAttribute(binding, shader_vertex_input_attribute_layout));
+        ASSERT(false);
+        auto res = m_vertex_attributes.insert(std::move(vertex_attribute));
         // All used names must be unique.
         if (!res.second)
-          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", shader_vertex_input_attribute_layout.m_glsl_id_str));
-#endif
+          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.m_glsl_id_str));
       };
 
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
@@ -151,7 +150,7 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
   // Register ENTRY as vertex shader input.
   for (auto&& shader_variable_layout : shaderbuilder::ShaderVariableLayouts<ENTRY>::layouts)
   {
-    auto res = m_shader_variable_layouts.insert(new shaderbuilder::VertexAttribute(binding, shader_variable_layout));
+    auto res = m_vertex_attributes.insert(new shaderbuilder::VertexAttribute(binding, shader_variable_layout));
     // All used names must be unique.
     if (!res.second)
       THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", shader_variable_layout.m_glsl_id_str));
