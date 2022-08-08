@@ -25,11 +25,9 @@ struct ImDrawVert;
 
 // Describe the ImDrawVert's vertex input attribute layouts in terms of this dummy struct,
 // since it only uses things like sizeof and offsetof.
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<imgui::ImDrawVert> : glsl::per_vertex_data
+LAYOUT_DECLARATION(imgui::ImDrawVert, per_vertex_data)
 {
-  using containing_class = imgui::ImDrawVert;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(vec2, pos),
     MEMBER(vec2, uv),
     MEMBER(u8vec4, col)

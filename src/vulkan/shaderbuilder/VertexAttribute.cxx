@@ -7,7 +7,7 @@
 namespace vulkan::shaderbuilder {
 
 //static
-std::string VertexAttribute::declaration(ShaderVariableLayout const* base, pipeline::Pipeline* pipeline)
+std::string VertexAttribute::declaration(ShaderVertexInputAttributeLayout const* base, pipeline::Pipeline* pipeline)
 {
   VertexAttribute const* self = static_cast<VertexAttribute const*>(base);
   LocationContext& context = pipeline->vertex_shader_location_context();

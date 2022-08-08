@@ -4,13 +4,11 @@
 
 struct TopPosition;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<TopPosition> : glsl::uniform_std140
+LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
-  using containing_class = TopPosition;
-  static constexpr auto members = make_members(
-    MEMBER(mat2, "TopPosition::unused1"),
-    MEMBER(Float, "TopPosition::x")
+  static constexpr auto layouts = make_layouts(
+    MEMBER(mat2, unused1),
+    MEMBER(Float, x)
 //    MEMBER(/*Double*/Float, "TopPosition::unused2"),
 //    MEMBER(Float, "TopPosition::unused3")
   );

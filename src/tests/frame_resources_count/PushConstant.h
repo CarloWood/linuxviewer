@@ -4,11 +4,9 @@
 
 struct PushConstant;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<PushConstant> : glsl::push_constant_std430
+LAYOUT_DECLARATION(PushConstant, push_constant_std430)
 {
-  using containing_class = PushConstant;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(Float, aspect_scale)
   );
 };

@@ -74,11 +74,9 @@ concept ConceptAlignAndResize = requires(T x) {
 struct Foo;
 struct Bar;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<Foo> : glsl::uniform_std140
+LAYOUT_DECLARATION(Foo, uniform_std140)
 {
-  using containing_class = Foo;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(vec3, m_v3),
     MEMBER(mat2, m_m2),
     MEMBER(mat3, m_m3),
@@ -87,11 +85,9 @@ struct vulkan::shaderbuilder::ShaderVariableLayouts<Foo> : glsl::uniform_std140
   );
 };
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<Bar> : glsl::uniform_scalar
+LAYOUT_DECLARATION(Bar, uniform_scalar)
 {
-  using containing_class = Bar;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(vec3, m_v3),
     MEMBER(mat2, m_m2),
     MEMBER(mat3, m_m3),
@@ -115,12 +111,12 @@ int main()
   Debug(NAMESPACE_DEBUG::init());
 
   vulkan::shaderbuilder::ShaderVariableLayouts<Foo> object;
-  Dout(dc::notice, libcwd::type_info_of(object.members).demangled_name());
+  Dout(dc::notice, libcwd::type_info_of(object.layouts).demangled_name());
 
   vulkan::shaderbuilder::ShaderVariableLayouts<Bar> object2;
-  Dout(dc::notice, libcwd::type_info_of(object2.members).demangled_name());
+  Dout(dc::notice, libcwd::type_info_of(object2.layouts).demangled_name());
 
-  using layout = vulkan::shaderbuilder::Layout<std::tuple_element_t<1, decltype(object.members)>::layout_type>;
+  using layout = vulkan::shaderbuilder::Layout<std::tuple_element_t<1, decltype(object.layouts)>::layout_type>;
   static constexpr size_t alignment = layout::alignment;
   static constexpr size_t size = layout::size;
   static constexpr size_t array_stride = layout::array_stride;

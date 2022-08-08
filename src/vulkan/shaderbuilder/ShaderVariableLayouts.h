@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderVariableLayout.h"
+#include "ShaderVertexInputAttributeLayout.h"
 #include <concepts>
 
 namespace vulkan::shaderbuilder {
@@ -14,18 +14,5 @@ concept ConceptEntry =
     std::derived_from<ENTRY, glsl::per_instance_data> ||
     std::derived_from<ENTRY, glsl::uniform_std140> ||
     std::derived_from<ENTRY, glsl::push_constant_std430>;
-
-// Every specialized ShaderVariableLayouts must be derived from this class.
-template<ConceptEntry ENTRY>
-struct ShaderVariableLayoutsTraits : ENTRY::tag_type
-{
-};
-
-// This template struct must be specialized for each shader variable struct.
-// See VertexShaderInputSet for more info and example.
-template<typename ENTRY>
-struct ShaderVariableLayouts
-{
-};
 
 } // namespace vulkan::shaderbuilder

@@ -56,11 +56,9 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 //
 // struct InstanceData;
 //
-// template<>
-// struct vulkan::shaderbuilder::ShaderVariableLayouts<InstanceData> : glsl::per_instance_data
+// LAYOUT_DECLARATION(InstanceData, per_instance_data)
 // {
-//   using containing_class = InstanceData;
-//   static constexpr auto members = make_members(
+//   static constexpr auto layouts = make_layouts(
 //     MEMBER(vec4, m_position),
 //     MEMBER(mat4, m_matrix)
 //   );

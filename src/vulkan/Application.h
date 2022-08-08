@@ -6,7 +6,7 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
-#include "shaderbuilder/ShaderVariableLayout.h"
+#include "shaderbuilder/ShaderVertexInputAttributeLayout.h"
 #include "shaderbuilder/ShaderInfos.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
@@ -138,10 +138,10 @@ class Application
   // Storage for all shader templates.
   mutable vulkan::shaderbuilder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
-  // Map ShaderVariableLayout::m_glsl_id_str to the ShaderVariableLayout object that uses it.
+  // Map ShaderVertexInputAttributeLayout::m_glsl_id_str to the ShaderVertexInputAttributeLayout object that uses it.
   // Used in Application::register_shaders to check that all identifiers of the form "ENTRY::variable" that appear in
   // the shader template code were registered.
-  using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderVariableLayout const*>;
+  using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderVertexInputAttributeLayout const*>;
   using glsl_id_strs_t = aithreadsafe::Wrapper<glsl_id_strs_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable glsl_id_strs_t m_glsl_id_strs;
 
@@ -422,14 +422,69 @@ void Application::register_attribute() /*threadsafe-*/const
   using namespace vulkan::shaderbuilder;
   glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
   uint32_t required_offset = 0;
-#if 0 // FIXME: ShaderVariableLayouts<ENTRY>::members contains the required offsets, not the actual ones?
-  for (ShaderVariableLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
+
+  // Insert a new VertexAttribute into m_shader_variable_layouts for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
+  auto register_glsl_id_str = [&, this]<
+      typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>(
+          MemberLayout<
+              ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+      {
+#if 0 // Not this
+        ShaderVertexInputAttributeLayout shader_vertex_input_attribute_layout{
+          .m_glsl_type = {
+            .m_standard = Standard,
+            .m_rows = Rows,
+            .m_cols = Cols,
+            .m_scalar_type = ScalarIndex,
+            .m_log2_alignment = utils::log2(Alignment),
+            .m_size = Size,
+            .m_array_stride = ArrayStride },
+          .m_glsl_id_str = GlslIdStr.chars.data(),
+          .m_offset = Offset
+        };
+        auto res = m_shader_variable_layouts.insert(new VertexAttribute(binding, shader_vertex_input_attribute_layout));
+        // All used names must be unique.
+        if (!res.second)
+          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", shader_vertex_input_attribute_layout.m_glsl_id_str));
+#endif
+#if 0 //FIXME: see discord todo list
+        std::string glsl_id_str = member_layout.glsl_id_str;
+        vulkan::shaderbuilder::ShaderVertexInputAttributeLayout const* ptr = &member_layout;
+        auto res = glsl_id_strs_w->emplace(glsl_id_str, ptr);
+        // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+        ASSERT(res.second);
+#endif
+      };
+
+  // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
+  // in the form of a tuple, of the vertex attributes, `layouts`.
+  // Then for each member layout call insert_vertex_attribute.
+  [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
+  {
+    ([&]
+    {
+      {
+#if 0 // Print the type MemberLayout.
+        int rc;
+        char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
+        Dout(dc::vulkan, "We get here for type " << demangled_type);
+#endif
+        static constexpr int member_index = MemberLayout::member_index;
+        register_glsl_id_str(std::get<member_index>(layouts));
+      }
+    }(), ...);
+  }(ShaderVariableLayouts<ENTRY>::layouts);
+
+#if 0 // Replaced with the above (delete this).
+  for (ShaderVertexInputAttributeLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
   {
     Dout(dc::notice, "layout = " << layout);
     // Don't check layout when the 'standard' is vertex_attributes; in that case the layout doesn't matter at all.
     bool check_layout = layout.valid_alignment_and_size();
     if (check_layout)
     {
+#if 0 // FIXME: ShaderVariableLayouts<ENTRY>::layouts contains the required offsets, not the actual ones?
       // Update the offset with the alignment of the current member.
       uint32_t alignment = layout.alignment();
       required_offset += alignment - 1;
@@ -439,14 +494,17 @@ void Application::register_attribute() /*threadsafe-*/const
         THROW_FALERT("Incorrect offset ([OFFSET]) of [ID_STR], should be [REQUIRED].",
             AIArgs("[OFFSET]", layout.m_offset)("[ID_STR]", layout.m_glsl_id_str)("[REQUIRED]", required_offset));
       }
+#endif
     }
     auto res = glsl_id_strs_w->emplace(layout.m_glsl_id_str, &layout);
     // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
     ASSERT(res.second);
     if (check_layout)
     {
+#if 0
       // Update offset with the size of the current member.
       required_offset += layout.size();
+#endif
     }
   }
 #endif

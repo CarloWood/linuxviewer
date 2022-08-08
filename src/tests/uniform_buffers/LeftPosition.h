@@ -4,11 +4,9 @@
 
 struct LeftPosition;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<LeftPosition> : glsl::uniform_std140
+LAYOUT_DECLARATION(LeftPosition, uniform_std140)
 {
-  using containing_class = LeftPosition;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(mat4, unused),
     MEMBER(Float, y)
   );

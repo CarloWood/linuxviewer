@@ -4,10 +4,9 @@
 
 struct VertexData;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<VertexData> : glsl::per_vertex_data
+LAYOUT_DECLARATION(VertexData, per_vertex_data)
 {
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(vec4, m_position),
     MEMBER(vec2, m_texture_coordinates)
   );

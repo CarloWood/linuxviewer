@@ -9,7 +9,7 @@ namespace vulkan::pipeline {
 std::string_view Pipeline::preprocess(
     shaderbuilder::ShaderInfo const& shader_info,
     std::string& glsl_source_code_buffer,
-    boost::ptr_set<shaderbuilder::ShaderVariableLayout> const* shader_variable_layouts)
+    boost::ptr_set<shaderbuilder::ShaderVertexInputAttributeLayout> const* shader_variable_layouts)
 {
   DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << shader_variable_layouts << ") [" << this << "]");
 
@@ -26,7 +26,7 @@ std::string_view Pipeline::preprocess(
   bool const has_shader_variable_layouts = shader_variable_layouts && !shader_variable_layouts->empty();
   if (has_shader_variable_layouts)
   {
-    for (shaderbuilder::ShaderVariableLayout const& shader_variable_layout : *shader_variable_layouts)
+    for (shaderbuilder::ShaderVertexInputAttributeLayout const& shader_variable_layout : *shader_variable_layouts)
       declarations += shader_variable_layout.declaration(this);
     declarations += '\n';
   }
@@ -89,7 +89,7 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
 std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribute_descriptions() const
 {
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (shaderbuilder::ShaderVariableLayout const& shader_variable_layout : m_shader_variable_layouts)
+  for (shaderbuilder::ShaderVertexInputAttributeLayout const& shader_variable_layout : m_shader_variable_layouts)
   {
     // Only do this for VertexAttribute objects in the set.
     if (shader_variable_layout.m_declaration != &shaderbuilder::VertexAttribute::declaration)

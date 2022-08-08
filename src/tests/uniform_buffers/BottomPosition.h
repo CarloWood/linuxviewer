@@ -4,11 +4,9 @@
 
 struct BottomPosition;
 
-template<>
-struct vulkan::shaderbuilder::ShaderVariableLayouts<BottomPosition> : glsl::uniform_std140
+LAYOUT_DECLARATION(BottomPosition, uniform_std140)
 {
-  using containing_class = BottomPosition;
-  static constexpr auto members = make_members(
+  static constexpr auto layouts = make_layouts(
     MEMBER(vec2, unused),
     MEMBER(Float, x)
   );

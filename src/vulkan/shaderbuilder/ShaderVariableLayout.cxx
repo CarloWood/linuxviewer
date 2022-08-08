@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "ShaderVariableLayout.h"
+#include "ShaderVertexInputAttributeLayout.h"
 #include "VertexAttribute.h"
 #include "debug.h"
 #include <magic_enum.hpp>
@@ -285,7 +285,7 @@ TypeInfo::TypeInfo(BasicType glsl_type) : name(type2name(glsl_type)), number_of_
 {
 }
 
-std::string ShaderVariableLayout::name() const
+std::string ShaderVertexInputAttributeLayout::name() const
 {
   std::ostringstream oss;
   oss << 'v' << std::hash<std::string>{}(m_glsl_id_str);
@@ -306,7 +306,7 @@ void BasicType::print_on(std::ostream& os) const
   os << '}';
 }
 
-void ShaderVariableLayout::print_on(std::ostream& os) const
+void ShaderVertexInputAttributeLayout::print_on(std::ostream& os) const
 {
   using namespace magic_enum::ostream_operators;
 
