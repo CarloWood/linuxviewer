@@ -5,7 +5,8 @@
 #include "memory/Buffer.h"
 #include "DescriptorSetParameters.h"
 #include "shaderbuilder/ShaderIndex.h"
-#include "pipeline/Pipeline.h"
+#include "shaderbuilder/VertexAttribute.h"
+#include "shaderbuilder/VertexShaderInputSet.h"
 #include "debug/DebugSetName.h"
 #include "debug.h"
 

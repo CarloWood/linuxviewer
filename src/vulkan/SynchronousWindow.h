@@ -10,11 +10,9 @@
 #include "Texture.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
-#include "WindowEvents.h"
 #include "Concepts.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
-#include "ImGui.h"
 #include "RenderPass.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
@@ -23,6 +21,7 @@
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shaderbuilder/SPIRVCache.h"
+#include "ImGui.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
@@ -63,6 +62,7 @@ class LogicalDevice;
 class Ambifix;
 class AmbifixOwner;
 class Swapchain;
+class WindowEvents;
 
 namespace shaderbuilder {
 class SPIRVCache;
@@ -411,22 +411,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Call this from the render loop every time that extent_changed(atomic_flags()) returns true.
   // Call only synchronously.
-  vk::Extent2D get_extent() const
-  {
-    // Take the lock on m_extent.
-    linuxviewer::OS::WindowExtent::crat extent_r(m_window_events->locked_extent());
-    // Read the value that was last written.
-    vk::Extent2D extent = extent_r->m_extent;
-    // Reset the extent_changed_bit in m_flags.
-    reset_extent_changed();
-    // Return the new extent and unlock m_extent.
-    return extent;
-    // Because atomic_flags() is called without taking the lock on m_extent
-    // it is theorectically possible (this will NEVER happen in practise)
-    // that even after returning here, atomic_flags() will again return
-    // extent_changed_bit (even though we just reset it); that then would
-    // cause another call to this function reading the same value of the extent.
-  }
+  vk::Extent2D get_extent() const;
 
   vk::RenderPass vh_imgui_render_pass() const { return imgui_pass.vh_render_pass(); }
 
@@ -555,16 +540,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void finish_impl() override;
 };
 
-template<vulkan::ConceptWindowEvents WINDOW_EVENTS>
-void SynchronousWindow::create_window_events(vk::Extent2D extent)
-{
-  DoutEntering(dc::notice, "SynchronousWindow::create_window_events(" << extent << ") [" << this << " : \"" << m_title << "\"]");
-  m_window_events = std::make_unique<WINDOW_EVENTS>();
-  Dout(dc::notice, "m_window_events = " << m_window_events.get());
-  m_window_events->set_special_circumstances(this);
-  m_window_events->set_extent(extent);
-}
-
 #ifdef CWDEBUG
 // Make sure to print SynchronousWindow tasks by their AIStatefulTask* - so that we can see who is who also in statefultask debug output.
 inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
@@ -583,11 +558,24 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 #ifndef VULKAN_APPLICATION_H
 #include "Application.h"
 #endif
+#ifndef VULKAN_WINDOW_EVENTS_H
+#include "WindowEvents.h"
+#endif
 
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_H_definitions
 #define VULKAN_SYNCHRONOUS_WINDOW_H_definitions
 
 namespace task {
+
+template<vulkan::ConceptWindowEvents WINDOW_EVENTS>
+void SynchronousWindow::create_window_events(vk::Extent2D extent)
+{
+  DoutEntering(dc::notice, "SynchronousWindow::create_window_events(" << extent << ") [" << this << " : \"" << m_title << "\"]");
+  m_window_events = std::make_unique<WINDOW_EVENTS>();
+  Dout(dc::notice, "m_window_events = " << m_window_events.get());
+  m_window_events->set_special_circumstances(this);
+  m_window_events->set_extent(extent);
+}
 
 template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
 void SynchronousWindow::create_child_window(

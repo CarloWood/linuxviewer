@@ -1,5 +1,4 @@
 #include "sys.h"
-#include "Application.h"
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
 #include "PersistentAsyncTask.h"
@@ -406,6 +405,11 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
           auto shader_variable_layout = glsl_id_strs_r->find(s);
           if (shader_variable_layout == glsl_id_strs_r->end())
           {
+#if 0
+            Dout(dc::always, "Map contents:");
+            for (auto iter = glsl_id_strs_r->begin(); iter != glsl_id_strs_r->end(); ++iter)
+              Dout(dc::always, libcwd::buf2str(iter->first.data(), iter->first.size()));
+#endif
             THROW_ALERT("The shader [SHADER] is using the identifier [ID], but no such identifier was registered.",
                 AIArgs("[SHADER]", shader_info.name())("[ID]", s));
           }
@@ -422,6 +426,15 @@ shaderbuilder::ShaderInfo const& Application::get_shader_info(shaderbuilder::Sha
   shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
   // We can return a reference because m_shader_infos_r->list is a deque for which references are not invalidated by inserting more elements at the end.
   return shader_infos_r->deque[shader_index];
+}
+
+vulkan::shaderbuilder::VertexAttributeLayout const& Application::get_vertex_attribute_layout(std::string_view glsl_id_str) const
+{
+  glsl_id_strs_t::rat glsl_id_strs_r(m_glsl_id_strs);
+  auto vertex_attribute_layout = glsl_id_strs_r->find(glsl_id_str);
+  if (vertex_attribute_layout == glsl_id_strs_r->end())
+    THROW_ALERT("Vertex attribute [ID_STR] was not registered.", AIArgs("[ID_STR]", glsl_id_str));
+  return vertex_attribute_layout->second;
 }
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)

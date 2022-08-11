@@ -8,6 +8,7 @@
 #include "memory/DataFeeder.h"
 #include "pipeline/Pipeline.h"
 #include "vk_utils/print_flags.h"
+#include "Application.inl.h"
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
 #include "debug.h"

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VULKAN_WINDOW_EVENTS_H
+#define VULKAN_WINDOW_EVENTS_H
 
 #include "OperatingSystem.h"
 #include "SpecialCircumstances.h"
@@ -232,3 +233,5 @@ class WindowEvents : public linuxviewer::OS::Window, public AsyncAccessSpecialCi
 };
 
 } // namespace vulkan
+
+#endif // VULKAN_WINDOW_EVENTS_H

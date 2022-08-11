@@ -28,9 +28,9 @@ struct ShaderVariableLayoutsBase;
 template<typename ENTRY>
 struct ShaderVariableLayouts;
 
-// This template struct is specialized below for BasicTypeLayout, ArrayLayout and StructLayout.
-// It provides a generis interface to the common parameters of a layout: alignment, size and array_stride.
-template<typename TypeInfo>
+// This template struct is specialized below for BasicTypeLayout, MemberLayout, ArrayLayout and StructLayout.
+// It provides a generic interface to the common parameters of a layout: alignment, size and array_stride.
+template<typename XLayout>
 struct Layout;
 
 // BasicTypeLayout
@@ -82,6 +82,24 @@ struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset
   static constexpr size_t array_stride = Layout<XLayout>::array_stride;
 };
 
+// ArrayLayout
+//
+//  XLayout : the layout of one element of the array (when it would not be part of an array).
+// Elements : the size of the array.
+//
+template<typename XLayout, size_t Elements, utils::TemplateStringLiteral GlslIdStr>
+struct ArrayLayout
+{
+};
+
+template<typename XLayout, size_t Elements, utils::TemplateStringLiteral GlslIdStr>
+struct Layout<ArrayLayout<XLayout, Elements, GlslIdStr>>
+{
+  static constexpr size_t alignment = Layout<XLayout>::alignment;
+  static constexpr size_t size = Layout<XLayout>::array_stride * Elements;
+  static constexpr size_t array_stride = size;
+};
+
 // The type returned by the macro MEMBER.
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
 struct StructMember
@@ -98,7 +116,10 @@ struct StructMember
   struct vulkan::shaderbuilder::ShaderVariableLayoutsBase<classname> \
   { \
     using containing_class = classname; \
-    static constexpr utils::TemplateStringLiteral prefix = BOOST_PP_STRINGIZE(classname)"::"; \
+    static constexpr std::array long_prefix_a = std::to_array(BOOST_PP_STRINGIZE(classname)"::"); \
+    static constexpr std::string_view long_prefix{long_prefix_a.data(), long_prefix_a.size()}; \
+    static constexpr std::string_view prefix_sv = long_prefix.substr(long_prefix.find_last_of(':', long_prefix.size() - 4) + 1); \
+    static constexpr utils::TemplateStringLiteral<prefix_sv.size()> prefix{prefix_sv.data(), prefix_sv.size()}; \
   }; \
   \
   template<> \

@@ -138,10 +138,10 @@ class Application
   // Storage for all shader templates.
   mutable vulkan::shaderbuilder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
-  // Map VertexAttribute::m_glsl_id_str to the VertexAttribute object that uses it.
+  // Map VertexAttributeLayout::m_glsl_id_str to the VertexAttributeLayout object that contains it.
   // Used in Application::register_shaders to check that all identifiers of the form "ENTRY::variable" that appear in
   // the shader template code were registered.
-  using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttribute const*>;
+  using glsl_id_strs_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttributeLayout, std::less<>>;
   using glsl_id_strs_t = aithreadsafe::Wrapper<glsl_id_strs_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable glsl_id_strs_t m_glsl_id_strs;
 
@@ -310,6 +310,9 @@ class Application
   // Return a reference to the ShaderInfo that corresponds to shader_index, as added by a call to register_shaders.
   vulkan::shaderbuilder::ShaderInfo const& get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const;
 
+  // Return a pointer to an element in m_glsl_id_strs, as added by a call to register_shaders.
+  vulkan::shaderbuilder::VertexAttributeLayout const& get_vertex_attribute_layout(std::string_view glsl_id_str) const;
+
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);
   // Called by SynchronousWindow::pipeline_factory_done.
@@ -345,156 +348,3 @@ class Application
 
 } // namespace vulkan
 #endif // VULKAN_APPLICATION_H
-
-#ifndef VULKAN_SYNCHRONOUS_WINDOW_H
-#include "SynchronousWindow.h"
-#endif
-
-#ifndef VULKAN_APPLICATION_H_definitions
-#define VULKAN_APPLICATION_H_definitions
-
-namespace vulkan {
-
-template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
-boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
-    std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
-    vk::Rect2D geometry, request_cookie_type request_cookie,
-    std::u8string&& title, task::LogicalDevice const* logical_device_task,
-    task::SynchronousWindow const* parent_window_task)
-{
-  DoutEntering(dc::vulkan, "vulkan::Application::create_window<" <<
-      libcwd::type_info_of<WINDOW_EVENTS>().demangled_name() << ", " <<         // First template parameter (WINDOW_EVENTS).
-      libcwd::type_info_of<SYNCHRONOUS_WINDOW>().demangled_name() <<            // Second template parameter (SYNCHRONOUS_WINDOW).
-      ((LibcwDoutStream << ... << (std::string(", ") + libcwd::type_info_of<SYNCHRONOUS_WINDOW_ARGS>().demangled_name())), ">(") <<
-                                                                                // Tuple template parameters (SYNCHRONOUS_WINDOW_ARGS...)
-      window_constructor_args << ", " << geometry << ", " << std::hex << request_cookie << std::dec << ", \"" << title << "\", " << logical_device_task << ", " << parent_window_task << ")");
-
-  // Call Application::initialize(argc, argv) immediately after constructing the Application.
-  //
-  // For example:
-  //
-  //   MyApplication application;
-  //   application.initialize(argc, argv);      // <-- this is missing if you assert here.
-  //   auto root_window1 = application.create_root_window<MyWindowEvents, MyRenderLoop>({1000, 800}, MyLogicalDevice::root_window_request_cookie1);
-  //
-  ASSERT(m_event_loop);
-
-  boost::intrusive_ptr<task::SynchronousWindow> window_task =
-    statefultask::create_from_tuple<SYNCHRONOUS_WINDOW>(
-        std::tuple_cat(
-          std::move(window_constructor_args),
-          std::make_tuple(this COMMA_CWDEBUG_ONLY(true))
-        )
-    );
-  window_task->create_window_events<WINDOW_EVENTS>(geometry.extent);
-
-  // Window initialization.
-  if (title.empty())
-    title = application_name();
-  window_task->set_title(std::move(title));
-  window_task->set_offset(geometry.offset);
-  window_task->set_request_cookie(request_cookie);
-  window_task->set_logical_device_task(logical_device_task);
-  // The key passed to set_xcb_connection_broker_and_key MUST be canonicalized!
-  m_main_display_broker_key.canonicalize();
-  window_task->set_xcb_connection_broker_and_key(m_xcb_connection_broker, &m_main_display_broker_key);
-  // Note that in the case of creating a child window we use the logical device of the parent.
-  // However, logical_device_task can be null here because this function might be called before
-  // the logical device (or parent window) was created. The SynchronousWindow task takes this
-  // into account in state SynchronousWindow_create: where m_logical_device_task is null and
-  // m_parent_window_task isn't, it registers with m_parent_window_task->m_logical_device_index_available_event
-  // to pick up the correct value of m_logical_device_task.
-  window_task->set_parent_window_task(parent_window_task);
-
-  // Create window and start rendering loop.
-  window_task->run();
-
-  // The window is returned in order to pass it to create_logical_device.
-  //
-  // The pointer should be passed to create_logical_device almost immediately after
-  // returning from this function with a std::move.
-  return window_task;
-}
-
-template<typename ENTRY>
-void Application::register_attribute() /*threadsafe-*/const
-{
-  DoutEntering(dc::vulkan, "Application::register_attribute<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">");
-
-  using namespace vulkan::shaderbuilder;
-  glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
-  uint32_t required_offset = 0;
-
-  // Insert a new VertexAttribute into m_vertex_attributes for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
-  auto register_glsl_id_str = [&, this]<
-      typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>(
-          MemberLayout<
-              ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
-      {
-        std::string const glsl_id_str(static_cast<std::string_view>(member_layout.glsl_id_str));
-        ASSERT(false);
-#if 0 //FIXME: see discord todo list
-        vulkan::shaderbuilder::VertexAttribute const* ptr = &member_layout;
-        auto res = glsl_id_strs_w->emplace(glsl_id_str, ptr);
-        // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
-        ASSERT(res.second);
-#endif
-      };
-
-  // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
-  // in the form of a tuple, of the vertex attributes, `layouts`.
-  // Then for each member layout call insert_vertex_attribute.
-  [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
-  {
-    ([&]
-    {
-      {
-#if 0 // Print the type MemberLayout.
-        int rc;
-        char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
-        Dout(dc::vulkan, "We get here for type " << demangled_type);
-#endif
-        static constexpr int member_index = MemberLayout::member_index;
-        register_glsl_id_str(std::get<member_index>(layouts));
-      }
-    }(), ...);
-  }(ShaderVariableLayouts<ENTRY>::layouts);
-
-#if 0 // Replaced with the above (delete this).
-  for (ShaderVertexInputAttributeLayout const& layout : ShaderVariableLayouts<ENTRY>::layouts)
-  {
-    Dout(dc::notice, "layout = " << layout);
-    // Don't check layout when the 'standard' is vertex_attributes; in that case the layout doesn't matter at all.
-    bool check_layout = layout.valid_alignment_and_size();
-    if (check_layout)
-    {
-#if 0 // FIXME: ShaderVariableLayouts<ENTRY>::layouts contains the required offsets, not the actual ones?
-      // Update the offset with the alignment of the current member.
-      uint32_t alignment = layout.alignment();
-      required_offset += alignment - 1;
-      required_offset -= required_offset % alignment;
-      if (layout.m_offset != required_offset)
-      {
-        THROW_FALERT("Incorrect offset ([OFFSET]) of [ID_STR], should be [REQUIRED].",
-            AIArgs("[OFFSET]", layout.m_offset)("[ID_STR]", layout.m_glsl_id_str)("[REQUIRED]", required_offset));
-      }
-#endif
-    }
-    auto res = glsl_id_strs_w->emplace(layout.m_glsl_id_str, &layout);
-    // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
-    ASSERT(res.second);
-    if (check_layout)
-    {
-#if 0
-      // Update offset with the size of the current member.
-      required_offset += layout.size();
-#endif
-    }
-  }
-#endif
-}
-
-} // namespace vulkan
-
-#endif // VULKAN_APPLICATION_H_definitions

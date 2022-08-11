@@ -4,6 +4,9 @@
 #include "pipeline/Pipeline.h"
 #include <magic_enum.hpp>
 #include <sstream>
+#ifdef CWDEBUG
+#include "vk_utils/PrintPointer.h"
+#endif
 
 namespace vulkan::shaderbuilder {
 
@@ -285,7 +288,7 @@ TypeInfo::TypeInfo(BasicType glsl_type) : name(type2name(glsl_type)), number_of_
 {
 }
 
-std::string VertexAttribute::name() const
+std::string VertexAttributeLayout::name() const
 {
   std::ostringstream oss;
   oss << 'v' << std::hash<std::string>{}(m_glsl_id_str);
@@ -297,10 +300,10 @@ std::string VertexAttribute::declaration(pipeline::Pipeline* pipeline) const
   LocationContext& context = pipeline->vertex_shader_location_context();
 
   std::ostringstream oss;
-  TypeInfo glsl_type_info(m_base_type);
+  TypeInfo glsl_type_info(m_layout->m_base_type);
   ASSERT(context.next_location <= 999); // 3 chars max.
-  oss << "layout(location = " << context.next_location << ") in " << glsl_type_info.name << ' ' << name() << ";\t// " << m_glsl_id_str << "\n";
-  //      ^^^^^^^^^^^^^^^^^^                               ^^^^^                             ^                ^^ ^^^     ^     30 chars.
+  oss << "layout(location = " << context.next_location << ") in " << glsl_type_info.name << ' ' << m_layout->name() << ";\t// " << m_layout->m_glsl_id_str << "\n";
+  //      ^^^^^^^^^^^^^^^^^^                               ^^^^^                             ^                          ^^ ^^^     ^     30 chars.
   context.update_location(this);
   return oss.str();
 }
@@ -319,16 +322,23 @@ void BasicType::print_on(std::ostream& os) const
   os << '}';
 }
 
-void VertexAttribute::print_on(std::ostream& os) const
+void VertexAttributeLayout::print_on(std::ostream& os) const
 {
-  using namespace magic_enum::ostream_operators;
-
   os << '{';
 
-  os << "m_binding:" << m_binding <<
-      ", m_base_type:" << m_base_type <<
+  os << "m_base_type:" << m_base_type <<
       ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
       ", m_offset:" << m_offset;
+
+  os << '}';
+}
+
+void VertexAttribute::print_on(std::ostream& os) const
+{
+  os << '{';
+
+  os << "m_layout: " << vk_utils::print_pointer(m_layout) <<
+      ", m_binding:" << m_binding;
 
   os << '}';
 }

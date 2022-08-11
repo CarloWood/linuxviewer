@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/ShaderVariableLayout.h"
+#include "shaderbuilder/ShaderVariableLayouts.h"
 
 struct BottomPosition;
 

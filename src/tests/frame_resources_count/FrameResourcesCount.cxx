@@ -1,4 +1,5 @@
 #include "sys.h"
+#include "Application.inl.h"
 #include "FrameResourcesCount.h"
 #include "Window.h"
 #include "LogicalDevice.h"

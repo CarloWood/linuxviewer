@@ -62,11 +62,7 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
  protected:
   // boost::serialization::access has a destroy function that want to call operator delete on us. Of course, we will never call destroy.
   friend class boost::serialization::access;
-  ~PipelineCache() override                     // Call finish(), not delete.
-  {
-    DoutEntering(dc::statefultask(mSMDebug), "~PipelineCache() [" << (void*)this << "]");
-    m_owning_factory->owning_window()->m_task_counter_gate.decrement();
-  }
+  ~PipelineCache() override;                    // Call finish(), not delete.
 
   // Implementation of virtual functions of AIStatefulTask.
   char const* condition_str_impl(condition_type condition) const override;

@@ -1,7 +1,7 @@
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 #define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
-#include "ShaderVariableLayout.h"
+#include "ShaderVariableLayouts.h"
 #include "memory/DataFeeder.h"
 #include <vulkan/vulkan.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -52,7 +52,7 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 //
 // For example, if ENTRY is `InstanceData`, one has to specify the layout in advance:
 //
-// #include "ShaderVariableLayout.h"
+// #include "ShaderVariableLayouts.h"
 //
 // struct InstanceData;
 //

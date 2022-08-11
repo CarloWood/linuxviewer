@@ -4,6 +4,8 @@
 #include "Application.h"
 #include "LogicalDevice.h"
 #include "Exceptions.h"
+#include "PresentationSurface.h"
+#include "SynchronousWindow.h"
 #include "queues/QueueFamilyProperties.h"
 #include "queues/QueueReply.h"
 #include "infos/DeviceCreateInfo.h"

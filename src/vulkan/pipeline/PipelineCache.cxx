@@ -3,6 +3,7 @@
 #include "PipelineFactory.h"
 #include "LogicalDevice.h"
 #include "Application.h"
+#include "SynchronousWindow.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
 #include "utils/u8string_to_filename.h"
 #include "utils/AIAlert.h"
@@ -43,6 +44,12 @@ PipelineCache::PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool de
   // this case: a PipelineCache is created in PipelineFactory_start, but all PipelineFactory
   // tasks are aborted before the owning window enters m_task_counter_gate.wait().
   m_owning_factory->owning_window()->m_task_counter_gate.increment();
+}
+
+PipelineCache::~PipelineCache()
+{
+  DoutEntering(dc::statefultask(mSMDebug), "~PipelineCache() [" << (void*)this << "]");
+  m_owning_factory->owning_window()->m_task_counter_gate.decrement();
 }
 
 char const* PipelineCache::condition_str_impl(condition_type condition) const

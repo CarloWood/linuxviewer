@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/ShaderVariableLayout.h"
+#include "shaderbuilder/ShaderVariableLayouts.h"
 
 struct TopPosition;
 
@@ -15,10 +15,13 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 };
 
 // Struct describing data type and format of uniform block.
-struct TopPosition : glsl::uniform_std140
+struct TopPosition //: glsl::uniform_std140
 {
   glsl::mat2 unused1;
+  float unused2[4];
   glsl::Float x;
 //  /*glsl::Double*/ glsl::Float unused2;
 //  glsl::Float unused3;
 };
+
+static_assert(offsetof(TopPosition, x) == std::get<1>(vulkan::shaderbuilder::ShaderVariableLayouts<TopPosition>::layouts).offset, "Offset of x is wrong.");

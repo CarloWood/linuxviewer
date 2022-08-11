@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderVariableLayout.h"       // standards::vertex_attributes
+#include "ShaderVariableLayouts.h"      // standards::vertex_attributes
 #include "math/glsl.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
@@ -79,30 +79,58 @@ struct TypeInfo
 class VertexShaderInputSetBase;
 using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
 
-struct VertexAttribute
+struct VertexAttributeLayout
 {
-  BindingIndex m_binding;
   BasicType const m_base_type;                  // The underlying glsl base type of the variable.
   char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
   uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
 
+  std::string name() const;
+
 #if 0
-  VertexAttribute(BindingIndex binding, BasicType base_type, char const* glsl_id_str, uint32_t offset) :
-    m_binding(binding), m_base_type(base_type), m_glsl_id_str(glsl_id_str), m_offset(offset)
+  // VertexAttribute are put in a std::set. Provide a sorting function.
+  bool operator<(VertexAttributeLayout const& other) const
   {
-    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(" << binding << ", " << base_type << ", \"" << glsl_id_str << "\", " << offset << ")");
+    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
   }
 #endif
 
-  std::string name() const;
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
+};
+
+struct VertexAttribute
+{
+ private:
+  VertexAttributeLayout const* m_layout;
+  BindingIndex m_binding;
+
+ public:
+  VertexAttributeLayout const& layout() const
+  {
+    return *m_layout;
+  }
+
+  BindingIndex binding() const
+  {
+    return m_binding;
+  }
+
   std::string declaration(pipeline::Pipeline* pipeline) const;
+
+  VertexAttribute(VertexAttributeLayout const* layout, BindingIndex binding) : m_layout(layout), m_binding(binding)
+  {
+    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(&" << *layout << ", " << binding << ")");
+  }
 
   // VertexAttribute are put in a std::set. Provide a sorting function.
   bool operator<(VertexAttribute const& other) const
   {
-    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
+    return strcmp(m_layout->m_glsl_id_str, other.m_layout->m_glsl_id_str) < 0;
   }
 
+#if 0
   bool valid_alignment_and_size() const
   {
     auto standard = m_base_type.standard();
@@ -118,6 +146,7 @@ struct VertexAttribute
   {
     return glsl::size(m_base_type.standard(), m_base_type.scalar_type(), m_base_type.rows(), m_base_type.cols());
   }
+#endif
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

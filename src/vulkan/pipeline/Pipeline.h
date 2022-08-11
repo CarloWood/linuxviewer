@@ -33,7 +33,7 @@ namespace vulkan::pipeline {
 class Pipeline
 {
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
-  std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing layouts of the above input sets (including declaration function).
+  std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing vertex attributes of the above input sets (including declaration function).
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for vertex attributes (VertexAttribute).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
@@ -86,6 +86,9 @@ class Pipeline
 #ifndef VULKAN_SHADERBUILDER_VERTEX_ATTRIBUTE_ENTRY_H
 #include "shaderbuilder/VertexAttribute.h"
 #endif
+#ifndef VULKAN_APPLICATION_H
+#include "Application.h"
+#endif
 
 #ifndef VULKAN_PIPELINE_PIPELINE_H_definitions
 #define VULKAN_PIPELINE_PIPELINE_H_definitions
@@ -107,24 +110,12 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
           MemberLayout<
               ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
       {
-        VertexAttribute vertex_attribute{
-          .m_binding = binding,
-          .m_base_type = {
-            .m_standard = Standard,
-            .m_rows = Rows,
-            .m_cols = Cols,
-            .m_scalar_type = ScalarIndex,
-            .m_log2_alignment = utils::log2(Alignment),
-            .m_size = Size,
-            .m_array_stride = ArrayStride },
-          .m_glsl_id_str = GlslIdStr.chars.data(),
-          .m_offset = Offset
-        };
-        ASSERT(false);
-        auto res = m_vertex_attributes.insert(std::move(vertex_attribute));
+        VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
+        VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
+        auto res = m_vertex_attributes.insert(vertex_attribute);
         // All used names must be unique.
         if (!res.second)
-          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.m_glsl_id_str));
+          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
       };
 
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY

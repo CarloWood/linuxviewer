@@ -26,8 +26,8 @@ std::string_view Pipeline::preprocess(
   bool const has_vertex_attributes = vertex_attributes && !vertex_attributes->empty();
   if (has_vertex_attributes)
   {
-    for (shaderbuilder::VertexAttribute const& shader_variable_layout : *vertex_attributes)
-      declarations += shader_variable_layout.declaration(this);
+    for (shaderbuilder::VertexAttribute const& vertex_attribute : *vertex_attributes)
+      declarations += vertex_attribute.declaration(this);
     declarations += '\n';
   }
   source_code_size_estimate += declarations.size();
@@ -45,11 +45,11 @@ std::string_view Pipeline::preprocess(
   {
     // vertex_attributes contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
-    for (auto&& shader_variable_layout : *vertex_attributes)
+    for (auto&& vertex_attribute : *vertex_attributes)
     {
-      std::string const match_string = shader_variable_layout.m_glsl_id_str;
+      std::string const match_string = vertex_attribute.layout().m_glsl_id_str;
       for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
-        positions[pos] = std::make_pair(match_string, shader_variable_layout.name());
+        positions[pos] = std::make_pair(match_string, vertex_attribute.layout().name());
     }
   }
 
@@ -89,17 +89,16 @@ std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descript
 std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribute_descriptions() const
 {
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (shaderbuilder::VertexAttribute const& shader_variable_layout : m_vertex_attributes)
+  for (shaderbuilder::VertexAttribute const& vertex_attribute : m_vertex_attributes)
   {
-    shaderbuilder::VertexAttribute const* vertex_attribute = static_cast<shaderbuilder::VertexAttribute const*>(&shader_variable_layout);
-    auto location = m_vertex_shader_location_context.locations.find(&shader_variable_layout);
+    auto location = m_vertex_shader_location_context.locations.find(&vertex_attribute);
     ASSERT(location != m_vertex_shader_location_context.locations.end());
-    shaderbuilder::TypeInfo type_info(shader_variable_layout.m_base_type);
+    shaderbuilder::TypeInfo type_info(vertex_attribute.layout().m_base_type);
     vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
         .location = location->second,
-        .binding = static_cast<uint32_t>(vertex_attribute->m_binding.get_value()),
+        .binding = static_cast<uint32_t>(vertex_attribute.binding().get_value()),
         .format = type_info.format,
-        .offset = shader_variable_layout.m_offset});
+        .offset = vertex_attribute.layout().m_offset});
   }
   return vertex_input_attribute_descriptions;
 }

@@ -611,6 +611,23 @@ void SynchronousWindow::wait_for_all_fences() const
     THROW_FALERTC(res, "wait_for_fences");
 }
 
+vk::Extent2D SynchronousWindow::get_extent() const
+{
+  // Take the lock on m_extent.
+  linuxviewer::OS::WindowExtent::crat extent_r(m_window_events->locked_extent());
+  // Read the value that was last written.
+  vk::Extent2D extent = extent_r->m_extent;
+  // Reset the extent_changed_bit in m_flags.
+  reset_extent_changed();
+  // Return the new extent and unlock m_extent.
+  return extent;
+  // Because atomic_flags() is called without taking the lock on m_extent
+  // it is theorectically possible (this will NEVER happen in practise)
+  // that even after returning here, atomic_flags() will again return
+  // extent_changed_bit (even though we just reset it); that then would
+  // cause another call to this function reading the same value of the extent.
+}
+
 void SynchronousWindow::handle_window_size_changed()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::handle_window_size_changed()");
