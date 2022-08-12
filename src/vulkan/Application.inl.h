@@ -72,6 +72,14 @@ void Application::register_attribute() /*threadsafe-*/const
   DoutEntering(dc::vulkan, "Application::register_attribute<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">");
 
   using namespace vulkan::shaderbuilder;
+#ifdef CWDEBUG
+  {
+    int rc;
+    char const* const demangled_type = abi::__cxa_demangle(typeid(ShaderVariableLayouts<ENTRY>::layouts).name(), 0, 0, &rc);
+    Dout(dc::vulkan, "The type of ShaderVariableLayouts<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">::layouts is: " << demangled_type);
+  }
+#endif
+
   glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
   uint32_t required_offset = 0;
 
