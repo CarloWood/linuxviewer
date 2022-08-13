@@ -5,9 +5,11 @@
 #include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/SPIRVCache.h"
 #include "shaderbuilder/LocationContext.h"
+#include "shaderbuilder/VertexAttribute.h"
 #include "debug/DebugSetName.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
+#include "utils/TemplateStringLiteral.h"
 #include <vector>
 #include <set>
 #include <tuple>
@@ -37,6 +39,19 @@ class Pipeline
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for vertex attributes (VertexAttribute).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
+
+ private:
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+  void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+      shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
+
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+  void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+      shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
  public:
   template<typename ENTRY>
@@ -95,6 +110,36 @@ class Pipeline
 
 namespace vulkan::pipeline {
 
+template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+    shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+{
+  shaderbuilder::VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
+  shaderbuilder::VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
+  auto res = m_vertex_attributes.insert(vertex_attribute);
+  // All used names must be unique.
+  if (!res.second)
+    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
+}
+
+template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+    shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+{
+  shaderbuilder::VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
+  shaderbuilder::VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
+  // m_array_size should have been set during the call to Application::register_attribute.
+  ASSERT(vertex_attribute_layout.m_array_size == Elements);
+  auto res = m_vertex_attributes.insert(vertex_attribute);
+  // All used names must be unique.
+  if (!res.second)
+    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
+}
+
 template<typename ENTRY>
 void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
@@ -103,27 +148,12 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
 
   BindingIndex binding = m_vertex_shader_input_sets.iend();
 
-  // Insert a new VertexAttribute into m_vertex_attributes for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
-  auto insert_vertex_attribute = [&, this]<
-      typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>(
-          MemberLayout<
-              ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
-      {
-        VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
-        VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
-        auto res = m_vertex_attributes.insert(vertex_attribute);
-        // All used names must be unique.
-        if (!res.second)
-          THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
-      };
-
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
   // in the form of a tuple, of the vertex attributes, `layouts`.
   // Then for each member layout call insert_vertex_attribute.
   [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
   {
-    ([&]
+    ([&, this]
     {
       {
 #if 0 // Print the type MemberLayout.
@@ -132,21 +162,11 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
         Dout(dc::vulkan, "We get here for type " << demangled_type);
 #endif
         static constexpr int member_index = MemberLayout::member_index;
-        insert_vertex_attribute(std::get<member_index>(layouts));
+        add_vertex_attribute(binding, std::get<member_index>(layouts));
       }
     }(), ...);
   }(ShaderVariableLayouts<ENTRY>::layouts);
 
-#if 0
-  // Register ENTRY as vertex shader input.
-  for (auto&& shader_variable_layout : shaderbuilder::ShaderVariableLayouts<ENTRY>::layouts)
-  {
-    auto res = m_vertex_attributes.insert(new shaderbuilder::VertexAttribute(binding, shader_variable_layout));
-    // All used names must be unique.
-    if (!res.second)
-      THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", shader_variable_layout.m_glsl_id_str));
-  }
-#endif
   // Keep track of all VertexShaderInputSetBase objects.
   m_vertex_shader_input_sets.push_back(&vertex_shader_input_set);
 }

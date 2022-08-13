@@ -66,6 +66,66 @@ boost::intrusive_ptr<task::SynchronousWindow const> Application::create_window(
   return window_task;
 }
 
+// Insert a new VertexAttribute into m_vertex_attributes for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
+template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+  int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+auto Application::register_glsl_id_str(glsl_id_strs_t::wat const& glsl_id_strs_w,
+    shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const
+{
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
+  // but the trailing '\0' was already removed by the conversion to string_view.
+  ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
+  shaderbuilder::VertexAttributeLayout vertex_attribute_layout{
+    .m_base_type = {
+      .m_standard = Standard,
+      .m_rows = Rows,
+      .m_cols = Cols,
+      .m_scalar_type = ScalarIndex,
+      .m_log2_alignment = utils::log2(Alignment),
+      .m_size = Size,
+      .m_array_stride = ArrayStride },
+    .m_glsl_id_str = glsl_id_sv.data(),
+    .m_offset = Offset,
+    .m_array_size = 0
+  };
+  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with layout " << vertex_attribute_layout);
+  auto res = glsl_id_strs_w->emplace(glsl_id_sv, vertex_attribute_layout);
+  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+  ASSERT(res.second);
+};
+
+// Register an array; identical to the above except that m_array_size is set to Elements instead of zero.
+template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+  int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+auto Application::register_glsl_id_str(glsl_id_strs_t::wat const& glsl_id_strs_w,
+    shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const
+{
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
+  // but the trailing '\0' was already removed by the conversion to string_view.
+  ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
+  shaderbuilder::VertexAttributeLayout vertex_attribute_layout{
+    .m_base_type = {
+      .m_standard = Standard,
+      .m_rows = Rows,
+      .m_cols = Cols,
+      .m_scalar_type = ScalarIndex,
+      .m_log2_alignment = utils::log2(Alignment),
+      .m_size = Size,
+      .m_array_stride = ArrayStride },
+    .m_glsl_id_str = glsl_id_sv.data(),
+    .m_offset = Offset,
+    .m_array_size = Elements
+  };
+  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with layout " << vertex_attribute_layout);
+  auto res = glsl_id_strs_w->emplace(glsl_id_sv, vertex_attribute_layout);
+  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+  ASSERT(res.second);
+};
+
 template<typename ENTRY>
 void Application::register_attribute() /*threadsafe-*/const
 {
@@ -83,35 +143,6 @@ void Application::register_attribute() /*threadsafe-*/const
   glsl_id_strs_t::wat glsl_id_strs_w(m_glsl_id_strs);
   uint32_t required_offset = 0;
 
-  // Insert a new VertexAttribute into m_vertex_attributes for each MemberLayout in ShaderVariableLayouts<ENTRY>::layouts.
-  auto register_glsl_id_str = [&, this]<
-      typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>(
-          MemberLayout<
-              ContainingClass, BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
-      {
-        std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
-        // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
-        // but the trailing '\0' was already removed by the conversion to string_view.
-        ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
-        shaderbuilder::VertexAttributeLayout vertex_attribute_layout{
-          .m_base_type = {
-            .m_standard = Standard,
-            .m_rows = Rows,
-            .m_cols = Cols,
-            .m_scalar_type = ScalarIndex,
-            .m_log2_alignment = utils::log2(Alignment),
-            .m_size = Size,
-            .m_array_stride = ArrayStride },
-          .m_glsl_id_str = glsl_id_sv.data(),
-          .m_offset = Offset
-        };
-        Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with layout " << vertex_attribute_layout);
-        auto res = glsl_id_strs_w->emplace(glsl_id_sv, vertex_attribute_layout);
-        // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
-        ASSERT(res.second);
-      };
-
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
   // in the form of a tuple, of the vertex attributes, `layouts`.
   // Then for each member layout call insert_vertex_attribute.
@@ -126,7 +157,7 @@ void Application::register_attribute() /*threadsafe-*/const
         Dout(dc::vulkan, "We get here for type " << demangled_type);
 #endif
         static constexpr int member_index = MemberLayout::member_index;
-        register_glsl_id_str(std::get<member_index>(layouts));
+        register_glsl_id_str(glsl_id_strs_w, std::get<member_index>(layouts));
       }
     }(), ...);
   }(ShaderVariableLayouts<ENTRY>::layouts);

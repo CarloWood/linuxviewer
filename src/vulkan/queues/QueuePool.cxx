@@ -93,7 +93,7 @@ task::ImmediateSubmitQueue* QueuePool::get_immediate_submit_queue_task(CWDEBUG_O
   try
   {
     queue = m_logical_device->acquire_queue(m_key_as_uint64);
-    Dout(dc::always, "Obtained queue: " << queue);
+    Dout(dc::vulkan, "Obtained queue: " << queue);
   }
   catch (vulkan::OutOfQueues_Exception const& error)
   {

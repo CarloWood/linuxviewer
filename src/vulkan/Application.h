@@ -299,6 +299,20 @@ class Application
       synchronize_graphics_settings();
   }
 
+ private:
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+  auto register_glsl_id_str(glsl_id_strs_t::wat const& glsl_id_strs_w,
+      shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const;
+
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+  auto register_glsl_id_str(glsl_id_strs_t::wat const& glsl_id_strs_w,
+      shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const;
+
+ public:
   // Marked const because it is thread-safe; it isn't really const.
   template<typename ENTRY>
   void register_attribute() /*threadsafe-*/const;

@@ -87,13 +87,13 @@ struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset
 //  XLayout : the layout of one element of the array (when it would not be part of an array).
 // Elements : the size of the array.
 //
-template<typename XLayout, size_t Elements, utils::TemplateStringLiteral GlslIdStr>
+template<typename XLayout, size_t Elements>
 struct ArrayLayout
 {
 };
 
-template<typename XLayout, size_t Elements, utils::TemplateStringLiteral GlslIdStr>
-struct Layout<ArrayLayout<XLayout, Elements, GlslIdStr>>
+template<typename XLayout, size_t Elements>
+struct Layout<ArrayLayout<XLayout, Elements>>
 {
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::array_stride * Elements;
@@ -104,11 +104,20 @@ struct Layout<ArrayLayout<XLayout, Elements, GlslIdStr>>
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
 struct StructMember
 {
+  static constexpr size_t alignment = Layout<XLayout>::alignment;
+  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan::shaderbuilder::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
   using containing_class = ContainingClass;
   using layout_type = XLayout;
-  static constexpr size_t alignment = Layout<XLayout>::alignment;
-  static constexpr size_t size = Layout<XLayout>::size;
+};
+
+// Specialization for arrays.
+template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
+struct StructMember<ContainingClass, XLayout[Elements], MemberName>
+{
   static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan::shaderbuilder::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr size_t alignment = Layout<XLayout>::alignment;
+  using containing_class = ContainingClass;
+  using layout_type = ArrayLayout<XLayout, Elements>;
 };
 
 #define LAYOUT_DECLARATION(classname, standard) \
@@ -138,16 +147,16 @@ consteval size_t round_up_to_multiple_off(size_t val, size_t factor)
   return (val + factor - 1) - (val + factor - 1) % factor;
 }
 
-template<typename PreviousMemberLayout, typename Member>
+template<typename PreviousMemberLayout, typename StructMember>
 consteval size_t compute_max_alignment()
 {
-  return std::max(PreviousMemberLayout::max_alignment, Member::alignment);
+  return std::max(PreviousMemberLayout::max_alignment, StructMember::alignment);
 }
 
-template<typename PreviousMemberLayout, typename Member>
+template<typename PreviousMemberLayout, typename StructMember>
 consteval size_t compute_offset()
 {
-  return round_up_to_multiple_off(PreviousMemberLayout::offset + Layout<PreviousMemberLayout>::size, Member::alignment);
+  return round_up_to_multiple_off(PreviousMemberLayout::offset + Layout<PreviousMemberLayout>::size, StructMember::alignment);
 }
 
 template<typename... MemberLayouts>

@@ -61,232 +61,7 @@ std::string type2name(BasicType glsl_type)
   return type_name;
 }
 
-// The following format must be supported by Vulkan (so no test is necessary):
-//
-// VK_FORMAT_R8_UNORM
-// VK_FORMAT_R8_SNORM
-// VK_FORMAT_R8_UINT
-// VK_FORMAT_R8_SINT
-// VK_FORMAT_R8G8_UNORM
-// VK_FORMAT_R8G8_SNORM
-// VK_FORMAT_R8G8_UINT
-// VK_FORMAT_R8G8_SINT
-// VK_FORMAT_R8G8B8A8_UNORM
-// VK_FORMAT_R8G8B8A8_SNORM
-// VK_FORMAT_R8G8B8A8_UINT
-// VK_FORMAT_R8G8B8A8_SINT
-// VK_FORMAT_B8G8R8A8_UNORM
-// VK_FORMAT_A8B8G8R8_UNORM_PACK32
-// VK_FORMAT_A8B8G8R8_SNORM_PACK32
-// VK_FORMAT_A8B8G8R8_UINT_PACK32
-// VK_FORMAT_A8B8G8R8_SINT_PACK32
-// VK_FORMAT_A2B10G10R10_UNORM_PACK32
-// VK_FORMAT_R16_UNORM
-// VK_FORMAT_R16_SNORM
-// VK_FORMAT_R16_UINT
-// VK_FORMAT_R16_SINT
-// VK_FORMAT_R16_SFLOAT
-// VK_FORMAT_R16G16_UNORM
-// VK_FORMAT_R16G16_SNORM
-// VK_FORMAT_R16G16_UINT
-// VK_FORMAT_R16G16_SINT
-// VK_FORMAT_R16G16_SFLOAT
-// VK_FORMAT_R16G16B16A16_UNORM
-// VK_FORMAT_R16G16B16A16_SNORM
-// VK_FORMAT_R16G16B16A16_UINT
-// VK_FORMAT_R16G16B16A16_SINT
-// VK_FORMAT_R16G16B16A16_SFLOAT
-// VK_FORMAT_R32_UINT
-// VK_FORMAT_R32_SINT
-// VK_FORMAT_R32_SFLOAT
-// VK_FORMAT_R32G32_UINT
-// VK_FORMAT_R32G32_SINT
-// VK_FORMAT_R32G32_SFLOAT
-// VK_FORMAT_R32G32B32_UINT
-// VK_FORMAT_R32G32B32_SINT
-// VK_FORMAT_R32G32B32_SFLOAT
-// VK_FORMAT_R32G32B32A32_UINT
-// VK_FORMAT_R32G32B32A32_SINT
-// VK_FORMAT_R32G32B32A32_SFLOAT
-
-vk::Format type2format(BasicType glsl_type)
-{
-  vk::Format format;
-  int rows = glsl_type.rows();
-  glsl::ScalarIndex scalar_type = glsl_type.scalar_type();
-  switch (scalar_type)
-  {
-    case glsl::eFloat:
-      // 32_SFLOAT
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR32Sfloat;
-          break;
-        case 2:
-          format = vk::Format::eR32G32Sfloat;
-          break;
-        case 3:
-          format = vk::Format::eR32G32B32Sfloat;
-          break;
-        case 4:
-          format = vk::Format::eR32G32B32A32Sfloat;
-          break;
-      }
-      break;
-    case glsl::eDouble:
-      // 64_SFLOAT
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR64Sfloat;
-          break;
-        case 2:
-          format = vk::Format::eR64G64Sfloat;
-          break;
-        case 3:
-          format = vk::Format::eR64G64B64Sfloat;
-          break;
-        case 4:
-          format = vk::Format::eR64G64B64A64Sfloat;
-          break;
-      }
-      break;
-    case glsl::eBool:
-      // 8_UINT
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR8Uint;
-          break;
-        case 2:
-          format = vk::Format::eR8G8Uint;
-          break;
-        case 3:
-          format = vk::Format::eR8G8B8Uint;
-          break;
-        case 4:
-          format = vk::Format::eR8G8B8A8Uint;
-          break;
-      }
-      break;
-    case glsl::eInt:
-      // 32_SINT
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR32Sint;
-          break;
-        case 2:
-          format = vk::Format::eR32G32Sint;
-          break;
-        case 3:
-          format = vk::Format::eR32G32B32Sint;
-          break;
-        case 4:
-          format = vk::Format::eR32G32B32A32Sint;
-          break;
-      }
-      break;
-    case glsl::eUint:
-      // 32_UINT
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR32Uint;
-          break;
-        case 2:
-          format = vk::Format::eR32G32Uint;
-          break;
-        case 3:
-          format = vk::Format::eR32G32B32Uint;
-          break;
-        case 4:
-          format = vk::Format::eR32G32B32A32Uint;
-          break;
-      }
-      break;
-    case glsl::eInt8:
-      // int8_t
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR8Snorm;
-          break;
-        case 2:
-          format = vk::Format::eR8G8Snorm;
-          break;
-        case 3:
-          format = vk::Format::eR8G8B8Snorm;
-          break;
-        case 4:
-          format = vk::Format::eR8G8B8A8Snorm;
-          break;
-      }
-      break;
-    case glsl::eUint8:
-      // uint8_t
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR8Unorm;
-          break;
-        case 2:
-          format = vk::Format::eR8G8Unorm;
-          break;
-        case 3:
-          format = vk::Format::eR8G8B8Unorm;
-          break;
-        case 4:
-          format = vk::Format::eR8G8B8A8Unorm;
-          break;
-      }
-      break;
-    case glsl::eInt16:
-      // int16_t
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR16Snorm;
-          break;
-        case 2:
-          format = vk::Format::eR16G16Snorm;
-          break;
-        case 3:
-          format = vk::Format::eR16G16B16Snorm;
-          break;
-        case 4:
-          format = vk::Format::eR16G16B16A16Snorm;
-          break;
-      }
-      break;
-    case glsl::eUint16:
-      // uint16_t
-      switch (rows)
-      {
-        case 1:
-          format = vk::Format::eR16Unorm;
-          break;
-        case 2:
-          format = vk::Format::eR16G16Unorm;
-          break;
-        case 3:
-          format = vk::Format::eR16G16B16Unorm;
-          break;
-        case 4:
-          format = vk::Format::eR16G16B16A16Unorm;
-          break;
-      }
-      break;
-  }
-  return format;
-}
-
 } // namespace
-
-TypeInfo::TypeInfo(BasicType glsl_type) : name(type2name(glsl_type)), number_of_attribute_indices(glsl_type.consumed_locations()), format(type2format(glsl_type))
-{
-}
 
 std::string VertexAttributeLayout::name() const
 {
@@ -300,10 +75,14 @@ std::string VertexAttribute::declaration(pipeline::Pipeline* pipeline) const
   LocationContext& context = pipeline->vertex_shader_location_context();
 
   std::ostringstream oss;
-  TypeInfo glsl_type_info(m_layout->m_base_type);
   ASSERT(context.next_location <= 999); // 3 chars max.
-  oss << "layout(location = " << context.next_location << ") in " << glsl_type_info.name << ' ' << m_layout->name() << ";\t// " << m_layout->m_glsl_id_str << "\n";
-  //      ^^^^^^^^^^^^^^^^^^                               ^^^^^                             ^                          ^^ ^^^     ^     30 chars.
+  oss << "layout(location = " << context.next_location << ") in " << type2name(m_layout->m_base_type) << ' ' << m_layout->name();
+  //      ^^^^^^^^^^^^^^^^^^                               ^^^^^                                          ^
+  if (m_layout->m_array_size > 0)
+    oss << '[' << m_layout->m_array_size << ']';
+  //        ^     ^^^                        ^
+  oss << ";\t// " << m_layout->m_glsl_id_str << "\n";
+  //      ^^ ^^^     ^     30 chars.
   context.update_location(this);
   return oss.str();
 }
@@ -329,6 +108,8 @@ void VertexAttributeLayout::print_on(std::ostream& os) const
   os << "m_base_type:" << m_base_type <<
       ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
       ", m_offset:" << m_offset;
+  if (m_array_size > 0)
+    os << ", m_array_size:" << m_array_size;
 
   os << '}';
 }

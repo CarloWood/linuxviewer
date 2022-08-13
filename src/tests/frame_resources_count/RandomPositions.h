@@ -32,7 +32,7 @@ class RandomPositions final : public vulkan::shaderbuilder::VertexShaderInputSet
   // Fill the next batch_size InstanceData objects.
   void create_entry(InstanceData* input_entry_ptr) override
   {
-    input_entry_ptr->m_position << m_distribution_xy(m_generator),
+    input_entry_ptr->m_position[1] << m_distribution_xy(m_generator),
                                    m_distribution_xy(m_generator),
                                    m_distribution_z(m_generator),
                                    0.0f;                                // Homogeneous coordinates. This is used as an offset (a vector).

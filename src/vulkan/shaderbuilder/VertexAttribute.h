@@ -42,7 +42,7 @@ struct BasicType
   constexpr glsl::ScalarIndex scalar_type() const { return static_cast<glsl::ScalarIndex>(m_scalar_type); }
   constexpr int alignment() const { ASSERT(m_standard != glsl::vertex_attributes); return 1 << m_log2_alignment; }
   constexpr int size() const { ASSERT(m_standard != glsl::vertex_attributes); return m_size; }
-  constexpr int array_stride() const { ASSERT(m_standard != glsl::vertex_attributes); return m_array_stride; }
+  constexpr int array_stride() const { return m_array_stride; }
   // This applies to Vertex Attributes (aka, see https://registry.khronos.org/OpenGL/specs/gl/GLSLangSpec.4.60.html 4.4.1).
   // An array consumes this per index.
   int consumed_locations() const { ASSERT(standard() == glsl::vertex_attributes); return ((scalar_type() == glsl::eDouble && rows() >= 3) ? 2 : 1) * cols(); }
@@ -67,15 +67,6 @@ struct BasicType
 
 //static_assert(sizeof(BasicType) == sizeof(uint32_t), "Size of BasicType is too large for encoding.");
 
-struct TypeInfo
-{
-  std::string name;                             // glsl name
-  int const number_of_attribute_indices;        // The number of sequential attribute indices that will be consumed.
-  vk::Format const format;                      // The format to use for this type.
-
-  TypeInfo(BasicType base_type);
-};
-
 class VertexShaderInputSetBase;
 using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
 
@@ -84,16 +75,9 @@ struct VertexAttributeLayout
   BasicType const m_base_type;                  // The underlying glsl base type of the variable.
   char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
   uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
+  uint32_t const m_array_size;                  // Set to zero when this is not an array.
 
   std::string name() const;
-
-#if 0
-  // VertexAttribute are put in a std::set. Provide a sorting function.
-  bool operator<(VertexAttributeLayout const& other) const
-  {
-    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
-  }
-#endif
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

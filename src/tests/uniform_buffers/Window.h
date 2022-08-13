@@ -365,11 +365,13 @@ void main()
   {
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
+#if 0
     // Each uniform buffer *instance* must be associated with a different C++ type.
     // Of course, normally you'd use an array instead.
     application().register_attribute<TopPosition>();
     application().register_attribute<LeftPosition>();
     application().register_attribute<BottomPosition>();
+#endif
 
     using namespace vulkan::shaderbuilder;
 

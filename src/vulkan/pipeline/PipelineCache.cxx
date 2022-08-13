@@ -116,7 +116,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
       try
       {
         boost::archive::binary_iarchive ia(file);
-        Dout(dc::always|flush_cf, "CALLING ia & *this");
+        //Dout(dc::always|flush_cf, "CALLING ia & *this");
         ia & *this;
       }
       catch (boost::archive::archive_exception const& error)

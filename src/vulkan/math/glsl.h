@@ -125,29 +125,296 @@ using u16vec4 = Eigen::Matrix<uint16_t, 4, 1>;
 // All of these types must be dense float arrays.
 
 static_assert(
-    sizeof(vec2)   ==     2 * sizeof(float) &&
-    sizeof(vec3)   ==     3 * sizeof(float) &&
-    sizeof(vec4)   ==     4 * sizeof(float) &&
-    sizeof(mat2)   == 2 * 2 * sizeof(float) &&
-    sizeof(mat3x2) == 3 * 2 * sizeof(float) &&
-    sizeof(mat4x2) == 4 * 2 * sizeof(float) &&
-    sizeof(mat2x3) == 2 * 3 * sizeof(float) &&
-    sizeof(mat3)   == 3 * 3 * sizeof(float) &&
-    sizeof(mat4x3) == 4 * 3 * sizeof(float) &&
-    sizeof(mat2x4) == 2 * 4 * sizeof(float) &&
-    sizeof(mat3x4) == 3 * 4 * sizeof(float) &&
-    sizeof(mat4)   == 4 * 4 * sizeof(float),
+    sizeof(vec2)   == sizeof(float[2]) &&
+    sizeof(vec3)   == sizeof(float[3]) &&
+    sizeof(vec4)   == sizeof(float[4]) &&
+    sizeof(mat2)   == sizeof(float[2 * 2]) &&
+    sizeof(mat3x2) == sizeof(float[3 * 2]) &&
+    sizeof(mat4x2) == sizeof(float[4 * 2]) &&
+    sizeof(mat2x3) == sizeof(float[2 * 3]) &&
+    sizeof(mat3)   == sizeof(float[3 * 3]) &&
+    sizeof(mat4x3) == sizeof(float[4 * 3]) &&
+    sizeof(mat2x4) == sizeof(float[2 * 4]) &&
+    sizeof(mat3x4) == sizeof(float[3 * 4]) &&
+    sizeof(mat4)   == sizeof(float[4 * 4]),
     "Required because we treat these as an array of floats.");
+
+static_assert(
+    sizeof(dvec2)   == sizeof(double[2]) &&
+    sizeof(dvec3)   == sizeof(double[3]) &&
+    sizeof(dvec4)   == sizeof(double[4]) &&
+    sizeof(dmat2)   == sizeof(double[2 * 2]) &&
+    sizeof(dmat3x2) == sizeof(double[3 * 2]) &&
+    sizeof(dmat4x2) == sizeof(double[4 * 2]) &&
+    sizeof(dmat2x3) == sizeof(double[2 * 3]) &&
+    sizeof(dmat3)   == sizeof(double[3 * 3]) &&
+    sizeof(dmat4x3) == sizeof(double[4 * 3]) &&
+    sizeof(dmat2x4) == sizeof(double[2 * 4]) &&
+    sizeof(dmat3x4) == sizeof(double[3 * 4]) &&
+    sizeof(dmat4)   == sizeof(double[4 * 4]),
+    "Required because we treat these as an array of double.");
+
+static_assert(
+    sizeof(ivec2)   == sizeof(int32_t[2]) &&
+    sizeof(ivec3)   == sizeof(int32_t[3]) &&
+    sizeof(ivec4)   == sizeof(int32_t[4]),
+    "Required because we treat these as an array of int32_t.");
+
+static_assert(
+    sizeof(uvec2)   == sizeof(uint32_t[2]) &&
+    sizeof(uvec3)   == sizeof(uint32_t[3]) &&
+    sizeof(uvec4)   == sizeof(uint32_t[4]),
+    "Required because we treat these as an array of uint32_t.");
+
+static_assert(
+    sizeof(i8vec2)   == sizeof(int8_t[2]) &&
+    sizeof(i8vec3)   == sizeof(int8_t[3]) &&
+    sizeof(i8vec4)   == sizeof(int8_t[4]),
+    "Required because we treat these as an array of int8_t.");
+
+static_assert(
+    sizeof(u8vec2)   == sizeof(uint8_t[2]) &&
+    sizeof(u8vec3)   == sizeof(uint8_t[3]) &&
+    sizeof(u8vec4)   == sizeof(uint8_t[4]),
+    "Required because we treat these as an array of uint8_t.");
+
+static_assert(
+    sizeof(i16vec2)   == sizeof(int16_t[2]) &&
+    sizeof(i16vec3)   == sizeof(int16_t[3]) &&
+    sizeof(i16vec4)   == sizeof(int16_t[4]),
+    "Required because we treat these as an array of int16_t.");
+
+static_assert(
+    sizeof(u16vec2)   == sizeof(uint16_t[2]) &&
+    sizeof(u16vec3)   == sizeof(uint16_t[3]) &&
+    sizeof(u16vec4)   == sizeof(uint16_t[4]),
+    "Required because we treat these as an array of uint16_t.");
+
+static_assert(
+    sizeof(bvec2)   == sizeof(bool[2]) &&
+    sizeof(bvec3)   == sizeof(bool[3]) &&
+    sizeof(bvec4)   == sizeof(bool[4]),
+    "Required because we treat these as an array of bool.");
+
+// If vertex attributes use the same alignment as the 'scalar' standard, then they are
+// all aligned as the underlaying type. However this is not the case of Eigen, sometimes
+// the types are aligned as a multiple of the alignment of the underlaying type.
+constexpr uint32_t cpp_alignment(ScalarIndex scalar_type, int rows, int cols)
+{
+  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+  if (scalar_type == eFloat)
+  {
+    switch (kind)
+    {
+      case Scalar:
+        return alignof(float);
+      case Vector:
+        switch (rows)
+        {
+          case 2:
+            return alignof(vec2);
+          case 3:
+            return alignof(vec3);
+          case 4:
+            return alignof(vec4);
+        }
+      case Matrix:
+        switch (rows)
+        {
+          case 2:
+            switch (cols)
+            {
+              case 2:
+                return alignof(mat2);
+              case 3:
+                return alignof(mat3x2);
+              case 4:
+                return alignof(mat4x2);
+            }
+          case 3:
+            switch (cols)
+            {
+              case 2:
+                return alignof(mat2x3);
+              case 3:
+                return alignof(mat3);
+              case 4:
+                return alignof(mat4x3);
+            }
+          case 4:
+            switch (cols)
+            {
+              case 2:
+                return alignof(mat2x4);
+              case 3:
+                return alignof(mat3x4);
+              case 4:
+                return alignof(mat4);
+            }
+        }
+    }
+  }
+  else if (scalar_type == eDouble)
+  {
+    switch (kind)
+    {
+      case Scalar:
+        return alignof(double);
+      case Vector:
+        switch (rows)
+        {
+          case 2:
+            return alignof(dvec2);
+          case 3:
+            return alignof(dvec3);
+          case 4:
+            return alignof(dvec4);
+        }
+      case Matrix:
+        switch (rows)
+        {
+          case 2:
+            switch (cols)
+            {
+              case 2:
+                return alignof(dmat2);
+              case 3:
+                return alignof(dmat3x2);
+              case 4:
+                return alignof(dmat4x2);
+            }
+          case 3:
+            switch (cols)
+            {
+              case 2:
+                return alignof(dmat2x3);
+              case 3:
+                return alignof(dmat3);
+              case 4:
+                return alignof(dmat4x3);
+            }
+          case 4:
+            switch (cols)
+            {
+              case 2:
+                return alignof(dmat2x4);
+              case 3:
+                return alignof(dmat3x4);
+              case 4:
+                return alignof(dmat4);
+            }
+        }
+    }
+  }
+  else if (scalar_type == eBool)
+  {
+    if (kind == Scalar)
+      return alignof(bool);
+    switch (rows)
+    {
+      case 2:
+        return alignof(bvec2);
+      case 3:
+        return alignof(bvec3);
+      case 4:
+        return alignof(bvec4);
+    }
+  }
+  else if (scalar_type == eInt)
+  {
+    if (kind == Scalar)
+      return alignof(int32_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(ivec2);
+      case 3:
+        return alignof(ivec3);
+      case 4:
+        return alignof(ivec4);
+    }
+  }
+  else if (scalar_type == eUint)
+  {
+    if (kind == Scalar)
+      return alignof(uint32_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(uvec2);
+      case 3:
+        return alignof(uvec3);
+      case 4:
+        return alignof(uvec4);
+    }
+  }
+  else if (scalar_type == eInt8)
+  {
+    if (kind == Scalar)
+      return alignof(int8_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(i8vec2);
+      case 3:
+        return alignof(i8vec3);
+      case 4:
+        return alignof(i8vec4);
+    }
+  }
+  else if (scalar_type == eUint8)
+  {
+    if (kind == Scalar)
+      return alignof(uint8_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(u8vec2);
+      case 3:
+        return alignof(u8vec3);
+      case 4:
+        return alignof(u8vec4);
+    }
+  }
+  else if (scalar_type == eInt16)
+  {
+    if (kind == Scalar)
+      return alignof(int16_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(i16vec2);
+      case 3:
+        return alignof(i16vec3);
+      case 4:
+        return alignof(i16vec4);
+    }
+  }
+  else if (scalar_type == eUint16)
+  {
+    if (kind == Scalar)
+      return alignof(uint16_t);
+    switch (rows)
+    {
+      case 2:
+        return alignof(u16vec2);
+      case 3:
+        return alignof(u16vec3);
+      case 4:
+        return alignof(u16vec4);
+    }
+  }
+  AI_NEVER_REACHED
+}
 
 // Return the GLSL alignment of a scalar, vector or matrix type under the given standard.
 constexpr uint32_t alignment(Standard standard, ScalarIndex scalar_type, int rows, int cols)
 {
   Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
 
-  // This function should never be called for vertex attribute types.
-  // Those types do not have the traits of a standard; so it makes no sense to try and use whatever
-  // this function would return. If this fails there is a bug in the code.
-//  assert(scalar_type < number_of_glsl_types);
+  // In the case of vertex_attributes we return the values that a normal C++ struct gives us.
+  if (standard == vertex_attributes)
+    return cpp_alignment(scalar_type, rows, cols);
 
   // All scalar types have a minimum size of 4.
   uint32_t const scalar_size = (scalar_type == eDouble) ? 8 : 4;
@@ -175,7 +442,8 @@ constexpr uint32_t size(Standard standard, ScalarIndex scalar_type, int rows, in
   Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
 
   // Non-matrices have the same size as in the standard 'scalar' case.
-  if (kind != Matrix || standard == scalar)
+  // In the case of vertex_attributes we return the values that a normal C++ struct gives us.
+  if (kind != Matrix || standard == scalar || standard == vertex_attributes)
     return alignment(standard, scalar_type, 1, 1) * rows * cols;
 
   // Matrices are layed out as arrays of `cols` column-vectors.

@@ -90,7 +90,7 @@ class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<
   {
     for (int vertex = 0; vertex < batch_size; ++vertex)
     {
-      input_entry_ptr[vertex].m_position = position_at(vertex);
+      input_entry_ptr[vertex].m_position[1] = position_at(vertex);
       input_entry_ptr[vertex].m_texture_coordinates = texture_coordinates_at(vertex);
     }
 

@@ -8,8 +8,9 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
   static constexpr auto layouts = make_layouts(
     MEMBER(mat2, unused1),
-    MEMBER(Float, x)
-//    MEMBER(/*Double*/Float, "TopPosition::unused2"),
+//    MEMBER(Float, x)
+    (::vulkan::shaderbuilder::StructMember<containing_class, Float[13], "x">{}),
+    MEMBER(Double, "TopPosition::unused2")
 //    MEMBER(Float, "TopPosition::unused3")
   );
 };
