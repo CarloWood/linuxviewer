@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ShaderVariableLayouts.h"      // standards::vertex_attributes
+#include "ShaderVariable.h"
 #include "math/glsl.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
@@ -84,7 +85,7 @@ struct VertexAttributeLayout
 #endif
 };
 
-struct VertexAttribute
+struct VertexAttribute final : public ShaderVariable
 {
  private:
   VertexAttributeLayout const* m_layout;
@@ -100,8 +101,6 @@ struct VertexAttribute
   {
     return m_binding;
   }
-
-  std::string declaration(pipeline::Pipeline* pipeline) const;
 
   VertexAttribute(VertexAttributeLayout const* layout, BindingIndex binding) : m_layout(layout), m_binding(binding)
   {
@@ -132,7 +131,14 @@ struct VertexAttribute
   }
 #endif
 
+ private:
+  // Implement base class interface.
+  std::string declaration(pipeline::Pipeline* pipeline) const override;
+  char const* glsl_id_str() const override { return m_layout->m_glsl_id_str; }
+  std::string name() const override { return m_layout->name(); }
+
 #ifdef CWDEBUG
+ public:
   void print_on(std::ostream& os) const;
 #endif
 };

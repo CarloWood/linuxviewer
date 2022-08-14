@@ -37,6 +37,7 @@ class Pipeline
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
   std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing vertex attributes of the above input sets (including declaration function).
   shaderbuilder::LocationContext m_vertex_shader_location_context;                      // Location context used for vertex attributes (VertexAttribute).
+  std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;                 // A list of all ShaderVariable's (elements of m_vertex_attributes, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_unique_handles;
 
@@ -74,8 +75,7 @@ class Pipeline
   // otherwise this function returns a string_view directly into the shader_info's source code.
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
-  std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer,
-      std::set<shaderbuilder::VertexAttribute> const* vertex_attributes = nullptr);
+  std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer);
 
   // Accessors.
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
@@ -116,12 +116,13 @@ void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderb
     shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  shaderbuilder::VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
-  shaderbuilder::VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
-  auto res = m_vertex_attributes.insert(vertex_attribute);
+  shaderbuilder::VertexAttributeLayout const* vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
+  auto res = m_vertex_attributes.emplace(vertex_attribute_layout, binding);
   // All used names must be unique.
   if (!res.second)
-    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
+    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute_layout->m_glsl_id_str));
+  // Add a pointer to the VertexAttribute that was just added to m_vertex_attributes to m_shader_variables.
+  m_shader_variables.push_back(&*res.first);
 }
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
@@ -130,14 +131,15 @@ void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderb
     shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  shaderbuilder::VertexAttributeLayout const& vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
-  shaderbuilder::VertexAttribute vertex_attribute(&vertex_attribute_layout, binding);
-  // m_array_size should have been set during the call to Application::register_attribute.
-  ASSERT(vertex_attribute_layout.m_array_size == Elements);
-  auto res = m_vertex_attributes.insert(vertex_attribute);
+  shaderbuilder::VertexAttributeLayout const* vertex_attribute_layout = Application::instance().get_vertex_attribute_layout(GlslIdStr);
+  // m_array_size should have been set during the call to Application::register_vertex_attributes.
+  ASSERT(vertex_attribute_layout->m_array_size == Elements);
+  auto res = m_vertex_attributes.emplace(vertex_attribute_layout, binding);
   // All used names must be unique.
   if (!res.second)
-    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute.layout().m_glsl_id_str));
+    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute_layout->m_glsl_id_str));
+  // Add a pointer to the VertexAttribute that was just added to m_vertex_attributes to m_shader_variables.
+  m_shader_variables.push_back(&*res.first);
 }
 
 template<typename ENTRY>

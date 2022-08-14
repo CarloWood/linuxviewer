@@ -284,9 +284,9 @@ void main()
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
     using namespace vulkan::shaderbuilder;
-    application().register_attribute<VertexData>();
-    application().register_attribute<InstanceData>();
-    application().register_attribute<PushConstant>();
+    application().register_vertex_attributes<VertexData>();
+    application().register_vertex_attributes<InstanceData>();
+//    application().register_vertex_attributes<PushConstant>();
 
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "intel.vert.glsl" },

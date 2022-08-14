@@ -363,6 +363,7 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
         shader_infos_w->deque.push_back(std::move(new_shader_info_list[i]));
     }
   }
+#if 0
   // Check that all identifiers that should be replaced are known.
   {
     shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
@@ -401,13 +402,13 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
             ++end;
           ptr = end;
           std::string s(start, end);
-          glsl_id_strs_t::rat glsl_id_strs_r(m_glsl_id_strs);
-          auto shader_variable_layout = glsl_id_strs_r->find(s);
-          if (shader_variable_layout == glsl_id_strs_r->end())
+          glsl_id_str_to_vertex_attribute_layout_t::rat glsl_id_str_to_vertex_attribute_layout_r(m_glsl_id_str_to_vertex_attribute_layout);
+          auto shader_variable_layout = glsl_id_str_to_vertex_attribute_layout_r->find(s);
+          if (shader_variable_layout == glsl_id_str_to_vertex_attribute_layout_r->end())
           {
 #if 0
             Dout(dc::always, "Map contents:");
-            for (auto iter = glsl_id_strs_r->begin(); iter != glsl_id_strs_r->end(); ++iter)
+            for (auto iter = glsl_id_str_to_vertex_attribute_layout_r->begin(); iter != glsl_id_str_to_vertex_attribute_layout_r->end(); ++iter)
               Dout(dc::always, libcwd::buf2str(iter->first.data(), iter->first.size()));
 #endif
             THROW_ALERT("The shader [SHADER] is using the identifier [ID], but no such identifier was registered.",
@@ -417,6 +418,7 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
       }
     }
   }
+#endif
 
   return new_indices;
 }
@@ -428,13 +430,14 @@ shaderbuilder::ShaderInfo const& Application::get_shader_info(shaderbuilder::Sha
   return shader_infos_r->deque[shader_index];
 }
 
-vulkan::shaderbuilder::VertexAttributeLayout const& Application::get_vertex_attribute_layout(std::string_view glsl_id_str) const
+vulkan::shaderbuilder::VertexAttributeLayout const* Application::get_vertex_attribute_layout(std::string_view glsl_id_str) const
 {
-  glsl_id_strs_t::rat glsl_id_strs_r(m_glsl_id_strs);
-  auto vertex_attribute_layout = glsl_id_strs_r->find(glsl_id_str);
-  if (vertex_attribute_layout == glsl_id_strs_r->end())
+  glsl_id_str_to_vertex_attribute_layout_t::rat glsl_id_str_to_vertex_attribute_layout_r(m_glsl_id_str_to_vertex_attribute_layout);
+  auto vertex_attribute_layout = glsl_id_str_to_vertex_attribute_layout_r->find(glsl_id_str);
+  if (vertex_attribute_layout == glsl_id_str_to_vertex_attribute_layout_r->end())
     THROW_ALERT("Vertex attribute [ID_STR] was not registered.", AIArgs("[ID_STR]", glsl_id_str));
-  return vertex_attribute_layout->second;
+  // Pointers to elements are not invalidated by insertion of new elements.
+  return &vertex_attribute_layout->second;
 }
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)

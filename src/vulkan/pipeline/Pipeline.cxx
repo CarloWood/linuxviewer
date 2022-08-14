@@ -8,10 +8,9 @@ namespace vulkan::pipeline {
 
 std::string_view Pipeline::preprocess(
     shaderbuilder::ShaderInfo const& shader_info,
-    std::string& glsl_source_code_buffer,
-    std::set<shaderbuilder::VertexAttribute> const* vertex_attributes)
+    std::string& glsl_source_code_buffer)
 {
-  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer, " << vertex_attributes << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
 
   std::string_view source = shader_info.glsl_template_code();
 
@@ -23,13 +22,9 @@ std::string_view Pipeline::preprocess(
   size_t source_code_size_estimate = std::strlen(version_header) + source.length();
 
   std::string declarations;
-  bool const has_vertex_attributes = vertex_attributes && !vertex_attributes->empty();
-  if (has_vertex_attributes)
-  {
-    for (shaderbuilder::VertexAttribute const& vertex_attribute : *vertex_attributes)
-      declarations += vertex_attribute.declaration(this);
-    declarations += '\n';
-  }
+  for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
+    declarations += shader_variable->declaration(this);
+  declarations += '\n';
   source_code_size_estimate += declarations.size();
 
   glsl_source_code_buffer.reserve(utils::malloc_size(source_code_size_estimate) - 1);
@@ -41,16 +36,13 @@ std::string_view Pipeline::preprocess(
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
-  if (has_vertex_attributes)
+  // m_shader_variables contains a number of strings that we need to find in the source.
+  // They may occur zero or more times.
+  for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
   {
-    // vertex_attributes contains a number of strings that we need to find in the source.
-    // They may occur zero or more times.
-    for (auto&& vertex_attribute : *vertex_attributes)
-    {
-      std::string const match_string = vertex_attribute.layout().m_glsl_id_str;
-      for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
-        positions[pos] = std::make_pair(match_string, vertex_attribute.layout().name());
-    }
+    std::string const match_string = shader_variable->glsl_id_str();
+    for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
+      positions[pos] = std::make_pair(match_string, shader_variable->name());
   }
 
   // Next copy alternating, the characters in between the strings and the replacements of the substrings.
@@ -349,15 +341,7 @@ void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
   shaderbuilder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
-  switch (shader_info.stage())
-  {
-    case vk::ShaderStageFlagBits::eVertex:
-      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer, &m_vertex_attributes);
-      break;
-    default:
-      glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);
-      break;
-  }
+  glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);

@@ -368,9 +368,9 @@ void main()
 #if 0
     // Each uniform buffer *instance* must be associated with a different C++ type.
     // Of course, normally you'd use an array instead.
-    application().register_attribute<TopPosition>();
-    application().register_attribute<LeftPosition>();
-    application().register_attribute<BottomPosition>();
+    application().register_vertex_attributes<TopPosition>();
+    application().register_vertex_attributes<LeftPosition>();
+    application().register_vertex_attributes<BottomPosition>();
 #endif
 
     using namespace vulkan::shaderbuilder;
