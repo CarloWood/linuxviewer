@@ -15,21 +15,6 @@ namespace SHADERBUILDER_STANDARD {
 // The variable glsl_standard must be set to one of the glsl::Standard enum values.
 static constexpr Standard glsl_standard = glsl::SHADERBUILDER_STANDARD;
 
-#if 0
-constexpr BasicType encode(int rows, int cols, glsl::ScalarIndex scalar_type)
-{
-  return {
-    .m_standard = glsl_standard,
-    .m_rows = static_cast<uint32_t>(rows),
-    .m_cols = static_cast<uint32_t>(cols),
-    .m_scalar_type = static_cast<uint32_t>(scalar_type),
-    .m_log2_alignment = static_cast<uint32_t>(utils::log2(alignment(glsl_standard, scalar_type, rows, cols))),
-    .m_size = size(glsl_standard, scalar_type, rows, cols),
-    .m_array_stride = array_stride(glsl_standard, scalar_type, rows, cols)
-  };
-}
-#endif
-
 template<int rows, int cols, glsl::ScalarIndex scalar_index>
 using encode = BasicTypeLayout<glsl_standard, scalar_index, rows, cols, alignment(glsl_standard, scalar_index, rows, cols), size(glsl_standard, scalar_index, rows, cols), array_stride(glsl_standard, scalar_index, rows, cols)>;
 

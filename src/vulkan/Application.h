@@ -138,13 +138,6 @@ class Application
   // Storage for all shader templates.
   mutable vulkan::shaderbuilder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
-  // Map VertexAttributeLayout::m_glsl_id_str to the VertexAttributeLayout object that contains it.
-  // Used in Application::register_shaders to check that all identifiers of the form "ENTRY::variable" that appear in
-  // the shader template code were registered.
-  using glsl_id_str_to_vertex_attribute_layout_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttributeLayout, std::less<>>;
-  using glsl_id_str_to_vertex_attribute_layout_t = aithreadsafe::Wrapper<glsl_id_str_to_vertex_attribute_layout_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
-  mutable glsl_id_str_to_vertex_attribute_layout_t m_glsl_id_str_to_vertex_attribute_layout;
-
   // We have one of these for each pipeline cache filename.
   struct PipelineCacheMerger
   {
@@ -299,43 +292,13 @@ class Application
       synchronize_graphics_settings();
   }
 
- private:
-  // Called by register_vertex_attributes<ENTRY> where Standard is vertex_attributes, once for each vertex attribute (also when that is an array).
-
-  // Non-array.
-  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  auto register_glsl_id_str(glsl_id_str_to_vertex_attribute_layout_t::wat const& glsl_id_str_to_vertex_attribute_layout_w,
-      shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
-      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const;
-
-  // Array.
-  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-  auto register_glsl_id_str(glsl_id_str_to_vertex_attribute_layout_t::wat const& glsl_id_str_to_vertex_attribute_layout_w,
-      shaderbuilder::MemberLayout<ContainingClass, shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
-      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout) /*threadsafe-*/const;
-
  public:
-  // Marked const because it is thread-safe; it isn't really const.
-  template<typename ENTRY>
-  requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
-            std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-  void register_vertex_attributes() /*threadsafe-*/const;
-
-  template<typename ENTRY>
-  requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-  void register_push_constant() /*threadsafe-*/const;
-
   // Called by user functions (e.g. Window::register_shaders).
   // Marked const because it is thread-safe; it isn't really const.
   std::vector<vulkan::shaderbuilder::ShaderIndex> register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) const;
 
   // Return a reference to the ShaderInfo that corresponds to shader_index, as added by a call to register_shaders.
   vulkan::shaderbuilder::ShaderInfo const& get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const;
-
-  // Return a pointer to an element in m_glsl_id_str_to_vertex_attribute_layout, as added by a call to register_shaders.
-  vulkan::shaderbuilder::VertexAttributeLayout const* get_vertex_attribute_layout(std::string_view glsl_id_str) const;
 
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);

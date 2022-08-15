@@ -39,6 +39,9 @@ enum Kind {
   Matrix
 };
 
+constexpr Kind get_kind(int rows, int cols) { return (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix; }
+std::string type2name(glsl::ScalarIndex scalar_type, int rows, int cols);
+
 #ifdef CWDEBUG
 std::string to_string(Standard standard);
 std::ostream& operator<<(std::ostream& os, ScalarIndex scalar_type);
@@ -201,7 +204,7 @@ static_assert(
 // the types are aligned as a multiple of the alignment of the underlaying type.
 constexpr uint32_t cpp_alignment(ScalarIndex scalar_type, int rows, int cols)
 {
-  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+  Kind const kind = get_kind(rows, cols);
   if (scalar_type == eFloat)
   {
     switch (kind)
@@ -410,7 +413,7 @@ constexpr uint32_t cpp_alignment(ScalarIndex scalar_type, int rows, int cols)
 // Return the GLSL alignment of a scalar, vector or matrix type under the given standard.
 constexpr uint32_t alignment(Standard standard, ScalarIndex scalar_type, int rows, int cols)
 {
-  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+  Kind const kind = get_kind(rows, cols);
 
   // In the case of vertex_attributes we return the values that a normal C++ struct gives us.
   if (standard == vertex_attributes)
@@ -439,7 +442,7 @@ constexpr uint32_t alignment(Standard standard, ScalarIndex scalar_type, int row
 constexpr uint32_t size(Standard standard, ScalarIndex scalar_type, int rows, int cols)
 {
   using namespace glsl;
-  Kind const kind = (rows == 1) ? Scalar : (cols == 1) ? Vector : Matrix;
+  Kind const kind = get_kind(rows, cols);
 
   // Non-matrices have the same size as in the standard 'scalar' case.
   // In the case of vertex_attributes we return the values that a normal C++ struct gives us.

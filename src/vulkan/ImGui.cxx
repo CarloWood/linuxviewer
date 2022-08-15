@@ -159,8 +159,6 @@ void main()
 
 void ImGui::register_shader_templates()
 {
-  m_owning_window->application().register_vertex_attributes<imgui::ImDrawVert>();
-
   using namespace vulkan::shaderbuilder;
   std::vector<ShaderInfo> shader_info = {
     { vk::ShaderStageFlagBits::eVertex,   "imgui.vert.glsl" },

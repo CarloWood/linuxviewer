@@ -229,18 +229,13 @@ class Window : public task::SynchronousWindow
     vk::PushConstantRange push_constant_ranges{
       .stageFlags = vk::ShaderStageFlagBits::eVertex,
       .offset = 0,
-      .size = 4
+      .size = sizeof(PushConstant)
     };
     m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
   }
 
   static constexpr std::string_view intel_vert_glsl = R"glsl(
-//FIXME: this should be generated
-layout(push_constant) uniform PushConstant {
-  float aspect_scale;
-} v12345678;
-
 out gl_PerVertex
 {
   vec4 gl_Position;
@@ -255,8 +250,7 @@ void main()
   v_Distance = 1.0 - InstanceData::m_position[1].z;        // Darken with distance
 
   vec4 position = VertexData::m_position[1];
-  //position.y *= PushConstant::aspect_scale;             // Adjust to screen aspect ration
-  position.y *= v12345678.aspect_scale;             // Adjust to screen aspect ration
+  position.y *= PushConstant::aspect_scale;             // Adjust to screen aspect ration
   position.xy *= pow( v_Distance, 0.5 );                // Scale with distance
   gl_Position = position + InstanceData::m_position[1];
 }
@@ -284,9 +278,6 @@ void main()
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
     using namespace vulkan::shaderbuilder;
-    application().register_vertex_attributes<VertexData>();
-    application().register_vertex_attributes<InstanceData>();
-//    application().register_vertex_attributes<PushConstant>();
 
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "intel.vert.glsl" },
@@ -335,6 +326,7 @@ void main()
       // Define the pipeline.
       m_pipeline.add_vertex_input_binding(m_heavy_rectangle);
       m_pipeline.add_vertex_input_binding(m_random_positions);
+      m_pipeline.add_push_constant<PushConstant>();
 
       // Compile the shaders.
       {

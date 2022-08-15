@@ -12,38 +12,58 @@ std::string_view Pipeline::preprocess(
 {
   DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
 
-  std::string_view source = shader_info.glsl_template_code();
+  std::string_view const source = shader_info.glsl_template_code();
 
   // Assume no preprocessing is necessary if the source already starts with "#version".
   if (source.starts_with("#version"))
     return source;
 
-  static constexpr char const* version_header = "#version 450\n\n";
-  size_t source_code_size_estimate = std::strlen(version_header) + source.length();
-
   std::string declarations;
-  for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
-    declarations += shader_variable->declaration(this);
-  declarations += '\n';
-  source_code_size_estimate += declarations.size();
 
-  glsl_source_code_buffer.reserve(utils::malloc_size(source_code_size_estimate) - 1);
-  glsl_source_code_buffer = version_header;
-  glsl_source_code_buffer += declarations;
+  // First add all vertex attribute declarations if this is the vertex shader.
+  // This is not really necessary because we could treat the vertex attribute
+  // declarations the same as uniform declarations; but this way at least we
+  // make sure that they are only ever added to the vertex shader (otherwise
+  // the declaration would happily be added to any other shader that has the
+  // same glsl ID strings in it).
+  if (shader_info.stage() == vk::ShaderStageFlagBits::eVertex)
+  {
+    for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
+      if (shader_variable->is_vertex_attribute())
+        declarations += shader_variable->declaration(this);
+  }
 
   // Store each position where a match string occurs, together with an std::pair
   // containing the found substring that has to be replaced (first) and the
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
+  int id_to_name_growth = 0;
+
   // m_shader_variables contains a number of strings that we need to find in the source.
   // They may occur zero or more times.
   for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
   {
-    std::string const match_string = shader_variable->glsl_id_str();
+    std::string match_string = shader_variable->glsl_id_str();
+    int count = 0;
     for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
+    {
+      id_to_name_growth += shader_variable->name().length() - match_string.length();
       positions[pos] = std::make_pair(match_string, shader_variable->name());
+      ++count;
+    }
+    // Make sure to skip vertex attribute declarations that were already added above.
+    if (!shader_variable->is_vertex_attribute() && count > 0)
+      declarations += shader_variable->declaration(this);
   }
+  declarations += '\n';
+
+  static constexpr char const* version_header = "#version 450\n\n";
+  size_t final_source_code_size = std::strlen(version_header) + declarations.size() + source.length() + id_to_name_growth;
+
+  glsl_source_code_buffer.reserve(utils::malloc_size(final_source_code_size + 1) - 1);
+  glsl_source_code_buffer = version_header;
+  glsl_source_code_buffer += declarations;
 
   // Next copy alternating, the characters in between the strings and the replacements of the substrings.
   size_t start = 0;

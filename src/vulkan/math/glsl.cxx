@@ -26,6 +26,52 @@ std::string to_string(ScalarIndex scalar_type)
   AI_NEVER_REACHED
 }
 
+std::string type2name(glsl::ScalarIndex scalar_type, int rows, int cols)
+{
+  glsl::Kind const kind = get_kind(rows, cols);
+
+  // Check out of range.
+  ASSERT(0 <= scalar_type && scalar_type < glsl::number_of_scalar_types);
+  ASSERT(1 <= rows && rows <= 4);
+  ASSERT(1 <= cols && cols <= 4);
+  // Row-vectors are not used in this rows/cols encoding.
+  ASSERT(!(rows == 1 && cols > 1));
+  // There are only matrices of float and double.
+  ASSERT(kind != glsl::Matrix || (scalar_type == glsl::eFloat || scalar_type == glsl::eDouble));
+
+  std::string type_name;
+  switch (scalar_type)
+  {
+    case glsl::eDouble:
+      type_name = 'd';
+      break;
+    case glsl::eBool:
+      type_name = 'b';
+      break;
+    case glsl::eUint:
+      type_name = 'u';
+      break;
+    case glsl::eInt:
+      type_name = 'i';
+      break;
+    default:
+      break;
+  }
+  switch (kind)
+  {
+    case glsl::Scalar:
+      type_name = to_string(scalar_type);
+      break;
+    case glsl::Vector:
+      type_name += "vec" + std::to_string(rows);
+      break;
+    case glsl::Matrix:
+      type_name += "mat" + std::to_string(cols) + "x" + std::to_string(rows);
+      break;
+  }
+  return type_name;
+}
+
 #ifdef CWDEBUG
 std::string to_string(Standard standard)
 {

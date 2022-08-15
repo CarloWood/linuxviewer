@@ -1,6 +1,9 @@
 #include "sys.h"
 #include "LocationContext.h"
 #include "VertexAttribute.h"
+#ifdef CWDEBUG
+#include "vk_utils/PrintPointer.h"
+#endif
 
 namespace vulkan::shaderbuilder {
 

@@ -16,7 +16,7 @@ namespace vulkan::pipeline {
 class Pipeline;
 } // namespace vulkan::pipeline
 
-namespace vulkan::shaderbuilder {
+namespace vulkan_shaderbuilder_specialization_classes {
 
 // Base class of ShaderVariableLayouts in order to declare containing_class and containing_class_name.
 // See LAYOUT_DECLARATION.
@@ -27,6 +27,11 @@ struct ShaderVariableLayoutsBase;
 // See VertexShaderInputSet for more info and example.
 template<typename ENTRY>
 struct ShaderVariableLayouts;
+
+} // vulkan_shaderbuilder_specialization_classes
+
+namespace vulkan::shaderbuilder {
+using namespace vulkan_shaderbuilder_specialization_classes;
 
 // This template struct is specialized below for BasicTypeLayout, MemberLayout, ArrayLayout and StructLayout.
 // It provides a generic interface to the common parameters of a layout: alignment, size and array_stride.
@@ -105,7 +110,7 @@ template<typename ContainingClass, typename XLayout, utils::TemplateStringLitera
 struct StructMember
 {
   static constexpr size_t alignment = Layout<XLayout>::alignment;
-  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan::shaderbuilder::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan_shaderbuilder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
   using containing_class = ContainingClass;
   using layout_type = XLayout;
 };
@@ -114,7 +119,7 @@ struct StructMember
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
 struct StructMember<ContainingClass, XLayout[Elements], MemberName>
 {
-  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan::shaderbuilder::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan_shaderbuilder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   using containing_class = ContainingClass;
   using layout_type = ArrayLayout<XLayout, Elements>;
@@ -122,7 +127,7 @@ struct StructMember<ContainingClass, XLayout[Elements], MemberName>
 
 #define LAYOUT_DECLARATION(classname, standard) \
   template<> \
-  struct vulkan::shaderbuilder::ShaderVariableLayoutsBase<classname> \
+  struct vulkan_shaderbuilder_specialization_classes::ShaderVariableLayoutsBase<classname> \
   { \
     using containing_class = classname; \
     static constexpr std::array long_prefix_a = std::to_array(BOOST_PP_STRINGIZE(classname)"::"); \
@@ -132,7 +137,7 @@ struct StructMember<ContainingClass, XLayout[Elements], MemberName>
   }; \
   \
   template<> \
-  struct vulkan::shaderbuilder::ShaderVariableLayouts<classname> : glsl::standard, vulkan::shaderbuilder::ShaderVariableLayoutsBase<classname>
+  struct vulkan_shaderbuilder_specialization_classes::ShaderVariableLayouts<classname> : glsl::standard, vulkan_shaderbuilder_specialization_classes::ShaderVariableLayoutsBase<classname>
 
 #define MEMBER(membertype, membername) \
   (::vulkan::shaderbuilder::StructMember<containing_class, membertype, BOOST_PP_STRINGIZE(membername)>{})
