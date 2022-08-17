@@ -235,16 +235,6 @@ class Window : public task::SynchronousWindow
     }
   }
 
-  void create_pipeline_layout() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
-
-    m_pipeline_layout1 = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout, *m_left_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout1")));
-    m_pipeline_layout2 = m_logical_device->create_pipeline_layout({ *m_left_descriptor_set.m_layout, *m_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout2")));
-  }
-
   static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
@@ -471,6 +461,12 @@ void main()
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+
+    // Create our pipeline layouts.
+    m_pipeline_layout1 = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout, *m_left_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout1")));
+    m_pipeline_layout2 = m_logical_device->create_pipeline_layout({ *m_left_descriptor_set.m_layout, *m_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout2")));
 
     m_pipeline_factory1 = create_pipeline_factory(*m_pipeline_layout1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);

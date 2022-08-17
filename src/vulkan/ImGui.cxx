@@ -121,19 +121,6 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
 }
 
-void ImGui::create_pipeline_layout(CWDEBUG_ONLY(Ambifix const& ambifix))
-{
-  DoutEntering(dc::vulkan, "ImGui::create_pipeline_layout()");
-
-  vk::PushConstantRange push_constant_ranges{
-    .stageFlags = vk::ShaderStageFlagBits::eVertex,
-    .offset = 0,
-    .size = 4 * sizeof(float)
-  };
-  m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
-      COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
-}
-
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
 layout(push_constant) uniform uPushConstant { vec2 uScale; vec2 uTranslate; } pc;
 out gl_PerVertex { vec4 gl_Position; };
@@ -174,6 +161,15 @@ void ImGui::register_shader_templates()
 void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
+
+  // Create our pipeline layout.
+  vk::PushConstantRange push_constant_ranges{
+    .stageFlags = vk::ShaderStageFlagBits::eVertex,
+    .offset = 0,
+    .size = 4 * sizeof(float)
+  };
+  m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+      COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
 
   // The pipeline needs to know who owns it.
   pipeline::Pipeline pipeline;
@@ -390,8 +386,6 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
       extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
-  // Create imgui pipeline layout.
-  create_pipeline_layout(CWDEBUG_ONLY(ambifix));
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));
 }

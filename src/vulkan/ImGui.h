@@ -110,8 +110,6 @@ class ImGui
   void register_shader_templates();
   void create_descriptor_set(
       CWDEBUG_ONLY(Ambifix const& ambifix));
-  void create_pipeline_layout(
-      CWDEBUG_ONLY(Ambifix const& ambifix));
   void create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 

@@ -289,7 +289,6 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       register_shader_templates();
       create_descriptor_set();
       create_textures();
-      create_pipeline_layout();
       create_graphics_pipelines();
       if (m_use_imgui)                  // Set in create_descriptor_set by the user.
       {

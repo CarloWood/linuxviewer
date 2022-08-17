@@ -222,24 +222,6 @@ class Window : public task::SynchronousWindow
     }
   }
 
-  void create_pipeline_layout() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
-
-    vk::PushConstantRange push_constant_ranges{
-      .stageFlags = vk::ShaderStageFlagBits::eVertex,
-      .offset = 0,
-      .size = sizeof(PushConstant)
-    };
-    vk::PushConstantRange push_constant_ranges2{
-      .stageFlags = vk::ShaderStageFlagBits::eFragment,
-      .offset = 12,
-      .size = 4
-    };
-    m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges, push_constant_ranges2 }
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
-  }
-
   static constexpr std::string_view intel_vert_glsl = R"glsl(
 out gl_PerVertex
 {
@@ -374,6 +356,20 @@ void main()
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+
+    // Create our pipeline layout.
+    vk::PushConstantRange push_constant_ranges{
+      .stageFlags = vk::ShaderStageFlagBits::eVertex,
+      .offset = 0,
+      .size = sizeof(PushConstant)
+    };
+    vk::PushConstantRange push_constant_ranges2{
+      .stageFlags = vk::ShaderStageFlagBits::eFragment,
+      .offset = 12,
+      .size = 4
+    };
+    m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges, push_constant_ranges2 }
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
     //FIXME: the pipeline layout can vary between different pipelines too; use a vulkan::pipeline::CharacteristicRange for it
     // as well and reuse compatible ones.

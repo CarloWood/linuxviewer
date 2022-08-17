@@ -255,14 +255,6 @@ class Window : public task::SynchronousWindow
   void create_descriptor_set() override { }
   void create_textures() override { }
 
-  void create_pipeline_layout() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_pipeline_layout() [" << this << "]");
-
-    m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
-  }
-
   static constexpr std::string_view triangle_vert_glsl = R"glsl(
 #version 450
 
@@ -321,6 +313,9 @@ void main()
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+
+    m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
     // The pipeline needs to know who owns it.
     vulkan::pipeline::Pipeline pipeline;
