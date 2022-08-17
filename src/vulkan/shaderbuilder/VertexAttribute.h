@@ -9,7 +9,7 @@
 #include "debug.h"
 
 namespace vulkan::pipeline {
-class Pipeline;
+class ShaderInputData;
 } // namespace vulkan::pipeline
 
 namespace vulkan::shaderbuilder {
@@ -77,7 +77,7 @@ struct VertexAttribute final : public ShaderVariable
 
  private:
   // Implement base class interface.
-  std::string declaration(pipeline::Pipeline* pipeline) const override;
+  std::string declaration(pipeline::ShaderInputData* shader_input_data) const override;
   char const* glsl_id_str() const override { return m_layout->m_glsl_id_str; }
   bool is_vertex_attribute() const override { return true; }
   std::string name() const override;

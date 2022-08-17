@@ -1,7 +1,7 @@
 #include "sys.h"
 
 #include "VertexAttribute.h"
-#include "pipeline/Pipeline.h"
+#include "pipeline/ShaderInputData.h"
 #include <magic_enum.hpp>
 #include <sstream>
 #include <functional>
@@ -18,9 +18,9 @@ std::string VertexAttribute::name() const
   return oss.str();
 }
 
-std::string VertexAttribute::declaration(pipeline::Pipeline* pipeline) const
+std::string VertexAttribute::declaration(pipeline::ShaderInputData* shader_input_data) const
 {
-  LocationContext& context = pipeline->vertex_shader_location_context();
+  LocationContext& context = shader_input_data->vertex_shader_location_context();
 
   std::ostringstream oss;
   ASSERT(context.next_location <= 999); // 3 chars max.

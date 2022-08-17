@@ -12,10 +12,6 @@
 #include <string>
 #include "debug.h"
 
-namespace vulkan::pipeline {
-class Pipeline;
-} // namespace vulkan::pipeline
-
 namespace vulkan_shaderbuilder_specialization_classes {
 
 // Base class of ShaderVariableLayouts in order to declare containing_class and containing_class_name.

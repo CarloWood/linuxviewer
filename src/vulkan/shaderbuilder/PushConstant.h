@@ -33,7 +33,7 @@ class PushConstant : public ShaderVariable
 
  private:
   // Implement base class interface.
-  std::string declaration(pipeline::Pipeline* pipeline) const override;
+  std::string declaration(pipeline::ShaderInputData* shader_input_data) const override;
   char const* glsl_id_str() const override { return m_glsl_id_str; }
   bool is_vertex_attribute() const override { return false; }
   std::string name() const override;

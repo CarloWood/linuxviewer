@@ -308,14 +308,14 @@ void main()
       // Register the vectors that we will fill.
       flat_create_info.add(m_vertex_input_binding_descriptions);
       flat_create_info.add(m_vertex_input_attribute_descriptions);
-      flat_create_info.add(m_pipeline.shader_stage_create_infos());
+      flat_create_info.add(m_shader_input_data.shader_stage_create_infos());
       flat_create_info.add(m_pipeline_color_blend_attachment_states);
       flat_create_info.add(m_dynamic_states);
 
       // Define the pipeline.
-      m_pipeline.add_vertex_input_binding(m_heavy_rectangle);
-      m_pipeline.add_vertex_input_binding(m_random_positions);
-      m_pipeline.add_push_constant<PushConstant>();
+      m_shader_input_data.add_vertex_input_binding(m_heavy_rectangle);
+      m_shader_input_data.add_vertex_input_binding(m_random_positions);
+      m_shader_input_data.add_push_constant<PushConstant>();
 
       // Compile the shaders.
       {
@@ -327,14 +327,14 @@ void main()
 
         ShaderCompiler compiler;
 
-        m_pipeline.build_shader(owning_window, shader_vert_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
-        m_pipeline.build_shader(owning_window, shader_frag_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::pipeline" }));
+        m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+        m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
       }
 
-      m_vertex_input_binding_descriptions = m_pipeline.vertex_binding_descriptions();
-      m_vertex_input_attribute_descriptions = m_pipeline.vertex_input_attribute_descriptions();
+      m_vertex_input_binding_descriptions = m_shader_input_data.vertex_binding_descriptions();
+      m_vertex_input_attribute_descriptions = m_shader_input_data.vertex_input_attribute_descriptions();
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 

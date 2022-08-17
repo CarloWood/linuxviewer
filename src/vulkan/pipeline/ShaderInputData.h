@@ -34,7 +34,7 @@ struct VertexAttribute;
 
 namespace vulkan::pipeline {
 
-class Pipeline
+class ShaderInputData
 {
   utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
   std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing vertex attributes of the above input sets (including declaration function).
@@ -140,7 +140,7 @@ namespace vulkan::pipeline {
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
     shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -177,7 +177,7 @@ void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderb
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
+void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
     shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -217,7 +217,7 @@ void Pipeline::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderb
 template<typename ENTRY>
 requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
           std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
+void ShaderInputData::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
   DoutEntering(dc::vulkan, "vulkan::pipeline::add_vertex_input_binding<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shaderbuilder;
@@ -249,7 +249,7 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void Pipeline::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
+void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
     shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -271,7 +271,7 @@ void Pipeline::add_push_constant_member(shaderbuilder::MemberLayout<ContainingCl
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void Pipeline::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
+void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
     shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -296,7 +296,7 @@ void Pipeline::add_push_constant_member(shaderbuilder::MemberLayout<ContainingCl
 
 template<typename ENTRY>
 requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-void Pipeline::add_push_constant()
+void ShaderInputData::add_push_constant()
 {
   DoutEntering(dc::vulkan, "vulkan::pipeline::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shaderbuilder;

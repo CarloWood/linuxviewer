@@ -404,7 +404,7 @@ void main()
       DoutEntering(dc::vulkan, "initializeX(..., " << pipeline << ")");
 
       // Register the vectors that we will fill.
-      flat_create_info.add(m_pipeline.shader_stage_create_infos());
+      flat_create_info.add(m_shader_input_data.shader_stage_create_infos());
       flat_create_info.add(m_pipeline_color_blend_attachment_states);
       flat_create_info.add(m_dynamic_states);
 
@@ -421,10 +421,10 @@ void main()
 
         ShaderCompiler compiler;
 
-        m_pipeline.build_shader(owning_window, shader_vert_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::pipeline" }));
-        m_pipeline.build_shader(owning_window, shader_frag_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::pipeline" }));
+        m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::m_shader_input_data" }));
+        m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
+            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::m_shader_input_data" }));
       }
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;

@@ -2,7 +2,7 @@
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
 #include "FlatCreateInfo.h"
-#include "Pipeline.h"
+#include "ShaderInputData.h"
 #include "utils/AIRefCount.h"
 #include "utils/Vector.h"
 #include <iosfwd>
@@ -20,10 +20,10 @@ using Index = utils::VectorIndex<IndexCategory>;
 class CharacteristicRange : public AIRefCount
 {
  public:
-  using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
+  using index_type = int;                                       // An index into the range that uniquely defines the value of the characteristic.
 
  protected:
-  vulkan::pipeline::Pipeline m_pipeline;        // FIXME: is this correct? This way have a pipeline per Characteristic(Range)?!
+  vulkan::pipeline::ShaderInputData m_shader_input_data;        // FIXME: is this correct? This way have a ShaderInputData per Characteristic(Range)?!
 
  private:
   index_type const m_begin;
@@ -78,7 +78,7 @@ class CharacteristicRange : public AIRefCount
   }
 
   // Accessor.
-  vulkan::pipeline::Pipeline const& pipeline() const { return m_pipeline; }
+  vulkan::pipeline::ShaderInputData const& pipeline() const { return m_shader_input_data; }
 
 #ifdef CWDEBUG
   virtual void print_on(std::ostream& os) const = 0;

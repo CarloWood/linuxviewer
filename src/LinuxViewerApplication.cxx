@@ -4,7 +4,7 @@
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/SynchronousWindow.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/pipeline/Pipeline.h"
+#include "vulkan/pipeline/ShaderInputData.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "vulkan/Application.inl.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
@@ -317,21 +317,21 @@ void main()
     m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
-    // The pipeline needs to know who owns it.
-    vulkan::pipeline::Pipeline pipeline;
+    // The shader input data object needs to know who owns it.
+    vulkan::pipeline::ShaderInputData shader_input_data;
 
     {
       using namespace vulkan::shaderbuilder;
       ShaderCompiler compiler;
 
-      pipeline.build_shader(this, m_shader_vert, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
-      pipeline.build_shader(this, m_shader_frag, compiler
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::pipeline")));
+      shader_input_data.build_shader(this, m_shader_vert, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
+      shader_input_data.build_shader(this, m_shader_frag, compiler
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
     }
 
-    auto vertex_binding_description = pipeline.vertex_binding_descriptions();
-    auto vertex_input_attribute_descriptions = pipeline.vertex_input_attribute_descriptions();
+    auto vertex_binding_description = shader_input_data.vertex_binding_descriptions();
+    auto vertex_input_attribute_descriptions = shader_input_data.vertex_input_attribute_descriptions();
 
     vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
       .flags = {},
@@ -433,7 +433,7 @@ void main()
       .pDynamicStates = dynamic_states.data()
     };
 
-    auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
+    auto const& shader_stage_create_infos = shader_input_data.shader_stage_create_infos();
 
     vk::GraphicsPipelineCreateInfo pipeline_create_info{
       .flags = vk::PipelineCreateFlags(0),

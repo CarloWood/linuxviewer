@@ -17,7 +17,7 @@ class SynchronousWindow;
 namespace vulkan {
 
 namespace pipeline {
-class Pipeline;
+class ShaderInputData;
 } // namespace pipeline
 
 namespace shaderbuilder {
@@ -38,7 +38,7 @@ class SPIRVCache
 
   // Create handle from cached SPIR-V code.
   vk::UniqueShaderModule create_module(
-      utils::Badge<vulkan::pipeline::Pipeline>, // Use vulkan::pipeline::Pipeline::build_shader(shader_info, compiler) instead of this function.
+      utils::Badge<vulkan::pipeline::ShaderInputData>, // Use vulkan::pipeline::ShaderInputData::build_shader(shader_info, compiler) instead of this function.
       LogicalDevice const* logical_device
       COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
 

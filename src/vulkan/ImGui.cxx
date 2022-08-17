@@ -6,7 +6,7 @@
 #include "ImageKind.h"
 #include "InputEvent.h"
 #include "memory/DataFeeder.h"
-#include "pipeline/Pipeline.h"
+#include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
 #include "Application.inl.h"
 #include <imgui.h>
@@ -171,24 +171,24 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
 
-  // The pipeline needs to know who owns it.
-  pipeline::Pipeline pipeline;
+  // The shader input data object needs to know who owns it.
+  pipeline::ShaderInputData shader_input_data;
 
-  // Define the pipeline.
-  pipeline.add_vertex_input_binding(m_ui);
+  // Define the vertex shader input.
+  shader_input_data.add_vertex_input_binding(m_ui);
 
   {
     using namespace vulkan::shaderbuilder;
     ShaderCompiler compiler;
 
-    pipeline.build_shader(m_owning_window, m_shader_vert, compiler
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
-    pipeline.build_shader(m_owning_window, m_shader_frag, compiler
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline" }));
+    shader_input_data.build_shader(m_owning_window, m_shader_vert, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
+    shader_input_data.build_shader(m_owning_window, m_shader_frag, compiler
+        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
   }
 
-  auto vertex_binding_descriptions = pipeline.vertex_binding_descriptions();
-  auto vertex_input_attribute_descriptions = pipeline.vertex_input_attribute_descriptions();
+  auto vertex_binding_descriptions = shader_input_data.vertex_binding_descriptions();
+  auto vertex_input_attribute_descriptions = shader_input_data.vertex_input_attribute_descriptions();
 
   vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
     .flags = {},
@@ -276,7 +276,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .pDynamicStates = dynamic_states.data()
   };
 
-  auto const& shader_stage_create_infos = pipeline.shader_stage_create_infos();
+  auto const& shader_stage_create_infos = shader_input_data.shader_stage_create_infos();
 
   vk::GraphicsPipelineCreateInfo pipeline_create_info{
     .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),

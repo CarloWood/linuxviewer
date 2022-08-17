@@ -1,16 +1,16 @@
 #include "sys.h"
-#include "Pipeline.h"
+#include "ShaderInputData.h"
 #include "SynchronousWindow.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 
 namespace vulkan::pipeline {
 
-std::string_view Pipeline::preprocess(
+std::string_view ShaderInputData::preprocess(
     shaderbuilder::ShaderInfo const& shader_info,
     std::string& glsl_source_code_buffer)
 {
-  DoutEntering(dc::vulkan, "Pipeline::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
 
   std::string_view const source = shader_info.glsl_template_code();
 
@@ -82,9 +82,9 @@ std::string_view Pipeline::preprocess(
   return glsl_source_code_buffer;
 }
 
-std::vector<vk::VertexInputBindingDescription> Pipeline::vertex_binding_descriptions() const
+std::vector<vk::VertexInputBindingDescription> ShaderInputData::vertex_binding_descriptions() const
 {
-  DoutEntering(dc::vulkan, "Pipeline::vertex_binding_descriptions() [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::vertex_binding_descriptions() [" << this << "]");
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions;
   uint32_t binding = 0;
   for (auto const* vextex_input_set : m_vertex_shader_input_sets)
@@ -323,7 +323,7 @@ vk::Format type2format(shaderbuilder::BasicType glsl_type)
 
 } // namespace
 
-std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribute_descriptions() const
+std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_attribute_descriptions() const
 {
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
   for (shaderbuilder::VertexAttribute const& vertex_attribute : m_vertex_attributes)
@@ -331,7 +331,7 @@ std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribut
     shaderbuilder::VertexAttributeLayout const& layout = vertex_attribute.layout();
     auto iter = m_vertex_shader_location_context.locations.find(&vertex_attribute);
     // Should have been added by the call to context.update_location(this) in VertexAttribute::declaration(),
-    // in turn called by Pipeline::preprocess.
+    // in turn called by ShaderInputData::preprocess.
     ASSERT(iter != m_vertex_shader_location_context.locations.end());
     uint32_t location = iter->second;
     uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
@@ -354,7 +354,7 @@ std::vector<vk::VertexInputAttributeDescription> Pipeline::vertex_input_attribut
   return vertex_input_attribute_descriptions;
 }
 
-void Pipeline::build_shader(task::SynchronousWindow const* owning_window,
+void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
     shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
