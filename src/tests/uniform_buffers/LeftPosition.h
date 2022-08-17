@@ -6,7 +6,7 @@ struct LeftPosition;
 
 LAYOUT_DECLARATION(LeftPosition, uniform_std140)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(mat4, unused),
     MEMBER(Float, y)
   );

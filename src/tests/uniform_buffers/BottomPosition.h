@@ -6,7 +6,7 @@ struct BottomPosition;
 
 LAYOUT_DECLARATION(BottomPosition, uniform_std140)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(vec2, unused),
     MEMBER(Float, x)
   );

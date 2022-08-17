@@ -27,7 +27,7 @@ struct ImDrawVert;
 // since it only uses things like sizeof and offsetof.
 LAYOUT_DECLARATION(imgui::ImDrawVert, per_vertex_data)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(vec2, pos),
     MEMBER(vec2, uv),
     MEMBER(u8vec4, col)

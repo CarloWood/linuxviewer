@@ -44,11 +44,10 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 };
 
 // ENTRY should be a struct existing solely of types specified in math/glsl.h,
-// but I don't think that can be checked with a concept :/.
+// or arrays thereof, but I don't think that can be checked with a concept :/.
 //
 // Also vulkan::shaderbuilder::ShaderVariableLayouts<ENTRY> must be overloaded and
-// specify the static constexpr members `input_rate` and `layouts`, where
-// the latter lists all of the members of ENTRY.
+// specify the static constexpr member `struct_layout` that lists all of the members of ENTRY.
 //
 // For example, if ENTRY is `InstanceData`, one has to specify the layout in advance:
 //
@@ -58,7 +57,7 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 //
 // LAYOUT_DECLARATION(InstanceData, per_instance_data)
 // {
-//   static constexpr auto layouts = make_layouts(
+//   static constexpr auto struct_layout = make_struct_layout(
 //     MEMBER(vec4, m_position),
 //     MEMBER(mat4, m_matrix)
 //   );

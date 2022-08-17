@@ -231,7 +231,12 @@ class Window : public task::SynchronousWindow
       .offset = 0,
       .size = sizeof(PushConstant)
     };
-    m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+    vk::PushConstantRange push_constant_ranges2{
+      .stageFlags = vk::ShaderStageFlagBits::eFragment,
+      .offset = 12,
+      .size = 4
+    };
+    m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges, push_constant_ranges2 }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
   }
 
@@ -316,6 +321,8 @@ void main()
 
     void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
     {
+      Dout(dc::notice, "FrameResourcesCountPipelineCharacteristic::initialize(...)");
+
       // Register the vectors that we will fill.
       flat_create_info.add(m_vertex_input_binding_descriptions);
       flat_create_info.add(m_vertex_input_attribute_descriptions);
@@ -536,7 +543,7 @@ void main()
       .extent = swapchain_extent
     };
 
-    PushConstant scaling_factor = { .aspect_scale = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height) };
+    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
     wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
@@ -570,7 +577,7 @@ else
       }
       command_buffer->setViewport(0, { viewport });
       //FIXME: this should become something like: update_push_constant(scaling_factor, command_buffer);
-      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(PushConstant), &scaling_factor);
+      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, aspect_scale), sizeof(float), &scaling_factor);
       command_buffer->setScissor(0, { scissor });
       command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }

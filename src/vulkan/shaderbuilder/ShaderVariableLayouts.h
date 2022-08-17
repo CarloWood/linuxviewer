@@ -55,6 +55,7 @@ struct BasicTypeLayout
 template<glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride>
 struct Layout<BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>>
 {
+  static constexpr glsl::Standard standard = Standard;
   static constexpr size_t alignment = Alignment;
   static constexpr size_t size = Size;
   static constexpr size_t array_stride = ArrayStride;
@@ -73,6 +74,7 @@ struct MemberLayout
 {
   using containing_class = ContainingClass;
   using layout_type = XLayout;
+  static constexpr glsl::Standard standard = XLayout::standard;
   static constexpr int member_index = MemberIndex;
   static constexpr size_t max_alignment = MaxAlignment;
   static constexpr size_t offset = Offset;
@@ -95,6 +97,7 @@ struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset
 template<typename XLayout, size_t Elements>
 struct ArrayLayout
 {
+  static constexpr glsl::Standard standard = XLayout::standard;
 };
 
 template<typename XLayout, size_t Elements>
@@ -105,6 +108,37 @@ struct Layout<ArrayLayout<XLayout, Elements>>
   static constexpr size_t array_stride = size;
 };
 
+// StructLayout
+//
+// MembersTuple : A tuple of all MemberLayout's.
+//
+template<typename MembersTuple>
+struct StructLayout
+{
+  using members_tuple = MembersTuple;
+  static constexpr int members = std::tuple_size_v<MembersTuple>;
+  static_assert(members > 0, "There must be at least one member in a StructLayout");
+  using last_member_layout = std::tuple_element_t<members - 1, MembersTuple>;
+  using underlying_class = typename last_member_layout::containing_class;        // Should be the same for every member.
+  static constexpr glsl::Standard standard = last_member_layout::standard;
+  static constexpr size_t alignment = last_member_layout::max_alignment;
+  static constexpr size_t size = round_up_to_multiple_off(last_member_layout::offset + Layout<typename last_member_layout::layout_type>::size, alignment);
+  static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_str);
+  static constexpr size_t underlying_class_name_len = last_member_glsl_id_sv.find(':');
+  static constexpr utils::TemplateStringLiteral<underlying_class_name_len> glsl_id_str{last_member_glsl_id_sv.data(), underlying_class_name_len};
+
+  constexpr StructLayout(MembersTuple) {}
+};
+
+template<typename MembersTuple>
+struct Layout<StructLayout<MembersTuple>>
+{
+  static constexpr size_t alignment = StructLayout<MembersTuple>::alignment;
+  static constexpr size_t size = StructLayout<MembersTuple>::size;
+  static constexpr size_t array_stride = std::max({size, alignment, (StructLayout<MembersTuple>::standard == glsl::std140) ? 16 : 0});
+};
+
+//
 // The type returned by the macro MEMBER.
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
 struct StructMember
@@ -187,16 +221,14 @@ constexpr auto make_layouts_impl(std::tuple<MemberLayouts...> layouts, FirstUnpr
   return make_layouts_impl(std::tuple_cat(layouts, std::tuple<NextLayout>{}), unprocessedMembers...);
 }
 
-constexpr std::tuple<> make_layouts() { return {}; }
-
 template<typename FirstMember, typename... RestMembers>
-constexpr auto make_layouts(FirstMember const& first_member, RestMembers const&... restMembers)
+constexpr auto make_struct_layout(FirstMember const& first_member, RestMembers const&... restMembers)
 {
   using ContainingClass = typename FirstMember::containing_class;
   using FirstType = typename FirstMember::layout_type;
   using FirstMemberLayout = MemberLayout<ContainingClass, FirstType, 0/*index*/, Layout<FirstType>::alignment, 0/*offset*/, FirstMember::glsl_id_str>;
 
-  return make_layouts_impl(std::tuple(FirstMemberLayout{}), restMembers...);
+  return StructLayout{make_layouts_impl(std::tuple(FirstMemberLayout{}), restMembers...)};
 }
 
 // End of Helper classes for constructing StructLayout<> types.

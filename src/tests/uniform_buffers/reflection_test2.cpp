@@ -76,7 +76,7 @@ struct Bar;
 
 LAYOUT_DECLARATION(Foo, uniform_std140)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(vec3, m_v3),
     MEMBER(mat2, m_m2),
     MEMBER(mat3, m_m3),
@@ -87,7 +87,7 @@ LAYOUT_DECLARATION(Foo, uniform_std140)
 
 LAYOUT_DECLARATION(Bar, uniform_scalar)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(vec3, m_v3),
     MEMBER(mat2, m_m2),
     MEMBER(mat3, m_m3),
@@ -111,12 +111,12 @@ int main()
   Debug(NAMESPACE_DEBUG::init());
 
   vulkan::shaderbuilder::ShaderVariableLayouts<Foo> object;
-  Dout(dc::notice, libcwd::type_info_of(object.layouts).demangled_name());
+  Dout(dc::notice, libcwd::type_info_of(object.struct_layout).demangled_name());
 
   vulkan::shaderbuilder::ShaderVariableLayouts<Bar> object2;
-  Dout(dc::notice, libcwd::type_info_of(object2.layouts).demangled_name());
+  Dout(dc::notice, libcwd::type_info_of(object2.struct_layout).demangled_name());
 
-  using layout = vulkan::shaderbuilder::Layout<std::tuple_element_t<1, decltype(object.layouts)>::layout_type>;
+  using layout = vulkan::shaderbuilder::Layout<std::tuple_element_t<1, decltype(object.struct_layout)::members_tuple>::layout_type>;
   static constexpr size_t alignment = layout::alignment;
   static constexpr size_t size = layout::size;
   static constexpr size_t array_stride = layout::array_stride;

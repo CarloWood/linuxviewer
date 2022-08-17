@@ -6,7 +6,7 @@ struct TopPosition;
 
 LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
-  static constexpr auto layouts = make_layouts(
+  static constexpr auto struct_layout = make_struct_layout(
     MEMBER(mat2, unused1),
 //    MEMBER(Float, x)
     (::vulkan::shaderbuilder::StructMember<containing_class, Float[13], "x">{}),
@@ -25,4 +25,5 @@ struct TopPosition //: glsl::uniform_std140
 //  glsl::Float unused3;
 };
 
-static_assert(offsetof(TopPosition, x) == std::get<1>(vulkan::shaderbuilder::ShaderVariableLayouts<TopPosition>::layouts).offset, "Offset of x is wrong.");
+static_assert(offsetof(TopPosition, x) == std::tuple_element_t<1, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset,
+    "Offset of x is wrong.");

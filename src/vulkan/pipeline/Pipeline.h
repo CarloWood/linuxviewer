@@ -241,7 +241,7 @@ void Pipeline::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTR
         add_vertex_attribute(binding, std::get<member_index>(layouts));
       }
     }(), ...);
-  }(ShaderVariableLayouts<ENTRY>::layouts);
+  }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
 
   // Keep track of all VertexShaderInputSetBase objects.
   m_vertex_shader_input_sets.push_back(&vertex_shader_input_set);
@@ -315,7 +315,7 @@ void Pipeline::add_push_constant()
         add_push_constant_member(std::get<member_index>(layouts));
       }
     }(), ...);
-  }(ShaderVariableLayouts<ENTRY>::layouts);
+  }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
 }
 
 } // namespace vulkan::pipeline
