@@ -21,6 +21,8 @@ struct Handle
   PipelineFactoryIndex m_pipeline_factory_index;
   Index m_pipeline_index;
 
+  operator bool() const { return !m_pipeline_index.undefined();  }
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif

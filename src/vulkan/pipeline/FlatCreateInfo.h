@@ -14,6 +14,9 @@ class FlatCreateInfo
   std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
   std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
+  //FIXME: we need a member function that returns cached pipeline layout handles, one per compatible layout; or that
+  // creates such a layout when it doesn't already exist.
+  vk::UniquePipelineLayout m_pipeline_layout;
 
   template<typename T>
   static std::vector<T> merge(std::vector<std::vector<T> const*> input_list)
@@ -142,6 +145,11 @@ class FlatCreateInfo
   std::vector<vk::DynamicState> get_dynamic_states() const
   {
     return merge(m_dynamic_states_list);
+  }
+
+  vk::PipelineLayout get_vh_pipeline_layout() const
+  {
+    return *m_pipeline_layout;
   }
 };
 

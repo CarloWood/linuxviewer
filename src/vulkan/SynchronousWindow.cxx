@@ -1196,9 +1196,9 @@ void SynchronousWindow::add_synchronous_task(std::function<void(SynchronousWindo
   synchronize_task->run([lambda, this](bool){ lambda(this); });
 }
 
-vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug))
+vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug))
 {
-  auto factory = statefultask::create<PipelineFactory>(this, vh_pipeline_layout, vh_render_pass COMMA_CWDEBUG_ONLY(debug));
+  auto factory = statefultask::create<PipelineFactory>(this, pipeline_out, vh_render_pass COMMA_CWDEBUG_ONLY(debug));
   auto const index = m_pipeline_factories.iend();
   m_pipeline_factories.push_back(std::move(factory));           // Now m_pipeline_factories[index] == factory.
   m_pipelines.emplace_back();
@@ -1214,7 +1214,8 @@ void SynchronousWindow::have_new_pipeline(vulkan::pipeline::Handle pipeline_hand
   if (factory_pipelines.iend() <= pipeline_handle.m_pipeline_index)
     factory_pipelines.resize(pipeline_handle.m_pipeline_index.get_value() + 1);
   factory_pipelines[pipeline_handle.m_pipeline_index] = std::move(pipeline);
-  new_pipeline(pipeline_handle);
+  //new_pipeline(pipeline_handle);
+  m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->m_pipeline_out.set_handle(pipeline_handle);
 }
 
 vk::Pipeline SynchronousWindow::vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const

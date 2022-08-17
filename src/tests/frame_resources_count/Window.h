@@ -8,6 +8,7 @@
 #include "queues/CopyDataToBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vulkan/SynchronousWindow.h"
+#include "vulkan/Pipeline.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -49,8 +50,7 @@ class Window : public task::SynchronousWindow
 
   vulkan::Texture m_background_texture;
   vulkan::Texture m_texture;
-  vk::UniquePipelineLayout m_pipeline_layout;
-  vk::Pipeline m_vh_graphics_pipeline;
+  vulkan::Pipeline m_graphics_pipeline;
 
   imgui::StatsWindow m_imgui_stats_window;
   SampleParameters m_sample_parameters;
@@ -357,6 +357,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
+#if 0
     // Create our pipeline layout.
     vk::PushConstantRange push_constant_ranges{
       .stageFlags = vk::ShaderStageFlagBits::eVertex,
@@ -370,17 +371,13 @@ void main()
     };
     m_pipeline_layout = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges, push_constant_ranges2 }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
+#endif
 
     //FIXME: the pipeline layout can vary between different pipelines too; use a vulkan::pipeline::CharacteristicRange for it
     // as well and reuse compatible ones.
-    auto pipeline_factory = create_pipeline_factory(*m_pipeline_layout, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    auto pipeline_factory = create_pipeline_factory(m_graphics_pipeline, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
     pipeline_factory.generate(this);
-  }
-
-  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
-  {
-    m_vh_graphics_pipeline = vh_graphics_pipeline(pipeline_handle);
   }
 
   void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner)
@@ -560,12 +557,12 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_vh_graphics_pipeline)
+if (!m_graphics_pipeline.handle())
   Dout(dc::warning, "Pipeline not available");
 else
 {
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline);
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, { *m_descriptor_set.m_handle }, {});
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0, { *m_descriptor_set.m_handle }, {});
       {
         vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
         vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
@@ -573,7 +570,7 @@ else
       }
       command_buffer->setViewport(0, { viewport });
       //FIXME: this should become something like: update_push_constant(scaling_factor, command_buffer);
-      command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, aspect_scale), sizeof(float), &scaling_factor);
+      command_buffer->pushConstants(m_graphics_pipeline.layout(), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, aspect_scale), sizeof(float), &scaling_factor);
       command_buffer->setScissor(0, { scissor });
       command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }

@@ -2,6 +2,7 @@
 #define PIPELINE_PIPELINE_FACTORY_H
 
 #include "CharacteristicRange.h"
+#include "Pipeline.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
 #include "utils/MultiLoop.h"
@@ -35,7 +36,7 @@ class PipelineFactory : public AIStatefulTask
  private:
   // Constructor.
   SynchronousWindow* m_owning_window;
-  vk::PipelineLayout m_vh_pipeline_layout;
+  vulkan::Pipeline& m_pipeline_out;
   vk::RenderPass m_vh_render_pass;
   // add.
   std::vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>> m_characteristics;
@@ -77,7 +78,7 @@ class PipelineFactory : public AIStatefulTask
   void multiplex_impl(state_type run_state) override;
 
  public:
-  PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
+  PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
       COMMA_CWDEBUG_ONLY(bool debug = false));
 
   // Accessor.

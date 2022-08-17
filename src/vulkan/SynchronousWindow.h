@@ -16,6 +16,7 @@
 #include "RenderPass.h"
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
+#include "Pipeline.h"
 #include "queues/QueueReply.h"
 #include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
@@ -443,7 +444,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   utils::Vector<utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index>, PipelineFactoryIndex> m_pipelines;
 
   // Called from create_graphics_pipelines of derived class.
-  vulkan::pipeline::FactoryHandle create_pipeline_factory(vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
+  vulkan::pipeline::FactoryHandle create_pipeline_factory(vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
 
   // Return the vulkan handle of this pipeline.
   vk::Pipeline vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const;
@@ -500,9 +501,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Called by ... when TRACY_ENABLE.
   virtual vulkan::SwapchainIndex max_number_of_swapchain_images() const;
-
-  // Called by SynchronousEngine PipelineFactory::m_finished_watcher when a new pipeline finished being created.
-  virtual void new_pipeline(vulkan::pipeline::Handle pipeline_handle) = 0;
 
   // Override this function to give a Window its own (or shared) pipeline cache ID.
   // Windows with the same pipeline_cache_name will share the same cache file.

@@ -475,7 +475,6 @@ class TestWindow : public task::SynchronousWindow
   void create_textures() override { }
   void create_graphics_pipelines() override { }
   void render_frame() override { }
-  void new_pipeline(vulkan::pipeline::Handle) override { }
 };
 
 #define TEST(test) \

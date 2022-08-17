@@ -7,6 +7,7 @@
 #include "BottomPosition.h"
 #include "memory/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
+#include "vulkan/Pipeline.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -44,10 +45,8 @@ class Window : public task::SynchronousWindow
   };
   utils::Array<vulkan::shaderbuilder::ShaderIndex, 4, LocalShaderIndex> m_shader_indices;
 
-  vk::UniquePipelineLayout m_pipeline_layout1;
-  vk::UniquePipelineLayout m_pipeline_layout2;
-  vk::Pipeline m_vh_graphics_pipeline1;
-  vk::Pipeline m_vh_graphics_pipeline2;
+  vulkan::Pipeline m_graphics_pipeline1;
+  vulkan::Pipeline m_graphics_pipeline2;
   utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_top_buffer;
   utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_left_buffer;
   utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_bottom_buffer;
@@ -462,30 +461,21 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
+#if 0
     // Create our pipeline layouts.
     m_pipeline_layout1 = m_logical_device->create_pipeline_layout({ *m_descriptor_set.m_layout, *m_left_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout1")));
     m_pipeline_layout2 = m_logical_device->create_pipeline_layout({ *m_left_descriptor_set.m_layout, *m_descriptor_set.m_layout, *m_bottom_descriptor_set.m_layout }, { }
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout2")));
+#endif
 
-    m_pipeline_factory1 = create_pipeline_factory(*m_pipeline_layout1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
     m_pipeline_factory1.generate(this);
 
-    m_pipeline_factory2 = create_pipeline_factory(*m_pipeline_layout2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory2 = create_pipeline_factory(m_graphics_pipeline2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
     m_pipeline_factory2.generate(this);
-  }
-
-  void new_pipeline(vulkan::pipeline::Handle pipeline_handle) override
-  {
-    DoutEntering(dc::notice, "Window::new_pipeline(" << pipeline_handle << ") [" << this << "]");
-    if (pipeline_handle.m_pipeline_factory_index == m_pipeline_factory1)
-      m_vh_graphics_pipeline1 = vh_graphics_pipeline(pipeline_handle);
-    else if (pipeline_handle.m_pipeline_factory_index == m_pipeline_factory2)
-      m_vh_graphics_pipeline2 = vh_graphics_pipeline(pipeline_handle);
-    else
-      ASSERT(false);
   }
 
   //===========================================================================
@@ -584,21 +574,21 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_vh_graphics_pipeline1 || !m_vh_graphics_pipeline2)
+if (!m_graphics_pipeline1.handle() || !m_graphics_pipeline2.handle())
   Dout(dc::warning, "Pipeline not available");
 else
 {
       command_buffer->setViewport(0, { viewport });
       command_buffer->setScissor(0, { scissor });
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline1);
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout1, 0,
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0,
           { *m_descriptor_set.m_handle, *m_left_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
 
       command_buffer->draw(3, 1, 0, 0);
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, m_vh_graphics_pipeline2);
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout2, 0,
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline2.handle()));
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline2.layout(), 0,
           { *m_left_descriptor_set.m_handle, *m_descriptor_set.m_handle, *m_bottom_descriptor_set.m_handle }, {});
 
       command_buffer->draw(3, 1, 0, 0);

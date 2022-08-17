@@ -104,11 +104,11 @@ void MoveNewPipelines::abort_impl()
 
 } // namespace synchronous
 
-PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vk::PipelineLayout vh_pipeline_layout, vk::RenderPass vh_render_pass
+PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
     COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
-    m_owning_window(owning_window), m_vh_pipeline_layout(vh_pipeline_layout), m_vh_render_pass(vh_render_pass), m_index(vulkan::Application::instance().m_dependent_tasks.add(this))
+    m_owning_window(owning_window), m_pipeline_out(pipeline_out), m_vh_render_pass(vh_render_pass), m_index(vulkan::Application::instance().m_dependent_tasks.add(this))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::PipelineFactory(" << owning_window << ", " << vh_pipeline_layout << ", " << vh_render_pass << ")");
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::PipelineFactory(" << owning_window << ", @" << (void*)&pipeline_out << ", " << vh_render_pass << ")");
 }
 
 PipelineFactory::~PipelineFactory()
@@ -248,7 +248,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               .pDepthStencilState = &m_flat_create_info.m_depth_stencil_state_create_info,
               .pColorBlendState = &m_flat_create_info.m_color_blend_state_create_info,
               .pDynamicState = &pipeline_dynamic_state_create_info,
-              .layout = m_vh_pipeline_layout,
+              .layout = m_flat_create_info.get_vh_pipeline_layout(),
               .renderPass = m_vh_render_pass,
               .subpass = 0,
               .basePipelineHandle = vk::Pipeline{},
