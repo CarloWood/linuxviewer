@@ -287,8 +287,8 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_frame_resources();
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
       register_shader_templates();
-      create_descriptor_set();
       create_textures();
+      create_descriptor_set();
       create_graphics_pipelines();
       if (m_use_imgui)                  // Set in create_descriptor_set by the user.
       {
@@ -1207,15 +1207,15 @@ vulkan::pipeline::FactoryHandle SynchronousWindow::create_pipeline_factory(vulka
   return index;
 }
 
-void SynchronousWindow::have_new_pipeline(vulkan::pipeline::Handle pipeline_handle, vk::UniquePipeline&& pipeline)
+void SynchronousWindow::have_new_pipeline(vulkan::Pipeline&& pipeline_handle_and_layout, vk::UniquePipeline&& pipeline)
 {
-  DoutEntering(dc::vulkan, "SynchronousWindow::have_new_pipeline(" << pipeline_handle << ", " << *pipeline << ")");
+  DoutEntering(dc::vulkan, "SynchronousWindow::have_new_pipeline(" << pipeline_handle_and_layout << ", " << *pipeline << ")");
+  vulkan::pipeline::Handle const& pipeline_handle = pipeline_handle_and_layout.handle();
   auto& factory_pipelines = m_pipelines[pipeline_handle.m_pipeline_factory_index];
   if (factory_pipelines.iend() <= pipeline_handle.m_pipeline_index)
     factory_pipelines.resize(pipeline_handle.m_pipeline_index.get_value() + 1);
   factory_pipelines[pipeline_handle.m_pipeline_index] = std::move(pipeline);
-  //new_pipeline(pipeline_handle);
-  m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->m_pipeline_out.set_handle(pipeline_handle);
+  m_pipeline_factories[pipeline_handle.m_pipeline_factory_index]->set_pipeline(std::move(pipeline_handle_and_layout));
 }
 
 vk::Pipeline SynchronousWindow::vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const

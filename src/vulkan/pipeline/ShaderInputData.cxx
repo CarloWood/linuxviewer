@@ -18,25 +18,13 @@ std::string_view ShaderInputData::preprocess(
   if (source.starts_with("#version"))
     return source;
 
-  std::string declarations;
-
-  // First add all vertex attribute declarations if this is the vertex shader.
-  // This is not really necessary because we could treat the vertex attribute
-  // declarations the same as uniform declarations; but this way at least we
-  // make sure that they are only ever added to the vertex shader (otherwise
-  // the declaration would happily be added to any other shader that has the
-  // same glsl ID strings in it).
-  if (shader_info.stage() == vk::ShaderStageFlagBits::eVertex)
-  {
-    for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
-      if (shader_variable->is_vertex_attribute())
-        declarations += shader_variable->declaration(this);
-  }
-
   // Store each position where a match string occurs, together with an std::pair
   // containing the found substring that has to be replaced (first) and the
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
+
+  // Store all the declaration contexts that are involved.
+  std::set<shaderbuilder::DeclarationContext const*> declaration_contexts;
 
   int id_to_name_growth = 0;
 
@@ -52,10 +40,14 @@ std::string_view ShaderInputData::preprocess(
       positions[pos] = std::make_pair(match_string, shader_variable->name());
       ++count;
     }
-    // Make sure to skip vertex attribute declarations that were already added above.
-    if (!shader_variable->is_vertex_attribute() && count > 0)
-      declarations += shader_variable->declaration(this);
+    // Skip vertex attribute declarations that were already added above.
+    if (count > 0)
+      declaration_contexts.insert(&shader_variable->is_used_in(shader_info.stage(), this));
+    // VertexAttribute PushConstant
   }
+  std::string declarations;
+  for (shaderbuilder::DeclarationContext const* declaration_context : declaration_contexts)
+    declarations += declaration_context->generate_declaration(shader_info.stage());
   declarations += '\n';
 
   static constexpr char const* version_header = "#version 450\n\n";
@@ -325,15 +317,28 @@ vk::Format type2format(shaderbuilder::BasicType glsl_type)
 
 std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_attribute_descriptions() const
 {
+  DoutEntering(dc::vulkan, "ShaderInputData::vertex_input_attribute_descriptions() [" << this << "]");
+
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
   for (shaderbuilder::VertexAttribute const& vertex_attribute : m_vertex_attributes)
   {
     shaderbuilder::VertexAttributeLayout const& layout = vertex_attribute.layout();
+
     auto iter = m_vertex_shader_location_context.locations.find(&vertex_attribute);
-    // Should have been added by the call to context.update_location(this) in VertexAttribute::declaration(),
+    if (iter == m_vertex_shader_location_context.locations.end())
+    {
+      Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_str() <<
+          ") in m_vertex_shader_location_context.locations, which contains only {");
+      for (auto&& e : m_vertex_shader_location_context.locations)
+        Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_str() << "), location:" << e.second << "}");
+      Dout(dc::finish, "}");
+      continue;
+    }
+    // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_str_is_used_in()
     // in turn called by ShaderInputData::preprocess.
     ASSERT(iter != m_vertex_shader_location_context.locations.end());
     uint32_t location = iter->second;
+
     uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
     vk::Format const format = type2format(layout.m_base_type);
     uint32_t offset = layout.m_offset;

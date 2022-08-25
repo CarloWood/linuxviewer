@@ -7,17 +7,23 @@ struct PushConstant;
 LAYOUT_DECLARATION(PushConstant, push_constant_std430)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec3, unused),
-    MEMBER(Float, aspect_scale)
+    MEMBER(Float, pc1),
+    MEMBER(Float, pc2),
+    MEMBER(Float, aspect_scale),
+    MEMBER(Float, pc4),
+    MEMBER(Float, pc5)
   );
 };
 
 // Struct describing data type and format of push constants.
 struct PushConstant
 {
-  glsl::vec3 unused;
+  glsl::Float pc1;
+  glsl::Float pc2;
   glsl::Float aspect_scale;
+  glsl::Float pc4;
+  glsl::Float pc5;
 };
 
-static_assert(offsetof(PushConstant, aspect_scale) == std::tuple_element_t<1, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<PushConstant>::struct_layout)::members_tuple>::offset,
+static_assert(offsetof(PushConstant, aspect_scale) == std::tuple_element_t<2, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<PushConstant>::struct_layout)::members_tuple>::offset,
     "Offset of aspect_scale is wrong");

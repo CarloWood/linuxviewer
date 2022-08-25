@@ -1,15 +1,11 @@
 #pragma once
 
 #include "math/glsl.h"
+#include "debug/vulkan_print_on.h"
 #include <bit>
 #include "debug.h"
 
 namespace vulkan::shaderbuilder {
-
-#ifdef CWDEBUG
-// This class defines a print_on method.
-using utils::has_print_on::operator<<;
-#endif
 
 // We need all members to be public because I want to use this as an aggregrate type.
 struct BasicType

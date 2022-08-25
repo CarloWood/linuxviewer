@@ -12,6 +12,10 @@ namespace rendergraph {
 using utils::has_print_on::operator<<;
 } // namespace rendergraph
 
+namespace shaderbuilder {
+using utils::has_print_on::operator<<;
+} // namespace shaderbuilder
+
 } // namespace vulkan
 
 namespace vk_defaults {

@@ -14,9 +14,8 @@ class FlatCreateInfo
   std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
   std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
-  //FIXME: we need a member function that returns cached pipeline layout handles, one per compatible layout; or that
-  // creates such a layout when it doesn't already exist.
-  vk::UniquePipelineLayout m_pipeline_layout;
+  std::vector<std::vector<vk::DescriptorSetLayout> const*> m_vhv_descriptor_set_layouts_list;
+  std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
 
   template<typename T>
   static std::vector<T> merge(std::vector<std::vector<T> const*> input_list)
@@ -147,9 +146,28 @@ class FlatCreateInfo
     return merge(m_dynamic_states_list);
   }
 
-  vk::PipelineLayout get_vh_pipeline_layout() const
+  int add(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts)
   {
-    return *m_pipeline_layout;
+    m_vhv_descriptor_set_layouts_list.push_back(&vhv_descriptor_set_layouts);
+    return m_vhv_descriptor_set_layouts_list.size() - 1;
+  }
+
+  std::vector<vk::DescriptorSetLayout> get_vhv_descriptor_set_layouts() const
+  {
+    // You must call add(std::vector<vk::DescriptorSetLayout> const&) from at least one Characteristic.
+    ASSERT(!m_vhv_descriptor_set_layouts_list.empty());
+    return merge(m_vhv_descriptor_set_layouts_list);
+  }
+
+  int add(std::vector<vk::PushConstantRange> const& push_constant_ranges)
+  {
+    m_push_constant_ranges_list.push_back(&push_constant_ranges);
+    return m_push_constant_ranges_list.size() - 1;
+  }
+
+  std::vector<vk::PushConstantRange> get_push_constant_ranges() const
+  {
+    return merge(m_push_constant_ranges_list);
   }
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ShaderCompiler.h"
+#include "debug/vulkan_print_on.h"
 #include <vulkan/vulkan.hpp>
 #include <shaderc/shaderc.h>    // shaderc_shader_kind, shaderc_glsl_infer_from_source
 #include <string>
@@ -17,11 +18,6 @@ class SynchronousWindow;
 namespace vulkan::shaderbuilder {
 
 class ShaderCompilerOptions;
-
-#ifdef CWDEBUG
-// This class defines a print_on method.
-using utils::has_print_on::operator<<;
-#endif
 
 class ShaderInfo
 {

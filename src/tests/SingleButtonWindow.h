@@ -34,8 +34,8 @@ class SingleButtonWindow : public task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  void create_descriptor_set() override { }
   void create_textures() override { }
+  void create_descriptor_set() override { }
   void create_graphics_pipelines() override { }
 
   //===========================================================================

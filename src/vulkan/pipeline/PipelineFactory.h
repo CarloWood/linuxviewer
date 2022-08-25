@@ -36,7 +36,6 @@ class PipelineFactory : public AIStatefulTask
  private:
   // Constructor.
   SynchronousWindow* m_owning_window;
-  vulkan::Pipeline& m_pipeline_out;
   vk::RenderPass m_vh_render_pass;
   // add.
   std::vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>> m_characteristics;
@@ -50,6 +49,8 @@ class PipelineFactory : public AIStatefulTask
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   MultiLoop m_range_counters;
   boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
+  // State PipelineFactory_generate (which calls set_pipeline).
+  vulkan::Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
   PipelineFactoryIndex m_pipeline_factory_index;
 
@@ -87,6 +88,7 @@ class PipelineFactory : public AIStatefulTask
   void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
+  void set_pipeline(vulkan::Pipeline&& pipeline) { m_pipeline_out = std::move(pipeline); }
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
   inline boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task();

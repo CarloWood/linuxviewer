@@ -18,19 +18,18 @@ std::string VertexAttribute::name() const
   return oss.str();
 }
 
-std::string VertexAttribute::declaration(pipeline::ShaderInputData* shader_input_data) const
+DeclarationContext const& VertexAttribute::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
 {
-  LocationContext& context = shader_input_data->vertex_shader_location_context();
+  DoutEntering(dc::notice, "VertexAttribute::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
-  std::ostringstream oss;
-  ASSERT(context.next_location <= 999); // 3 chars max.
-  oss << "layout(location = " << context.next_location << ") in " <<
-    type2name(m_layout->m_base_type.scalar_type(), m_layout->m_base_type.rows(), m_layout->m_base_type.cols()) << ' ' << name();
-  if (m_layout->m_array_size > 0)
-    oss << '[' << m_layout->m_array_size << ']';
-  oss << ";\t// " << m_layout->m_glsl_id_str << "\n";
-  context.update_location(this);
-  return oss.str();
+  // We must use a single context for all vertex attributes, as the context is used to enumerate the 'location' at which the attributes are stored.
+  DeclarationContext& declaration_context = shader_input_data->vertex_shader_location_context();
+
+  // Register that this this vertex attribute is being used.
+  declaration_context.glsl_id_str_is_used_in(glsl_id_str(), shader_stage, this, shader_input_data);
+
+  // Return the declaration context.
+  return declaration_context;
 }
 
 #ifdef CWDEBUG

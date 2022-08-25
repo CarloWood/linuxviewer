@@ -12,7 +12,7 @@ namespace task {
 namespace synchronous {
 
 // Task used to synchronously move newly created pipelines to the SynchronousWindow.
-class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask, std::pair<vulkan::pipeline::Handle, vk::UniquePipeline>>
+class MoveNewPipelines final : public vk_utils::TaskToTaskDeque<SynchronousTask, std::pair<vulkan::Pipeline, vk::UniquePipeline>>
 {
  private:
   SynchronousWindow::PipelineFactoryIndex m_factory_index;      // Index of the owning factory. There is a one-on-one relationship between PipelineFactory's and MoveNewPipelines's.
@@ -83,7 +83,7 @@ void MoveNewPipelines::multiplex_impl(state_type run_state)
     case MoveNewPipelines_need_action:
       // Flush all newly created pipelines (if any) from the m_new_pipelines deque,
       // passing them one by one to SynchronousWindow::have_new_pipeline.
-      flush_new_data([this](Datum&& datum){ owning_window()->have_new_pipeline(datum.first, std::move(datum.second)); });
+      flush_new_data([this](Datum&& datum){ owning_window()->have_new_pipeline(std::move(datum.first), std::move(datum.second)); });
       if (producer_not_finished())      // This calls wait(need_action) if not finished.
         break;
       set_state(MoveNewPipelines_done);
@@ -223,6 +223,25 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos     = m_flat_create_info.get_pipeline_shader_stage_create_infos();
             std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states = m_flat_create_info.get_pipeline_color_blend_attachment_states();
             std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
+            std::vector<vk::DescriptorSetLayout>               const vhv_descriptor_set_layouts             = m_flat_create_info.get_vhv_descriptor_set_layouts();
+            std::vector<vk::PushConstantRange>                 const push_constant_ranges                   = m_flat_create_info.get_push_constant_ranges();
+
+            //-----------------------------------------------------------------
+            // Begin pipeline layout creation
+
+            // Create and then store the graphics pipeline layout.
+            vk::UniquePipelineLayout pipeline_layout = m_owning_window->logical_device()->create_pipeline_layout(vhv_descriptor_set_layouts, push_constant_ranges
+                COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("m_flat_create_info.m_pipeline_layout")));
+
+            //FIXME: we need a database of compatible layouts; for now, just store the layout in the FlatCreateInfo.
+//            m_flat_create_info.m_pipeline_layout = std::move(pipeline_layout);
+            static vk::UniquePipelineLayout pipeline_layout_database = std::move(pipeline_layout);
+            vk::PipelineLayout vh_layout = *pipeline_layout_database;
+
+            // End pipeline layout creation
+            //-----------------------------------------------------------------
+            // Bug in this library: the layout must be created.
+            ASSERT(vh_layout);
 
             vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
               .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
@@ -248,7 +267,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               .pDepthStencilState = &m_flat_create_info.m_depth_stencil_state_create_info,
               .pColorBlendState = &m_flat_create_info.m_color_blend_state_create_info,
               .pDynamicState = &pipeline_dynamic_state_create_info,
-              .layout = m_flat_create_info.get_vh_pipeline_layout(),
+              .layout = vh_layout,
               .renderPass = m_vh_render_pass,
               .subpass = 0,
               .basePipelineHandle = vk::Pipeline{},
@@ -271,7 +290,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
                 COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
             // Inform the SynchronousWindow.
-            m_move_new_pipelines_synchronously->have_new_datum({vulkan::pipeline::Handle{m_pipeline_factory_index , pipeline_index}, std::move(pipeline)});
+            m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{vh_layout, {m_pipeline_factory_index, pipeline_index}}, std::move(pipeline)});
 
             // End of MultiLoop inner loop.
           }

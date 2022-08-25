@@ -75,12 +75,13 @@ struct VertexAttribute final : public ShaderVariable
   }
 #endif
 
+ public:
+  char const* glsl_id_str() const override { return m_layout->m_glsl_id_str; }
+  std::string name() const override;
+
  private:
   // Implement base class interface.
-  std::string declaration(pipeline::ShaderInputData* shader_input_data) const override;
-  char const* glsl_id_str() const override { return m_layout->m_glsl_id_str; }
-  bool is_vertex_attribute() const override { return true; }
-  std::string name() const override;
+  DeclarationContext const& is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
 
 #ifdef CWDEBUG
  public:

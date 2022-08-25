@@ -35,7 +35,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  vulkan::Texture m_texture;
+  vulkan::Texture m_sample_texture;
 
   enum class LocalShaderIndex {
     vertex1,
@@ -85,6 +85,43 @@ class Window : public task::SynchronousWindow
 
   vulkan::DescriptorSetParameters m_left_descriptor_set;
   vulkan::DescriptorSetParameters m_bottom_descriptor_set;
+
+  void create_textures() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
+
+    // Sample texture.
+    {
+      vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/vort3_128x128.png", 4);
+      // Create descriptor resources.
+      {
+        static vulkan::ImageKind const sample_image_kind({
+          .format = vk::Format::eR8G8B8A8Unorm,
+          .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+        });
+
+        static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
+
+        m_sample_texture = vulkan::Texture(m_logical_device,
+            texture_data.extent(), sample_image_view_kind,
+            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+              .anisotropyEnable = VK_FALSE },
+            graphics_settings(),
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_sample_texture")));
+
+        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
+            m_sample_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
+            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
+            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
+            COMMA_CWDEBUG_ONLY(true));
+
+        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_sample_texture).
+        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
+        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
+      }
+    }
+  }
 
   void create_descriptor_set() override
   {
@@ -184,53 +221,17 @@ class Window : public task::SynchronousWindow
       ((TopPosition*)(m_top_buffer.begin()->m_pointer))[i].x = 0.8;
     ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = 0.5;
     ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = 0.5;
-  }
 
-  void create_textures() override
-  {
-    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
-
-    // Sample texture.
+    // Update descriptor set of m_sample_texture.
     {
-      vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/vort3_128x128.png", 4);
-      // Create descriptor resources.
-      {
-        static vulkan::ImageKind const sample_image_kind({
-          .format = vk::Format::eR8G8B8A8Unorm,
-          .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-        });
-
-        static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
-
-        m_texture = vulkan::Texture(m_logical_device,
-            texture_data.extent(), sample_image_view_kind,
-            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
-              .anisotropyEnable = VK_FALSE },
-            graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_texture")));
-
-        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
-            m_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
-            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
-
-        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_texture).
-        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
-        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
-      }
-      // Update descriptor set.
-      {
-        std::vector<vk::DescriptorImageInfo> image_infos = {
-          {
-            .sampler = *m_texture.m_sampler,
-            .imageView = *m_texture.m_image_view,
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-          }
-        };
-        m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
-      }
+      std::vector<vk::DescriptorImageInfo> image_infos = {
+        {
+          .sampler = *m_sample_texture.m_sampler,
+          .imageView = *m_sample_texture.m_image_view,
+          .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+        }
+      };
+      m_logical_device->update_descriptor_set(*m_descriptor_set.m_handle, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
     }
   }
 

@@ -415,6 +415,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vk::Extent2D get_extent() const;
 
   vk::RenderPass vh_imgui_render_pass() const { return imgui_pass.vh_render_pass(); }
+  vk::DescriptorSetLayout get_vh_descriptor_set_layout() const { return *m_descriptor_set.m_layout; }
 
   void handle_window_size_changed();
   bool handle_map_changed(int map_flags);
@@ -450,7 +451,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vk::Pipeline vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const;
 
  public:
-  void have_new_pipeline(vulkan::pipeline::Handle pipeline_handle, vk::UniquePipeline&& pipeline);
+  void have_new_pipeline(vulkan::Pipeline&& pipeline_handle_and_layout, vk::UniquePipeline&& pipeline);
 
   // Called by state MoveNewPipelines_done.
   void pipeline_factory_done(utils::Badge<synchronous::MoveNewPipelines>, PipelineFactoryIndex index);
@@ -471,8 +472,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_frame_resources();
   void create_imageless_framebuffers();
   virtual void register_shader_templates() = 0;
-  virtual void create_descriptor_set() = 0;
   virtual void create_textures() = 0;
+  virtual void create_descriptor_set() = 0;
   virtual void create_graphics_pipelines() = 0;
   void create_imgui();
 
