@@ -591,6 +591,62 @@ void LogicalDevice::prepare(
     .vulkanApiVersion = VK_API_VERSION_1_3
   };
   m_vh_allocator.create(vma_allocator_create_info);
+
+  {
+    std::vector<vk::DescriptorPoolSize> pool_sizes = {
+      {
+        .type = vk::DescriptorType::eSampler,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eCombinedImageSampler,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eSampledImage,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eStorageImage,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eUniformTexelBuffer,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eStorageTexelBuffer,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eUniformBuffer,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eStorageBuffer,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eUniformBufferDynamic,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eStorageBufferDynamic,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eInputAttachment,
+        .descriptorCount = 100
+      },
+      {
+        .type = vk::DescriptorType::eInlineUniformBlock,
+        .descriptorCount = 100
+      }
+    };
+
+    descriptor_pool_t::wat descriptor_pool_w(m_descriptor_pool);
+    *descriptor_pool_w = create_descriptor_pool(pool_sizes, 2200 COMMA_DEBUG_ONLY({".m_descriptor_pool"}));
+  }
 }
 
 Queue LogicalDevice::acquire_queue(QueueRequestKey queue_request_key) const
@@ -824,7 +880,7 @@ vk::UniqueDescriptorPool LogicalDevice::create_descriptor_pool(
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   vk::DescriptorPoolCreateInfo descriptor_pool_create_info{
-    .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+//    .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
     .maxSets = max_sets,
     .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
     .pPoolSizes = pool_sizes.data()

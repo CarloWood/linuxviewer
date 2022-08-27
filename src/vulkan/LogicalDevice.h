@@ -109,6 +109,9 @@ class LogicalDevice
   QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
   boost::intrusive_ptr<task::AsyncSemaphoreWatcher> m_semaphore_watcher;// Asynchronous task that polls timeline semaphores.
 
+  using descriptor_pool_t = aithreadsafe::Wrapper<vk::UniqueDescriptorPool, aithreadsafe::policy::Primitive<std::mutex>>;
+  descriptor_pool_t m_descriptor_pool;
+
 #ifdef CWDEBUG
   std::string m_debug_name;
 #endif
@@ -358,6 +361,11 @@ class LogicalDevice
   {
     DoutEntering(dc::vulkan, "LogicalDevice::get_image_memory_requirements(" << vh_image << ")");
     return m_device->getImageMemoryRequirements(vh_image);
+  }
+  vk::DescriptorPool get_vh_descriptor_pool() const
+  {
+    descriptor_pool_t::crat descriptor_pool_r(m_descriptor_pool);
+    return descriptor_pool_r->get();
   }
 #ifdef CWDEBUG
   vk_utils::MemoryTypeBitsPrinter memory_type_bits_printer() const { return { m_memory_type_count }; }
