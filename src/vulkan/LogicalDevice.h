@@ -5,7 +5,6 @@
 #include "DispatchLoader.h"
 #include "Swapchain.h"
 #include "RenderPassAttachmentData.h"
-#include "DescriptorSetParameters.h"
 #include "ImageKind.h"
 #include "SamplerKind.h"
 #include "SwapchainIndex.h"
@@ -224,8 +223,6 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  DescriptorSetParameters create_descriptor_resources(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings, std::vector<vk::DescriptorPoolSize> const& pool_sizes
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool

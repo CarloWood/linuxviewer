@@ -123,7 +123,7 @@ class Window : public task::SynchronousWindow
     }
   }
 
-  void create_descriptor_set() override
+  void create_descriptor_set()
   {
     DoutEntering(dc::vulkan, "Window::create_descriptor_set() [" << this << "]");
 

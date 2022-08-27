@@ -963,30 +963,6 @@ void LogicalDevice::free_command_buffers(vk::CommandPool vh_pool, uint32_t count
   m_device->freeCommandBuffers(vh_pool, count, command_buffers);
 }
 
-DescriptorSetParameters LogicalDevice::create_descriptor_resources(
-    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings,
-    std::vector<vk::DescriptorPoolSize> const& pool_sizes
-    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
-{
-  DoutEntering(dc::vulkan|continued_cf, ambifix.object_name() << " = LogicalDevice::create_descriptor_resources(" << layout_bindings << ", " << pool_sizes << ") = ");
-
-  vk::UniqueDescriptorSetLayout descriptor_set_layout = create_descriptor_set_layout(layout_bindings
-      COMMA_CWDEBUG_ONLY(ambifix(".m_layout")));
-
-  vk::UniqueDescriptorPool descriptor_pool = create_descriptor_pool(pool_sizes, 10      //FIXME: why 10? See https://vkguide.dev/docs/chapter-4/descriptors_code "Allocating descriptor sets".
-      COMMA_CWDEBUG_ONLY(ambifix(".m_pool")));
-
-  std::vector<vk::UniqueDescriptorSet> descriptor_sets = allocate_descriptor_sets({ *descriptor_set_layout }, *descriptor_pool
-      COMMA_CWDEBUG_ONLY(ambifix(".m_handle")));
-
-  Dout(dc::finish, "{ .m_layout = " << *descriptor_set_layout << ", .m_pool = " << *descriptor_pool << ", .m_handle = " << *descriptor_sets[0] << " }");
-  return {
-   .m_layout = std::move(descriptor_set_layout),
-   .m_pool = std::move(descriptor_pool),
-   .m_handle = std::move(descriptor_sets[0])
-  };
-}
-
 void LogicalDevice::update_descriptor_set(
     vk::DescriptorSet vh_descriptor_set,
     vk::DescriptorType descriptor_type,

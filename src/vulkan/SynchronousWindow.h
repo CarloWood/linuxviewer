@@ -6,7 +6,6 @@
 #include "PresentationSurface.h"
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
-#include "DescriptorSetParameters.h"
 #include "Texture.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
@@ -169,9 +168,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   boost::intrusive_ptr<task::SemaphoreWatcher<task::SynchronousTask>> m_semaphore_watcher;  // Synchronous task that polls timeline semaphores.
 
   bool m_use_imgui = false;
-
- protected: // FIXME: this should be private: add a registration for UniformBufferObject's that automatically update the descriptor set.
-  vulkan::DescriptorSetParameters m_descriptor_set;
 
  private:
   static constexpr int s_input_event_buffer_size = 32;                    // If the application is lagging more than 32 events behind then
@@ -415,7 +411,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vk::Extent2D get_extent() const;
 
   vk::RenderPass vh_imgui_render_pass() const { return imgui_pass.vh_render_pass(); }
-  vk::DescriptorSetLayout get_vh_descriptor_set_layout() const { return *m_descriptor_set.m_layout; }
 
   void handle_window_size_changed();
   bool handle_map_changed(int map_flags);
@@ -473,7 +468,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void create_imageless_framebuffers();
   virtual void register_shader_templates() = 0;
   virtual void create_textures() = 0;
-  virtual void create_descriptor_set() = 0;
   virtual void create_graphics_pipelines() = 0;
   void create_imgui();
 

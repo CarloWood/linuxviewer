@@ -288,9 +288,8 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
       register_shader_templates();
       create_textures();
-      create_descriptor_set();
       create_graphics_pipelines();
-      if (m_use_imgui)                  // Set in create_descriptor_set by the user.
+      if (m_use_imgui)
       {
         create_imgui();
         set_state(SynchronousWindow_imgui_font_texture_ready);

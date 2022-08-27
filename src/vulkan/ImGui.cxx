@@ -117,8 +117,11 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       .descriptorCount = 1
     }
   };
-  m_descriptor_set = logical_device()->create_descriptor_resources(layout_bindings, pool_sizes
+  m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(layout_bindings
+      COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
+  auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, logical_device()->get_vh_descriptor_pool()
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
+  m_descriptor_set = std::move(descriptor_sets[0]);     // We only have one descriptor set --^
 }
 
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
@@ -168,7 +171,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .offset = 0,
     .size = 4 * sizeof(float)
   };
-  m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set.m_layout }, { push_constant_ranges }
+  m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
 
   // The shader input data object needs to know who owns it.
@@ -381,9 +384,9 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   SamplerKind const imgui_font_sampler_kind(logical_device(), {});
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
-  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set.m_handle)));
+  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set)));
   m_font_texture = owning_window->upload_texture(std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set.m_handle, imgui_font_texture_ready
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
   // Create imgui pipeline.

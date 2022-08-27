@@ -253,7 +253,6 @@ class Window : public task::SynchronousWindow
   }
 
   void create_textures() override { }
-  void create_descriptor_set() override { }
 
   static constexpr std::string_view triangle_vert_glsl = R"glsl(
 #version 450

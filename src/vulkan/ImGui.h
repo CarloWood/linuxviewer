@@ -3,7 +3,6 @@
 #include "CurrentFrameData.h"
 #include "Texture.h"
 #include "memory/Buffer.h"
-#include "DescriptorSetParameters.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/VertexAttribute.h"
 #include "shaderbuilder/VertexShaderInputSet.h"
@@ -88,7 +87,8 @@ class ImGui
   task::SynchronousWindow const* m_owning_window;
   Texture m_font_texture;
   utils::Vector<ImGui_FrameResourcesData, FrameResourceIndex> m_frame_resources_list;
-  DescriptorSetParameters m_descriptor_set;
+  vk::UniqueDescriptorSetLayout m_descriptor_set_layout;
+  vk::UniqueDescriptorSet m_descriptor_set;
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::UniquePipeline m_graphics_pipeline;
   std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
