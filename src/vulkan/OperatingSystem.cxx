@@ -15,7 +15,7 @@ Window::~Window()
   destroy();
 }
 
-vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::u8string_view const& title, vk::Rect2D geometry, Window const* parent_window)
+vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::u8string const& title, vk::Rect2D geometry, Window const* parent_window)
 {
   DoutEntering(dc::vulkan, "linuxviewer::OS::Window::create(vh_instance, \"" << title << "\", " << geometry << ", " << parent_window << ") [" << this << "]");
 
@@ -36,6 +36,9 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::u8string_view
 
   xcb_window_t const parent_handle = parent_window ? parent_window->window_parameters().m_handle : xcb_window_t{};
 
+  std::u8string const instance_name = vulkan::Application::instance().application_name();
+  std::u8string const class_name = vulkan::Application::instance().application_name();
+
   m_parameters.m_xcb_connection->create_window(
 //    XCB_COPY_FROM_PARENT,                     // depth
     m_parameters.m_handle,                      // window handle
@@ -44,6 +47,8 @@ vk::UniqueSurfaceKHR Window::create(vk::Instance vh_instance, std::u8string_view
     geometry.offset.y,                          // top-left y-coordinate
     geometry.extent.width,                      // width
     geometry.extent.height,                     // height
+    instance_name,
+    class_name,
     title,
     0,                                          // border_width
     XCB_WINDOW_CLASS_INPUT_OUTPUT,              // window class

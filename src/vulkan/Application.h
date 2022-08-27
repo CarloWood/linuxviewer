@@ -323,14 +323,15 @@ class Application
   // Override this function to change the number of reserved threads for each queue (except the last, of course).
   virtual int thread_pool_reserved_threads(QueuePriority UNUSED_ARG(priority)) const;
 
+  // Override this function to add Instance layers and/or extensions.
+  virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
+
+ public:
   // Override this function to change the default ApplicatioInfo values.
   virtual std::u8string application_name() const;
 
   // Override this function to change the default application version. The result should be a value returned by vk_utils::encode_version.
   virtual uint32_t application_version() const;
-
-  // Override this function to add Instance layers and/or extensions.
-  virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
 };
 
 } // namespace vulkan
