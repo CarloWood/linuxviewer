@@ -240,39 +240,50 @@ layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: this should be generated.
 struct TopPosition {
-    mat2 unused1;
-    float x;
+  mat2 unused1;
+  float x;
 //    float unused1;
 //    double unused2;
 //    float unused2;
 //    float unused3;
 };
-layout(std140, set = 0, binding = 0) uniform TopPositionArray {
-    TopPosition top_position[32];
+
+layout(std140, set = 0, binding = 0) uniform u_s0b0 {
+  TopPosition m_top_position[32];
 } top12345678;
-layout(set = 1, binding = 0) uniform LeftPosition {
-    mat4 unused;
-    float y;
+
+struct LeftPosition {
+  mat4 unused;
+  float y;
+};
+
+layout(set = 1, binding = 0) uniform u_s1b0 {
+  LeftPosition m_left_position;
 } left12345678;
-layout(set = 2, binding = 0) uniform BottomPosition {
-    vec2 unused;
-    float x;
+
+struct BottomPosition {
+  vec2 unused;
+  float x;
+};
+
+layout(set = 2, binding = 0) uniform u_s2b0 {
+  BottomPosition bottom_position;
 } bottom12345678;
 
 vec2 positions[3] = vec2[](
-    vec2(0.0, -1.0),
-    vec2(-1.0, 1.0),
-    vec2(1.0, 1.0)
+  vec2(0.0, -1.0),
+  vec2(-1.0, 1.0),
+  vec2(1.0, 1.0)
 );
 
 void main()
 {
   //positions[0].x = TopPosition::x - 1.0;
-  positions[0].x = top12345678.top_position[0].x - 1.0;
+  positions[0].x = top12345678.m_top_position[0].x - 1.0;
   //positions[1].y = LeftPosition::y;
-  positions[1].y = left12345678.y;
+  positions[1].y = left12345678.m_left_position.y;
   //positions[2].x = BottomPosition::x - 1.0;
-  positions[2].x = bottom12345678.x - 1.0;
+  positions[2].x = bottom12345678.bottom_position.x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }

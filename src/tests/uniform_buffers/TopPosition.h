@@ -8,9 +8,8 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
   static constexpr auto struct_layout = make_struct_layout(
     MEMBER(mat2, unused1),
-//    MEMBER(Float, x)
-    (::vulkan::shaderbuilder::StructMember<containing_class, Float[13], "x">{}),
-    MEMBER(Double, "TopPosition::unused2")
+//    MEMBER(Double[4], unused2),
+    MEMBER(Float, x)
 //    MEMBER(Float, "TopPosition::unused3")
   );
 };
@@ -19,7 +18,7 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 struct TopPosition //: glsl::uniform_std140
 {
   glsl::mat2 unused1;
-  float unused2[4];
+//  glsl::Double unused2[4];
   glsl::Float x;
 //  /*glsl::Double*/ glsl::Float unused2;
 //  glsl::Float unused3;

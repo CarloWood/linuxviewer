@@ -246,8 +246,8 @@ void main()
 )glsl";
 
   static constexpr std::string_view intel_frag_glsl = R"glsl(
-layout(set=0, binding=0) uniform sampler2D u_BackgroundTexture;
-layout(set=0, binding=1) uniform sampler2D u_BenchmarkTexture;
+layout(set=0, binding=0) uniform sampler2D u_Texture_background;
+layout(set=0, binding=1) uniform sampler2D u_Texture_benchmark;
 
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) in float v_Distance;
@@ -258,8 +258,10 @@ void main()
 {
   // Use PushConstant::pc2
   // Use PushConstant::pc4
-  vec4 background_image = texture(u_BackgroundTexture, v_Texcoord);
-  vec4 benchmark_image = texture(u_BenchmarkTexture, v_Texcoord);
+  //vec4 background_image = texture(Texture::background, v_Texcoord);
+  vec4 background_image = texture(u_Texture_background, v_Texcoord);
+  //vec4 benchmark_image = texture(Texture::benchmark, v_Texcoord);
+  vec4 benchmark_image = texture(u_Texture_benchmark, v_Texcoord);
   o_Color = v_Distance * mix(background_image, benchmark_image, benchmark_image.a);
 }
 )glsl";
