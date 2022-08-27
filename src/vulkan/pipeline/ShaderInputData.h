@@ -12,6 +12,7 @@
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
+#include "utils/Badge.h"
 #include <vector>
 #include <set>
 #include <tuple>
