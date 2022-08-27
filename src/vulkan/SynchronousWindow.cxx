@@ -289,7 +289,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       register_shader_templates();
       create_textures();
       create_graphics_pipelines();
-      if (m_use_imgui)
+      if (m_use_imgui)                  //FIXME: this was set in create_descriptor_set by the user.
       {
         create_imgui();
         set_state(SynchronousWindow_imgui_font_texture_ready);

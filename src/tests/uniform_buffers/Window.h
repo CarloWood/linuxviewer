@@ -160,7 +160,7 @@ class Window : public task::SynchronousWindow
     std::vector<vk::DescriptorPoolSize> pool_sizes = {
       {
         .type = vk::DescriptorType::eUniformBuffer,
-        .descriptorCount = 10   //FIXME: why 10? Randomly copied from https://vkguide.dev/docs/chapter-4/descriptors_code/#allocating-descriptor-sets
+        .descriptorCount = 3
       },
       {
         .type = vk::DescriptorType::eCombinedImageSampler,
