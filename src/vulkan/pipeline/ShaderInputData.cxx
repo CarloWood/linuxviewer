@@ -370,13 +370,13 @@ void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
-  m_unique_handles.push_back(spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY(ambifix(".m_unique_handles[" + std::to_string(m_unique_handles.size()) + "]"))));
+  m_shader_modules.push_back(spirv_cache.create_module({}, owning_window->logical_device()
+      COMMA_CWDEBUG_ONLY(ambifix(".m_shader_modules[" + std::to_string(m_shader_modules.size()) + "]"))));
   m_shader_stage_create_infos.push_back(
     {
       .flags = vk::PipelineShaderStageCreateFlags(0),
       .stage = shader_info.stage(),
-      .module = *m_unique_handles.back(),
+      .module = *m_shader_modules.back(),
       .pName = "main"
     }
   );
