@@ -359,6 +359,10 @@ void main()
     };
     std::vector<vk::DescriptorSetLayout> m_vhv_descriptor_set_layouts;
 
+    vk::UniqueDescriptorSetLayout m_top_descriptor_set_layout;
+    vk::UniqueDescriptorSetLayout m_left_descriptor_set_layout;
+    vk::UniqueDescriptorSetLayout m_bottom_descriptor_set_layout;
+
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
     {
@@ -451,9 +455,9 @@ void main()
           owning_window->logical_device()->get_vh_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_descriptor_set")));
 
-      m_top_descriptor_set = std::move(descriptor_sets[0]);
-      m_left_descriptor_set = std::move(descriptor_sets[1]);
-      m_bottom_descriptor_set = std::move(descriptor_sets[2]);
+      window->m_top_descriptor_set = std::move(descriptor_sets[0]);
+      window->m_left_descriptor_set = std::move(descriptor_sets[1]);
+      window->m_bottom_descriptor_set = std::move(descriptor_sets[2]);
 
       window->create_uniform_buffers();
     }
