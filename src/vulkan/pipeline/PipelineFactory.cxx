@@ -233,10 +233,15 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             vk::UniquePipelineLayout pipeline_layout = m_owning_window->logical_device()->create_pipeline_layout(vhv_descriptor_set_layouts, push_constant_ranges
                 COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("m_flat_create_info.m_pipeline_layout")));
 
+//            size_t pipeline_layout_hash = 
+
             //FIXME: we need a database of compatible layouts; for now, just store the layout in the FlatCreateInfo.
 //            m_flat_create_info.m_pipeline_layout = std::move(pipeline_layout);
-            static vk::UniquePipelineLayout pipeline_layout_database = std::move(pipeline_layout);
-            vk::PipelineLayout vh_layout = *pipeline_layout_database;
+            static std::atomic_int pli{0};
+            int i = pli++;
+            static vk::UniquePipelineLayout pipeline_layout_database[10];
+            pipeline_layout_database[i] = std::move(pipeline_layout);
+            vk::PipelineLayout vh_layout = *pipeline_layout_database[i];
 
             // End pipeline layout creation
             //-----------------------------------------------------------------

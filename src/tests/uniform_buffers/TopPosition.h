@@ -18,6 +18,7 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 struct TopPosition //: glsl::uniform_std140
 {
   glsl::mat2 unused1;
+  float padding[4];
 //  glsl::Double unused2[4];
   glsl::Float x;
 //  /*glsl::Double*/ glsl::Float unused2;

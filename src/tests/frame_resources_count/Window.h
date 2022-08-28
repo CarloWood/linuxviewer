@@ -261,7 +261,6 @@ void main()
 
     //FIXME: this doesn't belong here
     vk::UniqueDescriptorSetLayout m_descriptor_set_layout;   // Maybe we need it here temporarily, and then move it to vulkan::Pipeline as soon as that is created.
-    vk::UniqueDescriptorSet m_descriptor_set;
 
     void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
     {

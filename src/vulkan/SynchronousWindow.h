@@ -438,6 +438,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  protected:
   utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
   utils::Vector<utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index>, PipelineFactoryIndex> m_pipelines;
+//  std::map<vulkan::FlatPipelineLayout, vk::UniquePipelineLayout> m_pipeline_layouts;
 
   // Called from create_graphics_pipelines of derived class.
   vulkan::pipeline::FactoryHandle create_pipeline_factory(vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
