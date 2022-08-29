@@ -121,7 +121,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
   auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, logical_device()->get_vh_descriptor_pool()
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
-  m_descriptor_set = std::move(descriptor_sets[0]);     // We only have one descriptor set --^
+  m_descriptor_set = std::move(descriptor_sets[0]);  // We only have one descriptor set --^
 }
 
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
@@ -1007,6 +1007,9 @@ ImGui::~ImGui()
 {
   if (GetCurrentContext())
     DestroyContext();
+  // Release the unique_ptr that points to the descriptor so that the descript set will not be freed.
+  // Instead we rely on it being freed when its pool is descructed.
+  m_descriptor_set.release();
 }
 
 } // namespace vulkan

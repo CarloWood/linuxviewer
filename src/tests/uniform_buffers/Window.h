@@ -30,6 +30,8 @@ class Window : public task::SynchronousWindow
  public:
   using task::SynchronousWindow::SynchronousWindow;
 
+  ~Window();
+
  private:
   // Define renderpass / attachment objects.
   RenderPass  main_pass{this, "main_pass"};
@@ -127,9 +129,23 @@ class Window : public task::SynchronousWindow
   }
 
  public:
-  void create_uniform_buffers()
+  void create_uniform_buffers(vk::DescriptorSetLayout top_vh_descriptor_set_layout, vk::DescriptorSetLayout left_vh_descriptor_set_layout,
+      vk::DescriptorSetLayout bottom_vh_descriptor_set_layout)
   {
-    DoutEntering(dc::vulkan, "Window::create_uniform_buffers() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
+
+    // The descriptor set layouts are the same for both pipeline in this application, and because the descriptor sets
+    // created from it are updated with the same state, we also reuse the descripts sets and have both pipelines use
+    // the same descriptor sets (this function is only called once: for whichever UniformBuffersTestPipelineCharacteristicBase's
+    // initialize finished first).
+    auto descriptor_sets = logical_device()->allocate_descriptor_sets(
+        { top_vh_descriptor_set_layout, left_vh_descriptor_set_layout, bottom_vh_descriptor_set_layout },
+        logical_device()->get_vh_descriptor_pool()
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
+
+    m_top_descriptor_set = std::move(descriptor_sets[0]);
+    m_left_descriptor_set = std::move(descriptor_sets[1]);
+    m_bottom_descriptor_set = std::move(descriptor_sets[2]);
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
       m_top_buffer.emplace_back(logical_device(), top_position_array_size * sizeof(TopPosition)
@@ -427,7 +443,8 @@ void main()
         }
       };
 
-      //FIXME: too much hacking
+      //FIXME: We should calculate a "hash" (or requirements) from the *_layout_bindings and then either create a new layout
+      // or reuse a (compatible) already created one, retrieving it from a cache of descriptor layouts.
       m_top_descriptor_set_layout = owning_window->logical_device()->create_descriptor_set_layout(top_layout_bindings
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_top_descriptor_set_layout")));
       m_left_descriptor_set_layout = owning_window->logical_device()->create_descriptor_set_layout(left_layout_bindings
@@ -450,16 +467,8 @@ void main()
         m_vhv_descriptor_set_layouts.push_back(*m_bottom_descriptor_set_layout);
       }
 
-      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(
-          { *m_top_descriptor_set_layout, *m_left_descriptor_set_layout, *m_bottom_descriptor_set_layout },
-          owning_window->logical_device()->get_vh_descriptor_pool()
-          COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_descriptor_set")));
-
-      window->m_top_descriptor_set = std::move(descriptor_sets[0]);
-      window->m_left_descriptor_set = std::move(descriptor_sets[1]);
-      window->m_bottom_descriptor_set = std::move(descriptor_sets[2]);
-
-      window->create_uniform_buffers();
+      static std::once_flag flag;
+      std::call_once(flag, &Window::create_uniform_buffers, window, *m_top_descriptor_set_layout, *m_left_descriptor_set_layout, *m_bottom_descriptor_set_layout);
     }
 
    public:

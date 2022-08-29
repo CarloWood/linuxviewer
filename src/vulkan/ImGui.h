@@ -82,6 +82,7 @@ struct ImGui_FrameResourcesData
 
 class ImGui
 {
+ private:
   static constexpr auto pool_type = static_cast<vk::CommandPoolCreateFlags::MaskType>(vulkan::FrameResourcesData::command_pool_type::create_flags);
 
   task::SynchronousWindow const* m_owning_window;

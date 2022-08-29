@@ -29,8 +29,9 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
 
  private:
   // Constructor.
-  task::PipelineFactory* m_owning_factory;              // We have one pipeline cache per factory - or each factory would still be
-                                                        // slowed down as a result of concurrent accesses to the cache.
+  boost::intrusive_ptr<task::PipelineFactory> m_owning_factory; // We have one pipeline cache per factory - or each factory would still be
+                                                                // slowed down as a result of concurrent accesses to the cache.
+                                                                // This is a intrusive_ptr because the PipelineFactory might finish before this task.
   // State PipelineCache_load_from_disk.
   vk::UniquePipelineCache m_pipeline_cache;
 
