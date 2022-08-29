@@ -1,0 +1,417 @@
+vk::UniqueDescriptorPool LogicalDevice::create_descriptor_pool(
+
+vk::DescriptorPoolCreateInfo
+
+    vk::DescriptorPoolCreateFlags flags         = {};   // A bitmask of vk::DescriptorPoolCreateFlagBits specifying certain supported operations on the pool.
+    uint32_t                      maxSets       = {};   // The maximum number of descriptor sets that can be allocated from the pool.
+    uint32_t                      poolSizeCount = {};   // The number of elements in pPoolSizes.
+    vk::DescriptorPoolSize const* pPoolSizes    = {};   // A pointer to an array of vk::DescriptorPoolSize structures, each containing a descriptor type and
+                                                        // number of descriptors of that type to be allocated in the pool.
+
+    vk::DescriptorPoolCreateFlagBits::
+
+        eFreeDescriptorSet      // Specifies that descriptor sets can return their individual allocations to the pool, i.e. also
+                                // vk::Device::freeDescriptorSets is allowed.
+                                // Otherwise, descriptor sets allocated from the pool must not be individually freed back to the pool, i.e. only
+                                // vk::Device::allocateDescriptorSets and vk::Device::resetDescriptorPool are allowed.
+        eUpdateAfterBind        // Specifies that descriptor sets allocated from this pool can include bindings with the vk::DescriptorBindingFlagBits::eUpdateAfterBind bit set.
+                                // It is valid to allocate descriptor sets that have bindings that do not set the vk::DescriptorBindingFlagBits::eUpdateAfterBind bit
+                                // from a pool that has vk::DescriptorBindingFlagBits::eUpdateAfterBind set.
+        eHostOnlyVALVE          // Specifies that this descriptor pool and the descriptor sets allocated from it reside entirely in host memory and cannot be bound.
+                                // Descriptor sets allocated from this pool are partially exempt from the external synchronization requirement in
+                                // vk::Device::updateDescriptorSetWithTemplateKHR and vk::Device::updateDescriptorSets.
+                                // Descriptor sets and their descriptors can be updated concurrently in different threads, though the same descriptor must not be
+                                // updated concurrently by two threads.
+
+    vk::DescriptorPoolSize
+
+        vk::DescriptorType type;                        // The type of descriptor.
+        uint32_t           descriptorCount;             // The number of descriptors of that type to allocate.
+                                                        // If type is vk::DescriptorType::eInlineUniformBlock then descriptorCount is the number of bytes
+                                                        // to allocate for descriptors of this type.
+            vk::DescriptorType
+
+                eSampler                  // Specifies a sampler descriptor (see 14.1.2. Sampler).
+                eCombinedImageSampler     // Specifies a combined image sampler descriptor (see 14.1.4. Combined Image Sampler).
+                eSampledImage             // Specifies a sampled image descriptor (see 14.1.3. Sampled Image).
+                eStorageImage             // Specifies a storage image descriptor (see 14.1.1. Storage Image).
+                eUniformTexelBuffer       // Specifies a uniform texel buffer descriptor (see 14.1.5. Uniform Texel Buffer).
+                eStorageTexelBuffer       // Specifies a storage texel buffer descriptor (see 14.1.6. Storage Texel Buffer).
+                eUniformBuffer            // Specifies a uniform buffer descriptor (see 14.1.8. Uniform Buffer).
+                eStorageBuffer            // Specifies a storage buffer descriptor (see 14.1.7. Storage Buffer).
+                eUniformBufferDynamic     // Specifies a dynamic uniform buffer descriptor (see 14.1.9. Dynamic Uniform Buffer).
+                eStorageBufferDynamic     // Specifies a dynamic storage buffer descriptor (see 14.1.10. Dynamic Storage Buffer).
+                eInputAttachment          // Specifies an input attachment descriptor (see 14.1.12. Input Attachment).
+                eInlineUniformBlock       // Specifies an inline uniform block (see 14.1.11. Inline Uniform Block).
+                eAccelerationStructureKHR // See 12.6. Acceleration Structures.
+                eAccelerationStructureNV  // idem
+                eMutableVALVE             // See 14.1.14. Mutable.
+
+
+vk::DescriptorSetLayoutBinding
+
+    uint32_t             binding            = {};                               // The binding number of this entry and corresponds to a resource of the
+                                                                                // same binding number in the shader stages.
+    vk::DescriptorType   descriptorType     = vk::DescriptorType::eSampler;     // Specifies which type of resource descriptors are used for this binding.
+    uint32_t             descriptorCount    = {};                               // The number of descriptors contained in the binding, accessed in a shader as an array,
+                                                                                // except if descriptorType is vk::DescriptorType::eInlineUniformBlock in which case
+                                                                                // descriptorCount is the size in bytes of the inline uniform block.
+                                                                                // If descriptorCount is zero this binding entry is reserved and the resource must not
+                                                                                // be accessed from any stage via this binding within any pipeline using the set layout.
+    vk::ShaderStageFlags stageFlags         = {};                               // A bitmask of vk::ShaderStageFlagBits specifying which pipeline shader stages can access
+                                                                                // a resource for this binding. vk::ShaderStageFlagBits::eAll is a shorthand specifying
+                                                                                // that all defined shader stages, including any additional stages defined by extensions,
+                                                                                // can access the resource.
+                                                                                // If a shader stage is not included in stageFlags, then a resource must not be accessed
+                                                                                // from that stage via this binding within any pipeline using the set layout. Other than
+                                                                                // input attachments which are limited to the fragment shader, there are no limitations
+                                                                                // on what combinations of stages can use a descriptor binding, and in particular a binding
+                                                                                // can be used by both graphics stages and the compute stage.
+    vk::Sampler const*   pImmutableSamplers = {};                               // Affects initialization of samplers. If descriptorType specifies a vk::DescriptorType::eSampler
+                                                                                // or vk::DescriptorType::eCombinedImageSampler type descriptor, then pImmutableSamplers
+                                                                                // can be used to initialize a set of immutable samplers. Immutable samplers are permanently
+                                                                                // bound into the set layout and must not be changed; updating a vk::DescriptorType::eSampler
+                                                                                // descriptor with immutable samplers is not allowed and updates to a
+                                                                                // vk::DescriptorType::eCombinedImageSampler descriptor with immutable samplers does not
+                                                                                // modify the samplers (the image views are updated, but the sampler updates are ignored).
+                                                                                // If pImmutableSamplers is not NULL, then it is a pointer to an array of sampler handles
+                                                                                // that will be copied into the set layout and used for the corresponding binding. Only the
+                                                                                // sampler handles are copied; the sampler objects must not be destroyed before the final
+                                                                                // use of the set layout and any descriptor pools and sets created using it.
+                                                                                // If pImmutableSamplers is NULL, then the sampler slots are dynamic and sampler handles
+                                                                                // must be bound into descriptor sets using this layout. If descriptorType is not one of
+                                                                                // these descriptor types, then pImmutableSamplers is ignored.
+
+
+vk::DescriptorPoolSize
+
+    vk::DescriptorType   type               = vk::DescriptorType::eSampler;     // The type of descriptor.
+    uint32_t             descriptorCount    = {};                               // The number of descriptors of that type to allocate.
+                                                                                // If type is vk::DescriptorType::eInlineUniformBlock then descriptorCount is the number of
+                                                                                // bytes to allocate for descriptors of this type.
+
+
+std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets(
+
+vk::DescriptorSetAllocateInfo
+
+    vk::DescriptorPool             descriptorPool     = {};     // The pool which the sets will be allocated from.
+    uint32_t                       descriptorSetCount = {};     // The number of descriptor sets to be allocated from the pool.
+    vk::DescriptorSetLayout const* pSetLayouts        = {};     // A pointer to an array of descriptor set layout handles, where each layout specifies how the
+                                                                // corresponding descriptor set is allocated.
+
+
+-----------------------------------------------------------------------------------------------
+
+Descriptor related handles:
+
+VkDescriptorSetLayout        // 14.2.1. Descriptor Set Layout           ; Elements of input array used in struct VkPipelineLayoutCreateInfo.
+                             //                                           Returned by vkCreateDescriptorSetLayout which has struct VkDescriptorSetLayoutCreateInfo as input.
+VkPipelineLayout             // 14.2.2. Pipeline Layouts                ; Returned by vkCreatePipelineLayout which has struct VkPipelineLayoutCreateInfo as input.
+VkDescriptorPool             // 14.2.3. Allocation of Descriptor Sets   ; Returned by vkCreateDescriptorPool which has struct VkDescriptorPoolCreateInfo as input.
+VkDescriptorSet              // idem                                    ; Returned by vkAllocateDescriptorSets which has struct VkDescriptorSetAllocateInfo as input.
+                             //                                           Input to functions vkCmdBindDescriptorSets and vkFreeDescriptorSets.
+VkDescriptorUpdateTemplate   // 14.2.5. Descriptor Update Templates     ; Returned by vkCreateDescriptorUpdateTemplate which has struct VkDescriptorUpdateTemplateCreateInfo as input.
+
+List of all C API DescriptorSet structs:
+
+struct VkCopyDescriptorSet                                      // Elements of input array for function vkUpdateDescriptorSets.
+struct VkDescriptorSetAllocateInfo                              // Input for function vkAllocateDescriptorSets.
+struct VkDescriptorSetLayoutBinding                             // Elements of input array in struct VkDescriptorSetLayoutCreateInfo.
+struct VkDescriptorSetLayoutCreateInfo                          // Input for functions vkCreateDescriptorSetLayout and vkGetDescriptorSetLayoutSupport.
+struct VkWriteDescriptorSet                                     // Elements of input array for functions vkUpdateDescriptorSets and vkCmdPushDescriptorSetKHR.
+struct VkDescriptorSetLayoutSupport                             // Output of function vkGetDescriptorSetLayoutSupport.
+struct VkDescriptorSetLayoutBindingFlagsCreateInfo              // Might occur in pNext chain of VkDescriptorSetLayoutCreateInfo.
+struct VkDescriptorSetVariableDescriptorCountAllocateInfo       // Might occur in pNext chain of VkDescriptorSetAllocateInfo.
+struct VkDescriptorSetVariableDescriptorCountLayoutSupport      // Might occur in pNext chain of VkDescriptorSetLayoutSupport.
+struct VkWriteDescriptorSetInlineUniformBlock                   // Might occur in pNext chain of VkWriteDescriptorSet.
+struct VkWriteDescriptorSetAccelerationStructureNV              // Might occur in pNext chain of VkWriteDescriptorSet.
+struct VkWriteDescriptorSetAccelerationStructureKHR             // Might occur in pNext chain of VkWriteDescriptorSet.
+
+Other Descriptor structs:
+
+struct VkDescriptorBufferInfo                                   // Elements of input array used in struct VkWriteDescriptorSet.
+struct VkDescriptorImageInfo                                    // Elements of input array used in struct VkWriteDescriptorSet.
+struct VkDescriptorPoolSize                                     // Elements of input array used in struct VkDescriptorPoolCreateInfo.
+struct VkDescriptorPoolCreateInfo                               // Input for function vkCreateDescriptorPool.
+struct VkDescriptorUpdateTemplateEntry                          // Elements of input array used in struct VkDescriptorUpdateTemplateCreateInfo.
+struct VkDescriptorUpdateTemplateCreateInfo                     // Input for function vkCreateDescriptorUpdateTemplate.
+struct VkPhysicalDeviceDescriptorIndexingFeatures               // Might occur in pNext chain of VkPhysicalDeviceFeatures2 and/or VkDeviceCreateInfo.
+struct VkPhysicalDeviceDescriptorIndexingProperties             // Might occur in pNext chain of VkPhysicalDeviceProperties2.
+struct VkDescriptorPoolInlineUniformBlockCreateInfo             // Might occur in pNext chain of VkDescriptorPoolCreateInfo.
+struct VkPhysicalDevicePushDescriptorPropertiesKHR              // Might occur in pNext chain of VkPhysicalDeviceProperties2.
+
+C API DescriptorSet functions:
+
+VkResult vkCreateDescriptorSetLayout(           // 14.2.1. Descriptor Set Layout
+void vkDestroyDescriptorSetLayout(              // idem
+void vkGetDescriptorSetLayoutSupport(           // idem
+VkResult vkCreateDescriptorPool(                // 14.2.3. Allocation of Descriptor Sets
+void vkDestroyDescriptorPool(                   // idem
+VkResult vkAllocateDescriptorSets(              // idem
+VkResult vkFreeDescriptorSets(                  // idem
+VkResult vkResetDescriptorPool(                 // idem
+void vkUpdateDescriptorSets(                    // 14.2.4. Descriptor Set Updates
+VkResult vkCreateDescriptorUpdateTemplate(      // 14.2.6. Descriptor Set Updates with Templates
+void vkDestroyDescriptorUpdateTemplate(         // idem
+void vkUpdateDescriptorSetWithTemplate(         // idem
+void vkCmdBindDescriptorSets(                   // 14.2.7. Descriptor Set Binding
+void vkCmdPushDescriptorSetKHR(                 // 14.2.8. Push Descriptor Updates
+void vkCmdPushDescriptorSetWithTemplateKHR(     // 14.2.9. Push Descriptor Updates with Descriptor Update Templates
+
+-----------------------------------------------------------------------------------------------
+
+Function declarations:
+
+    VkResult vkCreateDescriptorSetLayout(
+        VkDevice                                device,
+        VkDescriptorSetLayoutCreateInfo const*  pCreateInfo,            // vkCreateDescriptorSetLayout input
+        VkAllocationCallbacks const*            pAllocator,
+        VkDescriptorSetLayout*                  pSetLayout              // vkCreateDescriptorSetLayout output
+    ) const noexcept;
+
+    void vkDestroyDescriptorSetLayout(
+        VkDevice                                device,
+        VkDescriptorSetLayout                   descriptorSetLayout,    // vkDestroyDescriptorSetLayout input (output)
+        VkAllocationCallbacks const*            pAllocator
+    ) const noexcept;
+
+    void vkGetDescriptorSetLayoutSupport(
+        VkDevice                                device,
+        VkDescriptorSetLayoutCreateInfo const*  pCreateInfo,            // vkGetDescriptorSetLayoutSupport input
+        VkDescriptorSetLayoutSupport*           pSupport                // vkGetDescriptorSetLayoutSupport output
+    ) const noexcept;
+
+    VkResult vkCreateDescriptorPool(
+        VkDevice                                device,
+        VkDescriptorPoolCreateInfo const*       pCreateInfo,            // vkGetDescriptorSetLayoutSupport input
+        VkAllocationCallbacks const*            pAllocator,
+        VkDescriptorPool*                       pDescriptorPool         // vkGetDescriptorSetLayoutSupport output
+    ) const noexcept;
+
+    void vkDestroyDescriptorPool(
+        VkDevice                                device,
+        VkDescriptorPool                        descriptorPool,         // vkDestroyDescriptorPool input (output)
+        VkAllocationCallbacks const*            pAllocator
+    ) const noexcept;
+
+    VkResult vkAllocateDescriptorSets(
+        VkDevice                                device,
+        VkDescriptorSetAllocateInfo const*      pAllocateInfo,          // vkAllocateDescriptorSets input
+        VkDescriptorSet*                        pDescriptorSets         // vkAllocateDescriptorSets output array
+    ) const noexcept;
+
+    VkResult vkFreeDescriptorSets(
+        VkDevice                                device,
+        VkDescriptorPool                        descriptorPool,         // vkFreeDescriptorSets input (output)
+        uint32_t                                descriptorSetCount,
+        VkDescriptorSet const*                  pDescriptorSets         // vkFreeDescriptorSets input array
+    ) const noexcept;
+
+    VkResult vkResetDescriptorPool(
+        VkDevice                                device,
+        VkDescriptorPool                        descriptorPool,         // vkResetDescriptorPool input (output)
+        VkDescriptorPoolResetFlags              flags
+    ) const noexcept;
+
+    void vkUpdateDescriptorSets(
+        VkDevice                                device,
+        uint32_t                                descriptorWriteCount,
+        VkWriteDescriptorSet const*             pDescriptorWrites,      // vkUpdateDescriptorSets input array
+        uint32_t                                descriptorCopyCount,
+        VkCopyDescriptorSet const*              pDescriptorCopies       // vkUpdateDescriptorSets input array
+    ) const noexcept;
+
+    VkResult vkCreateDescriptorUpdateTemplate(
+        VkDevice                                        device,
+        VkDescriptorUpdateTemplateCreateInfo const*     pCreateInfo,                    // vkCreateDescriptorUpdateTemplate input
+        VkAllocationCallbacks const*                    pAllocator,
+        VkDescriptorUpdateTemplate*                     pDescriptorUpdateTemplate       // vkCreateDescriptorUpdateTemplate output
+    ) const noexcept;
+
+    void vkDestroyDescriptorUpdateTemplate(
+        VkDevice                                device,
+        VkDescriptorUpdateTemplate              descriptorUpdateTemplate,       // vkDestroyDescriptorUpdateTemplate input (output)
+        VkAllocationCallbacks const*            pAllocator
+    ) const noexcept;
+
+    void vkUpdateDescriptorSetWithTemplate(
+        VkDevice                                device,
+        VkDescriptorSet                         descriptorSet,                  // vkUpdateDescriptorSetWithTemplate input (output)
+        VkDescriptorUpdateTemplate              descriptorUpdateTemplate,       // vkUpdateDescriptorSetWithTemplate input
+        void const*                             pData
+    ) const noexcept;
+
+    void vkCmdBindDescriptorSets(
+        VkCommandBuffer                         commandBuffer,
+        VkPipelineBindPoint                     pipelineBindPoint,
+        VkPipelineLayout                        layout,                         // vkCmdBindDescriptorSets input (output)
+        uint32_t                                firstSet,
+        uint32_t                                descriptorSetCount,
+        VkDescriptorSet const*                  pDescriptorSets,                // vkCmdBindDescriptorSets input array
+        uint32_t                                dynamicOffsetCount,
+        uint32_t const*                         pDynamicOffsets
+    ) const noexcept;
+
+    void vkCmdPushDescriptorSetKHR(
+        VkCommandBuffer                         commandBuffer,
+        VkPipelineBindPoint                     pipelineBindPoint,
+        VkPipelineLayout                        layout,                         // vkCmdPushDescriptorSetKHR input (output)
+        uint32_t                                set,
+        uint32_t                                descriptorWriteCount,
+        VkWriteDescriptorSet const*             pDescriptorWrites               // vkCmdPushDescriptorSetKHR input array
+    ) const noexcept;
+
+    void vkCmdPushDescriptorSetWithTemplateKHR(
+        VkCommandBuffer                         commandBuffer,
+        VkDescriptorUpdateTemplate              descriptorUpdateTemplate,       // vkCmdPushDescriptorSetWithTemplateKHR input
+        VkPipelineLayout                        layout,                         // vkCmdPushDescriptorSetWithTemplateKHR input
+        uint32_t                                set,
+        void const*                             pData
+    ) const noexcept;
+
+Struct declarations:
+
+struct VkCopyDescriptorSet {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorSet                             srcSet;                         // VkCopyDescriptorSet input
+    uint32_t                                    srcBinding;
+    uint32_t                                    srcArrayElement;
+    VkDescriptorSet                             dstSet;                         // VkCopyDescriptorSet input (output)
+    uint32_t                                    dstBinding;
+    uint32_t                                    dstArrayElement;
+    uint32_t                                    descriptorCount;
+};
+
+struct VkDescriptorSetAllocateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorPool                            descriptorPool;                 // VkDescriptorSetAllocateInfo input (output)
+    uint32_t                                    descriptorSetCount;
+    VkDescriptorSetLayout const*                pSetLayouts;                    // VkDescriptorSetAllocateInfo input array
+};
+
+struct VkDescriptorSetLayoutBinding {
+    uint32_t                                    binding;
+    VkDescriptorType                            descriptorType;
+    uint32_t                                    descriptorCount;
+    VkShaderStageFlags                          stageFlags;
+    VkSampler const*                            pImmutableSamplers;
+};
+
+struct VkDescriptorSetLayoutCreateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorSetLayoutCreateFlags            flags;
+    uint32_t                                    bindingCount;
+    VkDescriptorSetLayoutBinding const*         pBindings;                      // VkDescriptorSetLayoutCreateInfo input array
+};
+
+struct VkWriteDescriptorSet {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorSet                             dstSet;                         // VkWriteDescriptorSet input (output)
+    uint32_t                                    dstBinding;
+    uint32_t                                    dstArrayElement;
+    uint32_t                                    descriptorCount;
+    VkDescriptorType                            descriptorType;
+    VkDescriptorImageInfo const*                pImageInfo;                     // VkWriteDescriptorSet input array
+    VkDescriptorBufferInfo const*               pBufferInfo;                    // VkWriteDescriptorSet input array
+    VkBufferView const*                         pTexelBufferView;
+};
+
+struct VkDescriptorSetLayoutSupport {
+    VkStructureType                             sType;
+    void*                                       pNext;
+    VkBool32                                    supported;
+};
+
+struct VkDescriptorSetLayoutBindingFlagsCreateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    uint32_t                                    bindingCount;
+    VkDescriptorBindingFlags const*             pBindingFlags;                  // VkDescriptorSetLayoutBindingFlagsCreateInfo input array
+};
+
+struct VkDescriptorSetVariableDescriptorCountAllocateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    uint32_t                                    descriptorSetCount;
+    const uint32_t*                             pDescriptorCounts;
+};
+
+struct VkDescriptorSetVariableDescriptorCountLayoutSupport {
+    VkStructureType                             sType;
+    void*                                       pNext;
+    uint32_t                                    maxVariableDescriptorCount;
+};
+
+struct VkWriteDescriptorSetInlineUniformBlock {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    uint32_t                                    dataSize;
+    void const*                                 pData;
+};
+
+struct VkWriteDescriptorSetAccelerationStructureNV {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    uint32_t                                    accelerationStructureCount;
+    VkAccelerationStructureNV const*            pAccelerationStructures;
+};
+
+struct VkWriteDescriptorSetAccelerationStructureKHR {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    uint32_t                                    accelerationStructureCount;
+    VkAccelerationStructureKHR const*           pAccelerationStructures;
+};
+
+struct VkDescriptorBufferInfo {
+    VkBuffer                                    buffer;
+    VkDeviceSize                                offset;
+    VkDeviceSize                                range;
+};
+
+struct VkDescriptorImageInfo {
+    VkSampler                                   sampler;
+    VkImageView                                 imageView;
+    VkImageLayout                               imageLayout;
+};
+
+struct VkDescriptorPoolSize {
+    VkDescriptorType                            type;
+    uint32_t                                    descriptorCount;
+};
+
+struct VkDescriptorPoolCreateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorPoolCreateFlags                 flags;
+    uint32_t                                    maxSets;
+    uint32_t                                    poolSizeCount;
+    VkDescriptorPoolSize const*                 pPoolSizes;                     // VkDescriptorPoolCreateInfo input array
+};
+
+struct VkDescriptorUpdateTemplateEntry {
+    uint32_t                                    dstBinding;
+    uint32_t                                    dstArrayElement;
+    uint32_t                                    descriptorCount;
+    VkDescriptorType                            descriptorType;
+    size_t                                      offset;
+    size_t                                      stride;
+};
+
+struct VkDescriptorUpdateTemplateCreateInfo {
+    VkStructureType                             sType;
+    void const*                                 pNext;
+    VkDescriptorUpdateTemplateCreateFlags       flags;
+    uint32_t                                    descriptorUpdateEntryCount;
+    VkDescriptorUpdateTemplateEntry const*      pDescriptorUpdateEntries;       // VkDescriptorUpdateTemplateCreateInfo input array
+    VkDescriptorUpdateTemplateType              templateType;
+    VkDescriptorSetLayout                       descriptorSetLayout;            // VkDescriptorUpdateTemplateCreateInfo input
+    VkPipelineBindPoint                         pipelineBindPoint;
+    VkPipelineLayout                            pipelineLayout;                 // VkDescriptorUpdateTemplateCreateInfo input (output)
+    uint32_t                                    set;
+};
