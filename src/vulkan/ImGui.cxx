@@ -385,7 +385,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
   io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_descriptor_set)));
-  m_font_texture = owning_window->upload_texture(std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
+  m_font_texture = owning_window->upload_texture("font_texture", std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
       extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 

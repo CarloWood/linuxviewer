@@ -120,7 +120,9 @@ class Window : public task::SynchronousWindow
         static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
         m_background_texture =
-          vulkan::Texture(m_logical_device,
+          vulkan::Texture(
+              "background",
+              m_logical_device,
               texture_data.extent(), background_image_view_kind,
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
@@ -152,7 +154,9 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_benchmark_texture = vulkan::Texture(m_logical_device,
+        m_benchmark_texture = vulkan::Texture(
+            "benchmark",
+            m_logical_device,
             texture_data.extent(), sample_image_view_kind,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
@@ -342,8 +346,8 @@ void main()
       {
         std::vector<vk::DescriptorImageInfo> image_infos = {
           {
-            .sampler = *window->m_background_texture.m_sampler,
-            .imageView = *window->m_background_texture.m_image_view,
+            .sampler = window->m_background_texture.sampler(),
+            .imageView = window->m_background_texture.image_view(),
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
@@ -353,8 +357,8 @@ void main()
       {
         std::vector<vk::DescriptorImageInfo> image_infos = {
           {
-            .sampler = *window->m_benchmark_texture.m_sampler,
-            .imageView = *window->m_benchmark_texture.m_image_view,
+            .sampler = window->m_benchmark_texture.sampler(),
+            .imageView = window->m_benchmark_texture.image_view(),
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };

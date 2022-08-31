@@ -104,7 +104,7 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_sample_texture = vulkan::Texture(m_logical_device,
+        m_sample_texture = vulkan::Texture("vort3", m_logical_device,
             texture_data.extent(), sample_image_view_kind,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
@@ -195,8 +195,8 @@ class Window : public task::SynchronousWindow
     {
       std::vector<vk::DescriptorImageInfo> image_infos = {
         {
-          .sampler = *m_sample_texture.m_sampler,
-          .imageView = *m_sample_texture.m_image_view,
+          .sampler = m_sample_texture.sampler(),
+          .imageView = m_sample_texture.image_view(),
           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
         }
       };
