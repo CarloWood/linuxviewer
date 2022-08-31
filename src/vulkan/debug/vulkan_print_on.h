@@ -16,6 +16,10 @@ namespace shaderbuilder {
 using utils::has_print_on::operator<<;
 } // namespace shaderbuilder
 
+namespace descriptor {
+using utils::has_print_on::operator<<;
+} // namespace descriptor
+
 } // namespace vulkan
 
 namespace vk_defaults {

@@ -12,14 +12,21 @@
 #include "queues/QueueRequestKey.h"
 #include "queues/QueueReply.h"
 #include "memory/Allocator.h"
+#include "descriptor/SetLimits.h"
+#include "descriptor/LayoutBindingCompare.h"
+#include "descriptor/SetLayout.h"
+#include "pipeline/PushConstantRangeCompare.h"
 #include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
+#include "threadsafe/AIReadWriteMutex.h"
 #include "utils/Badge.h"
+#include "utils/PairCompare.h"
 #include <boost/intrusive_ptr.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <vk_mem_alloc.h>
 #include <filesystem>
+#include <set>
 #ifdef CWDEBUG
 #include "vk_utils/MemoryRequirementsPrinter.h"
 #include "debug/set_device.h"
@@ -98,6 +105,7 @@ class LogicalDevice
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
   uint32_t m_max_bound_descriptor_sets;                 // Each pipeline object can use up to m_max_bound_descriptor_sets descriptor sets.
+  descriptor::SetLimits m_set_limits;
 
   uint32_t m_memory_type_count;                         // The number of memory types of this GPU.
   uint32_t m_memory_heap_count;                         // The number of heaps of this GPU.
@@ -110,6 +118,18 @@ class LogicalDevice
 
   using descriptor_pool_t = aithreadsafe::Wrapper<vk::UniqueDescriptorPool, aithreadsafe::policy::Primitive<std::mutex>>;
   descriptor_pool_t m_descriptor_pool;
+
+  using descriptor_set_layouts_container_t = std::map<std::vector<vk::DescriptorSetLayoutBinding>, vk::UniqueDescriptorSetLayout, utils::VectorCompare<descriptor::LayoutBindingCompare>>;
+  using descriptor_set_layouts_t = aithreadsafe::Wrapper<descriptor_set_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  // Using "threadsafe-"const for member functions that access this. Since the 'const' then only
+  // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
+  mutable descriptor_set_layouts_t m_descriptor_set_layouts;
+
+  using pipeline_layouts_container_key_t = std::pair<std::vector<vulkan::descriptor::SetLayout>, std::vector<vk::PushConstantRange>>;
+  using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
+        utils::PairCompare<vulkan::descriptor::SetLayoutCompare, vulkan::pipeline::PushConstantRangeCompare>>;
+  using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  mutable pipeline_layouts_t m_pipeline_layouts;
 
 #ifdef CWDEBUG
   std::string m_debug_name;
@@ -144,6 +164,7 @@ class LogicalDevice
   std::string const& debug_name() const { return m_debug_name; }
   // Set debug name for an object created from this device.
   void set_debug_name(vk::DebugUtilsObjectNameInfoEXT const& name_info) const { m_device->setDebugUtilsObjectNameEXT(name_info); }
+  AmbifixOwner debug_name_prefix(std::string prefix) const;
 #endif
 
   // Return an identifier string that uniquely identifies this logical device.
@@ -151,6 +172,16 @@ class LogicalDevice
 
   // Return the pipeline cache UUID.
   boost::uuids::uuid get_pipeline_cache_UUID() const;
+
+  // Called by vulkan::pipeline::Characteristic derived user classes when they need a new (or existing) descriptor set layout.
+  vulkan::descriptor::SetLayout try_emplace_descriptor_set_layout(
+      std::vector<vk::DescriptorSetLayoutBinding>&& descriptor_set_layout_bindings
+      ) /*threadsafe-*/const;
+
+  vk::PipelineLayout try_emplace_pipeline_layout(
+      std::vector<vulkan::descriptor::SetLayout>&& descriptor_set_layouts,
+      std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
+      ) /*threadsafe-*/const;
 
   // Return the (next) queue for queue_request_key as passed to Application::create_root_window).
   Queue acquire_queue(QueueRequestKey queue_request_key) const;
@@ -225,7 +256,9 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
+  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
+      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;

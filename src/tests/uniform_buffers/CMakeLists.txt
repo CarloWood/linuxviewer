@@ -45,7 +45,6 @@ add_custom_target(uniform_buffers_test_resources ALL DEPENDS ${RESOURCES_TARGETS
 add_executable(uniform_buffers_test
   UniformBuffersTest.cxx
   UniformBuffersTest.h
-  Window.cxx
   Window.h
   LogicalDevice.h
 )

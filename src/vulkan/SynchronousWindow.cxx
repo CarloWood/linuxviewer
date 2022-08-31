@@ -9,6 +9,7 @@
 #include "pipeline/Handle.h"
 #include "pipeline/PipelineCache.h"
 #include "queues/CopyDataToImage.h"
+#include "descriptor/LayoutBindingCompare.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "debug/DebugSetName.h"

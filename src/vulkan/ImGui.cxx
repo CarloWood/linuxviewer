@@ -121,7 +121,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
   auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, logical_device()->get_vh_descriptor_pool()
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
-  m_descriptor_set = std::move(descriptor_sets[0]);  // We only have one descriptor set --^
+  m_descriptor_set = descriptor_sets[0];        // We only have one descriptor set --^
 }
 
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
@@ -384,9 +384,9 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   SamplerKind const imgui_font_sampler_kind(logical_device(), {});
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
-  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(*m_descriptor_set)));
+  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_descriptor_set)));
   m_font_texture = owning_window->upload_texture(std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, *m_descriptor_set, imgui_font_texture_ready
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready
       COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
 
   // Create imgui pipeline.
@@ -1007,9 +1007,6 @@ ImGui::~ImGui()
 {
   if (GetCurrentContext())
     DestroyContext();
-  // Release the unique_ptr that points to the descriptor so that the descript set will not be freed.
-  // Instead we rely on it being freed when its pool is descructed.
-  m_descriptor_set.release();
 }
 
 } // namespace vulkan

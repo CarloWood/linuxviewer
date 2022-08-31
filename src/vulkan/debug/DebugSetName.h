@@ -54,7 +54,7 @@ class Ambifix
   std::string object_name() const { return prefix() + postfix(); }
 };
 
-std::string as_postfix(AIStatefulTask const* task);
+std::string as_postfix(void const* task, char const* open_bracket = "[", char const* close_bracket = "]");
 
 class AmbifixOwner : public Ambifix
 {
@@ -62,6 +62,7 @@ class AmbifixOwner : public Ambifix
 
  public:
   AmbifixOwner(task::SynchronousWindow const* owning_window, std::string prefix);
+  AmbifixOwner(vulkan::LogicalDevice const* owning_logical_device, std::string prefix);
 
   // Accessors.
   LogicalDevice const* logical_device() const { return m_logical_device; }

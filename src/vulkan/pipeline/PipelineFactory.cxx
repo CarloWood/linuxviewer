@@ -223,30 +223,21 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos     = m_flat_create_info.get_pipeline_shader_stage_create_infos();
             std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states = m_flat_create_info.get_pipeline_color_blend_attachment_states();
             std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
-            std::vector<vk::DescriptorSetLayout>               const vhv_descriptor_set_layouts             = m_flat_create_info.get_vhv_descriptor_set_layouts();
-            std::vector<vk::PushConstantRange>                 const push_constant_ranges                   = m_flat_create_info.get_push_constant_ranges();
+            vk::PipelineLayout vh_pipeline_layout;
+            {
+              std::vector<vulkan::descriptor::SetLayout>             descriptor_set_layouts                 = m_flat_create_info.get_descriptor_set_layouts();
+              std::vector<vk::PushConstantRange>               const sorted_push_constant_ranges            = m_flat_create_info.get_sorted_push_constant_ranges();
 
-            //-----------------------------------------------------------------
-            // Begin pipeline layout creation
+              //-----------------------------------------------------------------
+              // Begin pipeline layout creation
 
-            // Create and then store the graphics pipeline layout.
-            vk::UniquePipelineLayout pipeline_layout = m_owning_window->logical_device()->create_pipeline_layout(vhv_descriptor_set_layouts, push_constant_ranges
-                COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("m_flat_create_info.m_pipeline_layout")));
+              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(std::move(descriptor_set_layouts), sorted_push_constant_ranges);
 
-//            size_t pipeline_layout_hash = 
-
-            //FIXME: we need a database of compatible layouts; for now, just store the layout in the FlatCreateInfo.
-//            m_flat_create_info.m_pipeline_layout = std::move(pipeline_layout);
-            static std::atomic_int pli{0};
-            int i = pli++;
-            static vk::UniquePipelineLayout pipeline_layout_database[10];
-            pipeline_layout_database[i] = std::move(pipeline_layout);
-            vk::PipelineLayout vh_layout = *pipeline_layout_database[i];
-
-            // End pipeline layout creation
-            //-----------------------------------------------------------------
-            // Bug in this library: the layout must be created.
-            ASSERT(vh_layout);
+              // End pipeline layout creation
+              //-----------------------------------------------------------------
+              // Bug in this library: the layout must be created.
+              ASSERT(vh_pipeline_layout);
+            }
 
             vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
               .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
@@ -272,7 +263,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               .pDepthStencilState = &m_flat_create_info.m_depth_stencil_state_create_info,
               .pColorBlendState = &m_flat_create_info.m_color_blend_state_create_info,
               .pDynamicState = &pipeline_dynamic_state_create_info,
-              .layout = vh_layout,
+              .layout = vh_pipeline_layout,
               .renderPass = m_vh_render_pass,
               .subpass = 0,
               .basePipelineHandle = vk::Pipeline{},
@@ -295,7 +286,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
                 COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
             // Inform the SynchronousWindow.
-            m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{vh_layout, {m_pipeline_factory_index, pipeline_index}}, std::move(pipeline)});
+            m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{vh_pipeline_layout, {m_pipeline_factory_index, pipeline_index}}, std::move(pipeline)});
 
             // End of MultiLoop inner loop.
           }

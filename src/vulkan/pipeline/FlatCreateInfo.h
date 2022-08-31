@@ -1,5 +1,6 @@
 #pragma once
 
+#include "descriptor/SetLayout.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include "debug.h"
@@ -14,7 +15,7 @@ class FlatCreateInfo
   std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
   std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
-  std::vector<std::vector<vk::DescriptorSetLayout> const*> m_vhv_descriptor_set_layouts_list;
+  std::vector<std::vector<vulkan::descriptor::SetLayout> const*> m_descriptor_set_layouts_list;
   std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
 
   template<typename T>
@@ -86,9 +87,9 @@ class FlatCreateInfo
   };
 
  public:
-  int add(std::vector<vk::PipelineShaderStageCreateInfo> const& pipeline_shader_stage_create_infos)
+  int add(std::vector<vk::PipelineShaderStageCreateInfo> const* pipeline_shader_stage_create_infos)
   {
-    m_pipeline_shader_stage_create_infos_list.push_back(&pipeline_shader_stage_create_infos);
+    m_pipeline_shader_stage_create_infos_list.push_back(pipeline_shader_stage_create_infos);
     return m_pipeline_shader_stage_create_infos_list.size() - 1;
   }
 
@@ -97,9 +98,9 @@ class FlatCreateInfo
     return merge(m_pipeline_shader_stage_create_infos_list);
   }
 
-  int add(std::vector<vk::VertexInputBindingDescription> const& vertex_input_binding_descriptions)
+  int add(std::vector<vk::VertexInputBindingDescription> const* vertex_input_binding_descriptions)
   {
-    m_vertex_input_binding_descriptions_list.push_back(&vertex_input_binding_descriptions);
+    m_vertex_input_binding_descriptions_list.push_back(vertex_input_binding_descriptions);
     return m_vertex_input_binding_descriptions_list.size() - 1;
   }
 
@@ -108,9 +109,9 @@ class FlatCreateInfo
     return merge(m_vertex_input_binding_descriptions_list);
   }
 
-  int add(std::vector<vk::VertexInputAttributeDescription> const& vertex_input_attribute_descriptions)
+  int add(std::vector<vk::VertexInputAttributeDescription> const* vertex_input_attribute_descriptions)
   {
-    m_vertex_input_attribute_descriptions_list.push_back(&vertex_input_attribute_descriptions);
+    m_vertex_input_attribute_descriptions_list.push_back(vertex_input_attribute_descriptions);
     return m_vertex_input_attribute_descriptions_list.size() - 1;
   }
 
@@ -119,9 +120,9 @@ class FlatCreateInfo
     return merge(m_vertex_input_attribute_descriptions_list);
   }
 
-  int add(std::vector<vk::PipelineColorBlendAttachmentState> const& pipeline_color_blend_attachment_states)
+  int add(std::vector<vk::PipelineColorBlendAttachmentState> const* pipeline_color_blend_attachment_states)
   {
-    m_pipeline_color_blend_attachment_states_list.push_back(&pipeline_color_blend_attachment_states);
+    m_pipeline_color_blend_attachment_states_list.push_back(pipeline_color_blend_attachment_states);
     return m_pipeline_color_blend_attachment_states_list.size() - 1;
   }
 
@@ -135,9 +136,9 @@ class FlatCreateInfo
     return pipeline_color_blend_attachment_states;
   }
 
-  int add(std::vector<vk::DynamicState> const& dynamic_states)
+  int add(std::vector<vk::DynamicState> const* dynamic_states)
   {
-    m_dynamic_states_list.push_back(&dynamic_states);
+    m_dynamic_states_list.push_back(dynamic_states);
     return m_dynamic_states_list.size() - 1;
   }
 
@@ -146,27 +147,31 @@ class FlatCreateInfo
     return merge(m_dynamic_states_list);
   }
 
-  int add(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts)
+  int add(std::vector<vulkan::descriptor::SetLayout> const* descriptor_set_layouts)
   {
-    m_vhv_descriptor_set_layouts_list.push_back(&vhv_descriptor_set_layouts);
-    return m_vhv_descriptor_set_layouts_list.size() - 1;
+    m_descriptor_set_layouts_list.push_back(descriptor_set_layouts);
+    return m_descriptor_set_layouts_list.size() - 1;
   }
 
-  std::vector<vk::DescriptorSetLayout> get_vhv_descriptor_set_layouts() const
+  std::vector<vulkan::descriptor::SetLayout> get_descriptor_set_layouts() const
   {
     // You must call add(std::vector<vk::DescriptorSetLayout> const&) from at least one Characteristic.
-    ASSERT(!m_vhv_descriptor_set_layouts_list.empty());
-    return merge(m_vhv_descriptor_set_layouts_list);
+    ASSERT(!m_descriptor_set_layouts_list.empty());
+    return merge(m_descriptor_set_layouts_list);
   }
 
-  int add(std::vector<vk::PushConstantRange> const& push_constant_ranges)
+  int add(std::vector<vk::PushConstantRange> const* push_constant_ranges)
   {
-    m_push_constant_ranges_list.push_back(&push_constant_ranges);
+    m_push_constant_ranges_list.push_back(push_constant_ranges);
     return m_push_constant_ranges_list.size() - 1;
   }
 
-  std::vector<vk::PushConstantRange> get_push_constant_ranges() const
+  std::vector<vk::PushConstantRange> get_sorted_push_constant_ranges() const
   {
+    // Merging push constant ranges doesn't seem to make sense; at least it is not supported right now.
+    // Only add a std::vector<vk::PushConstantRange> once, from the initialize of a single PipelineCharacteristic.
+    ASSERT(m_push_constant_ranges_list.size() <= 1);
+    // This is only returning the vector that was added (if any), which was already sorted (see ShaderInputData::push_constant_ranges()).
     return merge(m_push_constant_ranges_list);
   }
 };

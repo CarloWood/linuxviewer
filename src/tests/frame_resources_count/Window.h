@@ -51,7 +51,7 @@ class Window : public task::SynchronousWindow
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
   vulkan::Texture m_background_texture;
   vulkan::Texture m_sample_texture;
-  vk::UniqueDescriptorSet m_descriptor_set;
+  vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
 
@@ -252,15 +252,12 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
-    std::vector<vk::DescriptorSetLayout> m_vhv_descriptor_set_layouts;
+    std::vector<vulkan::descriptor::SetLayout> m_descriptor_set_layouts;
     std::vector<vk::PushConstantRange> m_push_constant_ranges;
 
     // Define pipeline objects.
     HeavyRectangle m_heavy_rectangle;           // A rectangle with many vertices.
     RandomPositions m_random_positions;         // Where to put those rectangles.
-
-    //FIXME: this doesn't belong here
-    vk::UniqueDescriptorSetLayout m_descriptor_set_layout;   // Maybe we need it here temporarily, and then move it to vulkan::Pipeline as soon as that is created.
 
     void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
     {
@@ -269,13 +266,13 @@ void main()
       Window* window = static_cast<Window*>(owning_window);
 
       // Register the vectors that we will fill.
-      flat_create_info.add(m_vertex_input_binding_descriptions);
-      flat_create_info.add(m_vertex_input_attribute_descriptions);
-      flat_create_info.add(m_shader_input_data.shader_stage_create_infos());
-      flat_create_info.add(m_pipeline_color_blend_attachment_states);
-      flat_create_info.add(m_dynamic_states);
-      flat_create_info.add(m_vhv_descriptor_set_layouts);
-      flat_create_info.add(m_push_constant_ranges);
+      flat_create_info.add(&m_vertex_input_binding_descriptions);
+      flat_create_info.add(&m_vertex_input_attribute_descriptions);
+      flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
+      flat_create_info.add(&m_pipeline_color_blend_attachment_states);
+      flat_create_info.add(&m_dynamic_states);
+      flat_create_info.add(&m_descriptor_set_layouts);
+      flat_create_info.add(&m_push_constant_ranges);
 
       // Define the pipeline.
       m_shader_input_data.add_vertex_input_binding(m_heavy_rectangle);
@@ -297,28 +294,30 @@ void main()
             COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
       }
 
-      std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
-        {
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eFragment,
-          .pImmutableSamplers = nullptr
-        },
-        {
-          .binding = 1,
-          .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eFragment,
-          .pImmutableSamplers = nullptr
-        }
-      };
+      vulkan::descriptor::SetLayout descriptor_set_layout;
+      {
+        std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
+          {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eFragment,
+            .pImmutableSamplers = nullptr
+          },
+          {
+            .binding = 1,
+            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eFragment,
+            .pImmutableSamplers = nullptr
+          }
+        };
 
-      m_descriptor_set_layout = owning_window->logical_device()->create_descriptor_set_layout(layout_bindings
-          COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_descriptor_set_layout")));
+        descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(layout_bindings));
+      }
 
       // Define pipeline layout.
-      m_vhv_descriptor_set_layouts.push_back(*m_descriptor_set_layout);
+      m_descriptor_set_layouts.push_back(descriptor_set_layout);
 
       m_vertex_input_binding_descriptions = m_shader_input_data.vertex_binding_descriptions();
       m_vertex_input_attribute_descriptions = m_shader_input_data.vertex_input_attribute_descriptions();
@@ -330,10 +329,11 @@ void main()
       static_cast<Window*>(owning_window)->create_vertex_buffers(this);
 
       // Silly low
-      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, owning_window->logical_device()->get_vh_descriptor_pool()
-          COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_descriptor_set")));
-      window->m_descriptor_set = std::move(descriptor_sets[0]);     // We only have one descriptor set --^
-      vk::DescriptorSet vh_descriptor_set = *window->m_descriptor_set;  //FIXME more hacks. I don't want to store this in Window
+      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets({ descriptor_set_layout }, owning_window->logical_device()->get_vh_descriptor_pool()
+          COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
+      vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^
+      // Store the descriptor set handle: it is used in draw_frame().
+      window->m_vh_descriptor_set = vh_descriptor_set;
 
       //FIXME: this needs a rewrite (of API) such that the updates happen automatically
       // as a result of the texture registrations (aka, the Texture template specialization).
@@ -563,8 +563,8 @@ if (!m_graphics_pipeline.handle())
 else
 {
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
-//FIXME: m_descriptor_set should not exist; this is just a hack... need still to design where/how to store descriptor sets...
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0, { *m_descriptor_set }, {});
+//FIXME: m_vh_descriptor_set should not exist; this is just a hack... need still to design where/how to store descriptor sets...
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0, { m_vh_descriptor_set }, {});
       {
         vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
         vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);

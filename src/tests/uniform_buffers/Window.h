@@ -30,8 +30,6 @@ class Window : public task::SynchronousWindow
  public:
   using task::SynchronousWindow::SynchronousWindow;
 
-  ~Window();
-
  private:
   // Define renderpass / attachment objects.
   RenderPass  main_pass{this, "main_pass"};
@@ -85,11 +83,10 @@ class Window : public task::SynchronousWindow
     return vulkan::SwapchainIndex{4};
   }
 
-
   //FIXME: this doesn't belong here
-  vk::UniqueDescriptorSet m_top_descriptor_set;
-  vk::UniqueDescriptorSet m_left_descriptor_set;
-  vk::UniqueDescriptorSet m_bottom_descriptor_set;
+  vk::DescriptorSet m_vh_top_descriptor_set;
+  vk::DescriptorSet m_vh_left_descriptor_set;
+  vk::DescriptorSet m_vh_bottom_descriptor_set;
 
   void create_textures() override
   {
@@ -143,9 +140,9 @@ class Window : public task::SynchronousWindow
         logical_device()->get_vh_descriptor_pool()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
 
-    m_top_descriptor_set = std::move(descriptor_sets[0]);
-    m_left_descriptor_set = std::move(descriptor_sets[1]);
-    m_bottom_descriptor_set = std::move(descriptor_sets[2]);
+    m_vh_top_descriptor_set = descriptor_sets[0];
+    m_vh_left_descriptor_set = descriptor_sets[1];
+    m_vh_bottom_descriptor_set = descriptor_sets[2];
 
     for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
       m_top_buffer.emplace_back(logical_device(), top_position_array_size * sizeof(TopPosition)
@@ -184,9 +181,9 @@ class Window : public task::SynchronousWindow
 
     //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
     uint32_t binding = 0;
-    logical_device()->update_descriptor_set(*m_top_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, top_buffer_infos);
-    logical_device()->update_descriptor_set(*m_left_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
-    logical_device()->update_descriptor_set(*m_bottom_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
+    logical_device()->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, top_buffer_infos);
+    logical_device()->update_descriptor_set(m_vh_left_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
+    logical_device()->update_descriptor_set(m_vh_bottom_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
     // Fill the buffer...
     for (int i = 0; i < top_position_array_size; ++i)
@@ -203,7 +200,8 @@ class Window : public task::SynchronousWindow
           .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
         }
       };
-      m_logical_device->update_descriptor_set(*m_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
+      // The 'top' descriptor set also contains the texture.
+      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
     }
   }
 
@@ -373,11 +371,11 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
-    std::vector<vk::DescriptorSetLayout> m_vhv_descriptor_set_layouts;
+    std::vector<vulkan::descriptor::SetLayout> m_descriptor_set_layouts;
 
-    vk::UniqueDescriptorSetLayout m_top_descriptor_set_layout;
-    vk::UniqueDescriptorSetLayout m_left_descriptor_set_layout;
-    vk::UniqueDescriptorSetLayout m_bottom_descriptor_set_layout;
+    vulkan::descriptor::SetLayout m_top_descriptor_set_layout;
+    vulkan::descriptor::SetLayout m_left_descriptor_set_layout;
+    vulkan::descriptor::SetLayout m_bottom_descriptor_set_layout;
 
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
@@ -387,10 +385,10 @@ void main()
       Window* window = static_cast<Window*>(owning_window);
 
       // Register the vectors that we will fill.
-      flat_create_info.add(m_shader_input_data.shader_stage_create_infos());
-      flat_create_info.add(m_pipeline_color_blend_attachment_states);
-      flat_create_info.add(m_dynamic_states);
-      flat_create_info.add(m_vhv_descriptor_set_layouts);
+      flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
+      flat_create_info.add(&m_pipeline_color_blend_attachment_states);
+      flat_create_info.add(&m_dynamic_states);
+      flat_create_info.add(&m_descriptor_set_layouts);
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -412,37 +410,45 @@ void main()
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
-      std::vector<vk::DescriptorSetLayoutBinding> top_layout_bindings = {
-        {
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        },
-        {
-          .binding = 1,
-          .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eFragment,
-        }
-      };
-      std::vector<vk::DescriptorSetLayoutBinding> left_layout_bindings = {
-        {
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        }
-      };
-      std::vector<vk::DescriptorSetLayoutBinding> bottom_layout_bindings = {
-        {
-          .binding = 0,
-          .descriptorType = vk::DescriptorType::eUniformBuffer,
-          .descriptorCount = 1,
-          .stageFlags = vk::ShaderStageFlagBits::eVertex,
-        }
-      };
+      //FIXME: these vectors should be generated.
+      {
+        std::vector<vk::DescriptorSetLayoutBinding> top_layout_bindings = {
+          {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+          },
+          {
+            .binding = 1,
+            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eFragment,
+          }
+        };
+        std::vector<vk::DescriptorSetLayoutBinding> left_layout_bindings = {
+          {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+          }
+        };
+        std::vector<vk::DescriptorSetLayoutBinding> bottom_layout_bindings = {
+          {
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex,
+          }
+        };
 
+        m_top_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(top_layout_bindings));
+        m_left_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(left_layout_bindings));
+        m_bottom_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(bottom_layout_bindings));
+      }
+
+#if 0
       //FIXME: We should calculate a "hash" (or requirements) from the *_layout_bindings and then either create a new layout
       // or reuse a (compatible) already created one, retrieving it from a cache of descriptor layouts.
       m_top_descriptor_set_layout = owning_window->logical_device()->create_descriptor_set_layout(top_layout_bindings
@@ -451,24 +457,25 @@ void main()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_left_descriptor_set_layout")));
       m_bottom_descriptor_set_layout = owning_window->logical_device()->create_descriptor_set_layout(bottom_layout_bindings
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_bottom_descriptor_set_layout")));
+#endif
 
       if (pipeline == 1)
       {
         // Define pipeline layout.
-        m_vhv_descriptor_set_layouts.push_back(*m_top_descriptor_set_layout);
-        m_vhv_descriptor_set_layouts.push_back(*m_left_descriptor_set_layout);
-        m_vhv_descriptor_set_layouts.push_back(*m_bottom_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_top_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_left_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_bottom_descriptor_set_layout);
       }
       else
       {
         // Define pipeline layout.
-        m_vhv_descriptor_set_layouts.push_back(*m_left_descriptor_set_layout);
-        m_vhv_descriptor_set_layouts.push_back(*m_top_descriptor_set_layout);
-        m_vhv_descriptor_set_layouts.push_back(*m_bottom_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_left_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_top_descriptor_set_layout);
+        m_descriptor_set_layouts.push_back(m_bottom_descriptor_set_layout);
       }
 
       static std::once_flag flag;
-      std::call_once(flag, &Window::create_uniform_buffers, window, *m_top_descriptor_set_layout, *m_left_descriptor_set_layout, *m_bottom_descriptor_set_layout);
+      std::call_once(flag, &Window::create_uniform_buffers, window, m_top_descriptor_set_layout, m_left_descriptor_set_layout, m_bottom_descriptor_set_layout);
     }
 
    public:
@@ -617,13 +624,13 @@ else
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0,
-          { *m_top_descriptor_set, *m_left_descriptor_set, *m_bottom_descriptor_set }, {});
+          { m_top_descriptor_set, m_left_descriptor_set, m_bottom_descriptor_set }, {});
 
       command_buffer->draw(3, 1, 0, 0);
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline2.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline2.layout(), 0,
-          { *m_left_descriptor_set, *m_top_descriptor_set, *m_bottom_descriptor_set }, {});
+          { m_left_descriptor_set, m_top_descriptor_set, m_bottom_descriptor_set }, {});
 
       command_buffer->draw(3, 1, 0, 0);
 }
