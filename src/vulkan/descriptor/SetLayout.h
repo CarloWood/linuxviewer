@@ -4,6 +4,7 @@
 #include "utils/VectorCompare.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include "debug.h"
 
 namespace vulkan::descriptor {
 
@@ -26,6 +27,16 @@ class SetLayout
   {
     return m_handle;
   }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const
+  {
+    os << '{';
+    os << "m_sorted_bindings:" << m_sorted_bindings <<
+        ", m_handle:" << m_handle;
+    os << '}';
+  }
+#endif
 };
 
 struct SetLayoutCompare

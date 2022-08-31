@@ -50,7 +50,7 @@ class Window : public task::SynchronousWindow
 
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
   vulkan::Texture m_background_texture;
-  vulkan::Texture m_sample_texture;
+  vulkan::Texture m_benchmark_texture;
   vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
@@ -152,21 +152,21 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_sample_texture = vulkan::Texture(m_logical_device,
+        m_benchmark_texture = vulkan::Texture(m_logical_device,
             texture_data.extent(), sample_image_view_kind,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
             graphics_settings(),
             { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_sample_texture")));
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture")));
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
-            m_sample_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
+            m_benchmark_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
             vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
             COMMA_CWDEBUG_ONLY(true));
 
-        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_sample_texture).
+        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_benchmark_texture).
         copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
         copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
       }
@@ -196,6 +196,7 @@ void main()
 )glsl";
 
   static constexpr std::string_view intel_frag_glsl = R"glsl(
+//FIXME: this should be generated.
 layout(set=0, binding=0) uniform sampler2D u_Texture_background;
 layout(set=0, binding=1) uniform sampler2D u_Texture_benchmark;
 
@@ -348,12 +349,12 @@ void main()
         };
         owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
       }
-      // Update descriptor set of m_sample_texture.
+      // Update descriptor set of m_benchmark_texture.
       {
         std::vector<vk::DescriptorImageInfo> image_infos = {
           {
-            .sampler = *window->m_sample_texture.m_sampler,
-            .imageView = *window->m_sample_texture.m_image_view,
+            .sampler = *window->m_benchmark_texture.m_sampler,
+            .imageView = *window->m_benchmark_texture.m_image_view,
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
           }
         };
