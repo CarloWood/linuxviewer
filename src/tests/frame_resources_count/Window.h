@@ -283,6 +283,8 @@ void main()
       m_shader_input_data.add_vertex_input_binding(m_heavy_rectangle);
       m_shader_input_data.add_vertex_input_binding(m_random_positions);
       m_shader_input_data.add_push_constant<PushConstant>();
+      m_shader_input_data.add_texture(window->m_background_texture);
+      m_shader_input_data.add_texture(window->m_benchmark_texture);
 
       // Compile the shaders.
       {

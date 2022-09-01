@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "LocationContext.h"
+#include "VertexAttributeDeclarationContext.h"
 #include "VertexAttribute.h"
 #include "pipeline/ShaderInputData.h"
 #include <sstream>
@@ -13,12 +13,12 @@ namespace vulkan::shaderbuilder {
 void VertexAttributeDeclarationContext::update_location(VertexAttribute const* vertex_attribute)
 {
   DoutEntering(dc::vulkan, "VertexAttributeDeclarationContext::update_location(@" << *vertex_attribute << ") [" << this << "]");
-  locations[vertex_attribute] = next_location;
+  m_locations[vertex_attribute] = m_next_location;
   int number_of_attribute_indices = vertex_attribute->layout().m_base_type.consumed_locations();
   if (vertex_attribute->layout().m_array_size > 0)
     number_of_attribute_indices *= vertex_attribute->layout().m_array_size;
-  Dout(dc::notice, "Changing next_location from " << next_location << " to " << (next_location + number_of_attribute_indices) << ".");
-  next_location += number_of_attribute_indices;
+  Dout(dc::notice, "Changing m_next_location from " << m_next_location << " to " << (m_next_location + number_of_attribute_indices) << ".");
+  m_next_location += number_of_attribute_indices;
 }
 
 void VertexAttributeDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), ShaderVariable const* shader_variable, pipeline::ShaderInputData* shader_input_data)
@@ -31,8 +31,8 @@ void VertexAttributeDeclarationContext::glsl_id_str_is_used_in(char const* glsl_
 std::string VertexAttributeDeclarationContext::generate_declaration(vk::ShaderStageFlagBits shader_stage) const
 {
   std::ostringstream oss;
-  ASSERT(next_location <= 999); // 3 chars max.
-  for (auto&& vertex_attribute_location_pair : locations)
+  ASSERT(m_next_location <= 999); // 3 chars max.
+  for (auto&& vertex_attribute_location_pair : m_locations)
   {
     VertexAttribute const* vertex_attribute = vertex_attribute_location_pair.first;
     ShaderVariable const* shader_variable = vertex_attribute;

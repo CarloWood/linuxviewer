@@ -25,7 +25,7 @@ DeclarationContext const& VertexAttribute::is_used_in(vk::ShaderStageFlagBits sh
   // We must use a single context for all vertex attributes, as the context is used to enumerate the 'location' at which the attributes are stored.
   DeclarationContext& declaration_context = shader_input_data->vertex_shader_location_context({});
 
-  // Register that this this vertex attribute is being used.
+  // Register that this vertex attribute is being used.
   declaration_context.glsl_id_str_is_used_in(glsl_id_str(), shader_stage, this, shader_input_data);
 
   // Return the declaration context.

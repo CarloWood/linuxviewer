@@ -324,19 +324,19 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   {
     shaderbuilder::VertexAttributeLayout const& layout = vertex_attribute.layout();
 
-    auto iter = m_vertex_shader_location_context.locations.find(&vertex_attribute);
-    if (iter == m_vertex_shader_location_context.locations.end())
+    auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
+    if (iter == m_vertex_shader_location_context.locations().end())
     {
       Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_str() <<
-          ") in m_vertex_shader_location_context.locations, which contains only {");
-      for (auto&& e : m_vertex_shader_location_context.locations)
+          ") in m_vertex_shader_location_context.locations(), which contains only {");
+      for (auto&& e : m_vertex_shader_location_context.locations())
         Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_str() << "), location:" << e.second << "}");
       Dout(dc::finish, "}");
       continue;
     }
     // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_str_is_used_in()
     // in turn called by ShaderInputData::preprocess.
-    ASSERT(iter != m_vertex_shader_location_context.locations.end());
+    ASSERT(iter != m_vertex_shader_location_context.locations().end());
     uint32_t location = iter->second;
 
     uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
@@ -357,6 +357,18 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
     while(--count > 0);
   }
   return vertex_input_attribute_descriptions;
+}
+
+void ShaderInputData::add_texture(Texture const& texture)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ")");
+
+  shaderbuilder::ShaderResource shader_resource_tmp(texture.glsl_id_str().c_str(), vk::DescriptorType::eCombinedImageSampler);
+
+  auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{texture.glsl_id_str(), shader_resource_tmp});
+  // The m_glsl_id_str of each Texture must be unique. And of course, don't register the same texture twice.
+  ASSERT(res1.second);
+  m_shader_variables.push_back(&res1.first->second);
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

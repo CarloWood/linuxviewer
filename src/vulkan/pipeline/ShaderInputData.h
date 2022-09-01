@@ -1,13 +1,16 @@
 #ifndef VULKAN_PIPELINE_PIPELINE_H
 #define VULKAN_PIPELINE_PIPELINE_H
 
+#include "Texture.h"
 #include "shaderbuilder/ShaderInfo.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/SPIRVCache.h"
-#include "shaderbuilder/LocationContext.h"
 #include "shaderbuilder/VertexAttribute.h"
+#include "shaderbuilder/VertexAttributeDeclarationContext.h"
 #include "shaderbuilder/PushConstant.h"
 #include "shaderbuilder/PushConstantDeclarationContext.h"
+#include "shaderbuilder/ShaderResource.h"
+#include "shaderbuilder/ShaderResourceDeclarationContext.h"
 #include "debug/DebugSetName.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
@@ -50,15 +53,23 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Push constants.
-  using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shaderbuilder::PushConstant, std::less<>>;
-  glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;              // Map VertexAttributeLayout::m_glsl_id_str to the PushConstant object that contains it.
   using glsl_id_str_to_declaration_context_container_t = std::map<std::string, std::unique_ptr<shaderbuilder::DeclarationContext>>;
   glsl_id_str_to_declaration_context_container_t m_glsl_id_str_to_declaration_context;  // Map the prefix of VertexAttributeLayout::m_glsl_id_str to its DeclarationContext object.
+  using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shaderbuilder::PushConstant, std::less<>>;
+  glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;              // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_push_constant_ranges;
   //---------------------------------------------------------------------------
 
-  std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, ...).
+  //---------------------------------------------------------------------------
+  // Shader resources.
+  shaderbuilder::ShaderResourceDeclarationContext m_shader_resource_declaration_context;// Declaration context used for shader resources (ShaderResource).
+  using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
+  glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
+
+  //---------------------------------------------------------------------------
+
+  std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
 
@@ -117,6 +128,8 @@ class ShaderInputData
   requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
+  void add_texture(Texture const& texture);
+
   void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
       shaderbuilder::SPIRVCache& spirv_cache
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
@@ -167,6 +180,7 @@ class ShaderInputData
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions() const;
 
   // Returns information on what was added with build_shader.
+  shaderbuilder::ShaderResourceDeclarationContext& shader_resource_context(utils::Badge<shaderbuilder::ShaderResource>) { return m_shader_resource_declaration_context; }
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
 };
 
@@ -354,7 +368,7 @@ template<typename ENTRY>
 requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
 void ShaderInputData::add_push_constant()
 {
-  DoutEntering(dc::vulkan, "vulkan::pipeline::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
+  DoutEntering(dc::vulkan, "ShaderInputData::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shaderbuilder;
 
   [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
