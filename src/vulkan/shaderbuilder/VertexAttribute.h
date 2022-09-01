@@ -17,66 +17,52 @@ namespace vulkan::shaderbuilder {
 class VertexShaderInputSetBase;
 using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
 
-struct VertexAttributeLayout
-{
-  BasicType const m_base_type;                  // The underlying glsl base type of the variable.
-  char const* const m_glsl_id_str;              // The glsl name of the variable (unhashed).
-  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
-  uint32_t const m_array_size;                  // Set to zero when this is not an array.
-
-#ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
-#endif
-};
-
 struct VertexAttribute final : public ShaderVariable
 {
  private:
-  VertexAttributeLayout const* m_layout;
+  BasicType const m_basic_type;                 // The glsl basic type of the variable, or underlying basic type in case of an array.
+  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
+  uint32_t const m_array_size;                  // Set to zero when this is not an array.
   BindingIndex m_binding;
 
  public:
-  VertexAttributeLayout const& layout() const
+  // Accessors.
+  BasicType basic_type() const { return m_basic_type; }
+  uint32_t offset() const { return m_offset; }
+  uint32_t array_size() const { return m_array_size; }
+  BindingIndex binding() const { return m_binding; }
+
+  VertexAttribute(BasicType basic_type, char const* glsl_id_str, uint32_t offset, uint32_t array_size, BindingIndex binding) :
+    ShaderVariable(glsl_id_str), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size), m_binding(binding)
   {
-    return *m_layout;
+    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(" << basic_type << ", \"" << glsl_id_str << "\", " << ", " << offset << ", " << array_size << ", " << binding << ")");
   }
 
-  BindingIndex binding() const
-  {
-    return m_binding;
-  }
-
-  VertexAttribute(VertexAttributeLayout const* layout, BindingIndex binding) : m_layout(layout), m_binding(binding)
-  {
-    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(&" << *layout << ", " << binding << ")");
-  }
-
-  // VertexAttribute are put in a std::set. Provide a sorting function.
+  // VertexAttribute are put in a std::map. Provide a sorting function.
   bool operator<(VertexAttribute const& other) const
   {
-    return strcmp(m_layout->m_glsl_id_str, other.m_layout->m_glsl_id_str) < 0;
+    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
   }
 
 #if 0
   bool valid_alignment_and_size() const
   {
-    auto standard = m_base_type.standard();
+    auto standard = m_basic_type.standard();
     return standard == glsl::std140 || standard == glsl::std430 || standard == glsl::scalar;
   }
 
   uint32_t alignment() const
   {
-    return glsl::alignment(m_base_type.standard(), m_base_type.scalar_type(), m_base_type.rows(), m_base_type.cols());
+    return glsl::alignment(m_basic_type.standard(), m_basic_type.scalar_type(), m_basic_type.rows(), m_basic_type.cols());
   }
 
   uint32_t size() const
   {
-    return glsl::size(m_base_type.standard(), m_base_type.scalar_type(), m_base_type.rows(), m_base_type.cols());
+    return glsl::size(m_basic_type.standard(), m_basic_type.scalar_type(), m_basic_type.rows(), m_basic_type.cols());
   }
 #endif
 
  public:
-  char const* glsl_id_str() const override { return m_layout->m_glsl_id_str; }
   std::string name() const override;
 
  private:

@@ -13,9 +13,7 @@ enum Standard {
   scalar
 };
 
-// Basic types.
-
-// Builtin-types indices.
+// Base type indices (builtin scalar types).
 static constexpr int number_of_glsl_types = 5;
 static constexpr int number_of_scalar_types = 9;
 enum ScalarIndex {
@@ -47,6 +45,8 @@ std::string to_string(Standard standard);
 std::ostream& operator<<(std::ostream& os, ScalarIndex scalar_type);
 #endif
 
+// Basic types.
+//
 // GLSL has the notation matCxR - with C cols and R rows.
 // Eigen, and this library if I can help it, puts rows first.
 // The type used for vectors are all column-vectors (with 1 column).

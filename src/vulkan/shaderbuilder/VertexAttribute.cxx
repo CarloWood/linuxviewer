@@ -33,25 +33,16 @@ DeclarationContext const& VertexAttribute::is_used_in(vk::ShaderStageFlagBits sh
 }
 
 #ifdef CWDEBUG
-void VertexAttributeLayout::print_on(std::ostream& os) const
-{
-  os << '{';
-
-  os << "m_base_type:" << m_base_type <<
-      ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
-      ", m_offset:" << m_offset;
-  if (m_array_size > 0)
-    os << ", m_array_size:" << m_array_size;
-
-  os << '}';
-}
-
 void VertexAttribute::print_on(std::ostream& os) const
 {
   os << '{';
 
-  os << "m_layout: " << vk_utils::print_pointer(m_layout) <<
-      ", m_binding:" << m_binding;
+  os << "m_basic_type:" << m_basic_type <<
+      ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
+      ", m_offset:" << m_offset;
+  if (m_array_size > 0)
+    os << ", m_array_size:" << m_array_size;
+  os << ", m_binding:" << m_binding;
 
   os << '}';
 }

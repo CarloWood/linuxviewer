@@ -44,19 +44,18 @@ class ShaderInputData
  private:
   //---------------------------------------------------------------------------
   // Vertex attributes.
-  utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;   // Existing vertex shader input sets (a 'binding' slot).
-  std::set<shaderbuilder::VertexAttribute> m_vertex_attributes;                         // All existing vertex attributes of the above input sets (including declaration function).
-  shaderbuilder::VertexAttributeDeclarationContext m_vertex_shader_location_context;    // Location context used for vertex attributes (VertexAttribute).
-  using glsl_id_str_to_vertex_attribute_layout_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttributeLayout, std::less<>>;
-  mutable glsl_id_str_to_vertex_attribute_layout_container_t m_glsl_id_str_to_vertex_attribute_layout;  // Map VertexAttributeLayout::m_glsl_id_str to the VertexAttributeLayout
-  //---------------------------------------------------------------------------                         // object that contains it.
+  utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;           // Existing vertex shader input sets (a 'binding' slot).
+  shaderbuilder::VertexAttributeDeclarationContext m_vertex_shader_location_context;            // Location context used for vertex attributes (VertexAttribute).
+  using glsl_id_str_to_vertex_attribute_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttribute, std::less<>>;
+  mutable glsl_id_str_to_vertex_attribute_container_t m_glsl_id_str_to_vertex_attribute;        // Map VertexAttribute::m_glsl_id_str to the VertexAttribute
+  //---------------------------------------------------------------------------                 // object that contains it.
 
   //---------------------------------------------------------------------------
   // Push constants.
   using glsl_id_str_to_declaration_context_container_t = std::map<std::string, std::unique_ptr<shaderbuilder::DeclarationContext>>;
-  glsl_id_str_to_declaration_context_container_t m_glsl_id_str_to_declaration_context;  // Map the prefix of VertexAttributeLayout::m_glsl_id_str to its DeclarationContext object.
+  glsl_id_str_to_declaration_context_container_t m_glsl_id_str_to_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_str to its DeclarationContext object.
   using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shaderbuilder::PushConstant, std::less<>>;
-  glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;              // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
+  glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;                      // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_push_constant_ranges;
   //---------------------------------------------------------------------------
@@ -77,16 +76,16 @@ class ShaderInputData
   //---------------------------------------------------------------------------
   // Vertex attributes.
 
-  // Add shader variable (VertexAttribute) to m_vertex_attributes (and a pointer to that to m_shader_variables)
-  // and a VertexAttributeLayout to m_glsl_id_str_to_vertex_attribute_layout, for a non-array vertex attribute.
+  // Add shader variable (VertexAttribute) to m_glsl_id_str_to_vertex_attribute
+  // (and a pointer to that to m_shader_variables), for a non-array vertex attribute.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
   void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
       shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
-  // Add shader variable (VertexAttribute) to m_vertex_attributes (and a pointer to that to m_shader_variables)
-  // and a VertexAttributeLayout to m_glsl_id_str_to_vertex_attribute_layout, for a vertex attribute array.
+  // Add shader variable (VertexAttribute) to m_glsl_id_str_to_vertex_attribute
+  // (and a pointer to that to m_shader_variables), for a vertex attribute array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
   void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
@@ -213,31 +212,26 @@ void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, 
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
-  shaderbuilder::VertexAttributeLayout vertex_attribute_layout_tmp{
-    .m_base_type = {
-      .m_standard = Standard,
+  shaderbuilder::VertexAttribute vertex_attribute_tmp(
+    { .m_standard = Standard,
       .m_rows = Rows,
       .m_cols = Cols,
       .m_scalar_type = ScalarIndex,
       .m_log2_alignment = utils::log2(Alignment),
       .m_size = Size,
       .m_array_stride = ArrayStride },
-    .m_glsl_id_str = glsl_id_sv.data(),
-    .m_offset = Offset,
-    .m_array_size = 0
-  };
-  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with layout " << vertex_attribute_layout_tmp);
-  auto res1 = m_glsl_id_str_to_vertex_attribute_layout.insert(std::pair{glsl_id_sv, vertex_attribute_layout_tmp});
+    glsl_id_sv.data(),
+    Offset,
+    0 /* array_size */,
+    binding
+  );
+  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
+  auto res1 = m_glsl_id_str_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(res1.second);
 
-  shaderbuilder::VertexAttributeLayout const* vertex_attribute_layout = &res1.first->second;
-  auto res2 = m_vertex_attributes.emplace(vertex_attribute_layout, binding);
-  // All used names must be unique.
-  if (!res2.second)
-    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute_layout->m_glsl_id_str));
-  // Add a pointer to the VertexAttribute that was just added to m_vertex_attributes to m_shader_variables.
-  m_shader_variables.push_back(&*res2.first);
+  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_str_to_vertex_attribute to m_shader_variables.
+  m_shader_variables.push_back(&res1.first->second);
 }
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
@@ -250,33 +244,26 @@ void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, 
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
-  shaderbuilder::VertexAttributeLayout vertex_attribute_layout_tmp{
-    .m_base_type = {
-      .m_standard = Standard,
+  shaderbuilder::VertexAttribute vertex_attribute_tmp(
+    { .m_standard = Standard,
       .m_rows = Rows,
       .m_cols = Cols,
       .m_scalar_type = ScalarIndex,
       .m_log2_alignment = utils::log2(Alignment),
       .m_size = Size,
       .m_array_stride = ArrayStride },
-    .m_glsl_id_str = glsl_id_sv.data(),
-    .m_offset = Offset,
-    .m_array_size = Elements
-  };
-  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with layout " << vertex_attribute_layout_tmp);
-  auto res1 = m_glsl_id_str_to_vertex_attribute_layout.insert(std::pair{glsl_id_sv, vertex_attribute_layout_tmp});
+    glsl_id_sv.data(),
+    Offset,
+    Elements,
+    binding
+  );
+  Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
+  auto res1 = m_glsl_id_str_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(res1.second);
 
-  shaderbuilder::VertexAttributeLayout const* vertex_attribute_layout = &res1.first->second;
-  // m_array_size should have been set during the call to Application::register_vertex_attributes.
-  ASSERT(vertex_attribute_layout->m_array_size == Elements);
-  auto res2 = m_vertex_attributes.emplace(vertex_attribute_layout, binding);
-  // All used names must be unique.
-  if (!res2.second)
-    THROW_ALERT("Duplicated shader variable layout id \"[ID_STR]\". All used ids must be unique.", AIArgs("[ID_STR]", vertex_attribute_layout->m_glsl_id_str));
-  // Add a pointer to the VertexAttribute that was just added to m_vertex_attributes to m_shader_variables.
-  m_shader_variables.push_back(&*res2.first);
+  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_str_to_vertex_attribute to m_shader_variables.
+  m_shader_variables.push_back(&res1.first->second);
 }
 
 template<typename ENTRY>

@@ -320,10 +320,9 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_input_attribute_descriptions() [" << this << "]");
 
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (shaderbuilder::VertexAttribute const& vertex_attribute : m_vertex_attributes)
+  for (auto vertex_attribute_iter = m_glsl_id_str_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_str_to_vertex_attribute.end(); ++vertex_attribute_iter)
   {
-    shaderbuilder::VertexAttributeLayout const& layout = vertex_attribute.layout();
-
+    shaderbuilder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
     auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
     if (iter == m_vertex_shader_location_context.locations().end())
     {
@@ -340,9 +339,9 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
     uint32_t location = iter->second;
 
     uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
-    vk::Format const format = type2format(layout.m_base_type);
-    uint32_t offset = layout.m_offset;
-    int count = layout.m_array_size;    // Zero if this is not an array.
+    vk::Format const format = type2format(vertex_attribute.basic_type());
+    uint32_t offset = vertex_attribute.offset();
+    int count = vertex_attribute.array_size();          // Zero if this is not an array.
     do
     {
       vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
@@ -351,8 +350,8 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
           .format = format,
           .offset = offset});
       // update location and offset in case this is an array.
-      location += layout.m_base_type.consumed_locations();
-      offset += layout.m_base_type.array_stride();
+      location += vertex_attribute.basic_type().consumed_locations();
+      offset += vertex_attribute.basic_type().array_stride();
     }
     while(--count > 0);
   }

@@ -14,9 +14,9 @@ void VertexAttributeDeclarationContext::update_location(VertexAttribute const* v
 {
   DoutEntering(dc::vulkan, "VertexAttributeDeclarationContext::update_location(@" << *vertex_attribute << ") [" << this << "]");
   m_locations[vertex_attribute] = m_next_location;
-  int number_of_attribute_indices = vertex_attribute->layout().m_base_type.consumed_locations();
-  if (vertex_attribute->layout().m_array_size > 0)
-    number_of_attribute_indices *= vertex_attribute->layout().m_array_size;
+  int number_of_attribute_indices = vertex_attribute->basic_type().consumed_locations();
+  if (vertex_attribute->array_size() > 0)
+    number_of_attribute_indices *= vertex_attribute->array_size();
   Dout(dc::notice, "Changing m_next_location from " << m_next_location << " to " << (m_next_location + number_of_attribute_indices) << ".");
   m_next_location += number_of_attribute_indices;
 }
@@ -37,12 +37,11 @@ std::string VertexAttributeDeclarationContext::generate_declaration(vk::ShaderSt
     VertexAttribute const* vertex_attribute = vertex_attribute_location_pair.first;
     ShaderVariable const* shader_variable = vertex_attribute;
     uint32_t location = vertex_attribute_location_pair.second;
-    VertexAttributeLayout const& layout = vertex_attribute->layout();
     oss << "layout(location = " << location << ") in " <<
-      glsl::type2name(layout.m_base_type.scalar_type(), layout.m_base_type.rows(), layout.m_base_type.cols()) << ' ' << shader_variable->name();
-    if (layout.m_array_size > 0)
-      oss << '[' << layout.m_array_size << ']';
-    oss << ";\t// " << layout.m_glsl_id_str << "\n";
+      glsl::type2name(vertex_attribute->basic_type().scalar_type(), vertex_attribute->basic_type().rows(), vertex_attribute->basic_type().cols()) << ' ' << shader_variable->name();
+    if (vertex_attribute->array_size() > 0)
+      oss << '[' << vertex_attribute->array_size() << ']';
+    oss << ";\t// " << vertex_attribute->glsl_id_str() << "\n";
   }
   return oss.str();
 }

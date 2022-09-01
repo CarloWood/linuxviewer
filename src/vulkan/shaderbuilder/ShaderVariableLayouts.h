@@ -245,19 +245,19 @@ using ScalarIndex::eInt16;
 using ScalarIndex::eUint16;
 
 #define SHADERBUILDER_STANDARD vertex_attributes
-#include "base_types.h"
+#include "basic_types.h"
 #undef SHADERBUILDER_STANDARD
 
 #define SHADERBUILDER_STANDARD std140
-#include "base_types.h"
+#include "basic_types.h"
 #undef SHADERBUILDER_STANDARD
 
 #define SHADERBUILDER_STANDARD std430
-#include "base_types.h"
+#include "basic_types.h"
 #undef SHADERBUILDER_STANDARD
 
 #define SHADERBUILDER_STANDARD scalar
-#include "base_types.h"
+#include "basic_types.h"
 #undef SHADERBUILDER_STANDARD
 
 } // namespace standards

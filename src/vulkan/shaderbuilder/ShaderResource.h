@@ -8,7 +8,6 @@ namespace vulkan::shaderbuilder {
 class ShaderResource final : public ShaderVariable
 {
  private:
-  char const* const m_glsl_id_str;              // "Texture::texture_name" where "texture_name" is the glsl_id_str_postfix passed to Texture.
   vk::DescriptorType m_descriptor_type;         // The descriptor type of this shader resource.
   //FIXME: this should be set to something sensible.
   uint32_t m_set{};                             // The set that this resource belongs to.
@@ -17,7 +16,7 @@ class ShaderResource final : public ShaderVariable
 
  public:
   ShaderResource(char const* glsl_id_str, vk::DescriptorType descriptor_type /*, uint32_t offset, uint32_t array_size = 0*/) :
-    m_glsl_id_str(glsl_id_str), m_descriptor_type(descriptor_type) /*, m_offset(offset), m_array_size(array_size)*/ { }
+    ShaderVariable(glsl_id_str), m_descriptor_type(descriptor_type) /*, m_offset(offset), m_array_size(array_size)*/ { }
 
   // Accessors.
 #if 0
@@ -45,10 +44,6 @@ class ShaderResource final : public ShaderVariable
   // Accessors.
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
   uint32_t set() const { return m_set; }
-
- public:
-  // Implement base class interface.
-  char const* glsl_id_str() const override { return m_glsl_id_str; }
 
  private:
   // Implement base class interface.
