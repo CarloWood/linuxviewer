@@ -11,8 +11,11 @@ DeclarationContext const& ShaderResource::is_used_in(vk::ShaderStageFlagBits sha
 {
   DoutEntering(dc::vulkan, "ShaderResource::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
+  // Check if this is a new set.
+  shader_input_data->saw_set(m_set);
+
   // We must use a single declaration context for all shader resources as this context is used to enumerate the 'set=' and 'binding=' values.
-  DeclarationContext& declaration_context = shader_input_data->shader_resource_context({});
+  ShaderResourceDeclarationContext& declaration_context = shader_input_data->shader_resource_context({});
 
   // Register that this shader resource is being used.
   declaration_context.glsl_id_str_is_used_in(glsl_id_str(), shader_stage, this, shader_input_data);
@@ -24,7 +27,7 @@ DeclarationContext const& ShaderResource::is_used_in(vk::ShaderStageFlagBits sha
 std::string ShaderResource::name() const
 {
   std::ostringstream oss;
-  oss << 'v' << std::hash<std::string>{}(glsl_id_str());
+  oss << "u_" << prefix() << "_" << member_name();
   return oss.str();
 }
 

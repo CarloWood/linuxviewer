@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ShaderVariable.h"
+#include "descriptor/SetIndex.h"
 #include "debug.h"
 
 namespace vulkan::shaderbuilder {
@@ -10,7 +11,7 @@ class ShaderResource final : public ShaderVariable
  private:
   vk::DescriptorType m_descriptor_type;         // The descriptor type of this shader resource.
   //FIXME: this should be set to something sensible.
-  uint32_t m_set{};                             // The set that this resource belongs to.
+  descriptor::SetIndex m_set{size_t{0}};        // The set that this resource belongs to.
 //  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
 //  uint32_t const m_array_size;                  // Set to zero when this is not an array.
 
@@ -43,7 +44,7 @@ class ShaderResource final : public ShaderVariable
 
   // Accessors.
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
-  uint32_t set() const { return m_set; }
+  descriptor::SetIndex set() const { return m_set; }
 
  private:
   // Implement base class interface.

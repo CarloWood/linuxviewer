@@ -125,9 +125,9 @@ class LogicalDevice
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
-  using pipeline_layouts_container_key_t = std::pair<std::vector<vulkan::descriptor::SetLayout>, std::vector<vk::PushConstantRange>>;
+  using pipeline_layouts_container_key_t = std::pair<utils::Vector<descriptor::SetLayout>, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
-        utils::PairCompare<vulkan::descriptor::SetLayoutCompare, vulkan::pipeline::PushConstantRangeCompare>>;
+        utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
   using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   mutable pipeline_layouts_t m_pipeline_layouts;
 
@@ -145,7 +145,7 @@ class LogicalDevice
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
   vk::Device vh_logical_device(utils::Badge<ImGui>) const { return *m_device; }
 
-  bool verify_presentation_support(vulkan::PresentationSurface const&) const;
+  bool verify_presentation_support(PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
   bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
   bool supports_cache_control() const { return m_supports_cache_control; }
@@ -173,13 +173,11 @@ class LogicalDevice
   // Return the pipeline cache UUID.
   boost::uuids::uuid get_pipeline_cache_UUID() const;
 
-  // Called by vulkan::pipeline::Characteristic derived user classes when they need a new (or existing) descriptor set layout.
-  vulkan::descriptor::SetLayout try_emplace_descriptor_set_layout(
-      std::vector<vk::DescriptorSetLayoutBinding>&& descriptor_set_layout_bindings
-      ) /*threadsafe-*/const;
+  // Called by pipeline::Characteristic derived user classes when they need a new (or existing) descriptor set layout.
+  vk::DescriptorSetLayout try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   vk::PipelineLayout try_emplace_pipeline_layout(
-      std::vector<vulkan::descriptor::SetLayout>&& descriptor_set_layouts,
+      utils::Vector<descriptor::SetLayout> const& realized_descriptor_set_layouts,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
 
@@ -266,7 +264,7 @@ class LogicalDevice
   void update_descriptor_set(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
       std::vector<vk::BufferView> const& buffer_views = {}) const;
-  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
+  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
       SwapchainKind const& swapchain_kind, vk::SwapchainKHR vh_old_swapchain
@@ -367,10 +365,10 @@ class LogicalDevice
   // API for access for Tracy.
   //
 
-  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(vulkan::Queue const& queue, FrameResourceIndex max_number_of_frame_resources
+  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(Queue const& queue, FrameResourceIndex max_number_of_frame_resources
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
-  TracyVkCtx tracy_context(vulkan::Queue const& queue
+  TracyVkCtx tracy_context(Queue const& queue
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   // End of API for access for Tracy.

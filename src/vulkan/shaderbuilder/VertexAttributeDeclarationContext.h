@@ -22,7 +22,8 @@ struct VertexAttributeDeclarationContext final : DeclarationContext
   uint32_t location(VertexAttribute const* vertex_attribute) const { return m_locations.at(vertex_attribute); }
   locations_container_t const& locations() const { return m_locations; }
 
-  void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderVariable const* shader_variable, pipeline::ShaderInputData* shader_input_data) override;
+  void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data);
+
   std::string generate_declaration(vk::ShaderStageFlagBits shader_stage) const override;
 };
 

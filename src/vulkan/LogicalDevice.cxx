@@ -1026,17 +1026,17 @@ void LogicalDevice::update_descriptor_set(
 }
 
 vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts,
+    std::vector<vk::DescriptorSetLayout> const& vhv_sorted_descriptor_set_layouts,
     std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_layout(" <<
-      vhv_descriptor_set_layouts << ", " << push_constant_ranges << ", \"" << debug_name.object_name() << "\")");
+      vhv_sorted_descriptor_set_layouts << ", " << push_constant_ranges << ", \"" << debug_name.object_name() << "\")");
 
   vk::PipelineLayoutCreateInfo layout_create_info{
     .flags = {},
-    .setLayoutCount = static_cast<uint32_t>(vhv_descriptor_set_layouts.size()),
-    .pSetLayouts = vhv_descriptor_set_layouts.data(),
+    .setLayoutCount = static_cast<uint32_t>(vhv_sorted_descriptor_set_layouts.size()),
+    .pSetLayouts = vhv_sorted_descriptor_set_layouts.data(),
     .pushConstantRangeCount = static_cast<uint32_t>(push_constant_ranges.size()),
     .pPushConstantRanges = push_constant_ranges.data()
   };
@@ -1172,10 +1172,9 @@ boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
   return uuid;
 }
 
-vulkan::descriptor::SetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>&& descriptor_set_layout_bindings) /*threadsafe-*/const
+vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_descriptor_set_layout(" << descriptor_set_layout_bindings << ")");
-  std::sort(descriptor_set_layout_bindings.begin(), descriptor_set_layout_bindings.end(), vulkan::descriptor::LayoutBindingCompare{});
+  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings << ")");
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
   {
@@ -1183,21 +1182,21 @@ vulkan::descriptor::SetLayout LogicalDevice::try_emplace_descriptor_set_layout(s
     {
       using descriptor_set_layouts_t = vulkan::LogicalDevice::descriptor_set_layouts_t;
       descriptor_set_layouts_t::rat descriptor_set_layouts_r(m_descriptor_set_layouts);
-      auto iter = descriptor_set_layouts_r->find(descriptor_set_layout_bindings);
+      auto iter = descriptor_set_layouts_r->find(sorted_descriptor_set_layout_bindings);
       if (iter == descriptor_set_layouts_r->end())
       {
         //FIXME: the binding values might not be set or correct!
-        vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(descriptor_set_layout_bindings
+        vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(sorted_descriptor_set_layout_bindings
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
-                boost::lexical_cast<std::string>(descriptor_set_layout_bindings) + "]")));
+                boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
         descriptor_set_layouts_t::wat descriptor_set_layouts_w(descriptor_set_layouts_r);
-        auto res = descriptor_set_layouts_w->try_emplace(descriptor_set_layout_bindings, std::move(layout));
+        auto res = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
         // We just used find and couldn't find it?!
         ASSERT(res.second);
         iter = res.first;
       }
       ASSERT(*iter->second);
-      return { std::move(descriptor_set_layout_bindings), *iter->second };
+      return *iter->second;
     }
     catch (std::exception const&)
     {
@@ -1207,28 +1206,35 @@ vulkan::descriptor::SetLayout LogicalDevice::try_emplace_descriptor_set_layout(s
 }
 
 vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
-    std::vector<vulkan::descriptor::SetLayout>&& descriptor_set_layouts,
+    utils::Vector<descriptor::SetLayout> const& realized_descriptor_set_layouts,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
-  //FIXME: This should be sorted, so that we can unambiguously compare the vector that is used as a key in m_descriptor_set_layouts.
-  // However, the order determines the set enumeration; so that a reorder requires a change of the 'set=...' shader declarations.
-//  std::sort(descriptor_set_layouts.begin(), descriptor_set_layouts.end(), vulkan::descriptor::SetLayoutCompare{});
+  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
+#ifdef CWDEBUG
+  descriptor::SetLayout const* prev_set_layout = nullptr;
+  descriptor::SetLayoutCompare set_layout_compare;
+  for (descriptor::SetLayout const& set_layout : realized_descriptor_set_layouts)
+  {
+    // realized_descriptor_set_layouts must be sorted.
+    ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
+    prev_set_layout = &set_layout;
+  }
+#endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
   {
     try
     {
-      using pipeline_layouts_t = vulkan::LogicalDevice::pipeline_layouts_t;
+      using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
-      auto key = std::make_pair(descriptor_set_layouts, sorted_push_constant_ranges);
+      auto key = std::make_pair(realized_descriptor_set_layouts, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
         Dout(dc::always, "Pipeline layout not found in cache!");
-        std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts(descriptor_set_layouts.begin(), descriptor_set_layouts.end());
-        vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_descriptor_set_layouts, sorted_push_constant_ranges
-            COMMA_CWDEBUG_ONLY(vulkan::Ambifix{"m_pipeline_layouts[...]"}));
+        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts.begin(), realized_descriptor_set_layouts.end());
+        vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
+            COMMA_CWDEBUG_ONLY(Ambifix{"m_pipeline_layouts[...]"}));
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
         auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!
@@ -1298,7 +1304,7 @@ TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
 #endif
 
 #ifdef CWDEBUG
-vulkan::AmbifixOwner LogicalDevice::debug_name_prefix(std::string prefix) const
+AmbifixOwner LogicalDevice::debug_name_prefix(std::string prefix) const
 {
   return { this, std::move(prefix) };
 }

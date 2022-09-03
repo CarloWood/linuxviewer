@@ -19,13 +19,10 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shad
   m_next_binding += number_of_bindings;
 }
 
-void ShaderResourceDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderVariable const* shader_variable, pipeline::ShaderInputData* shader_input_data)
+void ShaderResourceDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::glsl_id_str_is_used_in with shader_resource(" <<
-      NAMESPACE_DEBUG::print_string(glsl_id_str) << ", " << shader_stage << ", " << shader_variable << ", " << shader_input_data << ")");
-
-  ShaderResource const* shader_resource = static_cast<ShaderResource const*>(shader_variable);
-  Dout(dc::vulkan, "shader_resource = " << *shader_resource);
+      NAMESPACE_DEBUG::print_string(glsl_id_str) << ", " << shader_stage << ", " << shader_resource << ", " << shader_input_data << ")");
 
   switch (shader_resource->descriptor_type())
   {
@@ -53,7 +50,7 @@ std::string ShaderResourceDeclarationContext::generate_declaration(vk::ShaderSta
     {
       case vk::DescriptorType::eCombinedImageSampler:
         // layout(set=0, binding=0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource->set() << ", binding=" << binding << ") uniform sampler2D " << shader_variable->name();
+        oss << "layout(set = " << shader_resource->set().get_value() << ", binding=" << binding << ") uniform sampler2D " << shader_variable->name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';

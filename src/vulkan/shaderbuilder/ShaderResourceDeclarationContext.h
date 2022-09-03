@@ -22,7 +22,8 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
 
   void update_binding(ShaderResource const* shader_resource);
 
-  void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderVariable const* shader_variable, pipeline::ShaderInputData* shader_input_data) override;
+  void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data);
+
   std::string generate_declaration(vk::ShaderStageFlagBits shader_stage) const override;
 };
 

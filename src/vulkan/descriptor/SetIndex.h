@@ -9,9 +9,10 @@ namespace vulkan::descriptor {
 // An index into vectors that enumerate DescriptorSets for a given pipeline.
 //
 // The canonical vector here is .pSetLayouts in vk::PipelineLayoutCreateInfo
-// that stores vk::DescriptorSetLayout elements for each DescriptorSet.
+// (the first argument of LogicalDevice::create_pipeline_layout) that stores
+// vk::DescriptorSetLayout elements for each DescriptorSet.
 //
-struct SetIndexCategory;
-using SetIndex = utils::VectorIndex<SetIndexCategory>;
+class SetLayout;
+using SetIndex = utils::VectorIndex<vulkan::descriptor::SetLayout>;
 
 } // namespace vulkan::descriptor

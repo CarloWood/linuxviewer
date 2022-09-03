@@ -225,13 +225,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
             vk::PipelineLayout vh_pipeline_layout;
             {
-              std::vector<vulkan::descriptor::SetLayout>             descriptor_set_layouts                 = m_flat_create_info.get_descriptor_set_layouts();
+              utils::Vector<vulkan::descriptor::SetLayout>     const& realized_descriptor_set_layouts       = m_flat_create_info.get_realized_descriptor_set_layouts();
               std::vector<vk::PushConstantRange>               const sorted_push_constant_ranges            = m_flat_create_info.get_sorted_push_constant_ranges();
 
               //-----------------------------------------------------------------
               // Begin pipeline layout creation
 
-              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(std::move(descriptor_set_layouts), sorted_push_constant_ranges);
+              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(realized_descriptor_set_layouts, sorted_push_constant_ranges);
 
               // End pipeline layout creation
               //-----------------------------------------------------------------

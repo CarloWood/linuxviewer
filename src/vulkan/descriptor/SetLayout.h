@@ -6,6 +6,10 @@
 #include <vector>
 #include "debug.h"
 
+namespace vulkan {
+class LogicalDevice;
+} // namespace vulkan
+
 namespace vulkan::descriptor {
 
 struct SetLayoutCompare;
@@ -20,10 +24,21 @@ class SetLayout
  public:
   SetLayout() = default;
 
+#if 0
   SetLayout(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings, vk::DescriptorSetLayout handle) :
     m_sorted_bindings(std::move(sorted_bindings)), m_handle(handle) { }
+#endif
 
-  operator vk::DescriptorSetLayout() const
+  // Look up m_sorted_bindings in cache, and create a new handle if it doesn't already exist.
+  void realize_handle(LogicalDevice const* logical_device);
+
+  vk::DescriptorSetLayout handle() const
+  {
+    return m_handle;
+  }
+
+  // Called from LogicalDevice::try_emplace_pipeline_layout.
+  explicit operator vk::DescriptorSetLayout() const
   {
     return m_handle;
   }
@@ -43,6 +58,12 @@ struct SetLayoutCompare
 {
   bool operator()(SetLayout const& lhs, SetLayout const& rhs) const
   {
+    // Put default constructed SetLayout's at the end.
+    if (lhs.m_sorted_bindings.empty())
+      return false;
+    if (rhs.m_sorted_bindings.empty())
+      return true;
+
     return utils::VectorCompare<LayoutBindingCompare>{}(lhs.m_sorted_bindings, rhs.m_sorted_bindings);
   }
 };

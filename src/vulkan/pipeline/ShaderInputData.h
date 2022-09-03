@@ -28,6 +28,10 @@ namespace task {
 class SynchronousWindow;
 } // namespace task
 
+namespace vulkan {
+class LogicalDevice;
+} // namespace vulkan
+
 namespace vulkan::shaderbuilder {
 
 class VertexShaderInputSetBase;
@@ -52,8 +56,8 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Push constants.
-  using glsl_id_str_to_declaration_context_container_t = std::map<std::string, std::unique_ptr<shaderbuilder::DeclarationContext>>;
-  glsl_id_str_to_declaration_context_container_t m_glsl_id_str_to_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_str to its DeclarationContext object.
+  using glsl_id_str_to_push_constant_declaration_context_container_t = std::map<std::string, std::unique_ptr<shaderbuilder::PushConstantDeclarationContext>>;
+  glsl_id_str_to_push_constant_declaration_context_container_t m_glsl_id_str_to_push_constant_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_str to its DeclarationContext object.
   using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shaderbuilder::PushConstant, std::less<>>;
   glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;                      // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
 
@@ -71,6 +75,7 @@ class ShaderInputData
   std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
+  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
 
  private:
   //---------------------------------------------------------------------------
@@ -148,6 +153,13 @@ class ShaderInputData
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer);
 
+  // Called indirectly from preprocess whenever we see a shader resource being used that uses `set_index`.
+  void saw_set(descriptor::SetIndex set_index)
+  {
+    if (set_index >= m_sorted_descriptor_set_layouts.iend())
+      m_sorted_descriptor_set_layouts.resize(set_index.get_value() + 1);
+  }
+
   // Called from PushConstantDeclarationContext::glsl_id_str_is_used_in.
   void insert(vk::PushConstantRange const& push_constant_range)
   {
@@ -161,6 +173,17 @@ class ShaderInputData
     return { m_push_constant_ranges.begin(), m_push_constant_ranges.end() };
   }
 
+  std::vector<vk::DescriptorSetLayout> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
+  {
+    std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts;
+    for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
+    {
+      descriptor_set_layout.realize_handle(logical_device);
+      vhv_descriptor_set_layouts.push_back(descriptor_set_layout.handle());
+    }
+    return vhv_descriptor_set_layouts;
+  }
+
   //---------------------------------------------------------------------------
   // Accessors.
 
@@ -169,7 +192,7 @@ class ShaderInputData
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
-  glsl_id_str_to_declaration_context_container_t const& glsl_id_str_to_declaration_context(utils::Badge<shaderbuilder::PushConstant>) const { return m_glsl_id_str_to_declaration_context; }
+  glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shaderbuilder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
   glsl_id_str_to_push_constant_container_t const& glsl_id_str_to_push_constant() const { return m_glsl_id_str_to_push_constant; }
 
   // Returns information on what was added with add_vertex_input_binding.
@@ -181,6 +204,7 @@ class ShaderInputData
   // Returns information on what was added with build_shader.
   shaderbuilder::ShaderResourceDeclarationContext& shader_resource_context(utils::Badge<shaderbuilder::ShaderResource>) { return m_shader_resource_declaration_context; }
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
+  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
 };
 
 } // namespace vulkan::pipeline
@@ -315,11 +339,11 @@ void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<Conta
   m_shader_variables.push_back(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
-  if (m_glsl_id_str_to_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_declaration_context.end())
+  if (m_glsl_id_str_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
@@ -341,11 +365,11 @@ void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<Conta
   m_shader_variables.push_back(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
-  if (m_glsl_id_str_to_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_declaration_context.end())
+  if (m_glsl_id_str_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::DeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::DeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }

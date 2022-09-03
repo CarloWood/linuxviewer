@@ -200,10 +200,6 @@ void main()
 )glsl";
 
   static constexpr std::string_view intel_frag_glsl = R"glsl(
-//FIXME: this should be generated.
-layout(set=0, binding=0) uniform sampler2D u_Texture_background;
-layout(set=0, binding=1) uniform sampler2D u_Texture_benchmark;
-
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) in float v_Distance;
 
@@ -213,10 +209,8 @@ void main()
 {
   // Use PushConstant::pc2
   // Use PushConstant::pc4
-  //vec4 background_image = texture(Texture::background, v_Texcoord);
-  vec4 background_image = texture(u_Texture_background, v_Texcoord);
-  //vec4 benchmark_image = texture(Texture::benchmark, v_Texcoord);
-  vec4 benchmark_image = texture(u_Texture_benchmark, v_Texcoord);
+  vec4 background_image = texture(Texture::background, v_Texcoord);
+  vec4 benchmark_image = texture(Texture::benchmark, v_Texcoord);
   o_Color = v_Distance * mix(background_image, benchmark_image, benchmark_image.a);
 }
 )glsl";
@@ -257,7 +251,6 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
-    std::vector<vulkan::descriptor::SetLayout> m_descriptor_set_layouts;
     std::vector<vk::PushConstantRange> m_push_constant_ranges;
 
     // Define pipeline objects.
@@ -276,7 +269,7 @@ void main()
       flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
       flat_create_info.add(&m_pipeline_color_blend_attachment_states);
       flat_create_info.add(&m_dynamic_states);
-      flat_create_info.add(&m_descriptor_set_layouts);
+      flat_create_info.add_descriptor_set_layouts(&m_shader_input_data.sorted_descriptor_set_layouts());
       flat_create_info.add(&m_push_constant_ranges);
 
       // Define the pipeline.
@@ -301,6 +294,7 @@ void main()
             COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
       }
 
+#if 0
       vulkan::descriptor::SetLayout descriptor_set_layout;
       {
         std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
@@ -325,6 +319,7 @@ void main()
 
       // Define pipeline layout.
       m_descriptor_set_layouts.push_back(descriptor_set_layout);
+#endif
 
       m_vertex_input_binding_descriptions = m_shader_input_data.vertex_binding_descriptions();
       m_vertex_input_attribute_descriptions = m_shader_input_data.vertex_input_attribute_descriptions();
@@ -336,7 +331,8 @@ void main()
       static_cast<Window*>(owning_window)->create_vertex_buffers(this);
 
       // Silly low
-      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets({ descriptor_set_layout }, owning_window->logical_device()->get_vh_descriptor_pool()
+      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_vh_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
       vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^
       // Store the descriptor set handle: it is used in draw_frame().
@@ -571,11 +567,11 @@ else
 {
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
 //FIXME: m_vh_descriptor_set should not exist; this is just a hack... need still to design where/how to store descriptor sets...
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0, { m_vh_descriptor_set }, {});
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */, { m_vh_descriptor_set }, {});
       {
         vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
         vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
-        command_buffer->bindVertexBuffers(0, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
+        command_buffer->bindVertexBuffers(0 /* uint32_t first_binding */, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
       }
       command_buffer->setViewport(0, { viewport });
       //FIXME: this should become something like: update_push_constant(scaling_factor, command_buffer);

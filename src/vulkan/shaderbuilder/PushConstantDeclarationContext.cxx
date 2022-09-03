@@ -16,10 +16,9 @@ PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefi
   m_footer = "} v" + std::to_string(hash) + ";\n";
 }
 
-void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderVariable const* shader_variable, pipeline::ShaderInputData* shader_input_data)
+void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data)
 {
-  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_str_is_used_in(" << glsl_id_str << ", " << shader_stage << ", " << shader_variable << " (\"" << shader_variable->glsl_id_str() << "\"), " << (void*)shader_input_data << ")");
-  PushConstant const* push_constant = static_cast<PushConstant const*>(shader_variable);
+  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_str_is_used_in(" << glsl_id_str << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_str() << "\"), " << (void*)shader_input_data << ")");
 
   uint32_t& minimum_offset = m_minimum_offset.try_emplace(shader_stage, uint32_t{0xffffffff}).first->second;
   uint32_t& maximum_offset = m_maximum_offset.try_emplace(shader_stage, uint32_t{0x0}).first->second;

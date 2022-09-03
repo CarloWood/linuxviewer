@@ -1,6 +1,7 @@
 #pragma once
 
 #include "descriptor/SetLayout.h"
+#include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include "debug.h"
@@ -15,7 +16,7 @@ class FlatCreateInfo
   std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
   std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
-  std::vector<std::vector<vulkan::descriptor::SetLayout> const*> m_descriptor_set_layouts_list;
+  utils::Vector<descriptor::SetLayout> const* m_realized_descriptor_set_layouts_ptr{};
   std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
 
   template<typename T>
@@ -147,17 +148,25 @@ class FlatCreateInfo
     return merge(m_dynamic_states_list);
   }
 
-  int add(std::vector<vulkan::descriptor::SetLayout> const* descriptor_set_layouts)
+  void add_descriptor_set_layouts(utils::Vector<descriptor::SetLayout> const* descriptor_set_layouts)
   {
-    m_descriptor_set_layouts_list.push_back(descriptor_set_layouts);
-    return m_descriptor_set_layouts_list.size() - 1;
+    // Only call this once, merging is not supported.
+    ASSERT(m_realized_descriptor_set_layouts_ptr == nullptr);
+    m_realized_descriptor_set_layouts_ptr = descriptor_set_layouts;
   }
 
-  std::vector<vulkan::descriptor::SetLayout> get_descriptor_set_layouts() const
+  utils::Vector<descriptor::SetLayout> const& get_realized_descriptor_set_layouts() const
   {
     // You must call add(std::vector<vk::DescriptorSetLayout> const&) from at least one Characteristic.
-    ASSERT(!m_descriptor_set_layouts_list.empty());
-    return merge(m_descriptor_set_layouts_list);
+    ASSERT(m_realized_descriptor_set_layouts_ptr != nullptr);
+#ifdef CWDEBUG
+    for (descriptor::SetLayout const& layout : *m_realized_descriptor_set_layouts_ptr)
+    {
+      // This vector must already have been realized.
+      ASSERT(layout.handle());
+    }
+#endif
+    return *m_realized_descriptor_set_layouts_ptr;
   }
 
   int add(std::vector<vk::PushConstantRange> const* push_constant_ranges)
