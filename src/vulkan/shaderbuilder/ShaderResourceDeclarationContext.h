@@ -12,7 +12,7 @@ class ShaderResource;
 struct ShaderResourceDeclarationContext final : DeclarationContext
 {
  private:
-  uint32_t m_next_binding = 0;
+  utils::Vector<uint32_t, descriptor::SetIndex> m_next_binding;
   std::map<ShaderResource const*, uint32_t> m_bindings;
 
   pipeline::ShaderInputData* const m_owning_shader_input_data;
