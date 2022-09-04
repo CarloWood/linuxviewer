@@ -1175,6 +1175,8 @@ boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
 vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings << ")");
+  // Bug in library: this vector should never be empty. If it is, it probably means it was never initalized.
+  ASSERT(!sorted_descriptor_set_layout_bindings.empty());
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
   {

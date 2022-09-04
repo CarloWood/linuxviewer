@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderResourceDeclarationContext.h"
 #include "ShaderResource.h"
+#include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
 #include "debug.h"
 
@@ -49,6 +50,13 @@ std::string ShaderResourceDeclarationContext::generate_declaration(vk::ShaderSta
     switch (shader_resource->descriptor_type())
     {
       case vk::DescriptorType::eCombinedImageSampler:
+        m_owning_shader_input_data->push_back_descriptor_set_layout_binding(descriptor::SetIndex{0} /*FIXME: must be the set index*/, {
+            .binding = binding,
+            .descriptorType = shader_resource->descriptor_type(),
+            .descriptorCount = 1,
+            .stageFlags = shader_stage,
+            .pImmutableSamplers = nullptr
+        });
         // layout(set=0, binding=0) uniform sampler2D u_Texture_background;
         oss << "layout(set = " << shader_resource->set().get_value() << ", binding=" << binding << ") uniform sampler2D " << shader_variable->name();
 #if 0

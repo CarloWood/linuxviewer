@@ -69,13 +69,13 @@ class ShaderInputData
   shaderbuilder::ShaderResourceDeclarationContext m_shader_resource_declaration_context;// Declaration context used for shader resources (ShaderResource).
   using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
   glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
+  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
 
   //---------------------------------------------------------------------------
 
   std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
-  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
 
  private:
   //---------------------------------------------------------------------------
@@ -123,6 +123,8 @@ class ShaderInputData
   //---------------------------------------------------------------------------
 
  public:
+  ShaderInputData() : m_shader_resource_declaration_context(this) { }
+
   template<typename ENTRY>
   requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
@@ -160,6 +162,11 @@ class ShaderInputData
       m_sorted_descriptor_set_layouts.resize(set_index.get_value() + 1);
   }
 
+  void push_back_descriptor_set_layout_binding(descriptor::SetIndex set_index, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
+  {
+    m_sorted_descriptor_set_layouts[set_index].push_back(descriptor_set_layout_binding);
+  }
+
   // Called from PushConstantDeclarationContext::glsl_id_str_is_used_in.
   void insert(vk::PushConstantRange const& push_constant_range)
   {
@@ -175,6 +182,8 @@ class ShaderInputData
 
   std::vector<vk::DescriptorSetLayout> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
   {
+    DoutEntering(dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ")");
+    Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
     std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts;
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
     {

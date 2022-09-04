@@ -2,8 +2,10 @@
 
 #include "LayoutBindingCompare.h"
 #include "utils/VectorCompare.h"
+#include "utils/sorted_vector_insert.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include <algorithm>
 #include "debug.h"
 
 namespace vulkan {
@@ -28,6 +30,10 @@ class SetLayout
   SetLayout(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings, vk::DescriptorSetLayout handle) :
     m_sorted_bindings(std::move(sorted_bindings)), m_handle(handle) { }
 #endif
+  void push_back(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
+  {
+    utils::sorted_vector_insert(m_sorted_bindings, descriptor_set_layout_binding, LayoutBindingCompare{});
+  }
 
   // Look up m_sorted_bindings in cache, and create a new handle if it doesn't already exist.
   void realize_handle(LogicalDevice const* logical_device);
