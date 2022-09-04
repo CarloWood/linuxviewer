@@ -189,12 +189,12 @@ layout(location = 1) out float v_Distance;
 void main()
 {
   v_Texcoord = VertexData::m_texture_coordinates;
-  v_Distance = 1.0 - InstanceData::m_position[1].z;        // Darken with distance
+  v_Distance = 1.0 - InstanceData::m_position[1].z;     // Darken with distance.
 
   vec4 position = VertexData::m_position[1];
   // Use PushConstant::pc5
-  position.y *= PushConstant::aspect_scale;             // Adjust to screen aspect ration
-  position.xy *= pow( v_Distance, 0.5 );                // Scale with distance
+  position.y *= PushConstant::aspect_scale;             // Adjust to screen aspect ration.
+  position.xy *= pow(v_Distance, 0.5);                  // Scale with distance.
   gl_Position = position + InstanceData::m_position[1];
 }
 )glsl";
