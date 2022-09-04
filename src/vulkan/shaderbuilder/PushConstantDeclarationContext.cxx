@@ -69,9 +69,9 @@ void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_
   }
 }
 
-std::string PushConstantDeclarationContext::generate_declaration(vk::ShaderStageFlagBits shader_stage) const
+std::string PushConstantDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
 {
-  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate_declaration(" << shader_stage << ")");
+  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate(" << shader_stage << ")");
 
   // No declaration if this stage doesn't use any push constants.
   if (!m_minimum_offset.contains(shader_stage))

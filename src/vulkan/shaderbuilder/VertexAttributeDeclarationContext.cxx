@@ -28,7 +28,7 @@ void VertexAttributeDeclarationContext::glsl_id_str_is_used_in(char const* glsl_
   update_location(vertex_attribute);
 }
 
-std::string VertexAttributeDeclarationContext::generate_declaration(vk::ShaderStageFlagBits shader_stage) const
+std::string VertexAttributeDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
 {
   std::ostringstream oss;
   ASSERT(m_next_location <= 999); // 3 chars max.

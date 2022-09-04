@@ -13,7 +13,7 @@ class ShaderVariable;
 struct DeclarationContext
 {
   virtual ~DeclarationContext() = default;
-  virtual std::string generate_declaration(vk::ShaderStageFlagBits shader_stage) const = 0;
+  virtual std::string generate(vk::ShaderStageFlagBits shader_stage) const = 0;
 };
 
 } // namespace vulkan::shaderbuilder

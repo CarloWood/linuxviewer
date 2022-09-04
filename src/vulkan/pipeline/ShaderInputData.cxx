@@ -47,7 +47,7 @@ std::string_view ShaderInputData::preprocess(
   }
   std::string declarations;
   for (shaderbuilder::DeclarationContext const* declaration_context : declaration_contexts)
-    declarations += declaration_context->generate_declaration(shader_info.stage());
+    declarations += declaration_context->generate(shader_info.stage());
   declarations += '\n';
 
   static constexpr char const* version_header = "#version 450\n\n";

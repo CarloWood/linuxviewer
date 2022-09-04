@@ -24,7 +24,7 @@ struct VertexAttributeDeclarationContext final : DeclarationContext
 
   void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data);
 
-  std::string generate_declaration(vk::ShaderStageFlagBits shader_stage) const override;
+  std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
 };
 
 } // namespace vulkan::shaderbuilder

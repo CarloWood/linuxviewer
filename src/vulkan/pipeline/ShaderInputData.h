@@ -70,6 +70,7 @@ class ShaderInputData
   using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
   glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
+  identifier::KeyToSetIndex m_shader_resource_key_to_set_index; // Maps identifier::Key's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
@@ -135,6 +136,8 @@ class ShaderInputData
   void add_push_constant();
 
   void add_texture(Texture const& texture);
+  // Reserve one shader resource binding for the set with set_index.
+  void reserve_binding(descriptor::SetIndex set_index) { m_shader_resource_declaration_context.reserve_binding(set_index); }
 
   void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
       shaderbuilder::SPIRVCache& spirv_cache

@@ -305,7 +305,7 @@ void main()
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
 // FIXME: this should be generated.
-layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
+//layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
 
@@ -313,14 +313,14 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  vec4 vort3_image = texture(u_Vort3Texture, v_Texcoord);
+  vec4 vort3_image = texture(Texture::vort3, v_Texcoord);
   outColor = vort3_image;
 }
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle2_frag_glsl = R"glsl(
 // FIXME: this should be generated.
-layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
+//layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
 
@@ -328,7 +328,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  vec4 vort3_image = texture(u_Vort3Texture, v_Texcoord);
+  vec4 vort3_image = texture(Texture::vort3, v_Texcoord);
   outColor = vort3_image;
 }
 )glsl";
@@ -391,6 +391,12 @@ void main()
       flat_create_info.add(&m_pipeline_color_blend_attachment_states);
       flat_create_info.add(&m_dynamic_states);
       flat_create_info.add_descriptor_set_layouts(&m_shader_input_data.sorted_descriptor_set_layouts());
+
+      // Define the pipeline.
+      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{0});
+      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{1});
+      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{2});
+      m_shader_input_data.add_texture(window->m_sample_texture);
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

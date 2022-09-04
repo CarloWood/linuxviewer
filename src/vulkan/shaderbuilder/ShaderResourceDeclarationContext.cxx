@@ -7,20 +7,27 @@
 
 namespace vulkan::shaderbuilder {
 
+void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetIndex set_index)
+{
+  if (m_next_binding.iend() <= set_index)
+    m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
+  m_next_binding[set_index] += 1;
+}
+
 void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shader_resource)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource << ") [" << this << "]");
-  descriptor::SetIndex set = shader_resource->set();
-  if (m_next_binding.iend() <= set)
-    m_next_binding.resize(set.get_value() + 1);         // New elements are initialized to 0.
-  m_bindings[shader_resource] = m_next_binding[set];
+  descriptor::SetIndex set_index = shader_resource->set();
+  if (m_next_binding.iend() <= set_index)
+    m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
+  m_bindings[shader_resource] = m_next_binding[set_index];
   int number_of_bindings = 1;
 #if 0
   if (vertex_attribute->layout().m_array_size > 0)
     number_of_attribute_indices *= vertex_attribute->layout().m_array_size;
 #endif
-  Dout(dc::notice, "Changing m_next_binding[set:" << set << "] from " << m_next_binding[set] << " to " << (m_next_binding[set] + number_of_bindings) << ".");
-  m_next_binding[set] += number_of_bindings;
+  Dout(dc::notice, "Changing m_next_binding[set:" << set_index << "] from " << m_next_binding[set_index] << " to " << (m_next_binding[set_index] + number_of_bindings) << ".");
+  m_next_binding[set_index] += number_of_bindings;
 }
 
 void ShaderResourceDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data)
@@ -40,7 +47,7 @@ void ShaderResourceDeclarationContext::glsl_id_str_is_used_in(char const* glsl_i
   }
 }
 
-std::string ShaderResourceDeclarationContext::generate_declaration(vk::ShaderStageFlagBits shader_stage) const
+std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
 {
   std::ostringstream oss;
   for (auto&& shader_resource_binding_pair : m_bindings)
@@ -60,7 +67,7 @@ std::string ShaderResourceDeclarationContext::generate_declaration(vk::ShaderSta
             .pImmutableSamplers = nullptr
         });
         // layout(set=0, binding=0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource->set().get_value() << ", binding=" << binding << ") uniform sampler2D " << shader_variable->name();
+        oss << "layout(set = " << shader_resource->set().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable->name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';
