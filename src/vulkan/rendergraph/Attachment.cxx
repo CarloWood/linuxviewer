@@ -1,8 +1,10 @@
 #include "sys.h"
 #include "Attachment.h"
 #include "SynchronousWindow.h"
+#ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include "debug/debug_ostream_operators.h"
+#endif
 
 namespace vulkan::rendergraph {
 

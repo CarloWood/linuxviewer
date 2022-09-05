@@ -5,10 +5,11 @@
 #include "TopPosition.h"
 #include "LeftPosition.h"
 #include "BottomPosition.h"
-#include "memory/UniformBuffer.h"
+#include "shader_resource/UniformBuffer.h"
 #include "queues/CopyDataToImage.h"
 #include "vulkan/Pipeline.h"
 #include "vulkan/shaderbuilder/ShaderIndex.h"
+#include "vulkan/descriptor/SetKeyPreference.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
@@ -35,7 +36,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  vulkan::Texture m_sample_texture;
+  vulkan::shader_resource::Texture m_sample_texture;
 
   enum class LocalShaderIndex {
     vertex1,
@@ -47,9 +48,10 @@ class Window : public task::SynchronousWindow
 
   vulkan::Pipeline m_graphics_pipeline1;
   vulkan::Pipeline m_graphics_pipeline2;
-  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_top_buffer;
-  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_left_buffer;
-  utils::Vector<vulkan::memory::UniformBuffer, vulkan::FrameResourceIndex> m_bottom_buffer;
+
+  vulkan::shader_resource::UniformBuffer m_top_buffer;
+  vulkan::shader_resource::UniformBuffer m_left_buffer;
+  vulkan::shader_resource::UniformBuffer m_bottom_buffer;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -104,7 +106,7 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_sample_texture = vulkan::Texture("vort3", m_logical_device,
+        m_sample_texture = vulkan::shader_resource::Texture("vort3", m_logical_device,
             texture_data.extent(), sample_image_view_kind,
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
@@ -144,36 +146,34 @@ class Window : public task::SynchronousWindow
     m_vh_left_descriptor_set = descriptor_sets[1];
     m_vh_bottom_descriptor_set = descriptor_sets[2];
 
-    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_top_buffer.emplace_back(logical_device(), top_position_array_size * sizeof(TopPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer[" + to_string(i) + "]")));
+    m_top_buffer.create(this, top_position_array_size * sizeof(TopPosition)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer")));
+    m_left_buffer.create(this, sizeof(LeftPosition)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_left_buffer")));
+    m_bottom_buffer.create(this, sizeof(BottomPosition)
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_bottom_buffer")));
 
-    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_left_buffer.emplace_back(logical_device(), sizeof(LeftPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_left_buffer[" + to_string(i) + "]")));
-
-    for (vulkan::FrameResourceIndex i{0}; i != max_number_of_frame_resources(); ++i)
-      m_bottom_buffer.emplace_back(logical_device(), sizeof(BottomPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_bottom_buffer[" + to_string(i) + "]")));
+    // FIXME: not implemented: currently we're only using the first frame resource!
+    vulkan::FrameResourceIndex const hack0{0};
 
     // Information about the buffer we want to point at in the descriptor.
     std::vector<vk::DescriptorBufferInfo> top_buffer_infos = {
       {
-        .buffer = m_top_buffer.begin()->m_vh_buffer,
+        .buffer = m_top_buffer[hack0].m_vh_buffer,
         .offset = 0,
         .range = top_position_array_size * sizeof(TopPosition)
       }
     };
     std::vector<vk::DescriptorBufferInfo> left_buffer_infos = {
       {
-        .buffer = m_left_buffer.begin()->m_vh_buffer,
+        .buffer = m_left_buffer[hack0].m_vh_buffer,
         .offset = 0,
         .range = sizeof(LeftPosition)
       }
     };
     std::vector<vk::DescriptorBufferInfo> bottom_buffer_infos = {
       {
-        .buffer = m_bottom_buffer.begin()->m_vh_buffer,
+        .buffer = m_bottom_buffer[hack0].m_vh_buffer,
         .offset = 0,
         .range = sizeof(BottomPosition)
       }
@@ -187,9 +187,9 @@ class Window : public task::SynchronousWindow
 
     // Fill the buffer...
     for (int i = 0; i < top_position_array_size; ++i)
-      ((TopPosition*)(m_top_buffer.begin()->m_pointer))[i].x = 0.8;
-    ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = 0.5;
-    ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = 0.5;
+      ((TopPosition*)(m_top_buffer[hack0].pointer()))[i].x = 0.8;
+    ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = 0.5;
+    ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = 0.5;
 
     // Update descriptor set of m_sample_texture.
     {
@@ -393,10 +393,17 @@ void main()
       flat_create_info.add_descriptor_set_layouts(&m_shader_input_data.sorted_descriptor_set_layouts());
 
       // Define the pipeline.
-      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{0});
-      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{1});
-      m_shader_input_data.reserve_binding(vulkan::descriptor::SetIndex{2});
-      m_shader_input_data.add_texture(window->m_sample_texture);
+      vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
+      vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
+
+      m_shader_input_data.add_uniform_buffer(window->m_top_buffer);
+      m_shader_input_data.add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
+      m_shader_input_data.add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
+      m_shader_input_data.add_texture(window->m_sample_texture, { top_set_key_preference });
+
+      m_shader_input_data.reserve_binding(window->m_top_buffer.descriptor_set_key());
+      m_shader_input_data.reserve_binding(window->m_left_buffer.descriptor_set_key());
+      m_shader_input_data.reserve_binding(window->m_bottom_buffer.descriptor_set_key());
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -692,9 +699,13 @@ else
     ImGui::SliderFloat("Left position", &m_left_position, -1.0, 1.0);
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
-    ((TopPosition*)(m_top_buffer.begin()->m_pointer))[0].x = m_top_position;
-    ((TopPosition*)(m_top_buffer.begin()->m_pointer))[1].x = m_top_position + 0.1;
-    ((LeftPosition*)(m_left_buffer.begin()->m_pointer))->y = m_left_position;
-    ((BottomPosition*)(m_bottom_buffer.begin()->m_pointer))->x = m_bottom_position;
+
+    // FIXME: not implemented: currently we're only using the first frame resource!
+    vulkan::FrameResourceIndex const hack0{0};
+
+    ((TopPosition*)(m_top_buffer[hack0].pointer()))[0].x = m_top_position;
+    ((TopPosition*)(m_top_buffer[hack0].pointer()))[1].x = m_top_position + 0.1;
+    ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = m_left_position;
+    ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = m_bottom_position;
   }
 };

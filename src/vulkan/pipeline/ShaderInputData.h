@@ -1,7 +1,8 @@
 #ifndef VULKAN_PIPELINE_PIPELINE_H
 #define VULKAN_PIPELINE_PIPELINE_H
 
-#include "Texture.h"
+#include "descriptor/SetKeyToSetIndex.h"
+#include "descriptor/SetKeyPreference.h"
 #include "shaderbuilder/ShaderInfo.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/SPIRVCache.h"
@@ -29,19 +30,24 @@ class SynchronousWindow;
 } // namespace task
 
 namespace vulkan {
-class LogicalDevice;
-} // namespace vulkan
 
-namespace vulkan::shaderbuilder {
+class LogicalDevice;
+
+namespace shaderbuilder {
 
 class VertexShaderInputSetBase;
 template<typename ENTRY> class VertexShaderInputSet;
 
 struct VertexAttribute;
 
-} // namespace vulkan::shaderbuilder
+} // namespace shaderbuilder
 
-namespace vulkan::pipeline {
+namespace shader_resource {
+class Texture;
+class UniformBuffer;
+} // namespace shader_resource
+
+namespace pipeline {
 
 class ShaderInputData
 {
@@ -70,7 +76,7 @@ class ShaderInputData
   using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
   glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
-  identifier::KeyToSetIndex m_shader_resource_key_to_set_index; // Maps identifier::Key's to identifier::SetIndex's.
+  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index; // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
@@ -135,9 +141,16 @@ class ShaderInputData
   requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
-  void add_texture(Texture const& texture);
+  void add_texture(shader_resource::Texture const& texture,
+      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
+      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
+
+  void add_uniform_buffer(shader_resource::UniformBuffer const& uniform_buffer,
+      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
+      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
+
   // Reserve one shader resource binding for the set with set_index.
-  void reserve_binding(descriptor::SetIndex set_index) { m_shader_resource_declaration_context.reserve_binding(set_index); }
+  void reserve_binding(descriptor::SetKey set_key) { m_shader_resource_declaration_context.reserve_binding(set_key); }
 
   void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
       shaderbuilder::SPIRVCache& spirv_cache
@@ -219,7 +232,8 @@ class ShaderInputData
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
 };
 
-} // namespace vulkan::pipeline
+} // namespace pipeline
+} // namespace vulkan
 
 #endif // VULKAN_PIPELINE_PIPELINE_H
 

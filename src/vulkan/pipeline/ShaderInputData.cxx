@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
+#include "shader_resource/UniformBuffer.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 
@@ -358,9 +359,14 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   return vertex_input_attribute_descriptions;
 }
 
-void ShaderInputData::add_texture(Texture const& texture)
+void ShaderInputData::add_texture(shader_resource::Texture const& texture,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ")");
+  DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
+
+  //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
+  ASSERT(false);
 
   shaderbuilder::ShaderResource shader_resource_tmp(texture.glsl_id_str().c_str(), vk::DescriptorType::eCombinedImageSampler);
 
@@ -368,6 +374,15 @@ void ShaderInputData::add_texture(Texture const& texture)
   // The m_glsl_id_str of each Texture must be unique. And of course, don't register the same texture twice.
   ASSERT(res1.second);
   m_shader_variables.push_back(&res1.first->second);
+}
+
+void ShaderInputData::add_uniform_buffer(shader_resource::UniformBuffer const& uniform_buffer,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
+  //FIXME: implement.
+  ASSERT(false);
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

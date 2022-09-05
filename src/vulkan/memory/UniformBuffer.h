@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Buffer.h"
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#endif
 
 namespace vulkan::memory {
 
@@ -23,6 +26,8 @@ struct UniformBuffer : Buffer
   using MemoryCreateInfo = UniformBufferMemoryCreateInfoDefaults;
 
  private:
+  void* m_pointer;
+
   static VmaAllocationInfo* allocation_info_ptr(MemoryCreateInfo const& memory_create_info, VmaAllocationInfo& vma_allocation_info_tmp)
   {
     if (memory_create_info.allocation_info_out == reinterpret_cast<VmaAllocationInfo*>(MemoryCreateInfo::use_temporary_allocation_info_magic))
@@ -59,7 +64,12 @@ struct UniformBuffer : Buffer
 #endif
   }
 
-  void* m_pointer;
+  // Accessor.
+  void* pointer() const { return m_pointer; }
+
+#if CW_DEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 } // namespace vulkan::memory

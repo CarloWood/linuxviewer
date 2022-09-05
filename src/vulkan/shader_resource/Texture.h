@@ -1,13 +1,16 @@
 #pragma once
 
 #include "memory/Image.h"
+#include "descriptor/SetKey.h"
+#include "descriptor/SetKeyContext.h"
 
-namespace vulkan {
+namespace vulkan::shader_resource {
 
 // Data collection used for textures.
 struct Texture : public memory::Image
 {
  private:
+  descriptor::SetKey    m_descriptor_set_key;
   std::string           m_glsl_id_str;
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
@@ -25,6 +28,7 @@ struct Texture : public memory::Image
       vk::UniqueSampler&& sampler,
       MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+    m_descriptor_set_key(descriptor::SetKeyContext::instance()),
     m_glsl_id_str(std::string{"Texture::"}.append(glsl_id_str_postfix)),
     memory::Image(logical_device, extent, image_view_kind, memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix)),
@@ -76,6 +80,8 @@ struct Texture : public memory::Image
   std::string const& glsl_id_str() const { return m_glsl_id_str; }
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }
+
+  descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
 };
 
-} // namespace vulkan
+} // namespace vulkan::shader_resource

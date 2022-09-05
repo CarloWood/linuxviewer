@@ -49,8 +49,8 @@ class Window : public task::SynchronousWindow
   vertex_buffers_type m_vertex_buffers;
 
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
-  vulkan::Texture m_background_texture;
-  vulkan::Texture m_benchmark_texture;
+  vulkan::shader_resource::Texture m_background_texture;
+  vulkan::shader_resource::Texture m_benchmark_texture;
   vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
@@ -120,7 +120,7 @@ class Window : public task::SynchronousWindow
         static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
         m_background_texture =
-          vulkan::Texture(
+          vulkan::shader_resource::Texture(
               "background",
               m_logical_device,
               texture_data.extent(), background_image_view_kind,
@@ -154,7 +154,7 @@ class Window : public task::SynchronousWindow
 
         static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_benchmark_texture = vulkan::Texture(
+        m_benchmark_texture = vulkan::shader_resource::Texture(
             "benchmark",
             m_logical_device,
             texture_data.extent(), sample_image_view_kind,

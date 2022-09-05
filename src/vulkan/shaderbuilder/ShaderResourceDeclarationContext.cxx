@@ -7,11 +7,15 @@
 
 namespace vulkan::shaderbuilder {
 
-void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetIndex set_index)
+void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_key)
 {
+  //FIXME: need to convert set_key to set_index
+  ASSERT(false);
+#if 0
   if (m_next_binding.iend() <= set_index)
     m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
   m_next_binding[set_index] += 1;
+#endif
 }
 
 void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shader_resource)

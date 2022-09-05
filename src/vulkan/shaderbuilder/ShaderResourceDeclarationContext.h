@@ -2,6 +2,7 @@
 
 #include "DeclarationContext.h"
 #include "descriptor/SetIndex.h"
+#include "descriptor/SetKey.h"
 #include <cstdint>
 #include <map>
 
@@ -26,7 +27,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
     return m_bindings.at(shader_resource);
   }
 
-  void reserve_binding(descriptor::SetIndex set_index);
+  void reserve_binding(descriptor::SetKey descriptor_set_key);
   void update_binding(ShaderResource const* shader_resource);
 
   void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data);

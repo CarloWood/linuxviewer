@@ -8,6 +8,7 @@
 #include "GraphicsSettings.h"
 #include "shaderbuilder/VertexAttribute.h"
 #include "shaderbuilder/ShaderInfos.h"
+#include "descriptor/SetKeyContext.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"

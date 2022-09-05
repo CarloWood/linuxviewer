@@ -6,7 +6,6 @@
 #include "PresentationSurface.h"
 #include "Swapchain.h"
 #include "CurrentFrameData.h"
-#include "Texture.h"
 #include "OperatingSystem.h"
 #include "SynchronousEngine.h"
 #include "Concepts.h"
@@ -16,6 +15,7 @@
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
 #include "Pipeline.h"
+#include "shader_resource/Texture.h"
 #include "queues/QueueReply.h"
 #include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
@@ -423,7 +423,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
-  vulkan::Texture upload_texture(char const* glsl_id_str_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
+  vulkan::shader_resource::Texture upload_texture(char const* glsl_id_str_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
       AIStatefulTask::condition_type texture_ready
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name));
