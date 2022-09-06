@@ -9,19 +9,16 @@ namespace vulkan::shaderbuilder {
 
 void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_key)
 {
-  //FIXME: need to convert set_key to set_index
-  ASSERT(false);
-#if 0
+  descriptor::SetIndex set_index = m_owning_shader_input_data->get_set_index(set_key);
   if (m_next_binding.iend() <= set_index)
     m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
   m_next_binding[set_index] += 1;
-#endif
 }
 
 void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shader_resource)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource << ") [" << this << "]");
-  descriptor::SetIndex set_index = shader_resource->set();
+  descriptor::SetIndex set_index = shader_resource->set_index();
   if (m_next_binding.iend() <= set_index)
     m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
   m_bindings[shader_resource] = m_next_binding[set_index];
@@ -63,7 +60,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
     switch (shader_resource->descriptor_type())
     {
       case vk::DescriptorType::eCombinedImageSampler:
-        m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set(), {
+        m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set_index(), {
             .binding = binding,
             .descriptorType = shader_resource->descriptor_type(),
             .descriptorCount = 1,
@@ -71,7 +68,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
             .pImmutableSamplers = nullptr
         });
         // layout(set=0, binding=0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource->set().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable->name();
+        oss << "layout(set = " << shader_resource->set_index().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable->name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';

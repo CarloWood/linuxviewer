@@ -366,9 +366,11 @@ void ShaderInputData::add_texture(shader_resource::Texture const& texture,
   DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
 
   //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
-  ASSERT(false);
+  descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
+  descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
+  Dout(dc::vulkan, "Using SetIndex " << set_index);
 
-  shaderbuilder::ShaderResource shader_resource_tmp(texture.glsl_id_str().c_str(), vk::DescriptorType::eCombinedImageSampler);
+  shaderbuilder::ShaderResource shader_resource_tmp(texture.glsl_id_str().c_str(), vk::DescriptorType::eCombinedImageSampler, set_index);
 
   auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{texture.glsl_id_str(), shader_resource_tmp});
   // The m_glsl_id_str of each Texture must be unique. And of course, don't register the same texture twice.
@@ -376,7 +378,7 @@ void ShaderInputData::add_texture(shader_resource::Texture const& texture,
   m_shader_variables.push_back(&res1.first->second);
 }
 
-void ShaderInputData::add_uniform_buffer(shader_resource::UniformBuffer const& uniform_buffer,
+void ShaderInputData::add_uniform_buffer(shader_resource::UniformBufferBase const& uniform_buffer,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -385,6 +387,13 @@ void ShaderInputData::add_uniform_buffer(shader_resource::UniformBuffer const& u
   descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
+
+  shaderbuilder::ShaderResource shader_resource_tmp(uniform_buffer.glsl_id_str_prefix().c_str(), vk::DescriptorType::eUniformBuffer, set_index);
+
+  auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{uniform_buffer.glsl_id_str_prefix(), shader_resource_tmp});
+  // The m_glsl_id_str_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
+  ASSERT(res1.second);
+  m_shader_variables.push_back(&res1.first->second);
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

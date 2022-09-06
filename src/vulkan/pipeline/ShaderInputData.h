@@ -48,7 +48,7 @@ struct VertexAttribute;
 
 namespace shader_resource {
 class Texture;
-class UniformBuffer;
+class UniformBufferBase;
 } // namespace shader_resource
 
 namespace pipeline {
@@ -149,7 +149,7 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void add_uniform_buffer(shader_resource::UniformBuffer const& uniform_buffer,
+  void add_uniform_buffer(shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -234,6 +234,9 @@ class ShaderInputData
   shaderbuilder::ShaderResourceDeclarationContext& shader_resource_context(utils::Badge<shaderbuilder::ShaderResource>) { return m_shader_resource_declaration_context; }
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
+
+  // Used by ShaderResourceDeclarationContext::reserve_binding.
+  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
 };
 
 } // namespace pipeline

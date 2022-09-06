@@ -12,7 +12,7 @@ DeclarationContext const& ShaderResource::is_used_in(vk::ShaderStageFlagBits sha
   DoutEntering(dc::vulkan, "ShaderResource::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
   // Check if this is a new set.
-  shader_input_data->saw_set(m_set);
+  shader_input_data->saw_set(m_set_index);
 
   // We must use a single declaration context for all shader resources as this context is used to enumerate the 'set=' and 'binding=' values.
   ShaderResourceDeclarationContext& declaration_context = shader_input_data->shader_resource_context({});

@@ -49,9 +49,9 @@ class Window : public task::SynchronousWindow
   vulkan::Pipeline m_graphics_pipeline1;
   vulkan::Pipeline m_graphics_pipeline2;
 
-  vulkan::shader_resource::UniformBuffer m_top_buffer;
-  vulkan::shader_resource::UniformBuffer m_left_buffer;
-  vulkan::shader_resource::UniformBuffer m_bottom_buffer;
+  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer;
+  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer;
+  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -401,9 +401,9 @@ void main()
       m_shader_input_data.add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
       m_shader_input_data.add_texture(window->m_sample_texture, { top_set_key_preference });
 
-      m_shader_input_data.reserve_binding(window->m_top_buffer.descriptor_set_key());
-      m_shader_input_data.reserve_binding(window->m_left_buffer.descriptor_set_key());
-      m_shader_input_data.reserve_binding(window->m_bottom_buffer.descriptor_set_key());
+//      m_shader_input_data.reserve_binding(window->m_top_buffer.descriptor_set_key());
+//      m_shader_input_data.reserve_binding(window->m_left_buffer.descriptor_set_key());
+//      m_shader_input_data.reserve_binding(window->m_bottom_buffer.descriptor_set_key());
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

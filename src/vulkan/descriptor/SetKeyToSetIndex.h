@@ -22,6 +22,14 @@ class SetKeyToSetIndex
     Dout(dc::vulkan, "Returning SetIndex " << res.first->second);
     return res.first->second;
   }
+
+  SetIndex get_set_index(SetKey set_key) const
+  {
+    auto set_index = m_set_key_to_set_index.find(set_key);
+    // Don't call get_set_index for a key that wasn't first passed to try_emplace.
+    ASSERT(set_index != m_set_key_to_set_index.end());
+    return set_index->second;
+  }
 };
 
 } // namespace vulkan::identifier
