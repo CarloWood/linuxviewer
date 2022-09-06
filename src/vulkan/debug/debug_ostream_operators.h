@@ -4,6 +4,7 @@
 #include "Defaults.h"           // For its print_on capability.
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
+#include <iostream>
 
 // ostream inserters for objects in namespace vk:
 #define DECLARE_OSTREAM_INSERTER(vk_class) \
@@ -110,6 +111,6 @@ struct VmaAllocationCreateInfo;
 std::ostream& operator<<(std::ostream& os, VmaAllocationInfo const& vma_allocation_info);
 std::ostream& operator<<(std::ostream& os, VmaAllocationCreateInfo const& vma_allocation_create_info);
 
-#endif // CWDEBUG
-
 #undef DECLARE_OSTREAM_INSERTER
+
+#endif // CWDEBUG

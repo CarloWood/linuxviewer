@@ -8,14 +8,16 @@
 #include "threadsafe/aithreadsafe.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
 #include "utils/ulong_to_base.h"
-#include "debug.h"
-#include "debug/DebugSetName.h"
 #include <boost/serialization/serialization.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <vulkan/vulkan.hpp>
 #include <filesystem>
 #include <cstdlib>
+#ifdef CWDEBUG
+#include "debug/DebugSetName.h"
+#endif
+#include "debug.h"
 
 namespace task {
 

@@ -21,11 +21,11 @@
 #include <boost/intrusive_ptr.hpp>
 #include <filesystem>
 #include <deque>
-#include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessenger.h"
 #include "cwds/debug_ostream_operators.h"
 #endif
+#include "debug.h"
 
 namespace task {
 class SynchronousWindow;

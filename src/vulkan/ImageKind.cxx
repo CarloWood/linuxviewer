@@ -2,12 +2,13 @@
 
 #include "ImageKind.h"
 #include "PresentationSurface.h"
-#include "debug/vulkan_print_on.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/print_list.h"
 #ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
 #include "debug/debug_ostream_operators.h"
 #endif
+#include "debug.h"
 
 namespace vulkan {
 

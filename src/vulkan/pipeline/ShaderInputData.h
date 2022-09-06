@@ -1,6 +1,8 @@
 #ifndef VULKAN_PIPELINE_PIPELINE_H
 #define VULKAN_PIPELINE_PIPELINE_H
 
+#include "PushConstantRangeCompare.h"
+#include "descriptor/SetLayout.h"
 #include "descriptor/SetKeyToSetIndex.h"
 #include "descriptor/SetKeyPreference.h"
 #include "shaderbuilder/ShaderInfo.h"
@@ -12,7 +14,6 @@
 #include "shaderbuilder/PushConstantDeclarationContext.h"
 #include "shaderbuilder/ShaderResource.h"
 #include "shaderbuilder/ShaderResourceDeclarationContext.h"
-#include "debug/DebugSetName.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
@@ -22,6 +23,9 @@
 #include <tuple>
 #include <memory>
 #include <cxxabi.h>
+#ifdef CWDEBUG
+#include "debug/DebugSetName.h"
+#endif
 
 // Forward declarations.
 

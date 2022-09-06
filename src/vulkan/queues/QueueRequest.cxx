@@ -1,10 +1,10 @@
 #include "sys.h"
 #include "QueueRequest.h"
-#include "debug.h"
 #ifdef CWDEBUG
 #include "cwds/debug_ostream_operators.h"
 #include "debug/vulkan_print_on.h"
 #endif
+#include "debug.h"
 
 namespace vulkan {
 

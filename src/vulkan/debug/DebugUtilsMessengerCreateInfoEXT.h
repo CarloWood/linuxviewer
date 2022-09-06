@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef CWDEBUG
+
 #include "Defaults.h"
 #include "Application.h"
 
@@ -7,10 +9,10 @@ namespace vulkan {
 
 class DebugUtilsMessengerCreateInfoEXT : public vk_defaults::DebugUtilsMessengerCreateInfoEXT
 {
-#ifdef CWDEBUG
  public:
   DebugUtilsMessengerCreateInfoEXT(PFN_vkDebugUtilsMessengerCallbackEXT user_call_back, void* user_data);
-#endif
 };
 
 } // namespace vulkan
+
+#endif // CWDEBUG

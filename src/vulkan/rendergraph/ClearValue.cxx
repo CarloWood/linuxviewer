@@ -2,7 +2,6 @@
 #include "ClearValue.h"
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
-#include <iostream>
 #endif
 
 namespace vulkan::rendergraph {

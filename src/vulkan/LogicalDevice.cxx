@@ -1,5 +1,4 @@
 #include "sys.h"
-#include "debug/vulkan_print_on.h"
 #include "CommandBuffer.h"
 #include "Application.h"
 #include "LogicalDevice.h"
@@ -11,10 +10,13 @@
 #include "infos/DeviceCreateInfo.h"
 #include "vk_utils/find_missing_names.h"
 #include "vk_utils/get_binary_file_contents.h"
-#include "debug/DebugSetName.h"
 #include "utils/is_power_of_two.h"
 #include "utils/MultiLoop.h"
 #include <boost/lexical_cast.hpp>
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#include "debug/DebugSetName.h"
+#endif
 #include "debug.h"
 
 namespace vulkan {

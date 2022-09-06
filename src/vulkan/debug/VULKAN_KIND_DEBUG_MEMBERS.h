@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef CWDEBUG
+#define VULKAN_KIND_DEBUG_MEMBERS
+#else
+
 #define VULKAN_KIND_PRINT_ON_MEMBERS \
   void print_on(std::ostream& os) const \
   { \
@@ -9,8 +13,6 @@
   } \
   void print_members(std::ostream& os) const;
 
-#ifndef CWDEBUG
-#define VULKAN_KIND_DEBUG_MEMBERS
-#else
 #define VULKAN_KIND_DEBUG_MEMBERS VULKAN_KIND_PRINT_ON_MEMBERS
-#endif
+
+#endif // CWDEBUG

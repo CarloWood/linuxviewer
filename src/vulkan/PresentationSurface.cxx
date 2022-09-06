@@ -2,8 +2,8 @@
 
 #include "PresentationSurface.h"
 #include "SynchronousWindow.h"
-#include "debug/DebugSetName.h"
 #ifdef CWDEBUG
+#include "debug/DebugSetName.h"
 #include "debug/debug_ostream_operators.h"
 #endif
 

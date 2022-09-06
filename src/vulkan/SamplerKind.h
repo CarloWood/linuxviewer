@@ -1,8 +1,7 @@
 #pragma once
 
-#include "debug/VULKAN_KIND_DEBUG_MEMBERS.h"
 #include <vulkan/vulkan.hpp>
-#include <iosfwd>
+#include "debug/VULKAN_KIND_DEBUG_MEMBERS.h"
 
 namespace vulkan {
 

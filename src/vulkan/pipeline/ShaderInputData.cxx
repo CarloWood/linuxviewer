@@ -382,7 +382,9 @@ void ShaderInputData::add_uniform_buffer(shader_resource::UniformBuffer const& u
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
   //FIXME: implement.
-  ASSERT(false);
+  descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
+  descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
+  Dout(dc::vulkan, "Using SetIndex " << set_index);
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

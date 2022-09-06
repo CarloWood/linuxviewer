@@ -12,11 +12,11 @@
 #include "descriptor/LayoutBindingCompare.h"
 #include "vk_utils/print_flags.h"
 #include "xcb-task/ConnectionBrokerKey.h"
-#include "debug/DebugSetName.h"
 #include "utils/cpu_relax.h"
 #include "utils/u8string_to_filename.h"
 #include "utils/malloc_size.h"
 #ifdef CWDEBUG
+#include "debug/DebugSetName.h"
 #include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
 #include "utils/at_scope_end.h"

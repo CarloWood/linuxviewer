@@ -4,7 +4,6 @@
 #include "PersistentAsyncTask.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "pipeline/PipelineCache.h"
-#include "debug/vulkan_print_on.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"
 #include "evio/EventLoop.h"
@@ -14,11 +13,12 @@
 #include <chrono>
 #include <iterator>
 #include <cctype>
-#include "debug.h"
 #ifdef CWDEBUG
 #include "debug/DebugUtilsMessengerCreateInfoEXT.h"
+#include "debug/vulkan_print_on.h"
 #include "utils/debug_ostream_operators.h"
 #endif
+#include "debug.h"
 
 namespace vulkan {
 

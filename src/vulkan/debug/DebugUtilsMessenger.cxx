@@ -3,8 +3,6 @@
 #ifdef CWDEBUG
 #include "Defaults.h"
 #include "DebugUtilsMessenger.h"
-#include "debug.h"
-#include "debug/vulkan_print_on.h"
 #include <magic_enum.hpp>
 #include <string_view>
 #include <vector>
@@ -12,6 +10,8 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include "debug/vulkan_print_on.h"
+#include "debug.h"
 
 namespace vulkan {
 
@@ -412,4 +412,4 @@ VkBool32 DebugUtilsMessenger::debugCallback(
 
 } // namespace vulkan
 
-#endif
+#endif // CWDEBUG

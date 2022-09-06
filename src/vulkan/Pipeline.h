@@ -1,8 +1,10 @@
 #pragma once
 
 #include "pipeline/Handle.h"
-#include "debug/vulkan_print_on.h"
 #include <vulkan/vulkan.hpp>
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#endif
 
 namespace vulkan {
 

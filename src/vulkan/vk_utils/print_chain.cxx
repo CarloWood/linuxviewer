@@ -1,7 +1,8 @@
 #include "sys.h"
+#ifdef CWDEBUG
 #include "print_chain.h"
 #include "debug/debug_ostream_operators.h"
-#include <iostream>
+#endif
 
 namespace vk_utils {
 
@@ -37,6 +38,7 @@ std::ostream& operator<<(std::ostream& os, PNextChain const* chain)
 
   return os;
 }
-#endif
+
+#endif // CWDEBUG
 
 } // namespace vk_utils

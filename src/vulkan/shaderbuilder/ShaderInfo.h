@@ -1,14 +1,13 @@
 #pragma once
 
 #include "ShaderCompiler.h"
-#include "debug/vulkan_print_on.h"
 #include <vulkan/vulkan.hpp>
 #include <shaderc/shaderc.h>    // shaderc_shader_kind, shaderc_glsl_infer_from_source
 #include <string>
 #include <filesystem>
 #include <concepts>
 #ifdef CWDEBUG
-#include <iosfwd>
+#include "debug/vulkan_print_on.h"
 #endif
 
 namespace task {

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "utils/UniqueID.h"
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#endif
 #include "debug.h"
 
 namespace vulkan::descriptor {
@@ -33,6 +36,13 @@ class SetKey
     // Do not call id() on a default constructed SetKey that wasn't assigned value with an id yet.
     ASSERT(m_debug_id_is_set);
     return m_id;
+  }
+
+  // SetKey is used as a key in a std::map (SetKeyToSetIndex).
+  // Add an ordering.
+  bool operator<(SetKey const& rhs) const
+  {
+    return m_id < rhs.m_id;
   }
 
 #ifdef CWDEBUG

@@ -1,18 +1,19 @@
 #pragma once
 
-#include "CurrentFrameData.h"
-#include "shader_resource/Texture.h"
-#include "memory/Buffer.h"
-#include "shaderbuilder/ShaderIndex.h"
-#include "shaderbuilder/VertexAttribute.h"
-#include "shaderbuilder/VertexShaderInputSet.h"
-#include "debug/DebugSetName.h"
-#include "debug.h"
-
 #include "CommandBuffer.h"      // handle::CommandBuffer
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
+#include "CurrentFrameData.h"
+#include "memory/Buffer.h"
+#include "shader_resource/Texture.h"
+#include "shaderbuilder/ShaderIndex.h"
+#include "shaderbuilder/VertexAttribute.h"
+#include "shaderbuilder/VertexShaderInputSet.h"
 #include "vk_utils/TimerData.h"
+#ifdef CWDEBUG
+#include "debug/DebugSetName.h"
+#endif
+#include "debug.h"
 
 // Theoretically we should include imgui.h to get the definition of ImDrawVert.
 // However - I think that any other class will do here, as long as it has the

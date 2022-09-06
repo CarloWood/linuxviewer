@@ -1,7 +1,9 @@
 #include "sys.h"
 #include "Allocator.h"
-#include "debug/DebugSetName.h"
 #include "utils/AIAlert.h"
+#ifdef CWDEBUG
+#include "debug/DebugSetName.h"
+#endif
 
 namespace vulkan::memory {
 

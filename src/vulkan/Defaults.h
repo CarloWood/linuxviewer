@@ -105,23 +105,19 @@ VK_DEFAULTS_DECLARE(InstanceCreateInfo)
   VK_DEFAULTS_DEBUG_MEMBERS
 };
 
+#ifdef CWDEBUG
 VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
 {
-#ifdef CWDEBUG
   static constexpr vk::DebugUtilsMessageTypeFlagsEXT default_messageType =
     vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
     vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
     vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
-#endif
 
   DebugUtilsMessengerCreateInfoEXT() : vk::DebugUtilsMessengerCreateInfoEXT{
-#ifdef CWDEBUG
     .messageSeverity         = vk::DebugUtilsMessageSeverityFlagBitsEXT::eError,
     .messageType             = default_messageType,
-#endif
   }
   {
-#ifdef CWDEBUG
     // Also turn on severity bits corresponding to debug channels that are on.
     if (DEBUGCHANNELS::dc::vkwarning.is_on())
       messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning;
@@ -129,10 +125,10 @@ VK_DEFAULTS_DECLARE(DebugUtilsMessengerCreateInfoEXT)
       messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo;
     if (DEBUGCHANNELS::dc::vkverbose.is_on())
       messageSeverity |= vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose;
-#endif
   }
   VK_DEFAULTS_DEBUG_MEMBERS
 };
+#endif // CWDEBUG
 
 VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
 {

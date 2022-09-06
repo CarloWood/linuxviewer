@@ -4,6 +4,7 @@
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #endif
+#include "debug.h"
 
 namespace vulkan::memory {
 

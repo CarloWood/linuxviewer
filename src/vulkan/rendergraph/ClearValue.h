@@ -1,10 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-#include "debug.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #endif
+#include "debug.h"
 
 namespace vulkan::rendergraph {
 
