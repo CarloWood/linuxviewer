@@ -23,3 +23,6 @@ src/http_login_Response
 src/login_Response.xml
 src/login_Response_formatted.xml
 external/glfw
+
+.vs/
+out/
