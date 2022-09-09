@@ -360,7 +360,7 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   return vertex_input_attribute_descriptions;
 }
 
-void ShaderInputData::add_texture(shader_resource::Texture const& texture,
+void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const& texture,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -392,7 +392,7 @@ void ShaderInputData::add_texture(shader_resource::Texture const& texture,
   }
 }
 
-void ShaderInputData::add_uniform_buffer(shader_resource::UniformBufferBase const& uniform_buffer,
+void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {

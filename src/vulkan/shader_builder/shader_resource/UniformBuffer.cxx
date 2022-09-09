@@ -2,7 +2,7 @@
 #include "UniformBuffer.h"
 #include "SynchronousWindow.h"
 
-namespace vulkan::shader_resource {
+namespace vulkan::shader_builder::shader_resource {
 
 void UniformBufferBase::create(task::SynchronousWindow const* window, vk::DeviceSize size
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
@@ -24,4 +24,4 @@ void UniformBufferBase::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_resource
+} // namespace vulkan::shader_builder::shader_resource

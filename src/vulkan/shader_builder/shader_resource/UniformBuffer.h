@@ -15,7 +15,7 @@ namespace task {
 class SynchronousWindow;
 } // namespace vulkan
 
-namespace vulkan::shader_resource {
+namespace vulkan::shader_builder::shader_resource {
 
 class UniformBufferBase
 {
@@ -126,4 +126,4 @@ void UniformBuffer<ENTRY>::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_resource
+} // namespace vulkan::shader_builder::shader_resource

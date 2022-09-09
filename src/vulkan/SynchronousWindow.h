@@ -65,8 +65,10 @@ class Swapchain;
 class WindowEvents;
 
 namespace shader_builder {
+namespace shader_resource { }
 class SPIRVCache;
 } // shader_builder
+namespace shader_resource = shader_builder::shader_resource;
 
 namespace pipeline {
 class FactoryHandle;
@@ -423,7 +425,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
-  vulkan::shader_resource::Texture upload_texture(char const* glsl_id_str_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
+  vulkan::shader_builder::shader_resource::Texture upload_texture(char const* glsl_id_str_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
       AIStatefulTask::condition_type texture_ready
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name));

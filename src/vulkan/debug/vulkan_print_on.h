@@ -14,6 +14,9 @@ using utils::has_print_on::operator<<;
 
 namespace shader_builder {
 using utils::has_print_on::operator<<;
+namespace shader_resource {
+using utils::has_print_on::operator<<;
+} // namespace descriptor
 } // namespace shader_builder
 
 namespace memory {
@@ -21,10 +24,6 @@ using utils::has_print_on::operator<<;
 } // namespace memory;
 
 namespace descriptor {
-using utils::has_print_on::operator<<;
-} // namespace descriptor
-
-namespace shader_resource {
 using utils::has_print_on::operator<<;
 } // namespace descriptor
 

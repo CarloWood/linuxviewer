@@ -87,7 +87,7 @@ class ImGui
   static constexpr auto pool_type = static_cast<vk::CommandPoolCreateFlags::MaskType>(vulkan::FrameResourcesData::command_pool_type::create_flags);
 
   task::SynchronousWindow const* m_owning_window;
-  shader_resource::Texture m_font_texture;
+  shader_builder::shader_resource::Texture m_font_texture;
   utils::Vector<ImGui_FrameResourcesData, FrameResourceIndex> m_frame_resources_list;
   vk::UniqueDescriptorSetLayout m_descriptor_set_layout;
   vk::DescriptorSet m_descriptor_set;                   // Lifetime is determined by the pool (LogicalDevice::m_descriptor_pool).

@@ -4,7 +4,7 @@
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 
-namespace vulkan::shader_resource {
+namespace vulkan::shader_builder::shader_resource {
 
 // Data collection used for textures.
 struct Texture : public memory::Image
@@ -84,4 +84,4 @@ struct Texture : public memory::Image
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
 };
 
-} // namespace vulkan::shader_resource
+} // namespace vulkan::shader_builder::shader_resource
