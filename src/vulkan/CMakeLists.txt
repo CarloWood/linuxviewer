@@ -29,6 +29,7 @@ set_property(
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/shader_resource/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.cxx
@@ -37,7 +38,6 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/math/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/descriptor/*.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/shader_resource/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/tracy/*.cxx
 )
 
@@ -52,7 +52,6 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/infos/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/math/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/descriptor/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/shader_resource/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/tracy/*.h
 )
 
@@ -91,10 +90,8 @@ target_include_directories(vulkan_ObjLib
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
-# Because we currently include glfwpp/glfwpp.h.
 target_compile_definitions(vulkan_ObjLib
   PUBLIC
-    GLFW_INCLUDE_VULKAN
     VK_USE_PLATFORM_XCB_KHR
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
@@ -109,6 +106,7 @@ target_compile_features(vulkan_ObjLib
 # Set link dependencies.
 target_link_libraries(vulkan_ObjLib
   PUBLIC
+    LinuxViewer::shaderbuilder
     VulkanMemoryAllocator
     Vulkan::Vulkan
     AICxx::xcb-task
@@ -132,4 +130,4 @@ target_link_libraries(allocator_test ${AICXX_OBJECTS_LIST})
 
 # Math library.
 add_subdirectory(math)
-
+add_subdirectory(shaderbuilder)

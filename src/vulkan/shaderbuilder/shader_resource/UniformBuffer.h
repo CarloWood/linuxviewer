@@ -117,11 +117,13 @@ UniformBuffer<ENTRY>::UniformBuffer() : UniformBufferBase(shaderbuilder::ShaderV
   }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
 }
 
+#ifdef CWDEBUG
 template<typename ENTRY>
 void UniformBuffer<ENTRY>::print_on(std::ostream& os) const
 {
   os << "(shader_resource/UniformBuffer<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">)";
   UniformBufferBase::print_on(os);
 }
+#endif
 
 } // namespace vulkan::shader_resource

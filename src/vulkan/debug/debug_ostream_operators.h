@@ -1,6 +1,5 @@
 #pragma once
 
-#ifdef CWDEBUG
 #include "Defaults.h"           // For its print_on capability.
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
@@ -112,5 +111,3 @@ std::ostream& operator<<(std::ostream& os, VmaAllocationInfo const& vma_allocati
 std::ostream& operator<<(std::ostream& os, VmaAllocationCreateInfo const& vma_allocation_create_info);
 
 #undef DECLARE_OSTREAM_INSERTER
-
-#endif // CWDEBUG

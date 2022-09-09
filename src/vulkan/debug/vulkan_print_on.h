@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef CWDEBUG
-
 #include "debug.h"
 #include "utils/has_print_on.h"
 
@@ -35,5 +33,3 @@ using utils::has_print_on::operator<<;
 namespace vk_defaults {
 using utils::has_print_on::operator<<;
 } // namespace vk_defaults
-
-#endif // CWDEBUG

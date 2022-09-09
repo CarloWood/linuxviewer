@@ -27,7 +27,6 @@ std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attach
   return os;
 }
 
-#ifdef CWDEBUG
 std::ostream& operator<<(std::ostream& os, vk::ClearColorValue const& value)
 {
   // Try to heuristically determine the format.
@@ -366,11 +365,8 @@ std::ostream& operator<<(std::ostream& os, PushConstantRange const& push_constan
   return os;
 }
 
-#endif
-
 } // namespace vk
 
-#ifdef CWDEBUG
 #include "LogicalDevice.h"
 #include <vk_mem_alloc.h>
 
@@ -405,4 +401,3 @@ std::ostream& operator<<(std::ostream& os, VmaAllocationCreateInfo const& vma_al
   os << '}';
   return os;
 }
-#endif // CWDEBUG

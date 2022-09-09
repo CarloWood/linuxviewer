@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef CWDEBUG
-
 #include <vulkan/vulkan.hpp>
 #include "debug.h"
 
@@ -30,5 +28,3 @@ class DebugUtilsMessenger
 };
 
 } // namespace vulkan
-
-#endif // CWDEBUG

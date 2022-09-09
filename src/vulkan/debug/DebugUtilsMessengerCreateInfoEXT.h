@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef CWDEBUG
-
 #include "Defaults.h"
 #include "Application.h"
 
@@ -14,5 +12,3 @@ class DebugUtilsMessengerCreateInfoEXT : public vk_defaults::DebugUtilsMessenger
 };
 
 } // namespace vulkan
-
-#endif // CWDEBUG

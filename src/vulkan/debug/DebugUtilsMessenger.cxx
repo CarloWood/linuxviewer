@@ -1,6 +1,5 @@
 #include "sys.h"
 
-#ifdef CWDEBUG
 #include "Defaults.h"
 #include "DebugUtilsMessenger.h"
 #include <magic_enum.hpp>
@@ -411,5 +410,3 @@ VkBool32 DebugUtilsMessenger::debugCallback(
 }
 
 } // namespace vulkan
-
-#endif // CWDEBUG

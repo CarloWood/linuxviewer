@@ -253,7 +253,7 @@ class ShaderInputData
 #include "shaderbuilder/VertexAttribute.h"
 #endif
 #ifndef VULKAN_APPLICATION_H
-#include "Application.h"
+//#include "Application.h"
 #endif
 
 #ifndef VULKAN_PIPELINE_PIPELINE_H_definitions

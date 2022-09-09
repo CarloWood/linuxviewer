@@ -149,5 +149,5 @@ void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifi
 
 } // namespace vulkan
 
-#endif // CWDEBUG
 #endif // DEBUG_SET_NAME_DEFINITIONS_H
+#endif // CWDEBUG

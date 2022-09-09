@@ -2,6 +2,7 @@
 
 #include "ShaderVariable.h"
 #include "descriptor/SetIndex.h"
+#include <map>
 #include "debug.h"
 
 namespace vulkan::shaderbuilder {

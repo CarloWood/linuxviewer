@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
-#include "shader_resource/UniformBuffer.h"
+#include "shaderbuilder/shader_resource/UniformBuffer.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 #include <cstring>

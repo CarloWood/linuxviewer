@@ -5,10 +5,10 @@
 #include "lvimconfig.h"         // lvImGuiTLS
 #include "CurrentFrameData.h"
 #include "memory/Buffer.h"
-#include "shader_resource/Texture.h"
 #include "shaderbuilder/ShaderIndex.h"
 #include "shaderbuilder/VertexAttribute.h"
 #include "shaderbuilder/VertexShaderInputSet.h"
+#include "shaderbuilder/shader_resource/Texture.h"
 #include "vk_utils/TimerData.h"
 #ifdef CWDEBUG
 #include "debug/DebugSetName.h"

@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef CWDEBUG
-
 #include "utils/iomanip.h"
 
 namespace vulkan {
@@ -25,5 +23,3 @@ class set_device : public utils::iomanip::Sticky
 };
 
 } // namespace debug
-
-#endif // CWDEBUG

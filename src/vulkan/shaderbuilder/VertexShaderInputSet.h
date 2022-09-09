@@ -77,7 +77,7 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 {
  public:
   // Constructor. Pass the input rate to the base class, extracting that info from ENTRY.
-  VertexShaderInputSet() : VertexShaderInputSetBase(shaderbuilder::ShaderVariableLayouts<ENTRY>::input_rate) { }
+  VertexShaderInputSet() : VertexShaderInputSetBase(ShaderVariableLayouts<ENTRY>::input_rate) { }
 
  private:
   uint32_t chunk_size() const override final
