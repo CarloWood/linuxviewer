@@ -7,7 +7,7 @@ with [OpenSimulator](http://opensimulator.org/) grids and [SecondLife](https://s
 
 ### Prerequisites ###
 
-#### Reqquired packages ####
+#### Required packages ####
 
  On debian/ubuntu:
 

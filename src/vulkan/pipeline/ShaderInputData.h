@@ -76,7 +76,8 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Shader resources.
-  shaderbuilder::ShaderResourceDeclarationContext m_shader_resource_declaration_context;// Declaration context used for shader resources (ShaderResource).
+  using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shaderbuilder::ShaderResourceDeclarationContext>;
+  set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
   using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
   glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
@@ -134,8 +135,6 @@ class ShaderInputData
   //---------------------------------------------------------------------------
 
  public:
-  ShaderInputData() : m_shader_resource_declaration_context(this) { }
-
   template<typename ENTRY>
   requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
@@ -154,7 +153,7 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
   // Reserve one shader resource binding for the set with set_index.
-  void reserve_binding(descriptor::SetKey set_key) { m_shader_resource_declaration_context.reserve_binding(set_key); }
+//  void reserve_binding(descriptor::SetKey set_key) { m_shader_resource_declaration_context.reserve_binding(set_key); }
 
   void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
       shaderbuilder::SPIRVCache& spirv_cache
@@ -224,6 +223,10 @@ class ShaderInputData
   glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shaderbuilder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
   glsl_id_str_to_push_constant_container_t const& glsl_id_str_to_push_constant() const { return m_glsl_id_str_to_push_constant; }
 
+  // Used by ShaderResource::is_used_in to look up the declaration context.
+  set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shaderbuilder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
+  glsl_id_str_to_shader_resource_container_t const& glsl_id_str_to_shader_resource() const { return m_glsl_id_str_to_shader_resource; }
+
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
 
@@ -231,12 +234,11 @@ class ShaderInputData
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions() const;
 
   // Returns information on what was added with build_shader.
-  shaderbuilder::ShaderResourceDeclarationContext& shader_resource_context(utils::Badge<shaderbuilder::ShaderResource>) { return m_shader_resource_declaration_context; }
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
 
   // Used by ShaderResourceDeclarationContext::reserve_binding.
-  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
+//  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
 };
 
 } // namespace pipeline

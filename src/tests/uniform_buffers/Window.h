@@ -250,6 +250,7 @@ vec2 positions[3] = vec2[](
 void main()
 {
   //positions[0].x = TopPosition::x - 1.0;
+  //something = BottomPosition::unused;
   positions[0].x = top12345678.m_top_position[0].x - 1.0;
   //positions[1].y = LeftPosition::y;
   positions[1].y = left12345678.m_left_position.y;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LayoutBindingCompare.h"
+#include "shaderbuilder/ShaderResourceDeclarationContext.h"
 #include "utils/VectorCompare.h"
 #include "utils/sorted_vector_insert.h"
 #include <vulkan/vulkan.hpp>
@@ -20,7 +21,7 @@ class SetLayout
 {
  private:
   friend struct SetLayoutCompare;
-  std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;        // The bindings "key" from which m_handle was created.
+  std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;                                // The bindings "key" from which m_handle was created.
   vk::DescriptorSetLayout m_handle;
 
  public:
@@ -30,6 +31,7 @@ class SetLayout
   SetLayout(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings, vk::DescriptorSetLayout handle) :
     m_sorted_bindings(std::move(sorted_bindings)), m_handle(handle) { }
 #endif
+
   void push_back(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
     utils::sorted_vector_insert(m_sorted_bindings, descriptor_set_layout_binding, LayoutBindingCompare{});
