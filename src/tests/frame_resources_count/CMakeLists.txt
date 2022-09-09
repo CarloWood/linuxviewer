@@ -61,6 +61,7 @@ target_include_directories(frame_resources_count
 target_link_libraries(frame_resources_count
   PRIVATE
     LinuxViewer::vulkan
+    LinuxViewer::shader_builder
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task

@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "BasicType.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 #ifdef CWDEBUG
 void BasicType::print_on(std::ostream& os) const
@@ -18,4 +18,4 @@ void BasicType::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

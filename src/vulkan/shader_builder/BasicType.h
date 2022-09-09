@@ -7,7 +7,7 @@
 #endif
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 // We need all members to be public because I want to use this as an aggregrate type.
 struct BasicType
@@ -63,4 +63,4 @@ struct BasicType
 
 //static_assert(sizeof(BasicType) == sizeof(uint32_t), "Size of BasicType is too large for encoding.");
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

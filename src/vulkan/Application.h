@@ -6,8 +6,8 @@
 #include "Directories.h"
 #include "Concepts.h"
 #include "GraphicsSettings.h"
-#include "shaderbuilder/VertexAttribute.h"
-#include "shaderbuilder/ShaderInfos.h"
+#include "shader_builder/VertexAttribute.h"
+#include "shader_builder/ShaderInfos.h"
 #include "descriptor/SetKeyContext.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
@@ -137,7 +137,7 @@ class Application
   vulkan::GraphicsSettings m_graphics_settings;         // Global configuration values for graphics settings.
 
   // Storage for all shader templates.
-  mutable vulkan::shaderbuilder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
+  mutable vulkan::shader_builder::ShaderInfos m_shader_infos;    // Mutable because it is updated by register_shaders, which is threadsafe-"const".
 
   // We have one of these for each pipeline cache filename.
   struct PipelineCacheMerger
@@ -296,10 +296,10 @@ class Application
  public:
   // Called by user functions (e.g. Window::register_shaders).
   // Marked const because it is thread-safe; it isn't really const.
-  std::vector<vulkan::shaderbuilder::ShaderIndex> register_shaders(std::vector<vulkan::shaderbuilder::ShaderInfo>&& new_shader_info_list) const;
+  std::vector<vulkan::shader_builder::ShaderIndex> register_shaders(std::vector<vulkan::shader_builder::ShaderInfo>&& new_shader_info_list) const;
 
   // Return a reference to the ShaderInfo that corresponds to shader_index, as added by a call to register_shaders.
-  vulkan::shaderbuilder::ShaderInfo const& get_shader_info(vulkan::shaderbuilder::ShaderIndex shader_index) const;
+  vulkan::shader_builder::ShaderInfo const& get_shader_info(vulkan::shader_builder::ShaderIndex shader_index) const;
 
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);

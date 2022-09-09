@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
-#include "shaderbuilder/shader_resource/UniformBuffer.h"
+#include "shader_builder/shader_resource/UniformBuffer.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 #include <cstring>
@@ -9,7 +9,7 @@
 namespace vulkan::pipeline {
 
 std::string_view ShaderInputData::preprocess(
-    shaderbuilder::ShaderInfo const& shader_info,
+    shader_builder::ShaderInfo const& shader_info,
     std::string& glsl_source_code_buffer)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
@@ -26,13 +26,13 @@ std::string_view ShaderInputData::preprocess(
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
   // Store all the declaration contexts that are involved.
-  std::set<shaderbuilder::DeclarationContext const*> declaration_contexts;
+  std::set<shader_builder::DeclarationContext const*> declaration_contexts;
 
   int id_to_name_growth = 0;
 
   // m_shader_variables contains a number of strings that we need to find in the source.
   // They may occur zero or more times.
-  for (shaderbuilder::ShaderVariable const* shader_variable : m_shader_variables)
+  for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
   {
     std::string match_string = shader_variable->glsl_id_str();
     int count = 0;
@@ -48,7 +48,7 @@ std::string_view ShaderInputData::preprocess(
     // VertexAttribute PushConstant
   }
   std::string declarations;
-  for (shaderbuilder::DeclarationContext const* declaration_context : declaration_contexts)
+  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
     declarations += declaration_context->generate(shader_info.stage());
   declarations += '\n';
 
@@ -142,7 +142,7 @@ namespace {
 // VK_FORMAT_R32G32B32A32_SINT
 // VK_FORMAT_R32G32B32A32_SFLOAT
 
-vk::Format type2format(shaderbuilder::BasicType glsl_type)
+vk::Format type2format(shader_builder::BasicType glsl_type)
 {
   vk::Format format;
   int rows = glsl_type.rows();
@@ -324,7 +324,7 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
   for (auto vertex_attribute_iter = m_glsl_id_str_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_str_to_vertex_attribute.end(); ++vertex_attribute_iter)
   {
-    shaderbuilder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
+    shader_builder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
     auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
     if (iter == m_vertex_shader_location_context.locations().end())
     {
@@ -371,14 +371,14 @@ void ShaderInputData::add_texture(shader_resource::Texture const& texture,
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
 
-  shaderbuilder::ShaderResource shader_resource_tmp("Texture", vk::DescriptorType::eCombinedImageSampler, set_index);
+  shader_builder::ShaderResource shader_resource_tmp("Texture", vk::DescriptorType::eCombinedImageSampler, set_index);
 
   auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{texture.glsl_id_str(), shader_resource_tmp});
   // The m_glsl_id_str of each Texture must be unique. And of course, don't register the same texture twice.
   ASSERT(res1.second);
 
-  shaderbuilder::ShaderResource* shader_resource_ptr = &res1.first->second;
-  shaderbuilder::ShaderResourceMember const* shader_resource_member_ptr = shader_resource_ptr->add_member(texture.glsl_id_str().c_str());
+  shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
+  shader_builder::ShaderResourceMember const* shader_resource_member_ptr = shader_resource_ptr->add_member(texture.glsl_id_str().c_str());
 
   m_shader_variables.push_back(shader_resource_member_ptr);
 
@@ -405,16 +405,16 @@ void ShaderInputData::add_uniform_buffer(shader_resource::UniformBufferBase cons
   std::vector<char const*> const& glsl_id_strs = uniform_buffer.glsl_id_strs();
   ASSERT(!glsl_id_strs.empty());
   std::string glsl_id_prefix(glsl_id_strs[0], std::strchr(glsl_id_strs[0], ':') - glsl_id_strs[0]);
-  shaderbuilder::ShaderResource shader_resource_tmp(glsl_id_prefix, vk::DescriptorType::eUniformBuffer, set_index);
+  shader_builder::ShaderResource shader_resource_tmp(glsl_id_prefix, vk::DescriptorType::eUniformBuffer, set_index);
 
   auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{glsl_id_prefix, shader_resource_tmp});
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
-  shaderbuilder::ShaderResource* shader_resource_ptr = &res1.first->second;
+  shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
 
   for (char const* glsl_id_str : glsl_id_strs)
   {
-    shaderbuilder::ShaderResourceMember const* shader_resource_member = shader_resource_ptr->add_member(glsl_id_str);
+    shader_builder::ShaderResourceMember const* shader_resource_member = shader_resource_ptr->add_member(glsl_id_str);
     m_shader_variables.push_back(shader_resource_member);
   }
 
@@ -430,12 +430,12 @@ void ShaderInputData::add_uniform_buffer(shader_resource::UniformBufferBase cons
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
-    shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler, shaderbuilder::SPIRVCache& spirv_cache
+    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
-  shaderbuilder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
+  shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
   glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);
 
   // Add a shader module to this pipeline.

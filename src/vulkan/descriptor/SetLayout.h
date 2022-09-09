@@ -1,7 +1,7 @@
 #pragma once
 
 #include "LayoutBindingCompare.h"
-#include "shaderbuilder/ShaderResourceDeclarationContext.h"
+#include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "utils/VectorCompare.h"
 #include "utils/sorted_vector_insert.h"
 #include <vulkan/vulkan.hpp>

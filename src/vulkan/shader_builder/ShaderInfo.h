@@ -14,7 +14,7 @@ namespace task {
 class SynchronousWindow;
 } // namespace task
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class ShaderCompilerOptions;
 
@@ -102,4 +102,4 @@ class ShaderInfo
 #endif
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

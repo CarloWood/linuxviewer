@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderVariableLayouts.h"
 
 struct PushConstant;
 
@@ -25,5 +25,5 @@ struct PushConstant
   glsl::Float pc5;
 };
 
-static_assert(offsetof(PushConstant, aspect_scale) == std::tuple_element_t<2, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<PushConstant>::struct_layout)::members_tuple>::offset,
+static_assert(offsetof(PushConstant, aspect_scale) == std::tuple_element_t<2, decltype(vulkan::shader_builder::ShaderVariableLayouts<PushConstant>::struct_layout)::members_tuple>::offset,
     "Offset of aspect_scale is wrong");

@@ -5,7 +5,7 @@
 #include <map>
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 class ShaderResource;
 
 class ShaderResourceMember final : public ShaderVariable
@@ -85,4 +85,4 @@ class ShaderResource
 #endif
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

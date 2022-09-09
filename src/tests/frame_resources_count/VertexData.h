@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/VertexAttribute.h"
+#include "shader_builder/VertexAttribute.h"
 
 struct VertexData;
 

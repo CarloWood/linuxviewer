@@ -28,8 +28,6 @@ set_property(
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.cxx
-  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/shader_resource/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.cxx
@@ -43,7 +41,6 @@ file(GLOB SOURCE_FILES
 
 file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/shaderbuilder/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.h
@@ -106,7 +103,7 @@ target_compile_features(vulkan_ObjLib
 # Set link dependencies.
 target_link_libraries(vulkan_ObjLib
   PUBLIC
-    LinuxViewer::shaderbuilder
+    LinuxViewer::shader_builder
     VulkanMemoryAllocator
     Vulkan::Vulkan
     AICxx::xcb-task
@@ -130,4 +127,4 @@ target_link_libraries(allocator_test ${AICXX_OBJECTS_LIST})
 
 # Math library.
 add_subdirectory(math)
-add_subdirectory(shaderbuilder)
+add_subdirectory(shader_builder)

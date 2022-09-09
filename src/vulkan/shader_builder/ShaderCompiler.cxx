@@ -4,7 +4,7 @@
 #include "LogicalDevice.h"
 #include "utils/at_scope_end.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 namespace {
 
@@ -58,4 +58,4 @@ vk::UniqueShaderModule ShaderCompiler::compile_and_create(utils::Badge<ShaderInf
       COMMA_CWDEBUG_ONLY(debug_name));
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <map>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class ShaderResource;
 
@@ -35,4 +35,4 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

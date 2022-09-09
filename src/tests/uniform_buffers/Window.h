@@ -7,8 +7,8 @@
 #include "BottomPosition.h"
 #include "queues/CopyDataToImage.h"
 #include "Pipeline.h"
-#include "shaderbuilder/ShaderIndex.h"
-#include "shaderbuilder/shader_resource/UniformBuffer.h"
+#include "shader_builder/ShaderIndex.h"
+#include "shader_builder/shader_resource/UniformBuffer.h"
 #include "descriptor/SetKeyPreference.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -44,7 +44,7 @@ class Window : public task::SynchronousWindow
     frag1,
     frag2
   };
-  utils::Array<vulkan::shaderbuilder::ShaderIndex, 4, LocalShaderIndex> m_shader_indices;
+  utils::Array<vulkan::shader_builder::ShaderIndex, 4, LocalShaderIndex> m_shader_indices;
 
   vulkan::Pipeline m_graphics_pipeline1;
   vulkan::Pipeline m_graphics_pipeline2;
@@ -338,7 +338,7 @@ void main()
   {
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
-    using namespace vulkan::shaderbuilder;
+    using namespace vulkan::shader_builder;
 
     // Create a ShaderInfo instance for each shader, initializing it with the stage that the shader will be used in and the template code that it exists of.
     std::vector<ShaderInfo> shader_info = {
@@ -411,7 +411,7 @@ void main()
 
       // Compile the shaders.
       {
-        using namespace vulkan::shaderbuilder;
+        using namespace vulkan::shader_builder;
 
         ShaderIndex shader_vert_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::vertex1] : window->m_shader_indices[LocalShaderIndex::vertex2];
         ShaderIndex shader_frag_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::frag1] : window->m_shader_indices[LocalShaderIndex::frag2];

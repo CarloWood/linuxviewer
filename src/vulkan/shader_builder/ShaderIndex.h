@@ -2,9 +2,9 @@
 
 #include "utils/Vector.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 struct ShaderIndexCategory;
 using ShaderIndex = utils::VectorIndex<ShaderIndexCategory>;
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

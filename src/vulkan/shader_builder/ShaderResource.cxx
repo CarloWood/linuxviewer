@@ -6,7 +6,7 @@
 #include <sstream>
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 #ifdef CWDEBUG
 void ShaderResource::print_on(std::ostream& os) const
@@ -71,4 +71,4 @@ void ShaderResourceMember::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

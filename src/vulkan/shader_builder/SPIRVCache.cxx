@@ -19,7 +19,7 @@ std::ostream& operator<<(std::ostream& os, shaderc_shader_kind kind)
   return os << magic_enum::enum_name(kind);
 }
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 #if 0
 shaderc_shader_kind SPIRVCache::filename_to_shader_kind(std::filesystem::path filename, bool force) const
@@ -86,4 +86,4 @@ vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::
       COMMA_CWDEBUG_ONLY(debug_name));
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

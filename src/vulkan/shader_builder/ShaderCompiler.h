@@ -17,7 +17,7 @@ class AmbifixOwner;
 #endif
 } // namespace vulkan
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class SPIRVCache;
 class ShaderInfo;
@@ -289,4 +289,4 @@ class ShaderCompiler
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

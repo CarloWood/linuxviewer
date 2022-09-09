@@ -149,7 +149,7 @@ void main()
 
 void ImGui::register_shader_templates()
 {
-  using namespace vulkan::shaderbuilder;
+  using namespace vulkan::shader_builder;
   std::vector<ShaderInfo> shader_info = {
     { vk::ShaderStageFlagBits::eVertex,   "imgui.vert.glsl" },
     { vk::ShaderStageFlagBits::eFragment, "imgui.frag.glsl" }
@@ -181,7 +181,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   shader_input_data.add_vertex_input_binding(m_ui);
 
   {
-    using namespace vulkan::shaderbuilder;
+    using namespace vulkan::shader_builder;
     ShaderCompiler compiler;
 
     shader_input_data.build_shader(m_owning_window, m_shader_vert, compiler

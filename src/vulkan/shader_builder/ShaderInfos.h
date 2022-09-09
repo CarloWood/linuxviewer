@@ -6,7 +6,7 @@
 #include "utils/Deque.h"
 #include <map>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 // Helper class used by Application to store all ShaderInfo instances.
 struct UnlockedShaderInfos
@@ -17,4 +17,4 @@ struct UnlockedShaderInfos
 
 using ShaderInfos = aithreadsafe::Wrapper<UnlockedShaderInfos, aithreadsafe::policy::Primitive<std::mutex>>;
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

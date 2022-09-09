@@ -5,10 +5,10 @@
 #include "lvimconfig.h"         // lvImGuiTLS
 #include "CurrentFrameData.h"
 #include "memory/Buffer.h"
-#include "shaderbuilder/ShaderIndex.h"
-#include "shaderbuilder/VertexAttribute.h"
-#include "shaderbuilder/VertexShaderInputSet.h"
-#include "shaderbuilder/shader_resource/Texture.h"
+#include "shader_builder/ShaderIndex.h"
+#include "shader_builder/VertexAttribute.h"
+#include "shader_builder/VertexShaderInputSet.h"
+#include "shader_builder/shader_resource/Texture.h"
 #include "vk_utils/TimerData.h"
 #ifdef CWDEBUG
 #include "debug/DebugSetName.h"
@@ -49,7 +49,7 @@ using ImDrawIdx = unsigned short;
 
 namespace imgui {
 
-class UI final : public vulkan::shaderbuilder::VertexShaderInputSet<ImDrawVert>
+class UI final : public vulkan::shader_builder::VertexShaderInputSet<ImDrawVert>
 {
   int chunk_count() const override
   {
@@ -95,8 +95,8 @@ class ImGui
   vk::UniquePipeline m_graphics_pipeline;
   std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
   ImGuiContext* m_context;                              // The ImGui context of this ImGui instance.
-  shaderbuilder::ShaderIndex m_shader_vert;
-  shaderbuilder::ShaderIndex m_shader_frag;
+  shader_builder::ShaderIndex m_shader_vert;
+  shader_builder::ShaderIndex m_shader_frag;
 #ifdef CWDEBUG
   int m_last_x = {};
   int m_last_y = {};

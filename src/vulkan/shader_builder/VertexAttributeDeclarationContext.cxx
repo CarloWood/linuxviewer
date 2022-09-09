@@ -8,7 +8,7 @@
 #include "vk_utils/PrintPointer.h"
 #endif
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 void VertexAttributeDeclarationContext::update_location(VertexAttribute const* vertex_attribute)
 {
@@ -46,4 +46,4 @@ std::string VertexAttributeDeclarationContext::generate(vk::ShaderStageFlagBits 
   return oss.str();
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

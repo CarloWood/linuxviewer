@@ -8,7 +8,7 @@
 #endif
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefix, std::size_t hash)
 {
@@ -89,4 +89,4 @@ std::string PushConstantDeclarationContext::generate(vk::ShaderStageFlagBits sha
   return result;
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

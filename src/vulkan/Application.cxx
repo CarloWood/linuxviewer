@@ -2,7 +2,7 @@
 #include "SynchronousWindow.h"
 #include "FrameResourcesData.h"
 #include "PersistentAsyncTask.h"
-#include "shaderbuilder/ShaderIndex.h"
+#include "shader_builder/ShaderIndex.h"
 #include "pipeline/PipelineCache.h"
 #include "infos/ApplicationInfo.h"
 #include "infos/InstanceCreateInfo.h"
@@ -327,10 +327,10 @@ void Application::run()
 }
 
 // This member function isn't really const; it is thread-safe.
-std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vector<shaderbuilder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
+std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vector<shader_builder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list << ")");
-  using namespace shaderbuilder;
+  using namespace shader_builder;
   // The word 'new' here purely refers to the fact that they are passed to this function as new ShaderInfo objects (so we are allowed to call hash());
   // if the hash of any of the 'new' ShaderInfo object is already known then we return the old ShaderIndex and discard the ShaderInfo object.
   size_t const number_of_new_shaders = new_shader_info_list.size();
@@ -343,7 +343,7 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
   ShaderIndex first_new_index{0};
   int duplicates = 0;
   {
-    shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
+    shader_builder::ShaderInfos::rat shader_infos_r(m_shader_infos);
     first_new_index += shader_infos_r->deque.size();  // Initialize first_new_index to the next free index.
     ShaderIndex next_index = first_new_index;
     for (size_t i = 0; i < number_of_new_shaders; ++i)
@@ -355,7 +355,7 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
     }
   }
   {
-    shaderbuilder::ShaderInfos::wat shader_infos_w(m_shader_infos);
+    shader_builder::ShaderInfos::wat shader_infos_w(m_shader_infos);
     // Move the new ShaderInfo objects into m_shader_infos.
     for (size_t i = 0; i < number_of_new_shaders; ++i)
     {
@@ -367,9 +367,9 @@ std::vector<shaderbuilder::ShaderIndex> Application::register_shaders(std::vecto
   return new_indices;
 }
 
-shaderbuilder::ShaderInfo const& Application::get_shader_info(shaderbuilder::ShaderIndex shader_index) const
+shader_builder::ShaderInfo const& Application::get_shader_info(shader_builder::ShaderIndex shader_index) const
 {
-  shaderbuilder::ShaderInfos::rat shader_infos_r(m_shader_infos);
+  shader_builder::ShaderInfos::rat shader_infos_r(m_shader_infos);
   // We can return a reference because m_shader_infos_r->list is a deque for which references are not invalidated by inserting more elements at the end.
   return shader_infos_r->deque[shader_index];
 }

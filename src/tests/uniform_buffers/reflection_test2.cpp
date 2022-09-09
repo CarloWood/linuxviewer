@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "shaderbuilder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderVariableLayouts.h"
 #include <iostream>
 #include <type_traits>
 #include <numeric>
@@ -110,13 +110,13 @@ int main()
 {
   Debug(NAMESPACE_DEBUG::init());
 
-  vulkan::shaderbuilder::ShaderVariableLayouts<Foo> object;
+  vulkan::shader_builder::ShaderVariableLayouts<Foo> object;
   Dout(dc::notice, libcwd::type_info_of(object.struct_layout).demangled_name());
 
-  vulkan::shaderbuilder::ShaderVariableLayouts<Bar> object2;
+  vulkan::shader_builder::ShaderVariableLayouts<Bar> object2;
   Dout(dc::notice, libcwd::type_info_of(object2.struct_layout).demangled_name());
 
-  using layout = vulkan::shaderbuilder::Layout<std::tuple_element_t<1, decltype(object.struct_layout)::members_tuple>::layout_type>;
+  using layout = vulkan::shader_builder::Layout<std::tuple_element_t<1, decltype(object.struct_layout)::members_tuple>::layout_type>;
   static constexpr size_t alignment = layout::alignment;
   static constexpr size_t size = layout::size;
   static constexpr size_t array_stride = layout::array_stride;

@@ -12,9 +12,9 @@ namespace rendergraph {
 using utils::has_print_on::operator<<;
 } // namespace rendergraph
 
-namespace shaderbuilder {
+namespace shader_builder {
 using utils::has_print_on::operator<<;
-} // namespace shaderbuilder
+} // namespace shader_builder
 
 namespace memory {
 using utils::has_print_on::operator<<;

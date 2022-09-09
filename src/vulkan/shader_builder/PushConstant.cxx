@@ -6,7 +6,7 @@
 #include <functional>
 #include <cstring>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 std::string PushConstant::name() const
 {
@@ -35,4 +35,4 @@ DeclarationContext const& PushConstant::is_used_in(vk::ShaderStageFlagBits shade
   return push_constant_declaration_context;
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

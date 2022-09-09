@@ -5,7 +5,7 @@
 #include "vulkan/SynchronousWindow.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
 #include "vulkan/pipeline/ShaderInputData.h"
-#include "vulkan/shaderbuilder/ShaderIndex.h"
+#include "vulkan/shader_builder/ShaderIndex.h"
 #include "vulkan/Application.inl.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
@@ -290,14 +290,14 @@ void main()
 }
 )glsl";
 
-  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
-  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
+  vulkan::shader_builder::ShaderIndex m_shader_vert;
+  vulkan::shader_builder::ShaderIndex m_shader_frag;
 
   void register_shader_templates() override
   {
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
-    using namespace vulkan::shaderbuilder;
+    using namespace vulkan::shader_builder;
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "triangle.vert.glsl" },
       { vk::ShaderStageFlagBits::eFragment, "triangle.frag.glsl" }
@@ -320,7 +320,7 @@ void main()
     vulkan::pipeline::ShaderInputData shader_input_data;
 
     {
-      using namespace vulkan::shaderbuilder;
+      using namespace vulkan::shader_builder;
       ShaderCompiler compiler;
 
       shader_input_data.build_shader(this, m_shader_vert, compiler

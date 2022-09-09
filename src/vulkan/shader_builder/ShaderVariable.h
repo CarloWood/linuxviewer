@@ -7,7 +7,7 @@ namespace vulkan::pipeline {
 class ShaderInputData;
 } // namespace vulkan::pipeline
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 class  DeclarationContext;
 
 class ShaderVariable
@@ -37,4 +37,4 @@ class ShaderVariable
   virtual std::string name() const = 0;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

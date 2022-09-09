@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <map>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class PushConstantDeclarationContext final : public DeclarationContext
 {
@@ -24,4 +24,4 @@ class PushConstantDeclarationContext final : public DeclarationContext
   std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

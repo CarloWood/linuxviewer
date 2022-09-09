@@ -40,6 +40,7 @@ target_link_libraries(linuxviewer
     LinuxViewer::xmlrpc
     LinuxViewer::data_types
     LinuxViewer::vulkan
+    LinuxViewer::shader_builder
     AICxx::socket-task
     AICxx::resolver-task
     AICxx::xmlrpc-task

@@ -9,7 +9,7 @@
 #include "queues/CopyDataToImage.h"
 #include "vulkan/SynchronousWindow.h"
 #include "vulkan/Pipeline.h"
-#include "vulkan/shaderbuilder/ShaderIndex.h"
+#include "vulkan/shader_builder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
@@ -40,8 +40,8 @@ class Window : public task::SynchronousWindow
 //  Attachment     normal{this, "normal",   s_vector_image_view_kind};
 //  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
-  vulkan::shaderbuilder::ShaderIndex m_shader_vert;
-  vulkan::shaderbuilder::ShaderIndex m_shader_frag;
+  vulkan::shader_builder::ShaderIndex m_shader_vert;
+  vulkan::shader_builder::ShaderIndex m_shader_frag;
 
   // Vertex buffers.
   using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
@@ -219,7 +219,7 @@ void main()
   {
     DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
 
-    using namespace vulkan::shaderbuilder;
+    using namespace vulkan::shader_builder;
 
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "intel.vert.glsl" },
@@ -281,7 +281,7 @@ void main()
 
       // Compile the shaders.
       {
-        using namespace vulkan::shaderbuilder;
+        using namespace vulkan::shader_builder;
 
         ShaderIndex shader_vert_index = window->m_shader_vert;
         ShaderIndex shader_frag_index = window->m_shader_frag;
@@ -388,7 +388,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
 
-    for (vulkan::shaderbuilder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->pipeline().vertex_shader_input_sets())
+    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->pipeline().vertex_shader_input_sets())
     {
       size_t entry_size = vertex_shader_input_set->chunk_size();
       int count = vertex_shader_input_set->chunk_count();
@@ -412,7 +412,7 @@ void main()
           COMMA_CWDEBUG_ONLY(true));
 
       copy_data_to_buffer->set_resource_owner(this);    // Wait for this task to finish before destroying this window, because this window owns the buffer (m_vertex_buffers.back()).
-      copy_data_to_buffer->set_data_feeder(std::make_unique<vulkan::shaderbuilder::VertexShaderInputSetFeeder>(vertex_shader_input_set, pipeline_owner));
+      copy_data_to_buffer->set_data_feeder(std::make_unique<vulkan::shader_builder::VertexShaderInputSetFeeder>(vertex_shader_input_set, pipeline_owner));
       copy_data_to_buffer->run(vulkan::Application::instance().low_priority_queue());
     }
   }

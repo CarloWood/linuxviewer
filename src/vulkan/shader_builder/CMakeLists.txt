@@ -9,11 +9,11 @@ find_package(magic_enum REQUIRED)
 # BUILD PROJECT
 #
 
-add_library(shaderbuilder_ObjLib OBJECT)
+add_library(shader_builder_ObjLib OBJECT)
 
 # Set SOURCE_DIR to the current directory.
 set_property(
-  TARGET shaderbuilder_ObjLib
+  TARGET shader_builder_ObjLib
   PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
@@ -28,7 +28,7 @@ file(GLOB HEADER_FILES
 )
 
 # The list of source files.
-target_sources(shaderbuilder_ObjLib
+target_sources(shader_builder_ObjLib
   PRIVATE
     ${SOURCE_FILES}
     ${HEADER_FILES}
@@ -36,7 +36,7 @@ target_sources(shaderbuilder_ObjLib
 
 # Required include search-paths.
 get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
-target_include_directories(shaderbuilder_ObjLib
+target_include_directories(shader_builder_ObjLib
   PRIVATE
     "${CMAKE_SOURCE_DIR}/src/vulkan"
   PUBLIC
@@ -44,7 +44,7 @@ target_include_directories(shaderbuilder_ObjLib
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
-target_compile_definitions(shaderbuilder_ObjLib
+target_compile_definitions(shader_builder_ObjLib
   PUBLIC
     VK_USE_PLATFORM_XCB_KHR
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
@@ -53,12 +53,12 @@ target_compile_definitions(shaderbuilder_ObjLib
 )
 
 # Require support for C++20.
-target_compile_features(shaderbuilder_ObjLib
+target_compile_features(shader_builder_ObjLib
   PUBLIC cxx_std_20
 )
 
 # Set link dependencies.
-target_link_libraries(shaderbuilder_ObjLib
+target_link_libraries(shader_builder_ObjLib
   PUBLIC
     VulkanMemoryAllocator
     Vulkan::Vulkan
@@ -70,4 +70,4 @@ target_link_libraries(shaderbuilder_ObjLib
 )
 
 # Create an ALIAS target.
-add_library(LinuxViewer::shaderbuilder ALIAS shaderbuilder_ObjLib)
+add_library(LinuxViewer::shader_builder ALIAS shader_builder_ObjLib)

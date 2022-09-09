@@ -4,7 +4,7 @@
 #include <map>
 #include <cstdint>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 struct VertexAttribute;
 
@@ -27,4 +27,4 @@ struct VertexAttributeDeclarationContext final : DeclarationContext
   std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

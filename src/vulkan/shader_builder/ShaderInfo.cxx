@@ -3,7 +3,7 @@
 #include "SynchronousWindow.h"
 #include <fstream>
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 shaderc_shader_kind ShaderInfo::get_shader_kind() const
 {
@@ -128,4 +128,4 @@ void ShaderInfo::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

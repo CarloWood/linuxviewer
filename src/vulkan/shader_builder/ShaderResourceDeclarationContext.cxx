@@ -6,7 +6,7 @@
 #include "vk_utils/snake_case.h"
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 #if 0
 void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_key)
@@ -119,4 +119,4 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
   return oss.str();
 }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

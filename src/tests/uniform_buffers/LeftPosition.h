@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderVariableLayouts.h"
 
 struct LeftPosition;
 

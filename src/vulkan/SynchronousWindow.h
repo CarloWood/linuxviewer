@@ -19,8 +19,8 @@
 #include "pipeline/Handle.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
-#include "shaderbuilder/SPIRVCache.h"
-#include "shaderbuilder/shader_resource/Texture.h"
+#include "shader_builder/SPIRVCache.h"
+#include "shader_builder/shader_resource/Texture.h"
 #include "ImGui.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
@@ -64,9 +64,9 @@ class AmbifixOwner;
 class Swapchain;
 class WindowEvents;
 
-namespace shaderbuilder {
+namespace shader_builder {
 class SPIRVCache;
-} // shaderbuilder
+} // shader_builder
 
 namespace pipeline {
 class FactoryHandle;

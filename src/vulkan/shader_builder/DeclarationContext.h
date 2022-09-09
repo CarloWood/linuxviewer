@@ -7,7 +7,7 @@ namespace vulkan::pipeline {
 class ShaderInputData;
 } // namespace vulkan::pipeline
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 class ShaderVariable;
 
 struct DeclarationContext
@@ -16,4 +16,4 @@ struct DeclarationContext
   virtual std::string generate(vk::ShaderStageFlagBits shader_stage) const = 0;
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

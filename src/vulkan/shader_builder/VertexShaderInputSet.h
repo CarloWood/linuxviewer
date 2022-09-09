@@ -14,7 +14,7 @@ namespace vulkan::pipeline {
 class CharacteristicRange;
 } // namespace vulkan::pipeline
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class VertexShaderInputSetBase : public DataFeeder
 {
@@ -46,7 +46,7 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // ENTRY should be a struct existing solely of types specified in math/glsl.h,
 // or arrays thereof, but I don't think that can be checked with a concept :/.
 //
-// Also vulkan::shaderbuilder::ShaderVariableLayouts<ENTRY> must be overloaded and
+// Also vulkan::shader_builder::ShaderVariableLayouts<ENTRY> must be overloaded and
 // specify the static constexpr member `struct_layout` that lists all of the members of ENTRY.
 //
 // For example, if ENTRY is `InstanceData`, one has to specify the layout in advance:
@@ -100,7 +100,7 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
   }
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder
 
 #endif // VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
@@ -111,12 +111,12 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions
 #define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 //inline
 VertexShaderInputSetFeeder::VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner) :
   m_input_set(input_set), m_input_set_owner(input_set_owner) { }
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder
 
 #endif // VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions

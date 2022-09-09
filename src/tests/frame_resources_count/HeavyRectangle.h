@@ -2,10 +2,10 @@
 
 #include "VertexData.h"
 #include "SampleParameters.h"
-#include "vulkan/shaderbuilder/VertexShaderInputSet.h"
+#include "vulkan/shader_builder/VertexShaderInputSet.h"
 #include <Eigen/Geometry>
 
-class HeavyRectangle final : public vulkan::shaderbuilder::VertexShaderInputSet<VertexData>
+class HeavyRectangle final : public vulkan::shader_builder::VertexShaderInputSet<VertexData>
 {
   using Vector2f = Eigen::Vector2f;
   using Transform = Eigen::Affine2f;

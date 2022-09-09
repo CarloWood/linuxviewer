@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderVariableLayouts.h"
 
 struct TopPosition;
 
@@ -25,5 +25,5 @@ struct TopPosition //: glsl::uniform_std140
 //  glsl::Float unused3;
 };
 
-static_assert(offsetof(TopPosition, x) == std::tuple_element_t<1, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset,
+static_assert(offsetof(TopPosition, x) == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset,
     "Offset of x is wrong.");

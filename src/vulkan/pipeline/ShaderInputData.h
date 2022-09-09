@@ -5,15 +5,15 @@
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetKeyToSetIndex.h"
 #include "descriptor/SetKeyPreference.h"
-#include "shaderbuilder/ShaderInfo.h"
-#include "shaderbuilder/ShaderIndex.h"
-#include "shaderbuilder/SPIRVCache.h"
-#include "shaderbuilder/VertexAttribute.h"
-#include "shaderbuilder/VertexAttributeDeclarationContext.h"
-#include "shaderbuilder/PushConstant.h"
-#include "shaderbuilder/PushConstantDeclarationContext.h"
-#include "shaderbuilder/ShaderResource.h"
-#include "shaderbuilder/ShaderResourceDeclarationContext.h"
+#include "shader_builder/ShaderInfo.h"
+#include "shader_builder/ShaderIndex.h"
+#include "shader_builder/SPIRVCache.h"
+#include "shader_builder/VertexAttribute.h"
+#include "shader_builder/VertexAttributeDeclarationContext.h"
+#include "shader_builder/PushConstant.h"
+#include "shader_builder/PushConstantDeclarationContext.h"
+#include "shader_builder/ShaderResource.h"
+#include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
@@ -37,14 +37,14 @@ namespace vulkan {
 
 class LogicalDevice;
 
-namespace shaderbuilder {
+namespace shader_builder {
 
 class VertexShaderInputSetBase;
 template<typename ENTRY> class VertexShaderInputSet;
 
 struct VertexAttribute;
 
-} // namespace shaderbuilder
+} // namespace shader_builder
 
 namespace shader_resource {
 class Texture;
@@ -58,17 +58,17 @@ class ShaderInputData
  private:
   //---------------------------------------------------------------------------
   // Vertex attributes.
-  utils::Vector<shaderbuilder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;           // Existing vertex shader input sets (a 'binding' slot).
-  shaderbuilder::VertexAttributeDeclarationContext m_vertex_shader_location_context;            // Location context used for vertex attributes (VertexAttribute).
-  using glsl_id_str_to_vertex_attribute_container_t = std::map<std::string, vulkan::shaderbuilder::VertexAttribute, std::less<>>;
+  utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;           // Existing vertex shader input sets (a 'binding' slot).
+  shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;            // Location context used for vertex attributes (VertexAttribute).
+  using glsl_id_str_to_vertex_attribute_container_t = std::map<std::string, vulkan::shader_builder::VertexAttribute, std::less<>>;
   mutable glsl_id_str_to_vertex_attribute_container_t m_glsl_id_str_to_vertex_attribute;        // Map VertexAttribute::m_glsl_id_str to the VertexAttribute
   //---------------------------------------------------------------------------                 // object that contains it.
 
   //---------------------------------------------------------------------------
   // Push constants.
-  using glsl_id_str_to_push_constant_declaration_context_container_t = std::map<std::string, std::unique_ptr<shaderbuilder::PushConstantDeclarationContext>>;
+  using glsl_id_str_to_push_constant_declaration_context_container_t = std::map<std::string, std::unique_ptr<shader_builder::PushConstantDeclarationContext>>;
   glsl_id_str_to_push_constant_declaration_context_container_t m_glsl_id_str_to_push_constant_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_str to its DeclarationContext object.
-  using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shaderbuilder::PushConstant, std::less<>>;
+  using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shader_builder::PushConstant, std::less<>>;
   glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;                      // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_push_constant_ranges;
@@ -76,16 +76,16 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Shader resources.
-  using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shaderbuilder::ShaderResourceDeclarationContext>;
+  using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shader_builder::ShaderResourceDeclarationContext>;
   set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
-  using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shaderbuilder::ShaderResource, std::less<>>;
+  using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
   glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
   descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index; // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
-  std::vector<shaderbuilder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
+  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
 
@@ -97,16 +97,16 @@ class ShaderInputData
   // (and a pointer to that to m_shader_variables), for a non-array vertex attribute.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
-      shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+  void add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+      shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
   // Add shader variable (VertexAttribute) to m_glsl_id_str_to_vertex_attribute
   // (and a pointer to that to m_shader_variables), for a vertex attribute array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-  void add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
-      shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+  void add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+      shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
   // End vertex attribute.
@@ -119,16 +119,16 @@ class ShaderInputData
   // and a declaration context for its prefix) if that doesn't already exist, for a non-array push constant.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  void add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
-      shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+  void add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
+      shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
   // Add shader variable (PushConstant) to m_glsl_id_str_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a push constant array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-  void add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
-      shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+  void add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
+      shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
   // End push constants.
@@ -136,12 +136,12 @@ class ShaderInputData
 
  public:
   template<typename ENTRY>
-  requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
-            std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-  void add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
+  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
+            std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
+  void add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
 
   template<typename ENTRY>
-  requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
+  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
   void add_texture(shader_resource::Texture const& texture,
@@ -155,14 +155,14 @@ class ShaderInputData
   // Reserve one shader resource binding for the set with set_index.
 //  void reserve_binding(descriptor::SetKey set_key) { m_shader_resource_declaration_context.reserve_binding(set_key); }
 
-  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler,
-      shaderbuilder::SPIRVCache& spirv_cache
+  void build_shader(task::SynchronousWindow const* owning_window, shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      shader_builder::SPIRVCache& spirv_cache
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
-  void build_shader(task::SynchronousWindow const* owning_window, shaderbuilder::ShaderIndex const& shader_index, shaderbuilder::ShaderCompiler const& compiler
+  void build_shader(task::SynchronousWindow const* owning_window, shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   {
-    shaderbuilder::SPIRVCache tmp_spirv_cache;
+    shader_builder::SPIRVCache tmp_spirv_cache;
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache COMMA_CWDEBUG_ONLY(ambifix));
   }
 
@@ -172,7 +172,7 @@ class ShaderInputData
   // otherwise this function returns a string_view directly into the shader_info's source code.
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
-  std::string_view preprocess(shaderbuilder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer);
+  std::string_view preprocess(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer);
 
   // Called indirectly from preprocess whenever we see a shader resource being used that uses `set_index`.
   void saw_set(descriptor::SetIndex set_index)
@@ -216,15 +216,15 @@ class ShaderInputData
   // Accessors.
 
   // Used by VertexAttribute::is_used_in to access the VertexAttributeDeclarationContext.
-  shaderbuilder::VertexAttributeDeclarationContext& vertex_shader_location_context(utils::Badge<shaderbuilder::VertexAttribute>) { return m_vertex_shader_location_context; }
+  shader_builder::VertexAttributeDeclarationContext& vertex_shader_location_context(utils::Badge<shader_builder::VertexAttribute>) { return m_vertex_shader_location_context; }
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
-  glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shaderbuilder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
+  glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
   glsl_id_str_to_push_constant_container_t const& glsl_id_str_to_push_constant() const { return m_glsl_id_str_to_push_constant; }
 
   // Used by ShaderResource::is_used_in to look up the declaration context.
-  set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shaderbuilder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
+  set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
   glsl_id_str_to_shader_resource_container_t const& glsl_id_str_to_shader_resource() const { return m_glsl_id_str_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
@@ -247,10 +247,10 @@ class ShaderInputData
 #endif // VULKAN_PIPELINE_PIPELINE_H
 
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
-#include "shaderbuilder/VertexShaderInputSet.h"
+#include "shader_builder/VertexShaderInputSet.h"
 #endif
 #ifndef VULKAN_SHADERBUILDER_VERTEX_ATTRIBUTE_ENTRY_H
-#include "shaderbuilder/VertexAttribute.h"
+#include "shader_builder/VertexAttribute.h"
 #endif
 #ifndef VULKAN_APPLICATION_H
 //#include "Application.h"
@@ -263,15 +263,15 @@ namespace vulkan::pipeline {
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
-    shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+    shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
-  shaderbuilder::VertexAttribute vertex_attribute_tmp(
+  shader_builder::VertexAttribute vertex_attribute_tmp(
     { .m_standard = Standard,
       .m_rows = Rows,
       .m_cols = Cols,
@@ -295,15 +295,15 @@ void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, 
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, shaderbuilder::MemberLayout<ContainingClass,
-    shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+    shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
-  shaderbuilder::VertexAttribute vertex_attribute_tmp(
+  shader_builder::VertexAttribute vertex_attribute_tmp(
     { .m_standard = Standard,
       .m_rows = Rows,
       .m_cols = Cols,
@@ -326,12 +326,12 @@ void ShaderInputData::add_vertex_attribute(shaderbuilder::BindingIndex binding, 
 }
 
 template<typename ENTRY>
-requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
-          std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-void ShaderInputData::add_vertex_input_binding(shaderbuilder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
+requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
+          std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
+void ShaderInputData::add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
   DoutEntering(dc::vulkan, "vulkan::pipeline::add_vertex_input_binding<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
-  using namespace shaderbuilder;
+  using namespace shader_builder;
 
   BindingIndex binding = m_vertex_shader_input_sets.iend();
 
@@ -360,14 +360,14 @@ void ShaderInputData::add_vertex_input_binding(shaderbuilder::VertexShaderInputS
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
-    shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+void ShaderInputData::add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
+    shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
-  shaderbuilder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
+  shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shaderbuilder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset);
+  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset);
   auto res1 = m_glsl_id_str_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
@@ -378,7 +378,7 @@ void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<Conta
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
@@ -386,14 +386,14 @@ void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<Conta
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<ContainingClass,
-    shaderbuilder::ArrayLayout<shaderbuilder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+void ShaderInputData::add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
+    shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
-  shaderbuilder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
+  shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shaderbuilder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset, Elements);
+  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset, Elements);
   auto res1 = m_glsl_id_str_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
@@ -404,18 +404,18 @@ void ShaderInputData::add_push_constant_member(shaderbuilder::MemberLayout<Conta
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shaderbuilder::DeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::DeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
 }
 
 template<typename ENTRY>
-requires (std::same_as<typename shaderbuilder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
+requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
 void ShaderInputData::add_push_constant()
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
-  using namespace shaderbuilder;
+  using namespace shader_builder;
 
   [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
   {

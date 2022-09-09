@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shaderbuilder/VertexAttribute.h"
+#include "shader_builder/VertexAttribute.h"
 
 struct InstanceData;
 
@@ -19,5 +19,5 @@ struct InstanceData
   glsl::vec4 m_position[3];
 };
 
-static_assert(offsetof(InstanceData, m_position) == std::tuple_element_t<1, decltype(vulkan::shaderbuilder::ShaderVariableLayouts<InstanceData>::struct_layout)::members_tuple>::offset,
+static_assert(offsetof(InstanceData, m_position) == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<InstanceData>::struct_layout)::members_tuple>::offset,
     "Offset of m_position is wrong.");

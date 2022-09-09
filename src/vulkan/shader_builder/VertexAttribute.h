@@ -12,7 +12,7 @@ namespace vulkan::pipeline {
 class ShaderInputData;
 } // namespace vulkan::pipeline
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class VertexShaderInputSetBase;
 using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
@@ -75,18 +75,18 @@ struct VertexAttribute final : public ShaderVariable
 #endif
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder
 
 // Not sure where to put the 'standards' structs... lets put them in glsl for now.
 namespace glsl {
 
-struct per_vertex_data : vulkan::shaderbuilder::standards::vertex_attributes::TypeEncodings
+struct per_vertex_data : vulkan::shader_builder::standards::vertex_attributes::TypeEncodings
 {
   using tag_type = per_vertex_data;
   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eVertex;       // This is per vertex data.
 };
 
-struct per_instance_data : vulkan::shaderbuilder::standards::vertex_attributes::TypeEncodings
+struct per_instance_data : vulkan::shader_builder::standards::vertex_attributes::TypeEncodings
 {
   using tag_type = per_instance_data;
   static constexpr vk::VertexInputRate input_rate = vk::VertexInputRate::eInstance;     // This is per instance data.

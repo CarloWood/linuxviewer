@@ -9,7 +9,7 @@
 #include "vk_utils/PrintPointer.h"
 #endif
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 std::string VertexAttribute::name() const
 {
@@ -48,4 +48,4 @@ void VertexAttribute::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

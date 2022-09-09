@@ -20,7 +20,7 @@ namespace pipeline {
 class ShaderInputData;
 } // namespace pipeline
 
-namespace shaderbuilder {
+namespace shader_builder {
 
 class ShaderCompiler;
 
@@ -46,5 +46,5 @@ class SPIRVCache
   void reset();
 };
 
-} // namespace shaderbuilder
+} // namespace shader_builder
 } // namespace vulkan

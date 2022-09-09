@@ -7,7 +7,7 @@
 #endif
 #include "debug.h"
 
-namespace vulkan::shaderbuilder {
+namespace vulkan::shader_builder {
 
 class PushConstant final : public ShaderVariable
 {
@@ -53,4 +53,4 @@ class PushConstant final : public ShaderVariable
 #endif
 };
 
-} // namespace vulkan::shaderbuilder
+} // namespace vulkan::shader_builder

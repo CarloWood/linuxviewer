@@ -57,6 +57,7 @@ target_include_directories(uniform_buffers_test
 target_link_libraries(uniform_buffers_test
   PRIVATE
     LinuxViewer::vulkan
+    LinuxViewer::shader_builder
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task

@@ -2,7 +2,7 @@
 
 #include "InstanceData.h"
 #include "SampleParameters.h"
-#include "vulkan/shaderbuilder/VertexShaderInputSet.h"
+#include "vulkan/shader_builder/VertexShaderInputSet.h"
 #include <random>
 
 // Generate SampleParameters::s_max_object_count InstanceData objects.
@@ -11,7 +11,7 @@
 // to put a HeavyRectangle. This class generates random position vectors
 // where x and y are in the range [-1, 1] and z is in the range [0, 1].
 //
-class RandomPositions final : public vulkan::shaderbuilder::VertexShaderInputSet<InstanceData>
+class RandomPositions final : public vulkan::shader_builder::VertexShaderInputSet<InstanceData>
 {
   std::random_device m_random_device;
   std::mt19937 m_generator;
