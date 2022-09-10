@@ -65,7 +65,7 @@ std::string ShaderResourceMember::name() const
 void ShaderResourceMember::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
+  os << "m_glsl_id_full:" << NAMESPACE_DEBUG::print_string(m_glsl_id_full) <<
       ", m_shader_resource:" << vk_utils::print_pointer(m_shader_resource);
   os << '}';
 }

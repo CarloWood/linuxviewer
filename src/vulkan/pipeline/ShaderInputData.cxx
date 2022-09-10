@@ -34,7 +34,7 @@ std::string_view ShaderInputData::preprocess(
   // They may occur zero or more times.
   for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
   {
-    std::string match_string = shader_variable->glsl_id_str();
+    std::string match_string = shader_variable->glsl_id_full();
     int count = 0;
     for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
     {
@@ -322,20 +322,20 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_input_attribute_descriptions() [" << this << "]");
 
   std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (auto vertex_attribute_iter = m_glsl_id_str_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_str_to_vertex_attribute.end(); ++vertex_attribute_iter)
+  for (auto vertex_attribute_iter = m_glsl_id_full_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_full_to_vertex_attribute.end(); ++vertex_attribute_iter)
   {
     shader_builder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
     auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
     if (iter == m_vertex_shader_location_context.locations().end())
     {
-      Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_str() <<
+      Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_full() <<
           ") in m_vertex_shader_location_context.locations(), which contains only {");
       for (auto&& e : m_vertex_shader_location_context.locations())
-        Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_str() << "), location:" << e.second << "}");
+        Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_full() << "), location:" << e.second << "}");
       Dout(dc::finish, "}");
       continue;
     }
-    // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_str_is_used_in()
+    // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_full_is_used_in()
     // in turn called by ShaderInputData::preprocess.
     ASSERT(iter != m_vertex_shader_location_context.locations().end());
     uint32_t location = iter->second;
@@ -373,12 +373,12 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
 
   shader_builder::ShaderResource shader_resource_tmp("Texture", vk::DescriptorType::eCombinedImageSampler, set_index);
 
-  auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{texture.glsl_id_str(), shader_resource_tmp});
-  // The m_glsl_id_str of each Texture must be unique. And of course, don't register the same texture twice.
+  auto res1 = m_glsl_id_full_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
+  // The m_glsl_id_full of each Texture must be unique. And of course, don't register the same texture twice.
   ASSERT(res1.second);
 
   shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
-  shader_builder::ShaderResourceMember const* shader_resource_member_ptr = shader_resource_ptr->add_member(texture.glsl_id_str().c_str());
+  shader_builder::ShaderResourceMember const* shader_resource_member_ptr = shader_resource_ptr->add_member(texture.glsl_id_full().c_str());
 
   m_shader_variables.push_back(shader_resource_member_ptr);
 
@@ -402,19 +402,19 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
 
-  std::vector<char const*> const& glsl_id_strs = uniform_buffer.glsl_id_strs();
-  ASSERT(!glsl_id_strs.empty());
-  std::string glsl_id_prefix(glsl_id_strs[0], std::strchr(glsl_id_strs[0], ':') - glsl_id_strs[0]);
+  std::vector<char const*> const& glsl_id_fulls = uniform_buffer.glsl_id_fulls();
+  ASSERT(!glsl_id_fulls.empty());
+  std::string glsl_id_prefix(glsl_id_fulls[0], std::strchr(glsl_id_fulls[0], ':') - glsl_id_fulls[0]);
   shader_builder::ShaderResource shader_resource_tmp(glsl_id_prefix, vk::DescriptorType::eUniformBuffer, set_index);
 
-  auto res1 = m_glsl_id_str_to_shader_resource.insert(std::pair{glsl_id_prefix, shader_resource_tmp});
+  auto res1 = m_glsl_id_full_to_shader_resource.insert(std::pair{glsl_id_prefix, shader_resource_tmp});
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
   shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
 
-  for (char const* glsl_id_str : glsl_id_strs)
+  for (char const* glsl_id_full : glsl_id_fulls)
   {
-    shader_builder::ShaderResourceMember const* shader_resource_member = shader_resource_ptr->add_member(glsl_id_str);
+    shader_builder::ShaderResourceMember const* shader_resource_member = shader_resource_ptr->add_member(glsl_id_full);
     m_shader_variables.push_back(shader_resource_member);
   }
 

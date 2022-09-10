@@ -13,23 +13,23 @@ class  DeclarationContext;
 class ShaderVariable
 {
  protected:
-  char const* const m_glsl_id_str;              // "MyPushConstant::element_name"
+  char const* const m_glsl_id_full;              // "MyPushConstant::element_name"
                                                 //
  public:
-  ShaderVariable(char const* glsl_id_str) : m_glsl_id_str(glsl_id_str) { }
+  ShaderVariable(char const* glsl_id_full) : m_glsl_id_full(glsl_id_full) { }
 
   // Accessor.
-  char const* glsl_id_str() const { return m_glsl_id_str; }
+  char const* glsl_id_full() const { return m_glsl_id_full; }
 
   std::string prefix() const
   {
-    std::string glsl_id_str = m_glsl_id_str;
-    return glsl_id_str.substr(0, glsl_id_str.find(':'));
+    std::string glsl_id_full = m_glsl_id_full;
+    return glsl_id_full.substr(0, glsl_id_full.find(':'));
   }
 
   std::string member_name() const
   {
-    return std::strchr(m_glsl_id_str, ':') + 2;
+    return std::strchr(m_glsl_id_full, ':') + 2;
   }
 
   virtual ~ShaderVariable() = default;

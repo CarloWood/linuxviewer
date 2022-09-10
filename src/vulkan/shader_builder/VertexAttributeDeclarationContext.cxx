@@ -21,7 +21,7 @@ void VertexAttributeDeclarationContext::update_location(VertexAttribute const* v
   m_next_location += number_of_attribute_indices;
 }
 
-void VertexAttributeDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data)
+void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data)
 {
   // Vertex attributes should only be used in the vertex shader.
   ASSERT(shader_stage == vk::ShaderStageFlagBits::eVertex);
@@ -41,7 +41,7 @@ std::string VertexAttributeDeclarationContext::generate(vk::ShaderStageFlagBits 
       glsl::type2name(vertex_attribute->basic_type().scalar_type(), vertex_attribute->basic_type().rows(), vertex_attribute->basic_type().cols()) << ' ' << shader_variable->name();
     if (vertex_attribute->array_size() > 0)
       oss << '[' << vertex_attribute->array_size() << ']';
-    oss << ";\t// " << vertex_attribute->glsl_id_str() << "\n";
+    oss << ";\t// " << vertex_attribute->glsl_id_full() << "\n";
   }
   return oss.str();
 }

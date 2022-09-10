@@ -32,16 +32,16 @@ struct VertexAttribute final : public ShaderVariable
   uint32_t array_size() const { return m_array_size; }
   BindingIndex binding() const { return m_binding; }
 
-  VertexAttribute(BasicType basic_type, char const* glsl_id_str, uint32_t offset, uint32_t array_size, BindingIndex binding) :
-    ShaderVariable(glsl_id_str), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size), m_binding(binding)
+  VertexAttribute(BasicType basic_type, char const* glsl_id_full, uint32_t offset, uint32_t array_size, BindingIndex binding) :
+    ShaderVariable(glsl_id_full), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size), m_binding(binding)
   {
-    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(" << basic_type << ", \"" << glsl_id_str << "\", " << ", " << offset << ", " << array_size << ", " << binding << ")");
+    DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(" << basic_type << ", \"" << glsl_id_full << "\", " << ", " << offset << ", " << array_size << ", " << binding << ")");
   }
 
   // VertexAttribute are put in a std::map. Provide a sorting function.
   bool operator<(VertexAttribute const& other) const
   {
-    return strcmp(m_glsl_id_str, other.m_glsl_id_str) < 0;
+    return strcmp(m_glsl_id_full, other.m_glsl_id_full) < 0;
   }
 
 #if 0

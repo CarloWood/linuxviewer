@@ -19,7 +19,7 @@ class PushConstantDeclarationContext final : public DeclarationContext
  public:
   PushConstantDeclarationContext(std::string prefix, std::size_t hash);
 
-  void glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data);
+  void glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data);
 
   std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
 };

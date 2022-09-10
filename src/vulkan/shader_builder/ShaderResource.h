@@ -26,8 +26,8 @@ class ShaderResourceMember final : public ShaderVariable
   uint32_t array_size() const { return m_array_size; }
 
  public:
-  ShaderResourceMember(char const* glsl_id_str, int member, ShaderResource const* shader_resource, BasicType basic_type, uint32_t offset, uint32_t array_size = 0) :
-    ShaderVariable(glsl_id_str), m_member(member), m_shader_resource(shader_resource), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size) { }
+  ShaderResourceMember(char const* glsl_id_full, int member, ShaderResource const* shader_resource, BasicType basic_type, uint32_t offset, uint32_t array_size = 0) :
+    ShaderVariable(glsl_id_full), m_member(member), m_shader_resource(shader_resource), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size) { }
 
 #if 0
   uint32_t size() const
@@ -75,9 +75,9 @@ class ShaderResource
     m_glsl_id_prefix(std::move(glsl_id_prefix)), m_descriptor_type(descriptor_type), m_set_index(set_index) /*, m_offset(offset), m_array_size(array_size)*/ { }
 
 #if 0
-  ShaderResourceMember const* add_member(char const* glsl_id_str)
+  ShaderResourceMember const* add_member(char const* glsl_id_full)
   {
-    auto res = m_members.try_emplace(glsl_id_str, glsl_id_str, this);
+    auto res = m_members.try_emplace(glsl_id_full, glsl_id_full, this);
     ASSERT(res.second);
     return &res.first->second;
   }

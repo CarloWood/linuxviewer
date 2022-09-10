@@ -60,16 +60,16 @@ class ShaderInputData
   // Vertex attributes.
   utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;           // Existing vertex shader input sets (a 'binding' slot).
   shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;            // Location context used for vertex attributes (VertexAttribute).
-  using glsl_id_str_to_vertex_attribute_container_t = std::map<std::string, vulkan::shader_builder::VertexAttribute, std::less<>>;
-  mutable glsl_id_str_to_vertex_attribute_container_t m_glsl_id_str_to_vertex_attribute;        // Map VertexAttribute::m_glsl_id_str to the VertexAttribute
+  using glsl_id_full_to_vertex_attribute_container_t = std::map<std::string, vulkan::shader_builder::VertexAttribute, std::less<>>;
+  mutable glsl_id_full_to_vertex_attribute_container_t m_glsl_id_full_to_vertex_attribute;        // Map VertexAttribute::m_glsl_id_full to the VertexAttribute
   //---------------------------------------------------------------------------                 // object that contains it.
 
   //---------------------------------------------------------------------------
   // Push constants.
-  using glsl_id_str_to_push_constant_declaration_context_container_t = std::map<std::string, std::unique_ptr<shader_builder::PushConstantDeclarationContext>>;
-  glsl_id_str_to_push_constant_declaration_context_container_t m_glsl_id_str_to_push_constant_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_str to its DeclarationContext object.
-  using glsl_id_str_to_push_constant_container_t = std::map<std::string, vulkan::shader_builder::PushConstant, std::less<>>;
-  glsl_id_str_to_push_constant_container_t m_glsl_id_str_to_push_constant;                      // Map PushConstant::m_glsl_id_str to the PushConstant object that contains it.
+  using glsl_id_full_to_push_constant_declaration_context_container_t = std::map<std::string, std::unique_ptr<shader_builder::PushConstantDeclarationContext>>;
+  glsl_id_full_to_push_constant_declaration_context_container_t m_glsl_id_full_to_push_constant_declaration_context;          // Map the prefix of VertexAttribute::m_glsl_id_full to its DeclarationContext object.
+  using glsl_id_full_to_push_constant_container_t = std::map<std::string, vulkan::shader_builder::PushConstant, std::less<>>;
+  glsl_id_full_to_push_constant_container_t m_glsl_id_full_to_push_constant;                      // Map PushConstant::m_glsl_id_full to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_push_constant_ranges;
   //---------------------------------------------------------------------------
@@ -78,14 +78,14 @@ class ShaderInputData
   // Shader resources.
   using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shader_builder::ShaderResourceDeclarationContext>;
   set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
-  using glsl_id_str_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
-  glsl_id_str_to_shader_resource_container_t m_glsl_id_str_to_shader_resource;
+  using glsl_id_full_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
+  glsl_id_full_to_shader_resource_container_t m_glsl_id_full_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
   descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index; // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
-  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_glsl_id_str_to_vertex_attribute, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
+  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_glsl_id_full_to_vertex_attribute, m_glsl_id_full_to_push_constant, m_glsl_id_full_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
 
@@ -93,7 +93,7 @@ class ShaderInputData
   //---------------------------------------------------------------------------
   // Vertex attributes.
 
-  // Add shader variable (VertexAttribute) to m_glsl_id_str_to_vertex_attribute
+  // Add shader variable (VertexAttribute) to m_glsl_id_full_to_vertex_attribute
   // (and a pointer to that to m_shader_variables), for a non-array vertex attribute.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
@@ -101,7 +101,7 @@ class ShaderInputData
       shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
-  // Add shader variable (VertexAttribute) to m_glsl_id_str_to_vertex_attribute
+  // Add shader variable (VertexAttribute) to m_glsl_id_full_to_vertex_attribute
   // (and a pointer to that to m_shader_variables), for a vertex attribute array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
@@ -115,7 +115,7 @@ class ShaderInputData
   //---------------------------------------------------------------------------
   // Push constants.
 
-  // Add shader variable (PushConstant) to m_glsl_id_str_to_push_constant (and a pointer to that to m_shader_variables),
+  // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a non-array push constant.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
@@ -123,7 +123,7 @@ class ShaderInputData
       shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
-  // Add shader variable (PushConstant) to m_glsl_id_str_to_push_constant (and a pointer to that to m_shader_variables),
+  // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a push constant array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
@@ -186,7 +186,7 @@ class ShaderInputData
     m_sorted_descriptor_set_layouts[set_index].push_back(descriptor_set_layout_binding);
   }
 
-  // Called from PushConstantDeclarationContext::glsl_id_str_is_used_in.
+  // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
   void insert(vk::PushConstantRange const& push_constant_range)
   {
     auto range = m_push_constant_ranges.equal_range(push_constant_range);
@@ -220,12 +220,12 @@ class ShaderInputData
   auto const& vertex_shader_input_sets() const { return m_vertex_shader_input_sets; }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
-  glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
-  glsl_id_str_to_push_constant_container_t const& glsl_id_str_to_push_constant() const { return m_glsl_id_str_to_push_constant; }
+  glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_full_to_push_constant_declaration_context; }
+  glsl_id_full_to_push_constant_container_t const& glsl_id_full_to_push_constant() const { return m_glsl_id_full_to_push_constant; }
 
   // Used by ShaderResourceMember::is_used_in to look up the declaration context.
   set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
-//  glsl_id_str_to_shader_resource_container_t const& glsl_id_str_to_shader_resource() const { return m_glsl_id_str_to_shader_resource; }
+//  glsl_id_full_to_shader_resource_container_t const& glsl_id_full_to_shader_resource() const { return m_glsl_id_full_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
@@ -267,7 +267,7 @@ void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding,
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
@@ -285,11 +285,11 @@ void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding,
     binding
   );
   Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
-  auto res1 = m_glsl_id_str_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
-  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+  auto res1 = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
+  // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(res1.second);
 
-  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_str_to_vertex_attribute to m_shader_variables.
+  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
   m_shader_variables.push_back(&res1.first->second);
 }
 
@@ -299,7 +299,7 @@ void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding,
     shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   // These strings are made with std::to_array("stringliteral"), which includes the terminating zero,
   // but the trailing '\0' was already removed by the conversion to string_view.
   ASSERT(!glsl_id_sv.empty() && glsl_id_sv.back() != '\0');
@@ -317,11 +317,11 @@ void ShaderInputData::add_vertex_attribute(shader_builder::BindingIndex binding,
     binding
   );
   Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
-  auto res1 = m_glsl_id_str_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
-  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same attribute twice.
+  auto res1 = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
+  // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(res1.second);
 
-  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_str_to_vertex_attribute to m_shader_variables.
+  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
   m_shader_variables.push_back(&res1.first->second);
 }
 
@@ -364,21 +364,21 @@ void ShaderInputData::add_push_constant_member(shader_builder::MemberLayout<Cont
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset);
-  auto res1 = m_glsl_id_str_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
-  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same push constant twice.
+  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset);
+  auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
+  // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
   m_shader_variables.push_back(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
-  if (m_glsl_id_str_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_push_constant_declaration_context.end())
+  if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
@@ -390,21 +390,21 @@ void ShaderInputData::add_push_constant_member(shader_builder::MemberLayout<Cont
     shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_str.chars.data(), Offset, Elements);
-  auto res1 = m_glsl_id_str_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
-  // The m_glsl_id_str of each ENTRY must be unique. And of course, don't register the same push constant twice.
+  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset, Elements);
+  auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
+  // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
   m_shader_variables.push_back(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
-  if (m_glsl_id_str_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_str_to_push_constant_declaration_context.end())
+  if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto res2 =)
-      m_glsl_id_str_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::DeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::DeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }

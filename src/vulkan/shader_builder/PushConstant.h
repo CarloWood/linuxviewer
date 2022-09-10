@@ -16,8 +16,8 @@ class PushConstant final : public ShaderVariable
   uint32_t const m_array_size;                  // Set to zero when this is not an array.
 
  public:
-  PushConstant(BasicType type, char const* glsl_id_str, uint32_t offset, uint32_t array_size = 0) :
-    ShaderVariable(glsl_id_str), m_type(type), m_offset(offset), m_array_size(array_size) { }
+  PushConstant(BasicType type, char const* glsl_id_full, uint32_t offset, uint32_t array_size = 0) :
+    ShaderVariable(glsl_id_full), m_type(type), m_offset(offset), m_array_size(array_size) { }
 
   uint32_t offset() const
   {

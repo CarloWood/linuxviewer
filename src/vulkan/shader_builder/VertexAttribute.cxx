@@ -14,7 +14,7 @@ namespace vulkan::shader_builder {
 std::string VertexAttribute::name() const
 {
   std::ostringstream oss;
-  oss << 'v' << std::hash<std::string>{}(glsl_id_str());
+  oss << 'v' << std::hash<std::string>{}(glsl_id_full());
   return oss.str();
 }
 
@@ -26,7 +26,7 @@ DeclarationContext const& VertexAttribute::is_used_in(vk::ShaderStageFlagBits sh
   VertexAttributeDeclarationContext& vertex_attribute_declaration_context = shader_input_data->vertex_shader_location_context({});
 
   // Register that this vertex attribute is being used.
-  vertex_attribute_declaration_context.glsl_id_str_is_used_in(glsl_id_str(), shader_stage, this, shader_input_data);
+  vertex_attribute_declaration_context.glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
 
   // Return the declaration context.
   return vertex_attribute_declaration_context;
@@ -38,7 +38,7 @@ void VertexAttribute::print_on(std::ostream& os) const
   os << '{';
 
   os << "m_basic_type:" << m_basic_type <<
-      ", m_glsl_id_str:" << NAMESPACE_DEBUG::print_string(m_glsl_id_str) <<
+      ", m_glsl_id_full:" << NAMESPACE_DEBUG::print_string(m_glsl_id_full) <<
       ", m_offset:" << m_offset;
   if (m_array_size > 0)
     os << ", m_array_size:" << m_array_size;

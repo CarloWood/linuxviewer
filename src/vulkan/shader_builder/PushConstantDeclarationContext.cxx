@@ -16,9 +16,9 @@ PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefi
   m_footer = "} v" + std::to_string(hash) + ";\n";
 }
 
-void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_str, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data)
+void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data)
 {
-  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_str_is_used_in(" << glsl_id_str << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_str() << "\"), " << (void*)shader_input_data << ")");
+  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)shader_input_data << ")");
 
   uint32_t& minimum_offset = m_minimum_offset.try_emplace(shader_stage, uint32_t{0xffffffff}).first->second;
   uint32_t& maximum_offset = m_maximum_offset.try_emplace(shader_stage, uint32_t{0x0}).first->second;
@@ -30,10 +30,10 @@ void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_
   // Make a list of all push constants in this range.
   uint32_t offset_end;
   std::vector<PushConstant const*> push_constants_in_range;
-  auto const& push_constants = shader_input_data->glsl_id_str_to_push_constant();
-  for (auto&& glsl_id_str_push_constant_pair : push_constants)
+  auto const& push_constants = shader_input_data->glsl_id_full_to_push_constant();
+  for (auto&& glsl_id_full_push_constant_pair : push_constants)
   {
-    PushConstant const* push_constant = &glsl_id_str_push_constant_pair.second;
+    PushConstant const* push_constant = &glsl_id_full_push_constant_pair.second;
     if (minimum_offset <= push_constant->offset() && push_constant->offset() <= maximum_offset)
       push_constants_in_range.push_back(push_constant);
     if (push_constant->offset() == maximum_offset)
@@ -63,7 +63,7 @@ void PushConstantDeclarationContext::glsl_id_str_is_used_in(char const* glsl_id_
     member_declaration += glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) + " " + push_constant->member_name();
     if (push_constant->elements() > 0)
       member_declaration += "[" + std::to_string(push_constant->elements()) + "]";
-    member_declaration += std::string{";\t// "} + push_constant->glsl_id_str() + "\n";
+    member_declaration += std::string{";\t// "} + push_constant->glsl_id_full() + "\n";
     m_elements.push_back(member_declaration);
     first = false;
   }

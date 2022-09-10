@@ -87,7 +87,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';
 #endif
-        oss << ";\t// " << shader_variable.glsl_id_str() << "\n";
+        oss << ";\t// " << shader_variable.glsl_id_full() << "\n";
         break;
       }
       case vk::DescriptorType::eUniformBuffer:

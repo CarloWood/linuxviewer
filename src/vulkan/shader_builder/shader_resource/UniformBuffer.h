@@ -22,7 +22,7 @@ class UniformBufferBase
 {
  protected:
   descriptor::SetKey const m_descriptor_set_key;                                // A unique key for this shader resource.
-//  std::vector<char const*> m_glsl_id_strs;                                      // The glsl_id_str's of each of the members of ENTRY (of the derived class).
+//  std::vector<char const*> m_glsl_id_fulls;                                      // The glsl_id_full's of each of the members of ENTRY (of the derived class).
   using members_container_t = std::map<int, ShaderResourceMember>;              // Maps member indexes to their corresponding ShaderResourceMember object.
   members_container_t m_members;                                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
@@ -72,13 +72,13 @@ class UniformBuffer : public UniformBufferBase
 };
 
 #if 0
-// Helper class to extract the glsl_id_str prefix from an ENTRY type.
+// Helper class to extract the glsl_id_full prefix from an ENTRY type.
 template<typename ENTRY, int member>
 struct GlslIdStr
 {
-  static constexpr utils::TemplateStringLiteral glsl_id_str =
-    std::tuple_element_t<member, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple>::glsl_id_str;
-  static constexpr std::string_view glsl_id_sv = static_cast<std::string_view>(glsl_id_str);
+  static constexpr utils::TemplateStringLiteral glsl_id_full =
+    std::tuple_element_t<member, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple>::glsl_id_full;
+  static constexpr std::string_view glsl_id_sv = static_cast<std::string_view>(glsl_id_full);
   static constexpr std::string_view prefix{glsl_id_sv.data(), glsl_id_sv.find(':')};
 };
 #endif
@@ -91,7 +91,7 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
 {
   // Paranoia: this vector should already have been resized.
   ASSERT(MemberIndex < m_member.size());
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
+  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
 
   //FIXME: implement
   ASSERT(false);

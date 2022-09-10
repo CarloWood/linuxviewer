@@ -74,7 +74,7 @@ struct MemberLayout
   static constexpr int member_index = MemberIndex;
   static constexpr size_t max_alignment = MaxAlignment;
   static constexpr size_t offset = Offset;
-  static constexpr utils::TemplateStringLiteral glsl_id_str = GlslIdStr;
+  static constexpr utils::TemplateStringLiteral glsl_id_full = GlslIdStr;
 };
 
 template<typename ContainingClass, typename XLayout, int Index, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
@@ -119,9 +119,9 @@ struct StructLayout
   static constexpr glsl::Standard standard = last_member_layout::standard;
   static constexpr size_t alignment = last_member_layout::max_alignment;
   static constexpr size_t size = round_up_to_multiple_off(last_member_layout::offset + Layout<typename last_member_layout::layout_type>::size, alignment);
-  static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_str);
+  static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_full);
   static constexpr size_t underlying_class_name_len = last_member_glsl_id_sv.find(':');
-  static constexpr utils::TemplateStringLiteral<underlying_class_name_len> glsl_id_str{last_member_glsl_id_sv.data(), underlying_class_name_len};
+  static constexpr utils::TemplateStringLiteral<underlying_class_name_len> glsl_id_full{last_member_glsl_id_sv.data(), underlying_class_name_len};
 
   constexpr StructLayout(MembersTuple) {}
 };
@@ -140,7 +140,7 @@ template<typename ContainingClass, typename XLayout, utils::TemplateStringLitera
 struct StructMember
 {
   static constexpr size_t alignment = Layout<XLayout>::alignment;
-  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
   using containing_class = ContainingClass;
   using layout_type = XLayout;
 };
@@ -149,7 +149,7 @@ struct StructMember
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
 struct StructMember<ContainingClass, XLayout[Elements], MemberName>
 {
-  static constexpr utils::TemplateStringLiteral glsl_id_str = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   using containing_class = ContainingClass;
   using layout_type = ArrayLayout<XLayout, Elements>;
@@ -211,7 +211,7 @@ constexpr auto make_layouts_impl(std::tuple<MemberLayouts...> layouts, FirstUnpr
       sizeof...(MemberLayouts),
       compute_max_alignment<LastMemberLayout, FirstUnprocessed>(),
       compute_offset<LastMemberLayout, FirstUnprocessed>(),
-      FirstUnprocessed::glsl_id_str
+      FirstUnprocessed::glsl_id_full
     >;
 
   return make_layouts_impl(std::tuple_cat(layouts, std::tuple<NextLayout>{}), unprocessedMembers...);
@@ -222,7 +222,7 @@ constexpr auto make_struct_layout(FirstMember const& first_member, RestMembers c
 {
   using ContainingClass = typename FirstMember::containing_class;
   using FirstType = typename FirstMember::layout_type;
-  using FirstMemberLayout = MemberLayout<ContainingClass, FirstType, 0/*index*/, Layout<FirstType>::alignment, 0/*offset*/, FirstMember::glsl_id_str>;
+  using FirstMemberLayout = MemberLayout<ContainingClass, FirstType, 0/*index*/, Layout<FirstType>::alignment, 0/*offset*/, FirstMember::glsl_id_full>;
 
   return StructLayout{make_layouts_impl(std::tuple(FirstMemberLayout{}), restMembers...)};
 }
