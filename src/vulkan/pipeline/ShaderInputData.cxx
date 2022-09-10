@@ -397,7 +397,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
-  //FIXME: implement.
+  //FIXME: implement (use preferred_descriptor_sets / undesirable_descriptor_sets).
   descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);

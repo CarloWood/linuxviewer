@@ -18,7 +18,7 @@ void UniformBufferBase::print_on(std::ostream& os) const
 {
   os << '{';
   os << "m_descriptor_set_key:" << m_descriptor_set_key <<
-      ", m_glsl_id_strs:" << m_glsl_id_strs <<
+      ", m_members:" << m_members <<
       ", m_uniform_buffers:" << m_uniform_buffers;
   os << '}';
 }

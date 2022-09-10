@@ -4,6 +4,7 @@
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 #include "shader_builder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderResource.h"
 #include "memory/UniformBuffer.h"
 #include "utils/Vector.h"
 #ifdef CWDEBUG
@@ -21,11 +22,13 @@ class UniformBufferBase
 {
  protected:
   descriptor::SetKey const m_descriptor_set_key;                                // A unique key for this shader resource.
-  std::vector<char const*> m_glsl_id_strs;                                      // The glsl_id_str's of each of the members of ENTRY (of the derived class).
+//  std::vector<char const*> m_glsl_id_strs;                                      // The glsl_id_str's of each of the members of ENTRY (of the derived class).
+  using members_container_t = std::map<int, ShaderResourceMember>;              // Maps member indexes to their corresponding ShaderResourceMember object.
+  members_container_t m_members;                                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
 
  public:
-  UniformBufferBase(int number_of_members) : m_descriptor_set_key(descriptor::SetKeyContext::instance()), m_glsl_id_strs(number_of_members) { }
+  UniformBufferBase(int number_of_members) : m_descriptor_set_key(descriptor::SetKeyContext::instance()) { }
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
   void create(task::SynchronousWindow const* owning_window, vk::DeviceSize size
@@ -39,7 +42,7 @@ class UniformBufferBase
 
   // Accessors.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-  std::vector<char const*> const& glsl_id_strs() const { return m_glsl_id_strs; }
+  members_container_t const& members() const { return m_members; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -87,10 +90,12 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
   // Paranoia: this vector should already have been resized.
-  ASSERT(MemberIndex < m_glsl_id_strs.size());
+  ASSERT(MemberIndex < m_member.size());
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_str);
 
-  m_glsl_id_strs[MemberIndex] = static_cast<std::string_view>(GlslIdStr).data();
+  //FIXME: implement
+  ASSERT(false);
+//  m_members[MemberIndex] = ...
 }
 
 template<typename ENTRY>

@@ -85,7 +85,7 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
 
-  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_vertex_attributes, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
+  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_glsl_id_str_to_vertex_attribute, m_glsl_id_str_to_push_constant, m_glsl_id_str_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
 
@@ -223,9 +223,9 @@ class ShaderInputData
   glsl_id_str_to_push_constant_declaration_context_container_t const& glsl_id_str_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_str_to_push_constant_declaration_context; }
   glsl_id_str_to_push_constant_container_t const& glsl_id_str_to_push_constant() const { return m_glsl_id_str_to_push_constant; }
 
-  // Used by ShaderResource::is_used_in to look up the declaration context.
+  // Used by ShaderResourceMember::is_used_in to look up the declaration context.
   set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
-  glsl_id_str_to_shader_resource_container_t const& glsl_id_str_to_shader_resource() const { return m_glsl_id_str_to_shader_resource; }
+//  glsl_id_str_to_shader_resource_container_t const& glsl_id_str_to_shader_resource() const { return m_glsl_id_str_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
