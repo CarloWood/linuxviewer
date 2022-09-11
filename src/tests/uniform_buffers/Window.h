@@ -209,37 +209,18 @@ class Window : public task::SynchronousWindow
   static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
-// FIXME: this should be generated.
-struct TopPosition {
-  mat2 unused1;
-  float x;
-//    float unused1;
-//    double unused2;
-//    float unused2;
-//    float unused3;
-};
+//FIXME: remove
+//layout(std140, set = 0, binding = 0) uniform u_s0b0 {
+//  TopPosition m_top_position[32];
+//} v4238767198234540653;
 
-layout(std140, set = 0, binding = 0) uniform u_s0b0 {
-  TopPosition m_top_position[32];
-} top12345678;
+//layout(set = 1, binding = 0) uniform u_s1b0 {
+//  LeftPosition m_left_position;
+//} v10031191547342547505;
 
-struct LeftPosition {
-  mat4 unused;
-  float y;
-};
-
-layout(set = 1, binding = 0) uniform u_s1b0 {
-  LeftPosition m_left_position;
-} left12345678;
-
-struct BottomPosition {
-  vec2 unused;
-  float x;
-};
-
-layout(set = 2, binding = 0) uniform u_s2b0 {
-  BottomPosition bottom_position;
-} bottom12345678;
+//layout(set = 2, binding = 0) uniform u_s2b0 {
+//  BottomPosition bottom_position;
+//} v1652305533358859285;
 
 vec2 positions[3] = vec2[](
   vec2(0.0, -1.0),
@@ -251,11 +232,11 @@ void main()
 {
   //positions[0].x = TopPosition::x - 1.0;
   //something = BottomPosition::unused;
-  positions[0].x = top12345678.m_top_position[0].x - 1.0;
+  positions[0].x = v4238767198234540653.m_top_position.x - 1.0;
   //positions[1].y = LeftPosition::y;
-  positions[1].y = left12345678.m_left_position.y;
+  positions[1].y = v10031191547342547505.m_left_position.y;
   //positions[2].x = BottomPosition::x - 1.0;
-  positions[2].x = bottom12345678.bottom_position.x - 1.0;
+  positions[2].x = v1652305533358859285.m_bottom_position.x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
@@ -264,26 +245,18 @@ void main()
   static constexpr std::string_view uniform_buffer_controlled_triangle2_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
-// FIXME: this should be generated.
-struct TopPosition {
-    mat2 unused1;
-    float x;
-//    float unused1;
-//    double unused2;
-//    float unused2;
-//    float unused3;
-};
-layout(set = 0, binding = 0) uniform LeftPosition {
-    mat4 unused;
-    float y;
-} left12345678;
-layout(set = 1, binding = 0) uniform TopPositionArray {
-    TopPosition top_position[32];
-} top12345678;
-layout(set = 2, binding = 0) uniform BottomPosition {
-    vec2 unused;
-    float x;
-} bottom12345678;
+// FIXME: remove
+//layout(set = 0, binding = 0) uniform LeftPosition {
+//    mat4 unused;
+//    float y;
+//} v10031191547342547505;
+//layout(set = 1, binding = 0) uniform TopPositionArray {
+//    TopPosition top_position[32];
+//} v4238767198234540653;
+//layout(set = 2, binding = 0) uniform BottomPosition {
+//    vec2 unused;
+//    float x;
+//} v1652305533358859285;
 
 vec2 positions[3] = vec2[](
     vec2(0.0, -1.0),
@@ -294,18 +267,18 @@ vec2 positions[3] = vec2[](
 void main()
 {
   //positions[0].x = TopPosition::x;
-  positions[0].x = top12345678.top_position[0].x;
+  positions[0].x = v4238767198234540653.m_top_position.x;
   //positions[1].y = LeftPosition::y;
-  positions[1].y = left12345678.y;
+  positions[1].y = v10031191547342547505.m_left_position.y;
   //positions[2].x = BottomPosition::x;
-  positions[2].x = bottom12345678.x;
+  positions[2].x = v1652305533358859285.m_bottom_position.x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
-// FIXME: this should be generated.
+// FIXME: remove
 //layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
@@ -320,7 +293,7 @@ void main()
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle2_frag_glsl = R"glsl(
-// FIXME: this should be generated.
+// FIXME: remove
 //layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
 
 layout(location = 0) in vec2 v_Texcoord;
@@ -401,10 +374,6 @@ void main()
       m_shader_input_data.add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
       m_shader_input_data.add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
       m_shader_input_data.add_texture(window->m_sample_texture, { top_set_key_preference });
-
-//      m_shader_input_data.reserve_binding(window->m_top_buffer.descriptor_set_key());
-//      m_shader_input_data.reserve_binding(window->m_left_buffer.descriptor_set_key());
-//      m_shader_input_data.reserve_binding(window->m_bottom_buffer.descriptor_set_key());
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

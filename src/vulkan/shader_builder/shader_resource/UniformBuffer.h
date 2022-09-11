@@ -4,6 +4,7 @@
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 #include "shader_builder/ShaderVariableLayouts.h"
+#include "shader_builder/ShaderResourceMember.h"
 #include "shader_builder/ShaderResource.h"
 #include "memory/UniformBuffer.h"
 #include "utils/Vector.h"
@@ -23,8 +24,7 @@ class UniformBufferBase
  protected:
   descriptor::SetKey const m_descriptor_set_key;                                // A unique key for this shader resource.
 //  std::vector<char const*> m_glsl_id_fulls;                                      // The glsl_id_full's of each of the members of ENTRY (of the derived class).
-  using members_container_t = std::map<int, ShaderResourceMember>;              // Maps member indexes to their corresponding ShaderResourceMember object.
-  members_container_t m_members;                                                // The members of ENTRY (of the derived class).
+  ShaderResource::members_container_t m_members;                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
 
  public:
@@ -42,7 +42,8 @@ class UniformBufferBase
 
   // Accessors.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-  members_container_t const& members() const { return m_members; }
+  ShaderResource::members_container_t* members() { return &m_members; }
+  std::string glsl_id() const;
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -89,13 +90,12 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  // Paranoia: this vector should already have been resized.
-  ASSERT(MemberIndex < m_member.size());
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
 
-  //FIXME: implement
-  ASSERT(false);
-//  m_members[MemberIndex] = ...
+  shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
+    .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
+
+  m_members.try_emplace(MemberIndex, glsl_id_sv.data(), MemberIndex, basic_type, Offset);
 }
 
 template<typename ENTRY>

@@ -3,6 +3,7 @@
 #include "memory/Image.h"
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
+#include "ShaderResource.h"
 
 namespace vulkan::shader_builder::shader_resource {
 
@@ -11,6 +12,7 @@ struct Texture : public memory::Image
 {
  private:
   descriptor::SetKey    m_descriptor_set_key;
+  ShaderResource::members_container_t m_members;        // A fake map with just one element.
   std::string           m_glsl_id_full;
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
@@ -36,6 +38,9 @@ struct Texture : public memory::Image
         COMMA_CWDEBUG_ONLY(".m_image_view" + ambifix))),
     m_sampler(std::move(sampler))
   {
+    // Add a fake ShaderResourceMember.
+    ShaderResourceMember fake_member(m_glsl_id_full.c_str(), 0, {}, 0);
+    m_members.insert(std::make_pair(0, fake_member));
   }
 
   // Create sampler too.
@@ -78,6 +83,7 @@ struct Texture : public memory::Image
 
   // Accessors.
   std::string const& glsl_id_full() const { return m_glsl_id_full; }
+  ShaderResource::members_container_t* members() { return &m_members; }
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }
 

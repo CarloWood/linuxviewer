@@ -360,7 +360,7 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   return vertex_input_attribute_descriptions;
 }
 
-void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const& texture,
+void ShaderInputData::add_texture(shader_builder::shader_resource::Texture& texture,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -371,15 +371,18 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
 
-  shader_builder::ShaderResource shader_resource_tmp("Texture", vk::DescriptorType::eCombinedImageSampler, set_index);
+  shader_builder::ShaderResource shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index);
 
-  auto res1 = m_glsl_id_full_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
+  auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
   // The m_glsl_id_full of each Texture must be unique. And of course, don't register the same texture twice.
   ASSERT(res1.second);
 
   shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
-  shader_builder::ShaderResourceMember const* shader_resource_member_ptr = shader_resource_ptr->add_member(texture.glsl_id_full().c_str());
+  shader_resource_ptr->add_members(texture.members());
 
+  // A Texture only has one "member".
+  shader_builder::ShaderResourceMember const* shader_resource_member_ptr = &texture.members()->begin()->second;
+  Dout(dc::always, "Adding to m_shader_variables: " << *shader_resource_member_ptr);
   m_shader_variables.push_back(shader_resource_member_ptr);
 
   // Add a ShaderResourceDeclarationContext with key set_index, if that doesn't already exists.
@@ -392,7 +395,7 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
   }
 }
 
-void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase& uniform_buffer,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -402,21 +405,18 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
 
-  std::vector<char const*> const& glsl_id_fulls = uniform_buffer.glsl_id_fulls();
-  ASSERT(!glsl_id_fulls.empty());
-  std::string glsl_id_prefix(glsl_id_fulls[0], std::strchr(glsl_id_fulls[0], ':') - glsl_id_fulls[0]);
-  shader_builder::ShaderResource shader_resource_tmp(glsl_id_prefix, vk::DescriptorType::eUniformBuffer, set_index);
+  shader_builder::ShaderResource shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index);
 
-  auto res1 = m_glsl_id_full_to_shader_resource.insert(std::pair{glsl_id_prefix, shader_resource_tmp});
+  auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{uniform_buffer.glsl_id(), shader_resource_tmp});
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
   shader_builder::ShaderResource* shader_resource_ptr = &res1.first->second;
 
-  for (char const* glsl_id_full : glsl_id_fulls)
-  {
-    shader_builder::ShaderResourceMember const* shader_resource_member = shader_resource_ptr->add_member(glsl_id_full);
-    m_shader_variables.push_back(shader_resource_member);
-  }
+  shader_builder::ShaderResource::members_container_t* members = uniform_buffer.members();
+  shader_resource_ptr->add_members(members);
+
+  for (auto& member : *members)
+    m_shader_variables.push_back(&member.second);
 
   //FIXME: remove code duplication (this also exists in add_texture).
   // Add a ShaderResourceDeclarationContext with key set_index, if that doesn't already exists.

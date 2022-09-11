@@ -66,7 +66,12 @@ struct UniformBuffer : Buffer
   }
 
   // Accessor.
-  void* pointer() const { return m_pointer; }
+  void* pointer() const
+  {
+    // Did you forget to call 'create' on your UniformBuffer?
+    ASSERT(this);
+    return m_pointer;
+  }
 
 #if CW_DEBUG
   void print_on(std::ostream& os) const;

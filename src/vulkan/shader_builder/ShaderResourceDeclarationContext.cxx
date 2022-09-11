@@ -77,10 +77,10 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
     {
       case vk::DescriptorType::eCombinedImageSampler:
       {
-        auto members = shader_resource->members();
+        ShaderResource::members_container_t const* members = shader_resource->members();
         // A texture only has one "member".
-        ASSERT(members.size() == 1);
-        ShaderVariable const& shader_variable = members.begin()->second;
+        ASSERT(members->size() == 1);
+        ShaderVariable const& shader_variable = members->begin()->second;
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
         oss << "layout(set = " << shader_resource->set_index().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
 #if 0
@@ -99,13 +99,17 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         //
         // layout(set = 0, binding = 1) uniform u_s0b1 {
         //   TopPosition m_top_position;
-        // } v12345678;
+        // } v4238767198234540653;
 
-        std::string const& prefix = shader_resource->glsl_id_prefix();
+        std::string const& prefix = shader_resource->glsl_id();
         std::size_t const prefix_hash = std::hash<std::string>{}(prefix);
+        ShaderResource::members_container_t const* members = shader_resource->members();
         oss << "struct " << prefix << " {\n";
-//        for ()
-//          oss << "  " << << ";\n";
+        for (auto member = members->begin(); member != members->end(); ++member)
+        {
+          BasicType basic_type = member->second.basic_type();
+          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member->second.member_name() << ";\n";
+        }
         oss << "};\nlayout(set = " << shader_resource->set_index().get_value() << ", binding = " << binding << ") uniform "
           "u_s" << shader_resource->set_index().get_value() << "b" << binding << " {\n  " <<
           prefix << " m_" << vk_utils::snake_case(prefix) << ";\n} v" << prefix_hash << ";\n";

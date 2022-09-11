@@ -78,14 +78,14 @@ class ShaderInputData
   // Shader resources.
   using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shader_builder::ShaderResourceDeclarationContext>;
   set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
-  using glsl_id_full_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
-  glsl_id_full_to_shader_resource_container_t m_glsl_id_full_to_shader_resource;
+  using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
+  glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
   descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index; // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
-  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_glsl_id_full_to_vertex_attribute, m_glsl_id_full_to_push_constant, m_glsl_id_full_to_shader_resource, ...).
+  std::vector<shader_builder::ShaderVariable const*> m_shader_variables;         // A list of all ShaderVariable's (elements of m_glsl_id_full_to_vertex_attribute, m_glsl_id_full_to_push_constant, m_glsl_id_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
 
@@ -144,11 +144,11 @@ class ShaderInputData
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
-  void add_texture(shader_builder::shader_resource::Texture const& texture,
+  void add_texture(shader_builder::shader_resource::Texture& texture,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+  void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -225,7 +225,7 @@ class ShaderInputData
 
   // Used by ShaderResourceMember::is_used_in to look up the declaration context.
   set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
-//  glsl_id_full_to_shader_resource_container_t const& glsl_id_full_to_shader_resource() const { return m_glsl_id_full_to_shader_resource; }
+//  glsl_id_to_shader_resource_container_t const& glsl_id_to_shader_resource() const { return m_glsl_id_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;

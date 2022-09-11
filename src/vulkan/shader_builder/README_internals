@@ -1,0 +1,66 @@
+- User defines:
+
+    shader_resource::UniformBuffer<TopPosition>,                UniformBufferBase::
+                                                                  m_descriptor_set_key: 10
+                                                                  m_members:
+                                                                       ShaderResourceMember:
+                                                                    0: mat2 unused1, "TopPosition::unused1"
+                                                                    1: float x, "TopPosition::x"
+                                                                                   
+    shader_resource::UniformBuffer<LeftPosition> and            UniformBufferBase::
+                                                                  m_descriptor_set_key: 11
+                                                                  m_members:
+                                                                       ShaderResourceMember:
+                                                                    0: mat4 unused, "LeftPosition::unused"
+                                                                    1: float y, "LeftPosition::y"
+
+    shader_resource::Texture.                                   Texture::
+                                                                  m_descriptor_set_key: 12
+                                                                  m_glsl_id_full = "Texture::vort3"
+
+
+        | binding 0                                                | binding 1
+        .===============================================================================================================================.
+        | ShaderResourceDeclarationContext                                                                                              |
+        |.----------------------------------------------------------------------------------------------------------------------------. |
+set 0   ||  // Declaration for "TopPosition"                       |  // Declaration of "Texture::vort3"                              | |
+        ||                                                         |                                                                  | |
+        ||  struct TopPosition {                                   |  layout(set = 0, binding = 1) uniform sampler2D u_Vort3Texture;  | |
+        ||    mat2 unused1;         // "TopPosition::unused1"      |                                                                  | |
+        ||    float x;              // "TopPosition::x"            |  // End of declaration of Texture::vort3                         | |
+        ||  };                                                     |                                                                  | |
+        ||                                                         |                                                                  | |
+        ||  layout(std140, set = 0, binding = 0) uniform u_s0b0 {  |                                                                  | |
+        ||    TopPosition m_top_position;                          |                                                                  | |
+        ||  } top12345678;                                         |                                                                  | |
+        ||                                                         |                                                                  | |
+        ||  // End of declaration of TopPosition                   |                                                                  | |
+        |'----------------------------------------------------------------------------------------------------------------------------' |
+        .==============================================================================================================================='
+        | ShaderResourceDeclarationContext                                                                                              |
+        |------------------------------------------------------------------------------------------------------------------------------ |
+set 1   ||  // Declaration of "LeftPosition"                       |                                                                    |
+        ||                                                         |                                                                    |
+        ||  struct LeftPosition {                                  |                                                                    |
+        ||    mat4 unused;          // "LeftPosition::unused"      |                                                                    |
+        ||    float y;              // "LeftPosition::y"           |                                                                    |
+        ||  };                                                     |                                                                    |
+        ||                                                         |                                                                    |
+        ||  layout(set = 1, binding = 0) uniform u_s1b0 {          |                                                                    |
+        ||    LeftPosition m_left_position;                        |                                                                    |
+        ||  } left12345678;                                        |                                                                    |
+        ||                                                         |                                                                    |
+        ||  // End of declaration of LeftPosition                  |                                                                    |
+        |'----------------------------------------------------------------------------------------------------------------------------- |
+        '==============================================================================================================================='
+
+- Each table element contains one "shader resource" declaration.
+
+We have one ShaderResourceMember per `glsl_id_full`:
+                            m_member_index      m_basic_type    m_offset        m_array_size
+  "TopPosition::unused1"        0               mat2            0               0
+  "TopPosition::x"              1               float           16              0
+  "Texture::vort3"              0               {}              {}              {}
+  "LeftPosition::unused"        0               mat4            0               0
+  "LeftPosition::y"             1               float           64              0
+
