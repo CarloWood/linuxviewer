@@ -455,9 +455,9 @@ void main()
 
       static std::once_flag flag;
       std::call_once(flag, &Window::create_uniform_buffers, window,
-          vhv_realized_descriptor_set_layouts[window->m_top_buffer.set_index()],
-          vhv_realized_descriptor_set_layouts[window->m_left_buffer.set_index()],
-          vhv_realized_descriptor_set_layouts[window->m_bottom_buffer.set_index()]);
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_top_buffer.descriptor_set_key())],
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_left_buffer.descriptor_set_key())],
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_bottom_buffer.descriptor_set_key())]);
     }
 
    public:

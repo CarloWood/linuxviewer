@@ -239,8 +239,8 @@ class ShaderInputData
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
   utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
 
-  // Used by ShaderResourceDeclarationContext::reserve_binding.
-//  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
+  // Used by UniformBufferBase::set_index.
+  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
 };
 
 } // namespace pipeline
