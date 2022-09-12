@@ -133,8 +133,8 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
 
-    // The descriptor set layouts are the same for both pipeline in this application, and because the descriptor sets
-    // created from it are updated with the same state, we also reuse the descripts sets and have both pipelines use
+    // The descriptor set layouts are the same for both pipelines in this application, and because the descriptor sets
+    // created from it are updated with the same state, we also reuse the descriptors sets and have both pipelines use
     // the same descriptor sets (this function is only called once: for whichever UniformBuffersTestPipelineCharacteristicBase's
     // initialize finished first).
     auto descriptor_sets = logical_device()->allocate_descriptor_sets(
@@ -201,7 +201,8 @@ class Window : public task::SynchronousWindow
         }
       };
       // The 'top' descriptor set also contains the texture.
-      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
+      binding = 1;
+      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
     }
   }
 
@@ -450,13 +451,13 @@ void main()
       }
 #endif
 
-      std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+      auto vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
 
-      for (auto e : vhv_realized_descriptor_set_layouts)
-        Dout(dc::always, e);
-      ASSERT(false);
       static std::once_flag flag;
-//      std::call_once(flag, &Window::create_uniform_buffers, window, m_top_descriptor_set_layout, m_left_descriptor_set_layout, m_bottom_descriptor_set_layout);
+      std::call_once(flag, &Window::create_uniform_buffers, window,
+          vhv_realized_descriptor_set_layouts[window->m_top_buffer.set_index()],
+          vhv_realized_descriptor_set_layouts[window->m_left_buffer.set_index()],
+          vhv_realized_descriptor_set_layouts[window->m_bottom_buffer.set_index()]);
     }
 
    public:

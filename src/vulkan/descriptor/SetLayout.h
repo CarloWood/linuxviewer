@@ -7,6 +7,9 @@
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <algorithm>
+#ifdef CWDEBUG
+#include "debug/debug_ostream_operators.h"
+#endif
 #include "debug.h"
 
 namespace vulkan {
@@ -34,6 +37,7 @@ class SetLayout
 
   void push_back(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
+    DoutEntering(dc::vulkan, "SetLayout::push_back(" << descriptor_set_layout_binding << ")");
     utils::sorted_vector_insert(m_sorted_bindings, descriptor_set_layout_binding, LayoutBindingCompare{});
   }
 

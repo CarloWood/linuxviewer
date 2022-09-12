@@ -1184,7 +1184,6 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
   {
     try
     {
-      using descriptor_set_layouts_t = vulkan::LogicalDevice::descriptor_set_layouts_t;
       descriptor_set_layouts_t::rat descriptor_set_layouts_r(m_descriptor_set_layouts);
       auto iter = descriptor_set_layouts_r->find(sorted_descriptor_set_layout_bindings);
       if (iter == descriptor_set_layouts_r->end())

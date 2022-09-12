@@ -80,8 +80,8 @@ class ShaderInputData
   set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
   using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
   glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;
-  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;
-  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index; // Maps descriptor::SetKey's to identifier::SetIndex's.
+  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;   // A Vector of SetLayout object, by SetIndex, containing vk::DescriptorSetLayout handles and the vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were created from.
+  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index;                          // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
@@ -183,6 +183,8 @@ class ShaderInputData
 
   void push_back_descriptor_set_layout_binding(descriptor::SetIndex set_index, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
+    DoutEntering(dc::vulkan, "push_back_descriptor_set_layout_binding(" << set_index << ", " << descriptor_set_layout_binding << ") [" << this << "]");
+    Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index << "].m_sorted_bindings:");
     m_sorted_descriptor_set_layouts[set_index].push_back(descriptor_set_layout_binding);
   }
 
@@ -199,11 +201,11 @@ class ShaderInputData
     return { m_push_constant_ranges.begin(), m_push_constant_ranges.end() };
   }
 
-  std::vector<vk::DescriptorSetLayout> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
+  utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
   {
-    DoutEntering(dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ")");
+    DoutEntering(dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
     Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
-    std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts;
+    utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> vhv_descriptor_set_layouts;
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
     {
       descriptor_set_layout.realize_handle(logical_device);

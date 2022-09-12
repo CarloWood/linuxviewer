@@ -11,7 +11,7 @@ class ShaderResourceMember final : public ShaderVariable
 {
  private:
   int m_member_index;                           // Member index (0 for textures).
-  ShaderResource const* m_shader_resource_ptr{};// Pointer to the corresponding shader resource, that contains for example SetIndex and descriptor type.
+  ShaderResource* m_shader_resource_ptr{};      // Pointer to the corresponding shader resource, that contains for example SetIndex and descriptor type.
   BasicType const m_basic_type;                 // The glsl basic type of the variable, or underlying basic type in case of an array.
   uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
   uint32_t const m_array_size;                  // Set to zero when this is not an array.
@@ -28,7 +28,7 @@ class ShaderResourceMember final : public ShaderVariable
     ShaderVariable(glsl_id_full), m_member_index(member_index), m_basic_type(basic_type), m_offset(offset),
     m_array_size(array_size) { }
 
-  void set_shader_resource_ptr(ShaderResource const* shader_resource_ptr)
+  void set_shader_resource_ptr(ShaderResource* shader_resource_ptr)
   {
     m_shader_resource_ptr = shader_resource_ptr;
   }

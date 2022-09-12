@@ -13,13 +13,14 @@ struct Texture : public memory::Image
  private:
   descriptor::SetKey    m_descriptor_set_key;
   ShaderResource::members_container_t m_members;        // A fake map with just one element.
-  std::string           m_glsl_id_full;
+  std::unique_ptr<char const[]> m_glsl_id_full;
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
 
  public:
   // Used to move-assign later.
   Texture() = default;
+  ~Texture() { DoutEntering(dc::vulkan, "shader_resource::Texture::~Texture() [" << this << "]"); }
 
   // Use sampler as-is.
   Texture(
@@ -31,15 +32,22 @@ struct Texture : public memory::Image
       MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
     m_descriptor_set_key(descriptor::SetKeyContext::instance()),
-    m_glsl_id_full(std::string{"Texture::"}.append(glsl_id_full_postfix)),
     memory::Image(logical_device, extent, image_view_kind, memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
         COMMA_CWDEBUG_ONLY(".m_image_view" + ambifix))),
     m_sampler(std::move(sampler))
   {
+    DoutEntering(dc::vulkan, "shader_resource::Texture::Texture(\"" << glsl_id_full_postfix << "\", " << logical_device << ", " << extent <<
+        ", " << image_view_kind << ", @" << &sampler << ", memory_create_info) [" << this << "]");
+    std::string glsl_id_full("Texture::");
+    glsl_id_full.append(glsl_id_full_postfix);
+    auto glsl_id_full_ptr = std::make_unique<char[]>(glsl_id_full.size() + 1);
+    strcpy(glsl_id_full_ptr.get(), glsl_id_full.data());
+    m_glsl_id_full = std::move(glsl_id_full_ptr);
+
     // Add a fake ShaderResourceMember.
-    ShaderResourceMember fake_member(m_glsl_id_full.c_str(), 0, {}, 0);
+    ShaderResourceMember fake_member(m_glsl_id_full.get(), 0, {}, 0);
     m_members.insert(std::make_pair(0, fake_member));
   }
 
@@ -82,7 +90,7 @@ struct Texture : public memory::Image
   Texture& operator=(Texture&& rhs) = default;
 
   // Accessors.
-  std::string const& glsl_id_full() const { return m_glsl_id_full; }
+  char const* glsl_id_full() const { return m_glsl_id_full.get(); }
   ShaderResource::members_container_t* members() { return &m_members; }
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }

@@ -23,6 +23,7 @@ class ShaderResource
 //  uint32_t const m_array_size;                  // Set to zero when this is not an array.
 //  std::map<std::string, ShaderResourceMember> m_members;        // The members of this shader resource.
   members_container_t* m_members_ptr{};
+  vk::ShaderStageFlags m_stage_flags{};
 
  public:
   ShaderResource(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndex set_index /*, uint32_t offset, uint32_t array_size = 0*/) :
@@ -46,11 +47,17 @@ class ShaderResource
     }
   }
 
+  void used_in(vk::ShaderStageFlagBits shader_stage)
+  {
+    m_stage_flags |= shader_stage;
+  }
+
   // Accessors.
   std::string const& glsl_id() const { return m_glsl_id; }
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
   descriptor::SetIndex set_index() const { return m_set_index; }
   members_container_t* members() const { return m_members_ptr; }
+  vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }
 
 #ifdef CWDEBUG
  public:

@@ -368,7 +368,7 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture& text
 
   //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
   descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
-  descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
+  descriptor::SetIndex set_index{0}; //FIXME don't hardcode 0 here. = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndex " << set_index);
 
   shader_builder::ShaderResource shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index);
@@ -433,6 +433,8 @@ void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
     shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
+  DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");
+
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
   shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);

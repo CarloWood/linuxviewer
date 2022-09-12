@@ -59,17 +59,21 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
 std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(" << shader_stage << ") [" << this << "]");
+  Dout(dc::vulkan, "Generating declaration; running over m_bindings that has the contents: " << m_bindings);
 
   std::ostringstream oss;
   for (auto&& shader_resource_binding_pair : m_bindings)
   {
+    Dout(dc::vulkan, "shader_resource_binding_pair = " << shader_resource_binding_pair);
     ShaderResource const* shader_resource = shader_resource_binding_pair.first;
+    if (!(shader_resource->stage_flags() & shader_stage))
+      continue;
     uint32_t binding = shader_resource_binding_pair.second;
     m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set_index(), {
         .binding = binding,
         .descriptorType = shader_resource->descriptor_type(),
         .descriptorCount = 1,
-        .stageFlags = shader_stage,
+        .stageFlags = shader_resource->stage_flags(),
         .pImmutableSamplers = nullptr
     });
 
