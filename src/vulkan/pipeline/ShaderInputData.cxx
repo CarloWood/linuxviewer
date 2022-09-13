@@ -368,10 +368,10 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture& text
 
   //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
   descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
-  descriptor::SetIndex set_index{0}; //FIXME don't hardcode 0 here. = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
-  Dout(dc::vulkan, "Using SetIndex " << set_index);
+  descriptor::SetIndexHint set_index_hint{0}; //FIXME don't hardcode 0 here. = m_shader_resource_set_key_to_set_index.try_emplace(texture_descriptor_set_key);
+  Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
 
-  shader_builder::ShaderResource shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index);
+  shader_builder::ShaderResource shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint);
 
   auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
   // The m_glsl_id_full of each Texture must be unique. And of course, don't register the same texture twice.
@@ -385,11 +385,11 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture& text
   Dout(dc::always, "Adding to m_shader_variables: " << *shader_resource_member_ptr);
   m_shader_variables.push_back(shader_resource_member_ptr);
 
-  // Add a ShaderResourceDeclarationContext with key set_index, if that doesn't already exists.
-  if (m_set_index_to_shader_resource_declaration_context.find(set_index) == m_set_index_to_shader_resource_declaration_context.end())
+  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
+  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
   {
     DEBUG_ONLY(auto res2 =)
-      m_set_index_to_shader_resource_declaration_context.try_emplace(set_index, this);
+      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
@@ -402,10 +402,10 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
   //FIXME: implement (use preferred_descriptor_sets / undesirable_descriptor_sets).
   descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
-  descriptor::SetIndex set_index = m_shader_resource_set_key_to_set_index.try_emplace(uniform_buffer_descriptor_set_key);
-  Dout(dc::vulkan, "Using SetIndex " << set_index);
+  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace(uniform_buffer_descriptor_set_key);
+  Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
 
-  shader_builder::ShaderResource shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index);
+  shader_builder::ShaderResource shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index_hint);
 
   auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{uniform_buffer.glsl_id(), shader_resource_tmp});
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
@@ -419,11 +419,11 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
     m_shader_variables.push_back(&member.second);
 
   //FIXME: remove code duplication (this also exists in add_texture).
-  // Add a ShaderResourceDeclarationContext with key set_index, if that doesn't already exists.
-  if (m_set_index_to_shader_resource_declaration_context.find(set_index) == m_set_index_to_shader_resource_declaration_context.end())
+  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
+  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
   {
     DEBUG_ONLY(auto res2 =)
-      m_set_index_to_shader_resource_declaration_context.try_emplace(set_index, this);
+      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }

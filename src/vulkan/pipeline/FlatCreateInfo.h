@@ -10,13 +10,17 @@ namespace vulkan::pipeline {
 
 class FlatCreateInfo
 {
+ public:
+  // The same type as ShaderInputData::sorted_set_layouts_container_t.
+  using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+
  private:
   std::vector<std::vector<vk::PipelineShaderStageCreateInfo> const*> m_pipeline_shader_stage_create_infos_list;
   std::vector<std::vector<vk::VertexInputBindingDescription> const*> m_vertex_input_binding_descriptions_list;
   std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
   std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
-  utils::Vector<descriptor::SetLayout> const* m_realized_descriptor_set_layouts_ptr{};
+  sorted_set_layouts_container_t const* m_realized_descriptor_set_layouts_ptr{};
   std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
 
   template<typename T>
@@ -148,14 +152,14 @@ class FlatCreateInfo
     return merge(m_dynamic_states_list);
   }
 
-  void add_descriptor_set_layouts(utils::Vector<descriptor::SetLayout> const* descriptor_set_layouts)
+  void add_descriptor_set_layouts(sorted_set_layouts_container_t const* descriptor_set_layouts)
   {
     // Only call this once, merging is not supported.
     ASSERT(m_realized_descriptor_set_layouts_ptr == nullptr);
     m_realized_descriptor_set_layouts_ptr = descriptor_set_layouts;
   }
 
-  utils::Vector<descriptor::SetLayout> const& get_realized_descriptor_set_layouts() const
+  sorted_set_layouts_container_t const& get_realized_descriptor_set_layouts() const
   {
     // You must call add(std::vector<vk::DescriptorSetLayout> const&) from at least one Characteristic.
     ASSERT(m_realized_descriptor_set_layouts_ptr != nullptr);

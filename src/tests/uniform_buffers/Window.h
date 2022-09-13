@@ -52,6 +52,7 @@ class Window : public task::SynchronousWindow
   vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer;
   vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer;
   vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer;
+  std::atomic_bool m_uniform_buffers_initialized = false;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -190,6 +191,9 @@ class Window : public task::SynchronousWindow
       ((TopPosition*)(m_top_buffer[hack0].pointer()))[i].x = 0.8;
     ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = 0.5;
     ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = 0.5;
+
+    // Tell the render loop that we're done initializing the uniform buffers.
+    m_uniform_buffers_initialized = true;
 
     // Update descriptor set of m_sample_texture.
     {
@@ -451,13 +455,13 @@ void main()
       }
 #endif
 
-      auto vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+      utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
 
       static std::once_flag flag;
       std::call_once(flag, &Window::create_uniform_buffers, window,
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_top_buffer.descriptor_set_key())],
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_left_buffer.descriptor_set_key())],
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index(window->m_bottom_buffer.descriptor_set_key())]);
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_top_buffer.descriptor_set_key())],
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_left_buffer.descriptor_set_key())],
+          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_bottom_buffer.descriptor_set_key())]);
     }
 
    public:
@@ -671,12 +675,15 @@ else
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
 
-    // FIXME: not implemented: currently we're only using the first frame resource!
-    vulkan::FrameResourceIndex const hack0{0};
+    if (m_uniform_buffers_initialized)
+    {
+      // FIXME: not implemented: currently we're only using the first frame resource!
+      vulkan::FrameResourceIndex const hack0{0};
 
-    ((TopPosition*)(m_top_buffer[hack0].pointer()))[0].x = m_top_position;
-    ((TopPosition*)(m_top_buffer[hack0].pointer()))[1].x = m_top_position + 0.1;
-    ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = m_left_position;
-    ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = m_bottom_position;
+      ((TopPosition*)(m_top_buffer[hack0].pointer()))[0].x = m_top_position;
+      ((TopPosition*)(m_top_buffer[hack0].pointer()))[1].x = m_top_position + 0.1;
+      ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = m_left_position;
+      ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = m_bottom_position;
+    }
   }
 };

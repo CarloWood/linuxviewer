@@ -21,17 +21,17 @@ void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_ke
 void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shader_resource)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource << ") [" << this << "]");
-  descriptor::SetIndex set_index = shader_resource->set_index();
-  if (m_next_binding.iend() <= set_index)
-    m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
-  m_bindings[shader_resource] = m_next_binding[set_index];
+  descriptor::SetIndexHint set_index_hint = shader_resource->set_index_hint();
+  if (m_next_binding.iend() <= set_index_hint)
+    m_next_binding.resize(set_index_hint.get_value() + 1);      // New elements are initialized to 0.
+  m_bindings[shader_resource] = m_next_binding[set_index_hint];
   int number_of_bindings = 1;
 #if 0
   if (vertex_attribute->layout().m_array_size > 0)
     number_of_attribute_indices *= vertex_attribute->layout().m_array_size;
 #endif
-  Dout(dc::notice, "Changing m_next_binding[set:" << set_index << "] from " << m_next_binding[set_index] << " to " << (m_next_binding[set_index] + number_of_bindings) << ".");
-  m_next_binding[set_index] += number_of_bindings;
+  Dout(dc::notice, "Changing m_next_binding[set_index_hint:" << set_index_hint << "] from " << m_next_binding[set_index_hint] << " to " << (m_next_binding[set_index_hint] + number_of_bindings) << ".");
+  m_next_binding[set_index_hint] += number_of_bindings;
 }
 
 void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data)
@@ -69,7 +69,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
     if (!(shader_resource->stage_flags() & shader_stage))
       continue;
     uint32_t binding = shader_resource_binding_pair.second;
-    m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set_index(), {
+    m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set_index_hint(), {
         .binding = binding,
         .descriptorType = shader_resource->descriptor_type(),
         .descriptorCount = 1,
@@ -86,7 +86,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         ASSERT(members->size() == 1);
         ShaderVariable const& shader_variable = members->begin()->second;
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource->set_index().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
+        oss << "layout(set = " << shader_resource->set_index_hint().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';
@@ -114,8 +114,8 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
           BasicType basic_type = member->second.basic_type();
           oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member->second.member_name() << ";\n";
         }
-        oss << "};\nlayout(set = " << shader_resource->set_index().get_value() << ", binding = " << binding << ") uniform "
-          "u_s" << shader_resource->set_index().get_value() << "b" << binding << " {\n  " <<
+        oss << "};\nlayout(set = " << shader_resource->set_index_hint().get_value() << ", binding = " << binding << ") uniform "
+          "u_s" << shader_resource->set_index_hint().get_value() << "b" << binding << " {\n  " <<
           prefix << " m_" << vk_utils::snake_case(prefix) << ";\n} v" << prefix_hash << ";\n";
         break;
       }

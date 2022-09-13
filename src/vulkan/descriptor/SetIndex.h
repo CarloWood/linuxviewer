@@ -4,6 +4,14 @@
 
 namespace vulkan::descriptor {
 
+// SetIndexHint
+//
+// A temporary descriptor set index that has a bijective relationship with SetIndex,
+// which is only determined at set layout realization.
+//
+struct SetIndexHintCategory;
+using SetIndexHint = utils::VectorIndex<SetIndexHintCategory>;
+
 // SetIndex
 //
 // An index into vectors that enumerate DescriptorSets for a given pipeline.

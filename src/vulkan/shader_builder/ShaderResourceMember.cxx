@@ -12,20 +12,17 @@ DeclarationContext const& ShaderResourceMember::is_used_in(vk::ShaderStageFlagBi
 {
   DoutEntering(dc::vulkan, "ShaderResourceMember::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
-  descriptor::SetIndex set_index = m_shader_resource_ptr->set_index();
-
-  // Check if this is a new set.
-  shader_input_data->saw_set(set_index);
+  descriptor::SetIndexHint set_index_hint = m_shader_resource_ptr->set_index_hint();
 
   // Register that this shader resource is used in shader_stage.
   m_shader_resource_ptr->used_in(shader_stage);
 
   // We use a declaration context per (shader resource) descriptor set as this context is used to enumerate the 'binding =' values.
-  auto shader_resource_declaration_context_iter = shader_input_data->set_index_to_shader_resource_declaration_context({}).find(set_index);
+  auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
   // This set index should already have been inserted by ShaderInputData::add_texture, add_uniform_buffer, etc.
   //
   // FIXME: when does this happen?
-  ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_to_shader_resource_declaration_context({}).end());
+  ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).end());
   ShaderResourceDeclarationContext& shader_resource_declaration_context = shader_resource_declaration_context_iter->second;
 
   // Register that this shader resource is being used in this set.

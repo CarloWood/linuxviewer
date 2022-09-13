@@ -24,16 +24,12 @@ class SetLayout
 {
  private:
   friend struct SetLayoutCompare;
-  std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;                                // The bindings "key" from which m_handle was created.
+  std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;        // The bindings "key" from which m_handle was created.
+  SetIndexHint m_set_index_hint;                                        // The set index (hint) that this SetLayout refers to. It is not used for sorting (not part of the 'key').
   vk::DescriptorSetLayout m_handle;
 
  public:
-  SetLayout() = default;
-
-#if 0
-  SetLayout(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings, vk::DescriptorSetLayout handle) :
-    m_sorted_bindings(std::move(sorted_bindings)), m_handle(handle) { }
-#endif
+  SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint) { }
 
   void push_back(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
@@ -44,10 +40,9 @@ class SetLayout
   // Look up m_sorted_bindings in cache, and create a new handle if it doesn't already exist.
   void realize_handle(LogicalDevice const* logical_device);
 
-  vk::DescriptorSetLayout handle() const
-  {
-    return m_handle;
-  }
+  // Accessors.
+  SetIndexHint set_index_hint() const { return m_set_index_hint; }
+  vk::DescriptorSetLayout handle() const { return m_handle; }
 
   // Called from LogicalDevice::try_emplace_pipeline_layout.
   explicit operator vk::DescriptorSetLayout() const
@@ -60,6 +55,7 @@ class SetLayout
   {
     os << '{';
     os << "m_sorted_bindings:" << m_sorted_bindings <<
+        ", m_set_index_hint:" << m_set_index_hint <<
         ", m_handle:" << m_handle;
     os << '}';
   }
@@ -70,7 +66,7 @@ struct SetLayoutCompare
 {
   bool operator()(SetLayout const& lhs, SetLayout const& rhs) const
   {
-    // Put default constructed SetLayout's at the end.
+    // Put just constructed SetLayout's at the end.
     if (lhs.m_sorted_bindings.empty())
       return false;
     if (rhs.m_sorted_bindings.empty())

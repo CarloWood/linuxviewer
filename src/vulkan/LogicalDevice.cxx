@@ -1209,7 +1209,7 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
 }
 
 vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
-    utils::Vector<descriptor::SetLayout> const& realized_descriptor_set_layouts,
+    sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");

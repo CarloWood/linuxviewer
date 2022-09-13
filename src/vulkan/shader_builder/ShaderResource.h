@@ -18,7 +18,7 @@ class ShaderResource
   std::string m_glsl_id;
   vk::DescriptorType m_descriptor_type;                         // The descriptor type of this shader resource.
   //FIXME: this should be set to something sensible.
-  descriptor::SetIndex m_set_index;                             // The set that this resource belongs to.
+  descriptor::SetIndexHint m_set_index_hint;                    // The set that this resource belongs to.
 //  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
 //  uint32_t const m_array_size;                  // Set to zero when this is not an array.
 //  std::map<std::string, ShaderResourceMember> m_members;        // The members of this shader resource.
@@ -26,8 +26,8 @@ class ShaderResource
   vk::ShaderStageFlags m_stage_flags{};
 
  public:
-  ShaderResource(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndex set_index /*, uint32_t offset, uint32_t array_size = 0*/) :
-    m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index(set_index) /*, m_offset(offset), m_array_size(array_size)*/ { }
+  ShaderResource(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/) :
+    m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index_hint(set_index_hint) /*, m_offset(offset), m_array_size(array_size)*/ { }
 
 #if 0
   ShaderResourceMember const* add_member(char const* glsl_id_full)
@@ -55,7 +55,7 @@ class ShaderResource
   // Accessors.
   std::string const& glsl_id() const { return m_glsl_id; }
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
-  descriptor::SetIndex set_index() const { return m_set_index; }
+  descriptor::SetIndexHint set_index_hint() const { return m_set_index_hint; }
   members_container_t* members() const { return m_members_ptr; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }
 

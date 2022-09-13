@@ -55,6 +55,9 @@ namespace pipeline {
 
 class ShaderInputData
 {
+ public:
+  using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+
  private:
   //---------------------------------------------------------------------------
   // Vertex attributes.
@@ -76,12 +79,12 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Shader resources.
-  using set_index_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndex, shader_builder::ShaderResourceDeclarationContext>;
-  set_index_to_shader_resource_declaration_context_container_t m_set_index_to_shader_resource_declaration_context;
+  using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;
+  set_index_hint_to_shader_resource_declaration_context_container_t m_set_index_hint_to_shader_resource_declaration_context;
   using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
   glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;
-  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> m_sorted_descriptor_set_layouts;   // A Vector of SetLayout object, by SetIndex, containing vk::DescriptorSetLayout handles and the vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were created from.
-  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index;                          // Maps descriptor::SetKey's to identifier::SetIndex's.
+  sorted_set_layouts_container_t m_sorted_descriptor_set_layouts;   // A Vector of SetLayout object, by SetIndexHint, containing vk::DescriptorSetLayout handles and the vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were created from.
+  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index_hint;                         // Maps descriptor::SetKey's to identifier::SetIndex's.
 
   //---------------------------------------------------------------------------
 
@@ -152,9 +155,6 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  // Reserve one shader resource binding for the set with set_index.
-//  void reserve_binding(descriptor::SetKey set_key) { m_shader_resource_declaration_context.reserve_binding(set_key); }
-
   void build_shader(task::SynchronousWindow const* owning_window, shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
       shader_builder::SPIRVCache& spirv_cache
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
@@ -174,18 +174,23 @@ class ShaderInputData
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   std::string_view preprocess(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer);
 
-  // Called indirectly from preprocess whenever we see a shader resource being used that uses `set_index`.
-  void saw_set(descriptor::SetIndex set_index)
+  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
-    if (set_index >= m_sorted_descriptor_set_layouts.iend())
-      m_sorted_descriptor_set_layouts.resize(set_index.get_value() + 1);
-  }
-
-  void push_back_descriptor_set_layout_binding(descriptor::SetIndex set_index, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
-  {
-    DoutEntering(dc::vulkan, "push_back_descriptor_set_layout_binding(" << set_index << ", " << descriptor_set_layout_binding << ") [" << this << "]");
-    Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index << "].m_sorted_bindings:");
-    m_sorted_descriptor_set_layouts[set_index].push_back(descriptor_set_layout_binding);
+    DoutEntering(dc::vulkan, "push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ") [" << this << "]");
+    Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings:");
+    // Find the SetLayout corresponding to the set_index_hint, if any.
+    struct CompareHint {
+      descriptor::SetIndexHint m_set_index_hint;
+      bool operator()(descriptor::SetLayout const& set_layout) { return set_layout.set_index_hint() == m_set_index_hint; }
+    };
+    auto set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), CompareHint{set_index_hint});
+    if (set_layout  == m_sorted_descriptor_set_layouts.end())
+    {
+      m_sorted_descriptor_set_layouts.emplace_back(set_index_hint);
+      set_layout = m_sorted_descriptor_set_layouts.end() - 1;
+    }
+    set_layout->push_back(descriptor_set_layout_binding);
+    std::sort(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::SetLayoutCompare{});
   }
 
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
@@ -201,15 +206,18 @@ class ShaderInputData
     return { m_push_constant_ranges.begin(), m_push_constant_ranges.end() };
   }
 
-  utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
+  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> realize_descriptor_set_layouts(LogicalDevice const* logical_device)
   {
     DoutEntering(dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
     Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
-    utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> vhv_descriptor_set_layouts;
+    utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
     {
       descriptor_set_layout.realize_handle(logical_device);
-      vhv_descriptor_set_layouts.push_back(descriptor_set_layout.handle());
+      // This code assumes that m_sorted_descriptor_set_layouts contains contiguous range [0, 1, 2, ..., size-1] of
+      // set index hint values - one for each.
+      ASSERT(descriptor_set_layout.set_index_hint() < vhv_descriptor_set_layouts.iend());
+      vhv_descriptor_set_layouts[descriptor_set_layout.set_index_hint()] = descriptor_set_layout.handle();
     }
     return vhv_descriptor_set_layouts;
   }
@@ -226,7 +234,7 @@ class ShaderInputData
   glsl_id_full_to_push_constant_container_t const& glsl_id_full_to_push_constant() const { return m_glsl_id_full_to_push_constant; }
 
   // Used by ShaderResourceMember::is_used_in to look up the declaration context.
-  set_index_to_shader_resource_declaration_context_container_t& set_index_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_to_shader_resource_declaration_context; }
+  set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_hint_to_shader_resource_declaration_context; }
 //  glsl_id_to_shader_resource_container_t const& glsl_id_to_shader_resource() const { return m_glsl_id_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
@@ -237,10 +245,13 @@ class ShaderInputData
 
   // Returns information on what was added with build_shader.
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
-  utils::Vector<descriptor::SetLayout, descriptor::SetIndex> const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
+  sorted_set_layouts_container_t const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
 
-  // Used by UniformBufferBase::set_index.
-  descriptor::SetIndex get_set_index(descriptor::SetKey set_key) const { return m_shader_resource_set_key_to_set_index.get_set_index(set_key); }
+  // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
+  descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const
+  {
+    return m_shader_resource_set_key_to_set_index_hint.get_set_index_hint(set_key);
+  }
 };
 
 } // namespace pipeline

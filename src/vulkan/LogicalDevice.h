@@ -125,7 +125,9 @@ class LogicalDevice
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
-  using pipeline_layouts_container_key_t = std::pair<utils::Vector<descriptor::SetLayout>, std::vector<vk::PushConstantRange>>;
+  // The same type as ShaderInputData::sorted_set_layouts_container_t.
+  using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+  using pipeline_layouts_container_key_t = std::pair<sorted_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
         utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
   using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
@@ -177,7 +179,7 @@ class LogicalDevice
   vk::DescriptorSetLayout try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   vk::PipelineLayout try_emplace_pipeline_layout(
-      utils::Vector<descriptor::SetLayout> const& realized_descriptor_set_layouts,
+      sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
 
