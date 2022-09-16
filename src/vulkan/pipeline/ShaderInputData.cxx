@@ -369,7 +369,9 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
 
   //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
   descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
-  descriptor::SetIndexHint set_index_hint = get_set_index_hint(preferred_descriptor_sets[0].descriptor_set_key());
+  descriptor::SetIndexHint set_index_hint{0};
+  if (!preferred_descriptor_sets.empty())
+    set_index_hint = get_set_index_hint(preferred_descriptor_sets[0].descriptor_set_key());
   Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, texture);
