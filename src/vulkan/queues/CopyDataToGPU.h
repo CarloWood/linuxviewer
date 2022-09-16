@@ -14,7 +14,7 @@ class CopyDataToGPU : public ImmediateSubmit
   std::unique_ptr<vulkan::DataFeeder> m_data_feeder;
   vulkan::memory::StagingBuffer m_staging_buffer;
   uint32_t m_data_size;
-  SynchronousWindow* m_resource_owner;                          // If any resources that this task uses are part of a window, then this should be set.
+  SynchronousWindow const* m_resource_owner;                    // If any resources that this task uses are part of a window, then this should be set.
   statefultask::RunningTasksTracker::index_type m_index;        // Our index, if added to m_resource_owner.
 
  protected:
@@ -40,7 +40,7 @@ class CopyDataToGPU : public ImmediateSubmit
     DoutEntering(dc::vulkan, "CopyDataToGPU(" << logical_device << ", " << data_size << ")");
   }
 
-  void set_resource_owner(SynchronousWindow* resource_owner)
+  void set_resource_owner(SynchronousWindow const* resource_owner)
   {
     m_resource_owner = resource_owner;
   }

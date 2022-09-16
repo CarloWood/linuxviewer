@@ -359,11 +359,11 @@ void main()
 #endif
 
    protected:
-    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
+    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window, int pipeline)
     {
       DoutEntering(dc::vulkan, "initializeX(FlatCreateInfo @" << (void*)&flat_create_info << ", " << owning_window << ", " << pipeline << ")");
 
-      Window const* window = static_cast<Window*>(owning_window);
+      Window const* window = static_cast<Window const*>(owning_window);
 
       // Register the vectors that we will fill.
       flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
@@ -489,7 +489,7 @@ void main()
 
   class UniformBuffersTestPipelineCharacteristic1 : public UniformBuffersTestPipelineCharacteristicBase
   {
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
     {
       initializeX(flat_create_info, owning_window, 1);
     }
@@ -497,7 +497,7 @@ void main()
 
   class UniformBuffersTestPipelineCharacteristic2 : public UniformBuffersTestPipelineCharacteristicBase
   {
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
     {
       initializeX(flat_create_info, owning_window, 2);
     }
@@ -513,9 +513,6 @@ void main()
     m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
     m_pipeline_factory1.generate(this);
-
-    //FIXME: remove this.
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     m_pipeline_factory2 = create_pipeline_factory(m_graphics_pipeline2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);

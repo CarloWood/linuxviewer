@@ -11,6 +11,7 @@
 #include "vulkan/Pipeline.h"
 #include "vulkan/shader_builder/ShaderIndex.h"
 #include "vk_utils/ImageData.h"
+#include "utils/threading/aithreadid.h"
 #include <imgui.h>
 #include "debug.h"
 #include "tracy/CwTracy.h"
@@ -46,7 +47,7 @@ class Window : public task::SynchronousWindow
   // Vertex buffers.
   using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
   using vertex_buffers_type = aithreadsafe::Wrapper<vertex_buffers_container_type, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
-  vertex_buffers_type m_vertex_buffers;
+  mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
   vulkan::shader_resource::Texture m_background_texture;
@@ -257,11 +258,11 @@ void main()
     HeavyRectangle m_heavy_rectangle;           // A rectangle with many vertices.
     RandomPositions m_random_positions;         // Where to put those rectangles.
 
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window) override
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
     {
       Dout(dc::notice, "FrameResourcesCountPipelineCharacteristic::initialize(...)");
 
-      Window* window = static_cast<Window*>(owning_window);
+      Window const* window = static_cast<Window const*>(owning_window);
 
       // Register the vectors that we will fill.
       flat_create_info.add(&m_vertex_input_binding_descriptions);
@@ -328,7 +329,11 @@ void main()
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
       // Generate vertex buffers.
-      static_cast<Window*>(owning_window)->create_vertex_buffers(this);
+      // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
+      // while the current function is part of a pipeline factory...
+      static std::thread::id s_id;
+      ASSERT(aithreadid::is_single_threaded(s_id));     // Fails if more than one thread executes this line.
+      window->create_vertex_buffers(this);
 
       // Silly low
       std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
@@ -336,7 +341,9 @@ void main()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
       vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^
       // Store the descriptor set handle: it is used in draw_frame().
-      window->m_vh_descriptor_set = vh_descriptor_set;
+      //FIXME: m_vh_descriptor_set shouldn't exist... for now just use it, which is only safe because this function
+      // is single threaded for this test application.
+      const_cast<Window*>(window)->m_vh_descriptor_set = vh_descriptor_set;
 
       //FIXME: this needs a rewrite (of API) such that the updates happen automatically
       // as a result of the texture registrations (aka, the Texture template specialization).
@@ -384,7 +391,9 @@ void main()
     pipeline_factory.generate(this);
   }
 
-  void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner)
+  // This member function only uses m_vertex_buffers, which aithreadsafe.
+  // Therefore, the function as whole is made threadsafe-const
+  void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner) /*threadsafe-*/ const
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
 

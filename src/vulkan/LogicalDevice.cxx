@@ -1302,6 +1302,36 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     std::map<descriptor::SetBinding, descriptor::SetBinding>& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
+  //FIXME: remove these asserts: they are ubt specific.
+  ASSERT(realized_descriptor_set_layouts.size() == 3);
+  // 0 2 1
+  // 1 2 0
+  // 2 0 1
+  // 2 1 0
+  //--
+  // 0 1 2
+  // 1 0 2
+  ASSERT(
+     (realized_descriptor_set_layouts[0].set_index_hint().get_value() == 0 &&
+      realized_descriptor_set_layouts[1].set_index_hint().get_value() == 2 &&
+      realized_descriptor_set_layouts[2].set_index_hint().get_value() == 1) ||
+     (realized_descriptor_set_layouts[0].set_index_hint().get_value() == 1 &&
+      realized_descriptor_set_layouts[1].set_index_hint().get_value() == 2 &&
+      realized_descriptor_set_layouts[2].set_index_hint().get_value() == 0) ||
+     (realized_descriptor_set_layouts[0].set_index_hint().get_value() == 2 &&
+      realized_descriptor_set_layouts[1].set_index_hint().get_value() == 0 &&
+      realized_descriptor_set_layouts[2].set_index_hint().get_value() == 1) ||
+     (realized_descriptor_set_layouts[0].set_index_hint().get_value() == 2 &&
+      realized_descriptor_set_layouts[1].set_index_hint().get_value() == 1 &&
+      realized_descriptor_set_layouts[2].set_index_hint().get_value() == 0));
+
+  // top:0, left:1, bottom:2
+  //  \--> 1,2,0 or 2,1,0     --> 0
+  // top:1, left:0, bottom:2
+  //  \--> 0,2,1 or 2,0,1     --> 1
+  //
+  int const top_uses_set_index_hint = realized_descriptor_set_layouts[2].set_index_hint().get_value();
+
   DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
@@ -1363,19 +1393,23 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
           ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
           auto binding_in = set_layout_in->sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings().begin();
+          //FIXME: remove 'i', it is ubt specific.
+          int i = 0;
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
             descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
             descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
             //FIXME: remove this - it is uniform buffer test specific.
-            ASSERT(set_binding_in.set_index_hint().get_value() == 2 ||
-                set_binding_in.set_index_hint().get_value() == 1 - set_binding_out.set_index_hint().get_value());
-            ASSERT(set_binding_in.set_index_hint().get_value() != 2 ||
-                set_binding_in.set_index_hint().get_value() == set_binding_out.set_index_hint().get_value());
-            ASSERT(set_binding_in.binding() == set_binding_out.binding());
+            if (i == 2)
+            {
+              ASSERT(set_binding_in.set_index_hint().get_value() == 0 || set_binding_in.set_index_hint().get_value() == 1);
+              ASSERT(set_binding_in.set_index_hint().get_value() == 1 - set_binding_out.set_index_hint().get_value());
+              ASSERT(set_binding_in.binding() == set_binding_out.binding());
+            }
             set_binding_map_out.insert(std::make_pair(set_binding_in, set_binding_out));
             ++binding_in;
             ++binding_out;
+            ++i;
           }
           ++set_layout_in;
           ++set_layout_out;

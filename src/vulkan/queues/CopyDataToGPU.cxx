@@ -29,7 +29,9 @@ void CopyDataToGPU::initialize_impl()
   {
     try
     {
-      m_resource_owner->m_task_counter_gate.increment();
+      // m_resource_owner is "threadsafe-const" - but increment() is just thread-safe, not const.
+      // Therefore we have to cast away the const.
+      const_cast<SynchronousWindow*>(m_resource_owner)->m_task_counter_gate.increment();
     }
     catch (std::exception const&)
     {
@@ -42,7 +44,8 @@ void CopyDataToGPU::initialize_impl()
 void CopyDataToGPU::finish_impl()
 {
   if (m_resource_owner)
-    m_resource_owner->m_task_counter_gate.decrement();
+    // See above.
+    const_cast<SynchronousWindow*>(m_resource_owner)->m_task_counter_gate.decrement();
 }
 
 void CopyDataToGPU::multiplex_impl(state_type run_state)
