@@ -6,7 +6,7 @@
 #include <sstream>
 #include <functional>
 #ifdef CWDEBUG
-#include "vk_utils/PrintPointer.h"
+#include "vk_utils/print_pointer.h"
 #endif
 
 namespace vulkan::shader_builder {

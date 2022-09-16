@@ -231,7 +231,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               //-----------------------------------------------------------------
               // Begin pipeline layout creation
 
-              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(realized_descriptor_set_layouts, sorted_push_constant_ranges);
+              std::map<vulkan::descriptor::SetBinding, vulkan::descriptor::SetBinding> set_binding_map;
+              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
+              Dout(dc::always, "set_binding_map = " << set_binding_map);
 
               // End pipeline layout creation
               //-----------------------------------------------------------------

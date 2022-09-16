@@ -1,19 +1,58 @@
 #pragma once
 
+#include "Base.h"
+#include "ShaderResourceMember.h"
 #include "memory/Image.h"
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
-#include "ShaderResource.h"
 
 namespace vulkan::shader_builder::shader_resource {
 
+namespace detail {
+
+// A wrapper around ShaderResourceMember, which doesn't have
+// a default constructor, together with the run-time constructed
+// glsl id string, so that below we only need a single memory
+// allocation.
+class TextureShaderResourceMember
+{
+ private:
+  ShaderResourceMember m_member;
+  char m_glsl_id_full[];
+
+  TextureShaderResourceMember(std::string const& glsl_id_full) : m_member(m_glsl_id_full)
+  {
+    strcpy(m_glsl_id_full, glsl_id_full.data());
+  }
+
+ public:
+  static std::unique_ptr<TextureShaderResourceMember> create(std::string const& glsl_id_full)
+  {
+    void* memory = malloc(sizeof(ShaderResourceMember) + glsl_id_full.size() + 1);
+    return std::unique_ptr<TextureShaderResourceMember>{new (memory) TextureShaderResourceMember(glsl_id_full)};
+  }
+
+  void operator delete(void* p)
+  {
+    free(p);
+  }
+
+  // Accessor.
+  ShaderResourceMember const& member() const { return m_member; }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
+};
+
+} // namespace detail
+
 // Data collection used for textures.
-struct Texture : public memory::Image
+struct Texture : public Base, memory::Image
 {
  private:
   descriptor::SetKey    m_descriptor_set_key;
-  ShaderResource::members_container_t m_members;        // A fake map with just one element.
-  std::unique_ptr<char const[]> m_glsl_id_full;
+  std::unique_ptr<detail::TextureShaderResourceMember> m_member;        // A Texture only has a single "member".
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
 
@@ -42,13 +81,7 @@ struct Texture : public memory::Image
         ", " << image_view_kind << ", @" << &sampler << ", memory_create_info) [" << this << "]");
     std::string glsl_id_full("Texture::");
     glsl_id_full.append(glsl_id_full_postfix);
-    auto glsl_id_full_ptr = std::make_unique<char[]>(glsl_id_full.size() + 1);
-    strcpy(glsl_id_full_ptr.get(), glsl_id_full.data());
-    m_glsl_id_full = std::move(glsl_id_full_ptr);
-
-    // Add a fake ShaderResourceMember.
-    ShaderResourceMember fake_member(m_glsl_id_full.get(), 0, {}, 0);
-    m_members.insert(std::make_pair(0, fake_member));
+    m_member = detail::TextureShaderResourceMember::create(glsl_id_full);
   }
 
   // Create sampler too.
@@ -90,12 +123,16 @@ struct Texture : public memory::Image
   Texture& operator=(Texture&& rhs) = default;
 
   // Accessors.
-  char const* glsl_id_full() const { return m_glsl_id_full.get(); }
-  ShaderResource::members_container_t* members() { return &m_members; }
+  char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
+  ShaderResourceMember const& member() const { return m_member->member(); }
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }
 
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 } // namespace vulkan::shader_builder::shader_resource

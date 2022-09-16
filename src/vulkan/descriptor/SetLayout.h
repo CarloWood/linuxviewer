@@ -41,6 +41,7 @@ class SetLayout
   void realize_handle(LogicalDevice const* logical_device);
 
   // Accessors.
+  std::vector<vk::DescriptorSetLayoutBinding> const& sorted_bindings() const { return m_sorted_bindings; }
   SetIndexHint set_index_hint() const { return m_set_index_hint; }
   vk::DescriptorSetLayout handle() const { return m_handle; }
 

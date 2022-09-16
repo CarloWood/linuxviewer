@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderResourceDeclarationContext.h"
-#include "ShaderResource.h"
+#include "ShaderResourceDeclaration.h"
+#include "shader_resource/UniformBuffer.h"
 #include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/snake_case.h"
@@ -18,13 +19,13 @@ void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_ke
 }
 #endif
 
-void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shader_resource)
+void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration const* shader_resource_declaration)
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource << ") [" << this << "]");
-  descriptor::SetIndexHint set_index_hint = shader_resource->set_index_hint();
+  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource_declaration << ") [" << this << "]");
+  descriptor::SetIndexHint set_index_hint = shader_resource_declaration->set_index_hint();
   if (m_next_binding.iend() <= set_index_hint)
     m_next_binding.resize(set_index_hint.get_value() + 1);      // New elements are initialized to 0.
-  m_bindings[shader_resource] = m_next_binding[set_index_hint];
+  m_bindings[shader_resource_declaration] = m_next_binding[set_index_hint];
   int number_of_bindings = 1;
 #if 0
   if (vertex_attribute->layout().m_array_size > 0)
@@ -34,21 +35,21 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResource const* shad
   m_next_binding[set_index_hint] += number_of_bindings;
 }
 
-void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResource const* shader_resource, pipeline::ShaderInputData* shader_input_data)
+void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration, pipeline::ShaderInputData* shader_input_data)
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in with shader_resource(\"" <<
-      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource << ", " << shader_input_data << ")");
+  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in with shader_resource_declaration(\"" <<
+      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource_declaration << ", " << shader_input_data << ")");
 
   // Only register one binding per shader resource per set.
-  if (m_bindings.find(shader_resource) != m_bindings.end())
+  if (m_bindings.find(shader_resource_declaration) != m_bindings.end())
     return;
 
-  switch (shader_resource->descriptor_type())
+  switch (shader_resource_declaration->descriptor_type())
   {
     case vk::DescriptorType::eCombinedImageSampler:
     case vk::DescriptorType::eUniformBuffer:
       //FIXME: Is this correct? Can't I use this for every type?
-      update_binding(shader_resource);
+      update_binding(shader_resource_declaration);
       break;
     default:
       //FIXME: implement
@@ -64,29 +65,30 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
   std::ostringstream oss;
   for (auto&& shader_resource_binding_pair : m_bindings)
   {
-    Dout(dc::vulkan, "shader_resource_binding_pair = " << shader_resource_binding_pair);
-    ShaderResource const* shader_resource = shader_resource_binding_pair.first;
-    if (!(shader_resource->stage_flags() & shader_stage))
+    Dout(dc::vulkan, "shader_resource_binding_pair = { &" <<
+        *shader_resource_binding_pair.first << ", " << shader_resource_binding_pair.second << " }");
+    ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
+    if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
     uint32_t binding = shader_resource_binding_pair.second;
-    m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource->set_index_hint(), {
+    m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
         .binding = binding,
-        .descriptorType = shader_resource->descriptor_type(),
+        .descriptorType = shader_resource_declaration->descriptor_type(),
         .descriptorCount = 1,
-        .stageFlags = shader_resource->stage_flags(),
+        .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
     });
 
-    switch (shader_resource->descriptor_type())
+    switch (shader_resource_declaration->descriptor_type())
     {
       case vk::DescriptorType::eCombinedImageSampler:
       {
-        ShaderResource::members_container_t const* members = shader_resource->members();
+        auto const& variable = shader_resource_declaration->shader_resource_variables();
         // A texture only has one "member".
-        ASSERT(members->size() == 1);
-        ShaderVariable const& shader_variable = members->begin()->second;
+        ASSERT(variable.size() == 1);
+        ShaderResourceVariable const& shader_variable = *variable.begin();
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource->set_index_hint().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
+        oss << "layout(set = " << shader_resource_declaration->set_index_hint().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';
@@ -105,17 +107,19 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         //   TopPosition m_top_position;
         // } v4238767198234540653;
 
-        std::string const& prefix = shader_resource->glsl_id();
+        std::string const& prefix = shader_resource_declaration->glsl_id();
         std::size_t const prefix_hash = std::hash<std::string>{}(prefix);
-        ShaderResource::members_container_t const* members = shader_resource->members();
+        shader_resource::Base const& base = shader_resource_declaration->shader_resource();
+        shader_resource::UniformBufferBase const& uniform_buffer = static_cast<shader_resource::UniformBufferBase const&>(base);
+        auto const& members = uniform_buffer.members();
         oss << "struct " << prefix << " {\n";
-        for (auto member = members->begin(); member != members->end(); ++member)
+        for (ShaderResourceMember const& member : members)
         {
-          BasicType basic_type = member->second.basic_type();
-          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member->second.member_name() << ";\n";
+          BasicType basic_type = member.basic_type();
+          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member.member_name() << ";\n";
         }
-        oss << "};\nlayout(set = " << shader_resource->set_index_hint().get_value() << ", binding = " << binding << ") uniform "
-          "u_s" << shader_resource->set_index_hint().get_value() << "b" << binding << " {\n  " <<
+        oss << "};\nlayout(set = " << shader_resource_declaration->set_index_hint().get_value() << ", binding = " << binding << ") uniform "
+          "u_s" << shader_resource_declaration->set_index_hint().get_value() << "b" << binding << " {\n  " <<
           prefix << " m_" << vk_utils::snake_case(prefix) << ";\n} v" << prefix_hash << ";\n";
         break;
       }
@@ -126,5 +130,16 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
   }
   return oss.str();
 }
+
+#ifdef CWDEBUG
+void ShaderResourceDeclarationContext::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "m_next_binding:" << m_next_binding <<
+      ", m_bindings:" << m_bindings <<
+      ", m_owning_shader_input_data:" << m_owning_shader_input_data;
+  os << '}';
+}
+#endif
 
 } // namespace vulkan::shader_builder

@@ -1,11 +1,12 @@
 #pragma once
 
+#include "Base.h"
 #include "FrameResourceIndex.h"
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 #include "shader_builder/ShaderVariableLayouts.h"
 #include "shader_builder/ShaderResourceMember.h"
-#include "shader_builder/ShaderResource.h"
+#include "shader_resource/UniformBuffer.h"
 #include "memory/UniformBuffer.h"
 #include "utils/Vector.h"
 #ifdef CWDEBUG
@@ -19,13 +20,19 @@ class SynchronousWindow;
 
 namespace vulkan::shader_builder::shader_resource {
 
-class UniformBufferBase
+class UniformBufferBase : public Base
 {
  protected:
   descriptor::SetKey const m_descriptor_set_key;                                // A unique key for this shader resource.
-//  std::vector<char const*> m_glsl_id_fulls;                                      // The glsl_id_full's of each of the members of ENTRY (of the derived class).
-  ShaderResource::members_container_t m_members;                                // The members of ENTRY (of the derived class).
+  using members_container_t = ShaderResourceMember::container_t;
+  members_container_t m_members;                                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
+
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+  void add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
+      shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
  public:
   UniformBufferBase(int number_of_members) : m_descriptor_set_key(descriptor::SetKeyContext::instance()) { }
@@ -34,19 +41,13 @@ class UniformBufferBase
   void create(task::SynchronousWindow const* owning_window, vk::DeviceSize size
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
-  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  void add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
-      shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
-      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
-
   // Accessors.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-  ShaderResource::members_container_t* members() { return &m_members; }
+  members_container_t const& members() const { return m_members; }
   std::string glsl_id() const;
 
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
+  void print_on(std::ostream& os) const override;
 #endif
 };
 
@@ -58,7 +59,7 @@ struct UniformBufferInstance : public memory::UniformBuffer
 
 // Represents the descriptor set of a uniform buffer.
 template<typename ENTRY>
-class UniformBuffer : public UniformBufferBase
+class UniformBuffer final : public UniformBufferBase
 {
  public:
   // Use create to initialize m_uniform_buffers.
@@ -68,7 +69,7 @@ class UniformBuffer : public UniformBufferBase
   UniformBufferInstance<ENTRY> const& operator[](FrameResourceIndex frame_resource_index) const { return static_cast<UniformBufferInstance<ENTRY> const&>(m_uniform_buffers[frame_resource_index]); }
 
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
+  void print_on(std::ostream& os) const override;
 #endif
 };
 
@@ -90,12 +91,12 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
-  std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
+  std::string_view glsl_id_full = static_cast<std::string_view>(member_layout.glsl_id_full);
 
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
 
-  m_members.try_emplace(MemberIndex, glsl_id_sv.data(), MemberIndex, basic_type, Offset);
+  m_members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset);
 }
 
 template<typename ENTRY>
@@ -120,6 +121,9 @@ UniformBuffer<ENTRY>::UniformBuffer() : UniformBufferBase(shader_builder::Shader
       }
     }(), ...);
   }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
+  // m_members should be sorted by MemberIndex. Not sure if that is how they are
+  // added when using the above folding expression.
+  std::sort(m_members.begin(), m_members.end(), [](ShaderResourceMember const& lhs, ShaderResourceMember const& rhs){ return lhs.member_index() < rhs.member_index() ; });
 }
 
 #ifdef CWDEBUG

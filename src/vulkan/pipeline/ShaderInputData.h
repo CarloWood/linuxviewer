@@ -12,8 +12,9 @@
 #include "shader_builder/VertexAttributeDeclarationContext.h"
 #include "shader_builder/PushConstant.h"
 #include "shader_builder/PushConstantDeclarationContext.h"
-#include "shader_builder/ShaderResource.h"
+#include "shader_builder/ShaderResourceDeclaration.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
+#include "shader_builder/ShaderResourceVariable.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
@@ -81,7 +82,7 @@ class ShaderInputData
   // Shader resources.
   using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;
   set_index_hint_to_shader_resource_declaration_context_container_t m_set_index_hint_to_shader_resource_declaration_context;
-  using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResource, std::less<>>;
+  using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResourceDeclaration, std::less<>>;
   glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;
   sorted_set_layouts_container_t m_sorted_descriptor_set_layouts;   // A Vector of SetLayout object, by SetIndexHint, containing vk::DescriptorSetLayout handles and the vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were created from.
   descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index_hint;                         // Maps descriptor::SetKey's to identifier::SetIndex's.
@@ -147,11 +148,11 @@ class ShaderInputData
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
-  void add_texture(shader_builder::shader_resource::Texture& texture,
+  void add_texture(shader_builder::shader_resource::Texture const& texture,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase& uniform_buffer,
+  void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -233,8 +234,8 @@ class ShaderInputData
   glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_full_to_push_constant_declaration_context; }
   glsl_id_full_to_push_constant_container_t const& glsl_id_full_to_push_constant() const { return m_glsl_id_full_to_push_constant; }
 
-  // Used by ShaderResourceMember::is_used_in to look up the declaration context.
-  set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceMember>) { return m_set_index_hint_to_shader_resource_declaration_context; }
+  // Used by ShaderResourceVariable::is_used_in to look up the declaration context.
+  set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceVariable>) { return m_set_index_hint_to_shader_resource_declaration_context; }
 //  glsl_id_to_shader_resource_container_t const& glsl_id_to_shader_resource() const { return m_glsl_id_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.

@@ -5,6 +5,7 @@
 #include "Exceptions.h"
 #include "PresentationSurface.h"
 #include "SynchronousWindow.h"
+#include "descriptor/SetBinding.h"
 #include "queues/QueueFamilyProperties.h"
 #include "queues/QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
@@ -1208,8 +1209,97 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
   }
 }
 
+// sorted_set_layouts_container_t is a std::vector of SetLayout objects
+// that have three members:
+//      std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;
+//      SetIndexHint m_set_index_hint;
+// and  vk::DescriptorSetLayout m_handle;
+//
+// Once 'realized', m_handle is initialized with a handle of a descriptor
+// set layout that is created from m_sorted_bindings (by a call to
+// LogicalDevice::try_emplace_descriptor_set_layout, see SetLayout::realize_handle).
+//
+// m_set_index_hint are set indexes that will be used when the pipeline layout
+// doesn't exist yet.
+//
+// A pipeline layout is considered to already exist when it was created before
+// from a vector of SetLayout objects that had the same m_sorted_bindings.
+// Most notably, the values of m_set_index_hint, and of course m_handle, are ignored,
+// but also the `binding` element of the vk::DescriptorSetLayoutBinding structs
+// that are stored in the m_sorted_bindings members.
+//
+// For example, ignoring the push constants,
+//
+// a first call could pass a vector with two elements: the first element
+// having two elements and the second element having one element of its own:
+//   realized_descriptor_set_layouts[] = {
+//      // element 0:
+//      {
+//        m_sorted_bindings[] = {
+//          {
+//            .binding = 1,
+//            .descriptorType = eUniformBuffer, .descriptorCount = 1, .stageFlags = eVertex              // Assume this is sorted before...
+//          },
+//          {
+//            .binding = 0,
+//            .descriptorType = eCombinedImageSampler, .descriptorCount = 1, .stageFlags = eFragment     // ...this.
+//          }
+//        }
+//        m_set_index_hint = 0
+//      },
+//      // element 1:
+//      {
+//        m_sorted_bindings[] = {
+//          {
+//            .binding = 0,
+//            .descriptorType = eUniformBuffer, .descriptorCount = 1, .stageFlags = eVertex
+//          },
+//        }
+//        m_set_index_hint = 1
+//      }
+//    }
+//
+// but now a second call passes a vector with LayoutSet's that are considered equal
+// when only looking at the contents of the m_sorted_bindings but use different values
+// for m_set_index_hint and binding. For example,
+//
+//   realized_descriptor_set_layouts[] = {
+//      // element 0:
+//      {
+//        m_sorted_bindings[] = {
+//          {
+//            .binding = 0,
+//            .descriptorType = eUniformBuffer, .descriptorCount = 1, .stageFlags = eVertex              // Assume this is sorted before...
+//          },
+//          {
+//            .binding = 1,
+//            .descriptorType = eCombinedImageSampler, .descriptorCount = 1, .stageFlags = eFragment     // ...this.
+//          }
+//        }
+//        m_set_index_hint = 1
+//      },
+//      // element 1:
+//      {
+//        m_sorted_bindings[] = {
+//          {
+//            .binding = 0,
+//            .descriptorType = eUniformBuffer, .descriptorCount = 1, .stageFlags = eVertex
+//          },
+//        }
+//        m_set_index_hint = 0
+//      }
+//    }
+//
+// Then this means that the same pipeline layout can be used (and is returned)
+// but the "requested" set index and binding 'hints' must be changed.
+// In the above case:
+//   0.0 --> 1.0
+//   1.0 --> 0.1
+//   1.1 --> 0.0
+//
 vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
+    std::map<descriptor::SetBinding, descriptor::SetBinding>& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
@@ -1222,6 +1312,8 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
     prev_set_layout = &set_layout;
   }
+  // What do you think you are doing?
+  ASSERT(set_binding_map_out.empty());
 #endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
@@ -1230,27 +1322,72 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     {
       using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
+      Dout(dc::always, "Read locked m_pipeline_layouts [" << this << "]");
       auto key = std::make_pair(realized_descriptor_set_layouts, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
         Dout(dc::always, "Pipeline layout not found in cache!");
-        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts.begin(), realized_descriptor_set_layouts.end());
+        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts.size());
+        for (auto&& layout : realized_descriptor_set_layouts)
+        {
+          vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
+          for (vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : layout.sorted_bindings())
+          {
+            descriptor::SetBinding set_binding(layout.set_index_hint(), descriptor_set_layout_binding.binding);
+            set_binding_map_out.insert(std::make_pair(set_binding, set_binding));
+          }
+        }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(Ambifix{"m_pipeline_layouts[...]"}));
+        Dout(dc::always, "Trying to take the write lock...");
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
+        Dout(dc::always, "Write locked m_pipeline_layouts [" << this << "]");
         auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!
         ASSERT(res.second);
         iter = res.first;
+        Dout(dc::always, "Releasing write lock on m_pipeline_layouts... [" << this << "]");
       }
       else
+      {
         Dout(dc::always, "Pipeline layout found in cache!");
+        sorted_set_layouts_container_t const& sorted_set_layouts = iter->first.first;
+        // This should always be the case: they compared equal as key!?
+        ASSERT(realized_descriptor_set_layouts.size() == sorted_set_layouts.size());
+        auto set_layout_in = realized_descriptor_set_layouts.begin();
+        auto set_layout_out = sorted_set_layouts.begin();
+        while (set_layout_in != realized_descriptor_set_layouts.end())
+        {
+          // Same.
+          ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
+          auto binding_in = set_layout_in->sorted_bindings().begin();
+          auto binding_out = set_layout_out->sorted_bindings().begin();
+          while (binding_in != set_layout_in->sorted_bindings().end())
+          {
+            descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
+            descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
+            //FIXME: remove this - it is uniform buffer test specific.
+            ASSERT(set_binding_in.set_index_hint().get_value() == 2 ||
+                set_binding_in.set_index_hint().get_value() == 1 - set_binding_out.set_index_hint().get_value());
+            ASSERT(set_binding_in.set_index_hint().get_value() != 2 ||
+                set_binding_in.set_index_hint().get_value() == set_binding_out.set_index_hint().get_value());
+            ASSERT(set_binding_in.binding() == set_binding_out.binding());
+            set_binding_map_out.insert(std::make_pair(set_binding_in, set_binding_out));
+            ++binding_in;
+            ++binding_out;
+          }
+          ++set_layout_in;
+          ++set_layout_out;
+        }
+      }
       ASSERT(*iter->second);
+      Dout(dc::always, "Unlocking m_pipeline_layouts [" << this << "]");
       return *iter->second;
     }
     catch (std::exception const&)
     {
+      Dout(dc::always, "Calling m_pipeline_layouts.rd2wryield() !");
       m_pipeline_layouts.rd2wryield();
     }
   }

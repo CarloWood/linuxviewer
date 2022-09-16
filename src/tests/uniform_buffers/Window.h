@@ -361,9 +361,9 @@ void main()
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow* owning_window, int pipeline)
     {
-      DoutEntering(dc::vulkan, "initializeX(..., " << pipeline << ")");
+      DoutEntering(dc::vulkan, "initializeX(FlatCreateInfo @" << (void*)&flat_create_info << ", " << owning_window << ", " << pipeline << ")");
 
-      Window* window = static_cast<Window*>(owning_window);
+      Window const* window = static_cast<Window*>(owning_window);
 
       // Register the vectors that we will fill.
       flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
@@ -375,9 +375,21 @@ void main()
       vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
       vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
 
-      m_shader_input_data.add_uniform_buffer(window->m_top_buffer);
-      m_shader_input_data.add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
+      if (pipeline == 1)
+      {
+        // This assigns top to descriptor set 0 and left to 1.
+        m_shader_input_data.add_uniform_buffer(window->m_top_buffer);
+        m_shader_input_data.add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
+      }
+      else
+      {
+        // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
+        m_shader_input_data.add_uniform_buffer(window->m_left_buffer);
+        m_shader_input_data.add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
+      }
+      // This assigns bottom to set 2.
       m_shader_input_data.add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
+      // The texture must go into the same set as top.
       m_shader_input_data.add_texture(window->m_sample_texture, { top_set_key_preference });
 
       // Add default color blend.
@@ -458,7 +470,9 @@ void main()
       utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
 
       static std::once_flag flag;
-      std::call_once(flag, &Window::create_uniform_buffers, window,
+      //FIXME: it is extremely dirty and dangerous to allow writing to *some* members of the window class,
+      // just because it is done in a call_once :/.
+      std::call_once(flag, &Window::create_uniform_buffers, const_cast<Window*>(window),
           vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_top_buffer.descriptor_set_key())],
           vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_left_buffer.descriptor_set_key())],
           vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_bottom_buffer.descriptor_set_key())]);
@@ -499,6 +513,9 @@ void main()
     m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
     m_pipeline_factory1.generate(this);
+
+    //FIXME: remove this.
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
     m_pipeline_factory2 = create_pipeline_factory(m_graphics_pipeline2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
@@ -616,7 +633,8 @@ else
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline2.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline2.layout(), 0 /* uint32_t first_set */,
-          { m_vh_left_descriptor_set, m_vh_top_descriptor_set, m_vh_bottom_descriptor_set }, {});
+          { m_vh_top_descriptor_set, m_vh_left_descriptor_set, m_vh_bottom_descriptor_set }, {});
+//          { m_vh_left_descriptor_set, m_vh_top_descriptor_set, m_vh_bottom_descriptor_set }, {});
 
       command_buffer->draw(3, 1, 0, 0);
 }

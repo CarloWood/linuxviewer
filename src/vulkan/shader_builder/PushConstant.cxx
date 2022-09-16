@@ -35,4 +35,15 @@ DeclarationContext const& PushConstant::is_used_in(vk::ShaderStageFlagBits shade
   return push_constant_declaration_context;
 }
 
+#ifdef CWDEBUG
+void PushConstant::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "m_type:" << m_type <<
+      ", m_offset:" << m_offset <<
+      ", m_array_size:" << m_array_size;
+  os << '}';
+}
+#endif
+
 } // namespace vulkan::shader_builder

@@ -15,6 +15,7 @@
 #include "descriptor/SetLimits.h"
 #include "descriptor/LayoutBindingCompare.h"
 #include "descriptor/SetLayout.h"
+#include "descriptor/SetBinding.h"
 #include "pipeline/PushConstantRangeCompare.h"
 #include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
@@ -180,6 +181,7 @@ class LogicalDevice
 
   vk::PipelineLayout try_emplace_pipeline_layout(
       sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
+      std::map<descriptor::SetBinding, descriptor::SetBinding>& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
 

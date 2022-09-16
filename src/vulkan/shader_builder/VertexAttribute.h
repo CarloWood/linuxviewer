@@ -71,7 +71,7 @@ struct VertexAttribute final : public ShaderVariable
 
 #ifdef CWDEBUG
  public:
-  void print_on(std::ostream& os) const;
+  void print_on(std::ostream& os) const override;
 #endif
 };
 
