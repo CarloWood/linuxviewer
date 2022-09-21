@@ -49,6 +49,7 @@ std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct vulkan;
+extern channel_ct shaderresource;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 

@@ -46,7 +46,7 @@ class SetLayout
   SetIndexHint set_index_hint() const { return m_set_index_hint; }
   vk::DescriptorSetLayout handle() const { return m_handle; }
 
-  // Called from LogicalDevice::try_emplace_pipeline_layout.
+  // Called from LogicalDevice::realize_pipeline_layout.
   explicit operator vk::DescriptorSetLayout() const
   {
     return m_handle;

@@ -718,6 +718,7 @@ channel_ct vkverbose("VKVERBOSE");
 channel_ct vkinfo("VKINFO");
 channel_ct vkwarning("VKWARNING");
 channel_ct vkerror("VKERROR");
+channel_ct shaderresource("SHADERRESOURCE");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 

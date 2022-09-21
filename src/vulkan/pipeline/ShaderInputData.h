@@ -224,14 +224,15 @@ class ShaderInputData
 
   void realize_descriptor_set_layouts(LogicalDevice const* logical_device)
   {
-    DoutEntering(dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
+    DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
 #ifdef CWDEBUG
-    Dout(dc::vulkan, "m_sorted_descriptor_set_layouts =");
+    Dout(dc::debug, "m_sorted_descriptor_set_layouts =");
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
-      Dout(dc::vulkan, "    " << descriptor_set_layout);
+      Dout(dc::debug, "    " << descriptor_set_layout);
 #endif
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
       descriptor_set_layout.realize_handle(logical_device);
+    Dout(dc::shaderresource, "Leaving ShaderInputData::realize_descriptor_set_layouts");
   }
 
   utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> get_vhv_descriptor_set_layouts()

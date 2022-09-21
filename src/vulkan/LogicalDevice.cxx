@@ -916,6 +916,7 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
     std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_descriptor_set_layout(" << layout_bindings << ", object_name:\"" << debug_name.object_name() << "\")");
   vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{
     .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
     .pBindings = layout_bindings.data()
@@ -930,6 +931,8 @@ std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
     descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << vhv_descriptor_set_layout << ", @" << (void*)&descriptor_pool <<
+      ", object_name:\"" << debug_name.object_name() << "\").");
   descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
     .descriptorPool = descriptor_pool_r->get(),
@@ -941,6 +944,7 @@ std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
   for (int i = 0; i < descriptor_sets.size(); ++i)
     DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"), this);
 #endif
+  Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;
 }
 
@@ -949,6 +953,8 @@ std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_uni
     descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets_unique(" << vhv_descriptor_set_layout << ", @" << (void*)&descriptor_pool <<
+      ", object_name:\"" << debug_name.object_name() << "\").");
   descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
     .descriptorPool = descriptor_pool_r->get(),
@@ -960,6 +966,7 @@ std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_uni
   for (int i = 0; i < descriptor_sets.size(); ++i)
     DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"), this);
 #endif
+  Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;
 }
 
@@ -1014,7 +1021,7 @@ void LogicalDevice::update_descriptor_set(
     std::vector<vk::DescriptorBufferInfo> const& buffer_infos,
     std::vector<vk::BufferView> const& buffer_views) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::update_descriptor_set(" <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_set(" <<
       vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << image_infos << ", " << buffer_infos << ", " << buffer_views << ")");
 
   vk::WriteDescriptorSet descriptor_writes{
@@ -1036,7 +1043,7 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
     std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_layout(" <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_pipeline_layout(" <<
       vhv_sorted_descriptor_set_layouts << ", " << push_constant_ranges << ", \"" << debug_name.object_name() << "\")");
 
   vk::PipelineLayoutCreateInfo layout_create_info{
@@ -1106,6 +1113,17 @@ Swapchain::images_type LogicalDevice::get_swapchain_images(
   }
 
   return swapchain_images;
+}
+
+vk::Buffer LogicalDevice::create_buffer(utils::Badge<memory::Buffer>, vk::BufferCreateInfo const& buffer_create_info,
+    VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation, VmaAllocationInfo* allocation_info
+    COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
+{
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_buffer(" << buffer_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
+  vk::Buffer vh_buffer = m_vh_allocator.create_buffer(buffer_create_info, vma_allocation_create_info, vh_allocation, allocation_info
+      COMMA_CWDEBUG_ONLY(allocation_name));
+  Dout(dc::shaderresource, "Created vk::Buffer " << vh_buffer << " with allocation name \"" << allocation_name.object_name() << "\".");
+  return vh_buffer;
 }
 
 vk::UniquePipelineCache LogicalDevice::create_pipeline_cache(
@@ -1200,6 +1218,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
         // We just used find and couldn't find it?!
         ASSERT(res.second);
         iter = res.first;
+        Dout(dc::shaderresource, "Created handle " << *iter->second << " with key: " << sorted_descriptor_set_layout_bindings << ".");
       }
       else
       {
@@ -1213,12 +1232,14 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
           // Now the elements much be exactly equal.
           ASSERT(sorted_descriptor_set_layout_bindings[i] == key[i]);
         }
+        Dout(dc::shaderresource, "Found in cache (vk::DescriptorSetLayout " << *iter->second << "). Using: " << sorted_descriptor_set_layout_bindings << ".");
       }
       ASSERT(*iter->second);
       return *iter->second;
     }
     catch (std::exception const&)
     {
+      Dout(dc::shaderresource, "Another thread is also trying to convert read to write lock: dropping creation and trying again...");
       m_descriptor_set_layouts.rd2wryield();
     }
   }
@@ -1312,12 +1333,12 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
 //   1.0 --> 0.1
 //   1.1 --> 0.0
 //
-vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
+vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
     descriptor::SetBindingMap& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::realize_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
   descriptor::SetLayoutCompare set_layout_compare;
@@ -1337,12 +1358,10 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     {
       using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
-      Dout(dc::always, "Read locked m_pipeline_layouts [" << this << "]");
       auto key = std::make_pair(realized_descriptor_set_layouts, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
-        Dout(dc::always, "Pipeline layout not found in cache!");
         std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts.size());
         for (auto&& layout : realized_descriptor_set_layouts)
         {
@@ -1357,18 +1376,15 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(Ambifix{"m_pipeline_layouts[...]"}));
-        Dout(dc::always, "Trying to take the write lock...");
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
-        Dout(dc::always, "Write locked m_pipeline_layouts [" << this << "]");
         auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!
         ASSERT(res.second);
         iter = res.first;
-        Dout(dc::always, "Releasing write lock on m_pipeline_layouts... [" << this << "]");
+        Dout(dc::shaderresource, "Created vk::PipelineLayout " << *iter->second << " with key: " << key << ".");
       }
       else
       {
-        Dout(dc::always, "Pipeline layout found in cache!");
         sorted_set_layouts_container_t const& sorted_set_layouts = iter->first.first;
         // This should always be the case: they compared equal as key!?
         ASSERT(realized_descriptor_set_layouts.size() == sorted_set_layouts.size());
@@ -1380,42 +1396,27 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
           ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
           auto binding_in = set_layout_in->sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings().begin();
-#if 0
-          //FIXME: remove 'i', it is ubt specific.
-          int i = 0;
-#endif
           set_binding_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
             descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
             descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
-#if 0
-            //FIXME: remove this - it is uniform buffer test specific.
-            if (i == 2)
-            {
-              ASSERT(set_binding_in.set_index_hint().get_value() == 0 || set_binding_in.set_index_hint().get_value() == 1);
-              ASSERT(set_binding_in.set_index_hint().get_value() == 1 - set_binding_out.set_index_hint().get_value());
-              ASSERT(set_binding_in.binding() == set_binding_out.binding());
-            }
-#endif
             set_binding_map_out.add_from_to(set_binding_in, binding_out->binding);
             ++binding_in;
             ++binding_out;
-#if 0
-            ++i;
-#endif
           }
           ++set_layout_in;
           ++set_layout_out;
         }
+        Dout(dc::shaderresource, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_binding_map_out << ".");
       }
       ASSERT(*iter->second);
-      Dout(dc::always, "Unlocking m_pipeline_layouts [" << this << "]");
+      Dout(dc::shaderresource, "Leaving LogicalDevice::realize_pipeline_layout");
       return *iter->second;
     }
     catch (std::exception const&)
     {
-      Dout(dc::always, "Calling m_pipeline_layouts.rd2wryield() !");
+      Dout(dc::shaderresource, "Another thread is also trying to convert read to write lock: dropping creation and trying again...");
       m_pipeline_layouts.rd2wryield();
       set_binding_map_out.clear();
     }

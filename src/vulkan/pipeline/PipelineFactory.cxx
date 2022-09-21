@@ -153,6 +153,18 @@ char const* PipelineFactory::task_name_impl() const
 
 void PipelineFactory::multiplex_impl(state_type run_state)
 {
+#ifdef CWDEBUG
+  // Turn dc::shaderresource on only if mSMDebug is on.
+  bool const was_on = DEBUGCHANNELS::dc::shaderresource.is_on();
+  bool const was_changed = mSMDebug != was_on;
+  if (was_changed)
+  {
+    if (was_on)
+      DEBUGCHANNELS::dc::shaderresource.off();
+    else
+      DEBUGCHANNELS::dc::shaderresource.on();
+  }
+#endif
   switch (run_state)
   {
     case PipelineFactory_start:
@@ -226,7 +238,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               // Begin pipeline layout creation
 
               vulkan::descriptor::SetBindingMap set_binding_map;
-              vh_pipeline_layout = m_owning_window->logical_device()->try_emplace_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
+              vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
               m_flat_create_info.do_set_binding_map_callbacks(set_binding_map);
 
               // End pipeline layout creation
@@ -326,6 +338,15 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       finish();
       break;
   }
+#ifdef CWDEBUG
+  if (was_changed)
+  {
+    if (was_on)
+      DEBUGCHANNELS::dc::shaderresource.on();
+    else
+      DEBUGCHANNELS::dc::shaderresource.off();
+  }
+#endif
 }
 
 } // namespace task

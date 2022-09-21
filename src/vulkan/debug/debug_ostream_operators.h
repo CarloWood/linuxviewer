@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Defaults.h"           // For its print_on capability.
+#include "vk_utils/print_pointer.h"
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
 #include <iostream>
@@ -84,6 +85,13 @@ std::ostream& operator<<(std::ostream& os, ArrayWrapper1D<T, 4> const& array_pro
     prefix = ", ";
   }
   return os << '>';
+}
+
+template<typename Type, typename Dispatch>
+std::ostream& operator<<(std::ostream& os, UniqueHandle<Type, Dispatch> const& unique_handle)
+{
+  os << vk_utils::print_pointer(&unique_handle.get());
+  return os;
 }
 
 std::ostream& operator<<(std::ostream& os, AttachmentReference const& attachment_reference);

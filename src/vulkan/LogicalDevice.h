@@ -181,7 +181,7 @@ class LogicalDevice
   // does not influence the ordering; so it stays sorted the same way).
   vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
-  vk::PipelineLayout try_emplace_pipeline_layout(
+  vk::PipelineLayout realize_pipeline_layout(
       sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
       descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
@@ -293,12 +293,7 @@ class LogicalDevice
   // Called by memory::Buffer::Buffer.
   vk::Buffer create_buffer(utils::Badge<memory::Buffer>, vk::BufferCreateInfo const& buffer_create_info,
       VmaAllocationCreateInfo const& vma_allocation_create_info, VmaAllocation* vh_allocation, VmaAllocationInfo* allocation_info
-      COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const
-  {
-    DoutEntering(dc::vulkan, "LogicalDevice::create_buffer(" << buffer_create_info << ", " << debug::set_device(this) << vma_allocation_create_info << ", " << (void*)vh_allocation << ")");
-    return m_vh_allocator.create_buffer(buffer_create_info, vma_allocation_create_info, vh_allocation, allocation_info
-        COMMA_CWDEBUG_ONLY(allocation_name));
-  }
+      COMMA_CWDEBUG_ONLY(Ambifix const& allocation_name)) const;
 
   // Called by memory::Buffer::destroy().
   void destroy_buffer(utils::Badge<memory::Buffer>, vk::Buffer vh_buffer, VmaAllocation vh_allocation) const

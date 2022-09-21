@@ -133,7 +133,7 @@ class Window : public task::SynchronousWindow
   void create_uniform_buffers(vulkan::pipeline::ShaderInputData const& shader_input_data, vulkan::shader_builder::ShaderIndex const& shader_frag_index,
       vk::DescriptorSetLayout top_vh_descriptor_set_layout, vk::DescriptorSetLayout left_vh_descriptor_set_layout, vk::DescriptorSetLayout bottom_vh_descriptor_set_layout)
   {
-    DoutEntering(dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
+    DoutEntering(dc::shaderresource|dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
 
     // Horrible hack to get the binding number of the texture...
     uint32_t texture_binding = 1;
@@ -158,6 +158,7 @@ class Window : public task::SynchronousWindow
         }
       }
     }
+    Dout(dc::shaderresource, "Detected texture_binding = " << texture_binding);
 
     // The descriptor set layouts are the same for both pipelines in this application, and because the descriptor sets
     // created from it are updated with the same state, we also reuse the descriptors sets and have both pipelines use
