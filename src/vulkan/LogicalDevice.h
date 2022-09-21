@@ -182,7 +182,7 @@ class LogicalDevice
   vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
+      sorted_set_layouts_container_t* realized_descriptor_set_layouts,
       descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;

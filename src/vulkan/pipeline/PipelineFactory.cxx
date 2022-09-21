@@ -231,7 +231,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
             vk::PipelineLayout vh_pipeline_layout;
             {
-              vulkan::pipeline::ShaderInputData::sorted_set_layouts_container_t const& realized_descriptor_set_layouts = m_flat_create_info.get_realized_descriptor_set_layouts();
+              vulkan::pipeline::ShaderInputData::sorted_set_layouts_container_t* realized_descriptor_set_layouts = m_flat_create_info.get_realized_descriptor_set_layouts();
               std::vector<vk::PushConstantRange>               const sorted_push_constant_ranges            = m_flat_create_info.get_sorted_push_constant_ranges();
 
               //-----------------------------------------------------------------

@@ -1334,15 +1334,15 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
+    sorted_set_layouts_container_t* realized_descriptor_set_layouts,
     descriptor::SetBindingMap& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::realize_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::realize_pipeline_layout(" << vk_utils::print_pointer(realized_descriptor_set_layouts) << ", " << sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
   descriptor::SetLayoutCompare set_layout_compare;
-  for (descriptor::SetLayout const& set_layout : realized_descriptor_set_layouts)
+  for (descriptor::SetLayout const& set_layout : *realized_descriptor_set_layouts)
   {
     // realized_descriptor_set_layouts must be sorted.
     ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
@@ -1358,12 +1358,12 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     {
       using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
-      auto key = std::make_pair(realized_descriptor_set_layouts, sorted_push_constant_ranges);
+      auto key = std::make_pair(*realized_descriptor_set_layouts, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
-        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts.size());
-        for (auto&& layout : realized_descriptor_set_layouts)
+        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts->size());
+        for (auto&& layout : *realized_descriptor_set_layouts)
         {
           vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
           // Create an identity set binding map.
@@ -1387,21 +1387,23 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
       {
         sorted_set_layouts_container_t const& sorted_set_layouts = iter->first.first;
         // This should always be the case: they compared equal as key!?
-        ASSERT(realized_descriptor_set_layouts.size() == sorted_set_layouts.size());
-        auto set_layout_in = realized_descriptor_set_layouts.begin();
+        ASSERT(realized_descriptor_set_layouts->size() == sorted_set_layouts.size());
+        auto set_layout_in = realized_descriptor_set_layouts->begin();
         auto set_layout_out = sorted_set_layouts.begin();
-        while (set_layout_in != realized_descriptor_set_layouts.end())
+        while (set_layout_in != realized_descriptor_set_layouts->end())
         {
           // Same.
           ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
           auto binding_in = set_layout_in->sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings().begin();
           set_binding_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
+          set_layout_in->set_set_index_hint(set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
             descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
             descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
             set_binding_map_out.add_from_to(set_binding_in, binding_out->binding);
+            binding_in->binding = binding_out->binding;
             ++binding_in;
             ++binding_out;
           }

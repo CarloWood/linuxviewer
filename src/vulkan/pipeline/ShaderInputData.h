@@ -277,6 +277,7 @@ class ShaderInputData
   // Returns information on what was added with build_shader.
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
   sorted_set_layouts_container_t const& sorted_descriptor_set_layouts() const { return m_sorted_descriptor_set_layouts; }
+  sorted_set_layouts_container_t& sorted_descriptor_set_layouts() { return m_sorted_descriptor_set_layouts; }
 
   // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
   descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const

@@ -43,7 +43,9 @@ class SetLayout
 
   // Accessors.
   std::vector<vk::DescriptorSetLayoutBinding> const& sorted_bindings() const { return m_sorted_bindings; }
+  std::vector<vk::DescriptorSetLayoutBinding>& sorted_bindings() { return m_sorted_bindings; }
   SetIndexHint set_index_hint() const { return m_set_index_hint; }
+  void set_set_index_hint(SetIndexHint set_index) { m_set_index_hint = set_index; }
   vk::DescriptorSetLayout handle() const { return m_handle; }
 
   // Called from LogicalDevice::realize_pipeline_layout.
