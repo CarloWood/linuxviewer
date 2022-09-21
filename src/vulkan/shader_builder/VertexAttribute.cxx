@@ -18,15 +18,15 @@ std::string VertexAttribute::name() const
   return oss.str();
 }
 
-DeclarationContext const& VertexAttribute::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
+DeclarationContext* VertexAttribute::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
 {
   DoutEntering(dc::notice, "VertexAttribute::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
   // We must use a single context for all vertex attributes, as the context is used to enumerate the 'location' at which the attributes are stored.
-  VertexAttributeDeclarationContext& vertex_attribute_declaration_context = shader_input_data->vertex_shader_location_context({});
+  VertexAttributeDeclarationContext* vertex_attribute_declaration_context = &shader_input_data->vertex_shader_location_context({});
 
   // Register that this vertex attribute is being used.
-  vertex_attribute_declaration_context.glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
+  vertex_attribute_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
 
   // Return the declaration context.
   return vertex_attribute_declaration_context;

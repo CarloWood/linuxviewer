@@ -1,9 +1,11 @@
 #pragma once
 
 #include "descriptor/SetLayout.h"
+#include "descriptor/SetBindingMap.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
+#include <functional>
 #include "debug.h"
 
 namespace vulkan::pipeline {
@@ -22,6 +24,7 @@ class FlatCreateInfo
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
   sorted_set_layouts_container_t const* m_realized_descriptor_set_layouts_ptr{};
   std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
+  std::vector<std::function<void(descriptor::SetBindingMap const&)>> m_set_binding_map_callbacks;
 
   template<typename T>
   static std::vector<T> merge(std::vector<std::vector<T> const*> input_list)
@@ -186,6 +189,17 @@ class FlatCreateInfo
     ASSERT(m_push_constant_ranges_list.size() <= 1);
     // This is only returning the vector that was added (if any), which was already sorted (see ShaderInputData::push_constant_ranges()).
     return merge(m_push_constant_ranges_list);
+  }
+
+  void add_set_binding_map_callback(std::function<void(descriptor::SetBindingMap const&)> callback)
+  {
+    m_set_binding_map_callbacks.emplace_back(std::move(callback));
+  }
+
+  void do_set_binding_map_callbacks(descriptor::SetBindingMap const& set_binding_map)
+  {
+    for (auto& callback : m_set_binding_map_callbacks)
+      callback(set_binding_map);
   }
 };
 

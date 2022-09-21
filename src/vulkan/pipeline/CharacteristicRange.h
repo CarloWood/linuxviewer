@@ -78,12 +78,15 @@ class CharacteristicRange : public AIRefCount
   }
 
   // Accessor.
-  vulkan::pipeline::ShaderInputData const& pipeline() const { return m_shader_input_data; }
+  vulkan::pipeline::ShaderInputData const& shader_input_data() const { return m_shader_input_data; }
 
 #ifdef CWDEBUG
   virtual void print_on(std::ostream& os) const = 0;
 #endif
 };
+
+// Index used for pipeline characteristic ranges.
+using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
 
 class Characteristic : public CharacteristicRange
 {

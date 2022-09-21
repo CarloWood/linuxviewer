@@ -15,7 +15,7 @@
 #include "descriptor/SetLimits.h"
 #include "descriptor/LayoutBindingCompare.h"
 #include "descriptor/SetLayout.h"
-#include "descriptor/SetBinding.h"
+#include "descriptor/SetBindingMap.h"
 #include "pipeline/PushConstantRangeCompare.h"
 #include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
@@ -177,11 +177,13 @@ class LogicalDevice
   boost::uuids::uuid get_pipeline_cache_UUID() const;
 
   // Called by pipeline::Characteristic derived user classes when they need a new (or existing) descriptor set layout.
-  vk::DescriptorSetLayout try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
+  // The binding numbers in sorted_descriptor_set_layout_bindings will be updated if the layout already existed (this
+  // does not influence the ordering; so it stays sorted the same way).
+  vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   vk::PipelineLayout try_emplace_pipeline_layout(
       sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
-      std::map<descriptor::SetBinding, descriptor::SetBinding>& set_binding_map_out,
+      descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
 
@@ -258,9 +260,9 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
+  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, descriptor_pool_t const& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, vk::DescriptorPool vh_descriptor_pool
+  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, descriptor_pool_t const& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;
@@ -394,10 +396,9 @@ class LogicalDevice
     DoutEntering(dc::vulkan, "LogicalDevice::get_image_memory_requirements(" << vh_image << ")");
     return m_device->getImageMemoryRequirements(vh_image);
   }
-  vk::DescriptorPool get_vh_descriptor_pool() const
+  descriptor_pool_t const& get_descriptor_pool() const
   {
-    descriptor_pool_t::crat descriptor_pool_r(m_descriptor_pool);
-    return descriptor_pool_r->get();
+    return m_descriptor_pool;
   }
 #ifdef CWDEBUG
   vk_utils::MemoryTypeBitsPrinter memory_type_bits_printer() const { return { m_memory_type_count }; }

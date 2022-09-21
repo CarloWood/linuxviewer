@@ -2,56 +2,86 @@
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
+#include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 #include <cstring>
 
 namespace vulkan::pipeline {
 
-std::string_view ShaderInputData::preprocess(
-    shader_builder::ShaderInfo const& shader_info,
-    std::string& glsl_source_code_buffer)
+// Returns the declaration contexts that are used in this shader.
+void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::preprocess(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::preprocess1(" << shader_info << ") [" << this << "]");
 
+  declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()]; // All the declaration contexts that are involved.
+  std::string_view const source = shader_info.glsl_template_code();
+
+  // Assume no preprocessing is necessary if the source already starts with "#version".
+  if (!source.starts_with("#version"))
+  {
+    // m_shader_variables contains a number of strings that we need to find in the source.
+    // They may occur zero or more times.
+    Dout(dc::always, "Searching in m_shader_variables @" << (void*)&m_shader_variables << " [" << this << "].");
+    for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
+    {
+      std::string match_string = shader_variable->glsl_id_full();
+      if (source.find(match_string) != std::string_view::npos)
+        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
+    }
+    for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
+    {
+      shader_builder::ShaderResourceDeclarationContext const* shader_resource_declaration_context =
+        dynamic_cast<shader_builder::ShaderResourceDeclarationContext const*>(declaration_context);
+      if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+        continue;
+      shader_resource_declaration_context->generate1(shader_info.stage());
+    }
+  }
+}
+
+std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetBindingMap const& set_binding_map) const
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::preprocess2(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
+
+  declaration_contexts_container_t const& declaration_contexts = m_per_stage_declaration_contexts.at(shader_info.stage()); // All the declaration contexts that are involved.
   std::string_view const source = shader_info.glsl_template_code();
 
   // Assume no preprocessing is necessary if the source already starts with "#version".
   if (source.starts_with("#version"))
     return source;
 
+  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
+  {
+    shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
+      dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
+    if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+      continue;
+    shader_resource_declaration_context->set_set_binding_map(&set_binding_map);
+  }
+
+  // Generate the declarations.
+  std::string declarations;
+  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
+    declarations += declaration_context->generate(shader_info.stage());
+  declarations += '\n';
+
   // Store each position where a match string occurs, together with an std::pair
   // containing the found substring that has to be replaced (first) and the
   // string that it has to be replaced with (second).
   std::map<size_t, std::pair<std::string, std::string>> positions;
 
-  // Store all the declaration contexts that are involved.
-  std::set<shader_builder::DeclarationContext const*> declaration_contexts;
-
+  // m_shader_variables contains a number of strings that we need to find in the source. They may occur zero or more times.
   int id_to_name_growth = 0;
-
-  // m_shader_variables contains a number of strings that we need to find in the source.
-  // They may occur zero or more times.
-  Dout(dc::always, "Searching in m_shader_variables @" << (void*)&m_shader_variables << " [" << this << "].");
   for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
   {
     std::string match_string = shader_variable->glsl_id_full();
-    int count = 0;
     for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
     {
       id_to_name_growth += shader_variable->name().length() - match_string.length();
       positions[pos] = std::make_pair(match_string, shader_variable->name());
-      ++count;
     }
-    // Skip vertex attribute declarations that were already added above.
-    if (count > 0)
-      declaration_contexts.insert(&shader_variable->is_used_in(shader_info.stage(), this));
-    // VertexAttribute PushConstant
   }
-  std::string declarations;
-  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
-    declarations += declaration_context->generate(shader_info.stage());
-  declarations += '\n';
 
   static constexpr char const* version_header = "#version 450\n\n";
   size_t final_source_code_size = std::strlen(version_header) + declarations.size() + source.length() + id_to_name_growth;
@@ -436,7 +466,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache
+    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetBindingMap const& set_binding_map
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");
@@ -444,7 +474,7 @@ void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
   std::string glsl_source_code_buffer;
   std::string_view glsl_source_code;
   shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
-  glsl_source_code = preprocess(shader_info, glsl_source_code_buffer);
+  glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_binding_map);
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);

@@ -39,15 +39,16 @@ class Window : public task::SynchronousWindow
   vulkan::shader_resource::Texture m_sample_texture;
 
   enum class LocalShaderIndex {
+    vertex0,
     vertex1,
-    vertex2,
-    frag1,
-    frag2
+    frag0,
+    frag1
   };
   utils::Array<vulkan::shader_builder::ShaderIndex, 4, LocalShaderIndex> m_shader_indices;
 
+  vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
-  vulkan::Pipeline m_graphics_pipeline2;
+  bool m_graphics_pipelines_done = false;
 
   vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer;
   vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer;
@@ -129,10 +130,34 @@ class Window : public task::SynchronousWindow
   }
 
  public:
-  void create_uniform_buffers(vk::DescriptorSetLayout top_vh_descriptor_set_layout, vk::DescriptorSetLayout left_vh_descriptor_set_layout,
-      vk::DescriptorSetLayout bottom_vh_descriptor_set_layout)
+  void create_uniform_buffers(vulkan::pipeline::ShaderInputData const& shader_input_data, vulkan::shader_builder::ShaderIndex const& shader_frag_index,
+      vk::DescriptorSetLayout top_vh_descriptor_set_layout, vk::DescriptorSetLayout left_vh_descriptor_set_layout, vk::DescriptorSetLayout bottom_vh_descriptor_set_layout)
   {
     DoutEntering(dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
+
+    // Horrible hack to get the binding number of the texture...
+    uint32_t texture_binding = 1;
+    {
+      using namespace vulkan::shader_builder;
+      ShaderInfo const& shader_info = application().get_shader_info(shader_frag_index);
+      std::set<DeclarationContext*> const& declaration_contexts = shader_input_data.per_stage_declaration_contexts().at(shader_info.stage());
+      for (DeclarationContext* declaration_context : declaration_contexts)
+      {
+        ShaderResourceDeclarationContext* shader_resource_declaration_context =
+          dynamic_cast<ShaderResourceDeclarationContext*>(declaration_context);
+        if (!shader_resource_declaration_context)
+          continue;
+        auto const& bindings = shader_resource_declaration_context->bindings();
+        for (std::pair<ShaderResourceDeclaration const*, uint32_t> declaration_binding_pair : bindings)
+        {
+          if (declaration_binding_pair.first->descriptor_type() == vk::DescriptorType::eCombinedImageSampler)
+          {
+            texture_binding = declaration_binding_pair.second;
+            break;
+          }
+        }
+      }
+    }
 
     // The descriptor set layouts are the same for both pipelines in this application, and because the descriptor sets
     // created from it are updated with the same state, we also reuse the descriptors sets and have both pipelines use
@@ -140,7 +165,7 @@ class Window : public task::SynchronousWindow
     // initialize finished first).
     auto descriptor_sets = logical_device()->allocate_descriptor_sets(
         { top_vh_descriptor_set_layout, left_vh_descriptor_set_layout, bottom_vh_descriptor_set_layout },
-        logical_device()->get_vh_descriptor_pool()
+        logical_device()->get_descriptor_pool()
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
 
     m_vh_top_descriptor_set = descriptor_sets[0];
@@ -182,7 +207,7 @@ class Window : public task::SynchronousWindow
 
     //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
     uint32_t binding = 0;
-    logical_device()->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, top_buffer_infos);
+    logical_device()->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eUniformBuffer, 1 - texture_binding, 0, {}, top_buffer_infos);
     logical_device()->update_descriptor_set(m_vh_left_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
     logical_device()->update_descriptor_set(m_vh_bottom_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
@@ -205,13 +230,12 @@ class Window : public task::SynchronousWindow
         }
       };
       // The 'top' descriptor set also contains the texture.
-      binding = 1;
-      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, texture_binding, 0, image_infos);
     }
   }
 
  private:
-  static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle0_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
 //FIXME: remove
@@ -247,7 +271,7 @@ void main()
 }
 )glsl";
 
-  static constexpr std::string_view uniform_buffer_controlled_triangle2_vert_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
 // FIXME: remove
@@ -282,7 +306,7 @@ void main()
 }
 )glsl";
 
-  static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle0_frag_glsl = R"glsl(
 // FIXME: remove
 //layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
 
@@ -297,7 +321,7 @@ void main()
 }
 )glsl";
 
-  static constexpr std::string_view uniform_buffer_controlled_triangle2_frag_glsl = R"glsl(
+  static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
 // FIXME: remove
 //layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
 
@@ -320,15 +344,15 @@ void main()
 
     // Create a ShaderInfo instance for each shader, initializing it with the stage that the shader will be used in and the template code that it exists of.
     std::vector<ShaderInfo> shader_info = {
+      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle0.vert.glsl" },
       { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle1.vert.glsl" },
-      { vk::ShaderStageFlagBits::eVertex,   "uniform_buffer_controlled_triangle2.vert.glsl" },
-      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle1.frag.glsl" },
-      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle2.frag.glsl" }
+      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle0.frag.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "uniform_buffer_controlled_triangle1.frag.glsl" }
     };
-    shader_info[0].load(uniform_buffer_controlled_triangle1_vert_glsl);
-    shader_info[1].load(uniform_buffer_controlled_triangle2_vert_glsl);
-    shader_info[2].load(uniform_buffer_controlled_triangle1_frag_glsl);
-    shader_info[3].load(uniform_buffer_controlled_triangle2_frag_glsl);
+    shader_info[0].load(uniform_buffer_controlled_triangle0_vert_glsl);
+    shader_info[1].load(uniform_buffer_controlled_triangle1_vert_glsl);
+    shader_info[2].load(uniform_buffer_controlled_triangle0_frag_glsl);
+    shader_info[3].load(uniform_buffer_controlled_triangle1_frag_glsl);
 
     // Inform the application about the shaders that we use.
     // This will call hash() on each ShaderInfo object (which may only called once), and then store it only when that hash doesn't exist yet.
@@ -358,6 +382,8 @@ void main()
     vulkan::descriptor::SetLayout m_bottom_descriptor_set_layout;
 #endif
 
+    vulkan::descriptor::SetBindingMap m_set_binding_map;    // Keep a copy.
+
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window, int pipeline)
     {
@@ -375,7 +401,7 @@ void main()
       vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
       vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
 
-      if (pipeline == 1)
+      if (pipeline == 0)
       {
         // This assigns top to descriptor set 0 and left to 1.
         m_shader_input_data.add_uniform_buffer(window->m_top_buffer);
@@ -399,15 +425,42 @@ void main()
       {
         using namespace vulkan::shader_builder;
 
-        ShaderIndex shader_vert_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::vertex1] : window->m_shader_indices[LocalShaderIndex::vertex2];
-        ShaderIndex shader_frag_index = (pipeline == 1) ? window->m_shader_indices[LocalShaderIndex::frag1] : window->m_shader_indices[LocalShaderIndex::frag2];
+        ShaderIndex shader_vert_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+        ShaderIndex shader_frag_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
 
-        ShaderCompiler compiler;
+        //ShaderCompiler compiler;
 
-        m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::m_shader_input_data" }));
-        m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "UniformBuffersTestPipelineCharacteristicBase::m_shader_input_data" }));
+        //m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
+        //m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
+
+        // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
+        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_vert_index));
+        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_frag_index));
+
+        // Compile the shaders.
+        flat_create_info.add_set_binding_map_callback(
+            [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
+            {
+              Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
+              m_set_binding_map = set_binding_map;      // Make copy of the map.
+
+              ShaderCompiler compiler;
+
+              m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+              m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+
+              //FIXME: this doesn't belong here.
+              utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts = m_shader_input_data.get_vhv_descriptor_set_layouts();
+              static std::once_flag flag;
+              //FIXME: it is extremely dirty (and dangerous?) to allow writing to *some* members of the window class,
+              // just because it is done in a call_once :/.
+              std::call_once(flag, &Window::create_uniform_buffers, const_cast<Window*>(window), m_shader_input_data, shader_frag_index,
+                  vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_top_buffer.descriptor_set_key())],
+                  vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_left_buffer.descriptor_set_key())],
+                  vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_bottom_buffer.descriptor_set_key())]);
+            });
       }
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
@@ -446,12 +499,12 @@ void main()
           }
         };
 
-        m_top_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(top_layout_bindings));
-        m_left_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(left_layout_bindings));
-        m_bottom_descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(bottom_layout_bindings));
+        m_top_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(top_layout_bindings));
+        m_left_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(left_layout_bindings));
+        m_bottom_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(bottom_layout_bindings));
       }
 
-      if (pipeline == 1)
+      if (pipeline == 0)
       {
         // Define pipeline layout.
         m_descriptor_set_layouts.push_back(m_top_descriptor_set_layout);
@@ -467,24 +520,30 @@ void main()
       }
 #endif
 
-      utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
-
-      static std::once_flag flag;
-      //FIXME: it is extremely dirty and dangerous to allow writing to *some* members of the window class,
-      // just because it is done in a call_once :/.
-      std::call_once(flag, &Window::create_uniform_buffers, const_cast<Window*>(window),
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_top_buffer.descriptor_set_key())],
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_left_buffer.descriptor_set_key())],
-          vhv_realized_descriptor_set_layouts[m_shader_input_data.get_set_index_hint(window->m_bottom_buffer.descriptor_set_key())]);
+      // Realize the descriptor set layouts: if a layout already exists then use the existing
+      // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
+      // Otherwise, if it does not already exist, create a new descriptor set layout using the
+      // provided binding values as-is.
+      m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
     }
 
    public:
+    vulkan::descriptor::SetBindingMap const& set_binding_map() const { return m_set_binding_map; }
+
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
       os << "{ (UniformBuffersTestPipelineCharacteristicBase*)" << this << " }";
     }
 #endif
+  };
+
+  class UniformBuffersTestPipelineCharacteristic0 : public UniformBuffersTestPipelineCharacteristicBase
+  {
+    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
+    {
+      initializeX(flat_create_info, owning_window, 0);
+    }
   };
 
   class UniformBuffersTestPipelineCharacteristic1 : public UniformBuffersTestPipelineCharacteristicBase
@@ -495,28 +554,22 @@ void main()
     }
   };
 
-  class UniformBuffersTestPipelineCharacteristic2 : public UniformBuffersTestPipelineCharacteristicBase
-  {
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
-    {
-      initializeX(flat_create_info, owning_window, 2);
-    }
-  };
-
-  vulkan::pipeline::FactoryHandle m_pipeline_factory1;
-  vulkan::pipeline::FactoryHandle m_pipeline_factory2;
+  vulkan::pipeline::FactoryHandle m_pipeline_factory0;  // This will become PipelineFactoryIndex #0, because it is created first.
+  vulkan::pipeline::FactoryHandle m_pipeline_factory1;  // This will become PipelineFactoryIndex #1.
+  boost::intrusive_ptr<task::PipelineFactory> m_pipeline_factory0_keep_alive;   // Keep alive so we can access m_pipeline_factory0 later.
 
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
+    m_pipeline_factory0 = create_pipeline_factory(m_graphics_pipeline0, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory0_keep_alive = pipeline_factory(m_pipeline_factory0.factory_index());
+    m_pipeline_factory0.add_characteristic<UniformBuffersTestPipelineCharacteristic0>(this);
+    m_pipeline_factory0.generate(this);
+
     m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
     m_pipeline_factory1.generate(this);
-
-    m_pipeline_factory2 = create_pipeline_factory(m_graphics_pipeline2, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    m_pipeline_factory2.add_characteristic<UniformBuffersTestPipelineCharacteristic2>(this);
-    m_pipeline_factory2.generate(this);
   }
 
   //===========================================================================
@@ -615,21 +668,44 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_graphics_pipeline1.handle() || !m_graphics_pipeline2.handle())
-  Dout(dc::warning, "Pipeline not available");
+if (!m_graphics_pipelines_done)
+{
+  if (!m_graphics_pipeline0.handle() || !m_graphics_pipeline1.handle())
+    Dout(dc::warning, "Pipeline not available");
+  else
+  {
+    task::PipelineFactory* pipeline_factory_ptr = m_pipeline_factory0_keep_alive.get();
+    task::PipelineFactory::characteristics_container_t const& characteristics = pipeline_factory_ptr->characteristics();
+    // Only one characteristic was added.
+    ASSERT(characteristics.size() == 1);
+    vulkan::pipeline::CharacteristicRange const* characteristic = characteristics.begin()->get();
+    vulkan::pipeline::ShaderInputData const& shader_input_data = characteristic->shader_input_data();
+    vulkan::descriptor::SetIndexHint top_set_index_hint = shader_input_data.get_set_index_hint(m_top_buffer.descriptor_set_key());
+    ASSERT(dynamic_cast<UniformBuffersTestPipelineCharacteristic0 const*>(characteristic));
+    vulkan::descriptor::SetBindingMap const& set_binding_map = static_cast<UniformBuffersTestPipelineCharacteristic0 const*>(characteristic)->set_binding_map();
+    vulkan::descriptor::SetIndex top_set_index = set_binding_map.convert(top_set_index_hint);
+    ASSERT(top_set_index.get_value() == 0 || top_set_index.get_value() == 1);
+    m_pipeline_factory0_keep_alive.reset();
+
+    if (top_set_index.get_value() == 1)
+      std::swap(m_graphics_pipeline0, m_graphics_pipeline1);
+
+    m_graphics_pipelines_done = true;
+  }
+}
 else
 {
       command_buffer->setViewport(0, { viewport });
       command_buffer->setScissor(0, { scissor });
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
           { m_vh_top_descriptor_set, m_vh_left_descriptor_set, m_vh_bottom_descriptor_set }, {});
 
       command_buffer->draw(3, 1, 0, 0);
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline2.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline2.layout(), 0 /* uint32_t first_set */,
+      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
           { m_vh_top_descriptor_set, m_vh_left_descriptor_set, m_vh_bottom_descriptor_set }, {});
 //          { m_vh_left_descriptor_set, m_vh_top_descriptor_set, m_vh_bottom_descriptor_set }, {});
 

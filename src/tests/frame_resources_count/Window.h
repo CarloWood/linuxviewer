@@ -280,19 +280,27 @@ void main()
       m_shader_input_data.add_texture(window->m_background_texture);
       m_shader_input_data.add_texture(window->m_benchmark_texture);
 
-      // Compile the shaders.
       {
         using namespace vulkan::shader_builder;
 
         ShaderIndex shader_vert_index = window->m_shader_vert;
         ShaderIndex shader_frag_index = window->m_shader_frag;
 
-        ShaderCompiler compiler;
+        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_vert_index));
+        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_frag_index));
 
-        m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
-        m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
-            COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+        // Compile the shaders.
+        flat_create_info.add_set_binding_map_callback(
+            [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
+            {
+              Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
+              ShaderCompiler compiler;
+
+              m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+              m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+            });
       }
 
 #if 0
@@ -315,7 +323,7 @@ void main()
           }
         };
 
-        descriptor_set_layout = owning_window->logical_device()->try_emplace_descriptor_set_layout(std::move(layout_bindings));
+        descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(layout_bindings));
       }
 
       // Define pipeline layout.
@@ -335,9 +343,12 @@ void main()
       ASSERT(aithreadid::is_single_threaded(s_id));     // Fails if more than one thread executes this line.
       window->create_vertex_buffers(this);
 
-      // Silly low
-      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
-      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_vh_descriptor_pool()
+      m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+
+      // We can do this here, because this application doesn't use any shader resources (no set or binding number are needed to be known):
+
+      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.get_vhv_descriptor_set_layouts();
+      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
       vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^
       // Store the descriptor set handle: it is used in draw_frame().
@@ -397,7 +408,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
 
-    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->pipeline().vertex_shader_input_sets())
+    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->shader_input_data().vertex_shader_input_sets())
     {
       size_t entry_size = vertex_shader_input_set->chunk_size();
       int count = vertex_shader_input_set->chunk_count();

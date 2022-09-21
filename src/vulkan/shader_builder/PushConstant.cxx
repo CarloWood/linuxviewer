@@ -15,7 +15,7 @@ std::string PushConstant::name() const
   return oss.str();
 }
 
-DeclarationContext const& PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
+DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
 {
   DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
@@ -26,10 +26,10 @@ DeclarationContext const& PushConstant::is_used_in(vk::ShaderStageFlagBits shade
   // in the initialize() virtual function of your FooPipelineCharacteristic (derived from
   // vulkan::pipeline::Characteristic[Range]) that uses this push constant.
   ASSERT(push_constant_declaration_context_iter != shader_input_data->glsl_id_full_to_push_constant_declaration_context({}).end());
-  PushConstantDeclarationContext& push_constant_declaration_context = *push_constant_declaration_context_iter->second.get();
+  PushConstantDeclarationContext* push_constant_declaration_context = push_constant_declaration_context_iter->second.get();
 
   // Register that this push constant is being used.
-  push_constant_declaration_context.glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
+  push_constant_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
 
   // Return the declaration context.
   return push_constant_declaration_context;

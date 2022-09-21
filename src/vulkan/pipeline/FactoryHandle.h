@@ -33,6 +33,9 @@ class FactoryHandle
   {
     return h1.m_factory_index == h2.m_factory_index;
   }
+
+  // Accessor.
+  PipelineFactoryIndex factory_index() const { return m_factory_index; }
 };
 
 } // namespace vulkan::pipeline

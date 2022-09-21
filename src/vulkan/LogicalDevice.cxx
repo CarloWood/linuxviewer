@@ -666,7 +666,8 @@ void LogicalDevice::prepare(
     };
 
     descriptor_pool_t::wat descriptor_pool_w(m_descriptor_pool);
-    *descriptor_pool_w = create_descriptor_pool(pool_sizes, 2200 COMMA_DEBUG_ONLY({".m_descriptor_pool"}));
+    *descriptor_pool_w = create_descriptor_pool(pool_sizes, 2200
+        COMMA_DEBUG_ONLY(debug_name_prefix("m_descriptor_pool")));
   }
 }
 
@@ -926,11 +927,12 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
 
 std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
     std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
-    vk::DescriptorPool vh_descriptor_pool
+    descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-    .descriptorPool = vh_descriptor_pool,
+    .descriptorPool = descriptor_pool_r->get(),
     .descriptorSetCount = static_cast<uint32_t>(vhv_descriptor_set_layout.size()),
     .pSetLayouts = vhv_descriptor_set_layout.data()
   };
@@ -944,11 +946,12 @@ std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
 
 std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_unique(
     std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
-    vk::DescriptorPool vh_descriptor_pool
+    descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-    .descriptorPool = vh_descriptor_pool,
+    .descriptorPool = descriptor_pool_r->get(),
     .descriptorSetCount = static_cast<uint32_t>(vhv_descriptor_set_layout.size()),
     .pSetLayouts = vhv_descriptor_set_layout.data()
   };
@@ -1175,9 +1178,9 @@ boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
   return uuid;
 }
 
-vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const
+vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings << ")");
+  DoutEntering(dc::vulkan, "LogicalDevice::realize_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings << ")");
   // Bug in library: this vector should never be empty. If it is, it probably means it was never initalized.
   ASSERT(!sorted_descriptor_set_layout_bindings.empty());
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
@@ -1189,7 +1192,6 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
       auto iter = descriptor_set_layouts_r->find(sorted_descriptor_set_layout_bindings);
       if (iter == descriptor_set_layouts_r->end())
       {
-        //FIXME: the binding values might not be set or correct!
         vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(sorted_descriptor_set_layout_bindings
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
                 boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
@@ -1198,6 +1200,19 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
         // We just used find and couldn't find it?!
         ASSERT(res.second);
         iter = res.first;
+      }
+      else
+      {
+        // Fix the binding values in the passed vector.
+        std::vector<vk::DescriptorSetLayoutBinding> const& key = iter->first;
+        // Using find() key was a returned as matching sorted_descriptor_set_layout_bindings.
+        ASSERT(key.size() == sorted_descriptor_set_layout_bindings.size());
+        for (int i = 0; i < key.size(); ++i)
+        {
+          sorted_descriptor_set_layout_bindings[i].binding = key[i].binding;
+          // Now the elements much be exactly equal.
+          ASSERT(sorted_descriptor_set_layout_bindings[i] == key[i]);
+        }
       }
       ASSERT(*iter->second);
       return *iter->second;
@@ -1217,7 +1232,7 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
 //
 // Once 'realized', m_handle is initialized with a handle of a descriptor
 // set layout that is created from m_sorted_bindings (by a call to
-// LogicalDevice::try_emplace_descriptor_set_layout, see SetLayout::realize_handle).
+// LogicalDevice::realize_descriptor_set_layout, see SetLayout::realize_handle).
 //
 // m_set_index_hint are set indexes that will be used when the pipeline layout
 // doesn't exist yet.
@@ -1299,7 +1314,7 @@ vk::DescriptorSetLayout LogicalDevice::try_emplace_descriptor_set_layout(std::ve
 //
 vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     sorted_set_layouts_container_t const& realized_descriptor_set_layouts,
-    std::map<descriptor::SetBinding, descriptor::SetBinding>& set_binding_map_out,
+    descriptor::SetBindingMap& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::try_emplace_pipeline_layout(" << realized_descriptor_set_layouts << ", " << sorted_push_constant_ranges << ")");
@@ -1332,10 +1347,12 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
         for (auto&& layout : realized_descriptor_set_layouts)
         {
           vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
+          // Create an identity set binding map.
+          set_binding_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
           for (vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : layout.sorted_bindings())
           {
             descriptor::SetBinding set_binding(layout.set_index_hint(), descriptor_set_layout_binding.binding);
-            set_binding_map_out.insert(std::make_pair(set_binding, set_binding));
+            set_binding_map_out.add_from_to(set_binding, set_binding.binding());
           }
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
@@ -1367,6 +1384,7 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
           //FIXME: remove 'i', it is ubt specific.
           int i = 0;
 #endif
+          set_binding_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
             descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
@@ -1380,7 +1398,7 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
               ASSERT(set_binding_in.binding() == set_binding_out.binding());
             }
 #endif
-            set_binding_map_out.insert(std::make_pair(set_binding_in, set_binding_out));
+            set_binding_map_out.add_from_to(set_binding_in, binding_out->binding);
             ++binding_in;
             ++binding_out;
 #if 0
@@ -1399,6 +1417,7 @@ vk::PipelineLayout LogicalDevice::try_emplace_pipeline_layout(
     {
       Dout(dc::always, "Calling m_pipeline_layouts.rd2wryield() !");
       m_pipeline_layouts.rd2wryield();
+      set_binding_map_out.clear();
     }
   }
 }

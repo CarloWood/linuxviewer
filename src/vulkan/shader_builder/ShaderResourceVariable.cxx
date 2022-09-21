@@ -8,7 +8,7 @@
 
 namespace vulkan::shader_builder {
 
-DeclarationContext const& ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
+DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
 {
   DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
@@ -25,12 +25,12 @@ DeclarationContext const& ShaderResourceVariable::is_used_in(vk::ShaderStageFlag
   //
   // FIXME: when does this happen?
   ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).end());
-  ShaderResourceDeclarationContext& shader_resource_declaration_context = shader_resource_declaration_context_iter->second;
+  ShaderResourceDeclarationContext* shader_resource_declaration_context = &shader_resource_declaration_context_iter->second;
 
   Dout(dc::always, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
 
   // Register that this shader resource is being used in this set.
-  shader_resource_declaration_context.glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_ptr, shader_input_data);
+  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_ptr, shader_input_data);
 
   // Return the declaration context.
   return shader_resource_declaration_context;

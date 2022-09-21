@@ -44,7 +44,7 @@ class PushConstant final : public ShaderVariable
 
  private:
   // Implement base class interface.
-  DeclarationContext const& is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
   std::string name() const override;
 
 #ifdef CWDEBUG

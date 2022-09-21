@@ -31,13 +31,14 @@ class SetLayout
  public:
   SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint) { }
 
-  void push_back(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
+  void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
-    DoutEntering(dc::vulkan, "SetLayout::push_back(" << descriptor_set_layout_binding << ")");
+    DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ")");
     utils::sorted_vector_insert(m_sorted_bindings, descriptor_set_layout_binding, LayoutBindingCompare{});
   }
 
   // Look up m_sorted_bindings in cache, and create a new handle if it doesn't already exist.
+  // Otherwise use the existing handle and fix the binding numbers in m_sorted_bindings to match that layout.
   void realize_handle(LogicalDevice const* logical_device);
 
   // Accessors.

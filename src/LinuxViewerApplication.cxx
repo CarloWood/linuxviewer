@@ -319,13 +319,16 @@ void main()
     // The shader input data object needs to know who owns it.
     vulkan::pipeline::ShaderInputData shader_input_data;
 
+    shader_input_data.preprocess1(application().get_shader_info(m_shader_vert));
+    shader_input_data.preprocess1(application().get_shader_info(m_shader_frag));
+
     {
       using namespace vulkan::shader_builder;
       ShaderCompiler compiler;
 
-      shader_input_data.build_shader(this, m_shader_vert, compiler
+      shader_input_data.build_shader(this, m_shader_vert, compiler, {}
           COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
-      shader_input_data.build_shader(this, m_shader_frag, compiler
+      shader_input_data.build_shader(this, m_shader_frag, compiler, {}
           COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
     }
 

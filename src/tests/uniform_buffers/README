@@ -1,0 +1,28 @@
+Descriptor layouts (DL), created with create_descriptor_set_layout
+Pipeline layouts (PL)
+Shader resources (SR)
+Pipelines (P0, P1)
+Uniform buffer (U),
+Texture (T)
+Ut: Uniform buffer containing top position (m_top_buffer).
+Ul: Uniform buffer containing left position (m_left_buffer).
+Ub: Uniform buffer containing bottom position (m_bottom_buffer).
+Ts: Combined image sampler (m_sample_texture).
+V: Vertex shader
+F: Fragment shader
+
+             DL      |  PL0                                |   PL1                                |  SR  |  P0  |  P1  |
+         ---------------------------------------------------------------------------------------------------------------
+                     |                                     |                                      |      |      |      |
+         h0: T.0+U.1-|>h0: [T+U] x1 ⎤                      | h0: [T+U] x1 ⎤                       |  Ut  |  V0  |  V1  |
+                    -|>h1: [U]   x2 ⎦                      | h1: [U]   x2 ⎦                       |  Ul  |      |      |
+         h1:  U.0--/ |                                     |                                      |  Ub  |  F0  |  F1  |
+                     |                                     |                                      |  T   |      |      |
+         ---------------------------------------------------------------------------------------------------------------
+                                         
+                      #0 h0 (T.0+U.1) <--> T + Ut           #0 h0 (U.0)     <--> Ul
+                      #1 h1 (U.0)     <--> Ul               #1 h1 (T.0+U.1) <--> T + Ut
+                      #2 h1 (U.0)     <--> Ub               #2 h0 (U.0)     <--> Ub
+
+Todo: look at the code that makes that <--> link (update)
+

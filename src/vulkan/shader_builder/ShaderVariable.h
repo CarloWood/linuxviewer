@@ -17,7 +17,7 @@ class ShaderVariable : public shader_builder::GlslIdFull
   using shader_builder::GlslIdFull::GlslIdFull;
 
   virtual ~ShaderVariable() = default;
-  virtual DeclarationContext const& is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const = 0;
+  virtual DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const = 0;
   virtual std::string name() const = 0;
 
 #ifdef CWDEBUG

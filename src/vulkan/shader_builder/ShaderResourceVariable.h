@@ -15,7 +15,7 @@ class ShaderResourceVariable final : public ShaderVariable
   ShaderResourceVariable(char const* glsl_id_full, ShaderResourceDeclaration* shader_resource_ptr) : ShaderVariable(glsl_id_full), m_shader_resource_ptr(shader_resource_ptr) { }
 
   // Implement base class interface.
-  DeclarationContext const& is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
   std::string name() const override;
 
 #ifdef CWDEBUG

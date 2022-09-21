@@ -57,16 +57,12 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
   }
 }
 
-std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
+void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage) const
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(" << shader_stage << ") [" << this << "]");
-  Dout(dc::vulkan, "Generating declaration; running over m_bindings that has the contents: " << m_bindings);
+  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
 
-  std::ostringstream oss;
   for (auto&& shader_resource_binding_pair : m_bindings)
   {
-    Dout(dc::vulkan, "shader_resource_binding_pair = { &" <<
-        *shader_resource_binding_pair.first << ", " << shader_resource_binding_pair.second << " }");
     ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
@@ -78,6 +74,23 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
     });
+  }
+}
+
+std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
+{
+  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(" << shader_stage << ") [" << this << "]");
+
+  std::ostringstream oss;
+  Dout(dc::vulkan, "Generating declaration; running over m_bindings that has the contents: " << m_bindings);
+  for (auto&& shader_resource_binding_pair : m_bindings)
+  {
+    Dout(dc::vulkan, "shader_resource_binding_pair = { &" << *shader_resource_binding_pair.first << ", " << shader_resource_binding_pair.second << " }");
+    ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
+    if (!(shader_resource_declaration->stage_flags() & shader_stage))
+      continue;
+    descriptor::SetIndex set_index = m_set_binding_map->convert(shader_resource_declaration->set_index_hint());
+    uint32_t binding = m_set_binding_map->convert(shader_resource_declaration->set_index_hint(), shader_resource_binding_pair.second);
 
     switch (shader_resource_declaration->descriptor_type())
     {
@@ -88,7 +101,7 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         ASSERT(variable.size() == 1);
         ShaderResourceVariable const& shader_variable = *variable.begin();
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
-        oss << "layout(set = " << shader_resource_declaration->set_index_hint().get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
+        oss << "layout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
 #if 0
         if (layout.m_array_size > 0)
           oss << '[' << layout.m_array_size << ']';
@@ -118,8 +131,8 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
           BasicType basic_type = member.basic_type();
           oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member.member_name() << ";\n";
         }
-        oss << "};\nlayout(set = " << shader_resource_declaration->set_index_hint().get_value() << ", binding = " << binding << ") uniform "
-          "u_s" << shader_resource_declaration->set_index_hint().get_value() << "b" << binding << " {\n  " <<
+        oss << "};\nlayout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform "
+          "u_s" << set_index.get_value() << "b" << binding << " {\n  " <<
           prefix << " m_" << vk_utils::snake_case(prefix) << ";\n} v" << prefix_hash << ";\n";
         break;
       }

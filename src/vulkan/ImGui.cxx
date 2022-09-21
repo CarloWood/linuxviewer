@@ -119,7 +119,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
   };
   m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(layout_bindings
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
-  auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, logical_device()->get_vh_descriptor_pool()
+  auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout }, logical_device()->get_descriptor_pool()
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
   m_descriptor_set = descriptor_sets[0];        // We only have one descriptor set --^
 }
@@ -184,9 +184,12 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     using namespace vulkan::shader_builder;
     ShaderCompiler compiler;
 
-    shader_input_data.build_shader(m_owning_window, m_shader_vert, compiler
+    shader_input_data.preprocess1(m_owning_window->application().get_shader_info(m_shader_vert));
+    shader_input_data.preprocess1(m_owning_window->application().get_shader_info(m_shader_frag));
+
+    shader_input_data.build_shader(m_owning_window, m_shader_vert, compiler, {}
         COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
-    shader_input_data.build_shader(m_owning_window, m_shader_frag, compiler
+    shader_input_data.build_shader(m_owning_window, m_shader_frag, compiler, {}
         COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
   }
 

@@ -25,6 +25,7 @@ class Pipeline
 
   Pipeline& operator=(Pipeline&&) = default;
 
+  // Accessors.
   vk::PipelineLayout layout() const { return m_vh_layout; }
   pipeline::Handle const& handle() const { return m_handle; }
 
