@@ -23,7 +23,7 @@ class CharacteristicRange : public AIRefCount
   using index_type = int;                                       // An index into the range that uniquely defines the value of the characteristic.
 
  protected:
-  vulkan::pipeline::ShaderInputData m_shader_input_data;        // FIXME: is this correct? This way have a ShaderInputData per Characteristic(Range)?!
+  vulkan::pipeline::ShaderInputData m_shader_input_data;        // FIXME: is this correct? This way we have a ShaderInputData per Characteristic(Range)?!
 
  private:
   index_type const m_begin;

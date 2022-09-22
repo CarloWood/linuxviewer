@@ -3,7 +3,7 @@
 
 #include "PushConstantRangeCompare.h"
 #include "descriptor/SetLayout.h"
-#include "descriptor/SetKeyToSetIndex.h"
+#include "descriptor/SetKeyToSetIndexHint.h"
 #include "descriptor/SetKeyPreference.h"
 #include "shader_builder/ShaderInfo.h"
 #include "shader_builder/ShaderIndex.h"
@@ -90,7 +90,7 @@ class ShaderInputData
   sorted_set_layouts_container_t m_sorted_descriptor_set_layouts;                               // A Vector of SetLayout object, containing vk::DescriptorSetLayout handles and the
                                                                                                 // vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were
                                                                                                 // created from.
-  descriptor::SetKeyToSetIndex m_shader_resource_set_key_to_set_index_hint;                     // Maps descriptor::SetKey's to identifier::SetIndex's.
+  descriptor::SetKeyToSetIndexHint m_shader_resource_set_key_to_set_index_hint;                     // Maps descriptor::SetKey's to identifier::SetIndexHint's.
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
   using per_stage_declaration_contexts_container_t = std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t>;
   per_stage_declaration_contexts_container_t m_per_stage_declaration_contexts;
@@ -217,6 +217,7 @@ class ShaderInputData
     m_push_constant_ranges.insert(push_constant_range);
   }
 
+  // Access what calls to the above insert constructed.
   std::vector<vk::PushConstantRange> push_constant_ranges() const
   {
     return { m_push_constant_ranges.begin(), m_push_constant_ranges.end() };
@@ -235,20 +236,21 @@ class ShaderInputData
     Dout(dc::shaderresource, "Leaving ShaderInputData::realize_descriptor_set_layouts");
   }
 
-  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> get_vhv_descriptor_set_layouts()
+  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(vulkan::descriptor::SetBindingMap const& set_binding_map)
   {
     DoutEntering(dc::vulkan, "ShaderInputData::get_vhv_descriptor_set_layouts() [" << this << "]");
     // This function is called after realize_descriptor_set_layouts which means that the `binding` values
     // in the elements of SetLayout::m_sorted_bindings, of each SetLayout in m_sorted_descriptor_set_layouts,
     // is already finalized.
     Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
-    utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
+    utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
     {
+      descriptor::SetIndex set_index = set_binding_map.convert(descriptor_set_layout.set_index_hint());
       // This code assumes that m_sorted_descriptor_set_layouts contains contiguous range [0, 1, 2, ..., size-1] of
       // set index hint values - one for each.
-      ASSERT(descriptor_set_layout.set_index_hint() < vhv_descriptor_set_layouts.iend());
-      vhv_descriptor_set_layouts[descriptor_set_layout.set_index_hint()] = descriptor_set_layout.handle();
+      ASSERT(set_index < vhv_descriptor_set_layouts.iend());
+      vhv_descriptor_set_layouts[set_index] = descriptor_set_layout.handle();
     }
     return vhv_descriptor_set_layouts;
   }

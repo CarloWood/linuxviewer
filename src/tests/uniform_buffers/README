@@ -14,19 +14,37 @@ F: Fragment shader
              DL      |  PL0                                |   PL1                                |  SR  |  P0  |  P1  |
          ---------------------------------------------------------------------------------------------------------------
                      |                                     |                                      |      |      |      |
-         h0: T.1+U.0-|>h0: [T+U] x1 ⎤                      | h0: [T+U] x1 ⎤                       |  Ut  |  V0  |  V1  |
-                    -|>h1: [U]   x2 ⎦                      | h1: [U]   x2 ⎦                       |  Ul  |      |      |
-         h1:  U.0--/ |                                     |                                      |  Ub  |  F0  |  F1  |
+         h0: T.1+U.0 | #1 h1: [U.0]       (left)           | #2 h1: [U.0]       (bottom)          |  Ut  |  V0  |  V1  |
+                     | #2 h1: [U.0]       (bottom)         | #0 h1: [U.0]       (left)            |  Ul  |      |      |
+         h1:  U.0    | #0 h0: [T.1+U.0]   (top)            | #1 h0: [T.1+U.0]   (top)             |  Ub  |  F0  |  F1  |
                      |                                     |                                      |  T   |      |      |
          ---------------------------------------------------------------------------------------------------------------
+                       ^-- wins in this example.
 
-         a0: h0
-         a1: h1
-         a2: h1
-                                         
-                      #0 a0 (T.1+U.0) <--> T + Ut           #0 a0 (U.0)     <--> Ul
-                      #1 a1 (U.0)     <--> Ul               #1 a1 (T.1+U.0) <--> T + Ut
-                      #2 a2 (U.0)     <--> Ub               #2 a2 (U.0)     <--> Ub
+                       #1 --> #1                             #2 --> #1
+                       #2 --> #2                             #0 --> #2
+                       #0 --> #0                             #1 --> #0
 
-Todo: look at the code that makes that <--> link (update)
+                       vhv_descriptor_set_layouts:           vhv_descriptor_set_layouts:
+                           #0  h0                                #0  h0
+                           #1  h1                                #1  h1
+                           #2  h1                                #2  h1
+
+                                       Calling create_uniform_buffers
+
+                       top_descriptor_set_index = #0         top_descriptor_set_index = #0 (#1 --> #0)
+                       left_descriptor_set_index = #1        left_descriptor_set_index = #2 (#0 --> #2)
+                       bottom_descriptor_set_index = #2      bottom_descriptor_set_index = #1 (#2 --> #1)
+
+                       m_vhv_descriptor_sets:                m_vhv_descriptor_sets:
+                           #0  a0 = h0                           #0  a0 = h0       
+                           #1  a1 = h1                           #1  a2 = h1       
+                           #2  a2 = h1                           #2  a1 = h1       
+
+                       #0 a0 (T.1+U.0) <--> T + Ut           #0 a0 (T.1+U.0) <--> T + Ut
+                       #1 a1 (U.0)     <--> Ul               #1 a1 (U.0)     <--> U1
+                       #2 a2 (U.0)     <--> Ub               #2 a2 (U.0)     <--> Ub
+
+
+Characteristic calls add_uniform_buffer --> call create_uniform_buffer on the m_shader_info_data of that characteristic.
 

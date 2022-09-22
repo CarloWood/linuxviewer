@@ -38,7 +38,7 @@ class SetKey
     return m_id;
   }
 
-  // SetKey is used as a key in a std::map (SetKeyToSetIndex).
+  // SetKey is used as a key in a std::map (SetKeyToSetIndexHint).
   // Add an ordering.
   bool operator<(SetKey const& rhs) const
   {

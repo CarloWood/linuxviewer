@@ -6,7 +6,7 @@
 
 namespace vulkan::descriptor {
 
-class SetKeyToSetIndex
+class SetKeyToSetIndexHint
 {
  private:
   SetIndexHint m_next_set_index_hint{size_t{0}};
@@ -15,7 +15,7 @@ class SetKeyToSetIndex
  public:
   SetIndexHint try_emplace(SetKey set_key)
   {
-    DoutEntering(dc::vulkan, "SetKeyToSetIndex::try_emplace(" << set_key << ") [" << this << "]");
+    DoutEntering(dc::vulkan, "SetKeyToSetIndexHint::try_emplace(" << set_key << ") [" << this << "]");
     auto res = m_set_key_to_set_index_hint.try_emplace(set_key, m_next_set_index_hint);
     if (res.second)
       ++m_next_set_index_hint;

@@ -347,7 +347,7 @@ void main()
 
       // We can do this here, because this application doesn't use any shader resources (no set or binding number are needed to be known):
 
-      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.get_vhv_descriptor_set_layouts();
+      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.get_vhv_descriptor_set_layouts({});
       auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
       vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^

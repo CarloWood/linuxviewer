@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SetKeyToSetIndex.h"
+#include "SetKeyToSetIndexHint.h"
 #include "utils/UniqueID.h"
 #include "utils/Badge.h"
 #include "utils/Singleton.h"
@@ -18,7 +18,7 @@ class SetKeyContext : public Singleton<SetKeyContext>
 
  private:
   utils::UniqueIDContext<std::size_t> m_set_key_context;
-  SetKeyToSetIndex m_set_key_to_set_index;      // Map from keys of this context to indexes.
+  SetKeyToSetIndexHint m_set_key_to_set_index;      // Map from keys of this context to indexes.
 
  public:
   utils::UniqueID<std::size_t> get_id(utils::Badge<SetKey>) { return m_set_key_context.get_id(); }

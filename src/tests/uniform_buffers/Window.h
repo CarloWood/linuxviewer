@@ -48,7 +48,6 @@ class Window : public task::SynchronousWindow
 
   vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
-  bool m_graphics_pipelines_done = false;
 
   vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer;
   vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer;
@@ -88,9 +87,7 @@ class Window : public task::SynchronousWindow
   }
 
   //FIXME: this doesn't belong here
-  vk::DescriptorSet m_vh_top_descriptor_set;
-  vk::DescriptorSet m_vh_left_descriptor_set;
-  vk::DescriptorSet m_vh_bottom_descriptor_set;
+  utils::Vector<vk::DescriptorSet, vulkan::descriptor::SetIndex> m_vhv_descriptor_sets;
 
   void create_textures() override
   {
@@ -164,14 +161,10 @@ class Window : public task::SynchronousWindow
     // created from it are updated with the same state, we also reuse the descriptors sets and have both pipelines use
     // the same descriptor sets (this function is only called once: for whichever UniformBuffersTestPipelineCharacteristicBase's
     // initialize finished first).
-    auto descriptor_sets = logical_device()->allocate_descriptor_sets(
-        { top_vh_descriptor_set_layout, left_vh_descriptor_set_layout, bottom_vh_descriptor_set_layout },
+    m_vhv_descriptor_sets = logical_device()->allocate_descriptor_sets(
+        vhv_realized_descriptor_set_layouts,
         logical_device()->get_descriptor_pool()
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set")));
-
-    m_vh_top_descriptor_set = descriptor_sets[0];
-    m_vh_left_descriptor_set = descriptor_sets[1];
-    m_vh_bottom_descriptor_set = descriptor_sets[2];
+        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vhv_descriptor_set")));
 
     m_top_buffer.create(this, top_position_array_size * sizeof(TopPosition)
         COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer")));
@@ -208,9 +201,9 @@ class Window : public task::SynchronousWindow
 
     //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
     uint32_t binding = 0;
-    logical_device()->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eUniformBuffer, 1 - texture_binding, 0, {}, top_buffer_infos);
-    logical_device()->update_descriptor_set(m_vh_left_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
-    logical_device()->update_descriptor_set(m_vh_bottom_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
+    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[top_descriptor_set_index], vk::DescriptorType::eUniformBuffer, 1 - texture_binding, 0, {}, top_buffer_infos);
+    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[left_descriptor_set_index], vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
+    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[bottom_descriptor_set_index], vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
 
     // Fill the buffer...
     for (int i = 0; i < top_position_array_size; ++i)
@@ -231,7 +224,7 @@ class Window : public task::SynchronousWindow
         }
       };
       // The 'top' descriptor set also contains the texture.
-      m_logical_device->update_descriptor_set(m_vh_top_descriptor_set, vk::DescriptorType::eCombinedImageSampler, texture_binding, 0, image_infos);
+      m_logical_device->update_descriptor_set(m_vhv_descriptor_sets[top_descriptor_set_index], vk::DescriptorType::eCombinedImageSampler, texture_binding, 0, image_infos);
     }
   }
 
@@ -383,8 +376,6 @@ void main()
     vulkan::descriptor::SetLayout m_bottom_descriptor_set_layout;
 #endif
 
-    vulkan::descriptor::SetBindingMap m_set_binding_map;    // Keep a copy.
-
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window, int pipeline)
     {
@@ -443,8 +434,6 @@ void main()
             [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
             {
               Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
-              m_set_binding_map = set_binding_map;      // Make copy of the map.
-
               ShaderCompiler compiler;
 
               m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler, set_binding_map
@@ -529,8 +518,6 @@ void main()
     }
 
    public:
-    vulkan::descriptor::SetBindingMap const& set_binding_map() const { return m_set_binding_map; }
-
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
@@ -669,31 +656,8 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_graphics_pipelines_done)
-{
-  if (!m_graphics_pipeline0.handle() || !m_graphics_pipeline1.handle())
-    Dout(dc::warning, "Pipeline not available");
-  else
-  {
-    task::PipelineFactory* pipeline_factory_ptr = m_pipeline_factory0_keep_alive.get();
-    task::PipelineFactory::characteristics_container_t const& characteristics = pipeline_factory_ptr->characteristics();
-    // Only one characteristic was added.
-    ASSERT(characteristics.size() == 1);
-    vulkan::pipeline::CharacteristicRange const* characteristic = characteristics.begin()->get();
-    vulkan::pipeline::ShaderInputData const& shader_input_data = characteristic->shader_input_data();
-    vulkan::descriptor::SetIndexHint top_set_index_hint = shader_input_data.get_set_index_hint(m_top_buffer.descriptor_set_key());
-    ASSERT(dynamic_cast<UniformBuffersTestPipelineCharacteristic0 const*>(characteristic));
-    vulkan::descriptor::SetBindingMap const& set_binding_map = static_cast<UniformBuffersTestPipelineCharacteristic0 const*>(characteristic)->set_binding_map();
-    vulkan::descriptor::SetIndex top_set_index = set_binding_map.convert(top_set_index_hint);
-    ASSERT(top_set_index.get_value() == 0 || top_set_index.get_value() == 1);
-    m_pipeline_factory0_keep_alive.reset();
-
-    if (top_set_index.get_value() == 1)
-      std::swap(m_graphics_pipeline0, m_graphics_pipeline1);
-
-    m_graphics_pipelines_done = true;
-  }
-}
+if (!m_graphics_pipeline0.handle() || !m_graphics_pipeline1.handle())
+  Dout(dc::warning, "Pipeline not available");
 else
 {
       command_buffer->setViewport(0, { viewport });
@@ -701,14 +665,13 @@ else
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
-          { m_vh_top_descriptor_set, m_vh_left_descriptor_set, m_vh_bottom_descriptor_set }, {});
+          m_vhv_descriptor_sets, {});
 
       command_buffer->draw(3, 1, 0, 0);
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
-          { m_vh_top_descriptor_set, m_vh_left_descriptor_set, m_vh_bottom_descriptor_set }, {});
-//          { m_vh_left_descriptor_set, m_vh_top_descriptor_set, m_vh_bottom_descriptor_set }, {});
+          m_vhv_descriptor_sets, {});
 
       command_buffer->draw(3, 1, 0, 0);
 }

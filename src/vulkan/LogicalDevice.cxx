@@ -1397,11 +1397,12 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           auto binding_in = set_layout_in->sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings().begin();
           set_binding_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
-          set_layout_in->set_set_index_hint(set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
             descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
             descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
+            // I think this shouldn't happen no? *confused*
+            ASSERT(set_binding_in.binding() == binding_out->binding);
             set_binding_map_out.add_from_to(set_binding_in, binding_out->binding);
             binding_in->binding = binding_out->binding;
             ++binding_in;
