@@ -440,7 +440,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
   //FIXME: implement (use preferred_descriptor_sets / undesirable_descriptor_sets).
   descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
-  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace(uniform_buffer_descriptor_set_key);
+  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace2(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index_hint, uniform_buffer);
@@ -463,6 +463,26 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
+
+  // Remember that this uniform buffer must be created from the PipelineFactory.
+  request_shader_resource_creation(&uniform_buffer);
+}
+
+void ShaderInputData::request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource)
+{
+  // Add a pointer to the shader resource (Base) to a list of required shader resources.
+  // The shader_resource should be an instance of the Window class.
+  m_required_shader_resources_list.push_back(shader_resource);
+}
+
+void ShaderInputData::handle_shader_resource_creation_requests(vulkan::descriptor::SetBindingMap const& set_binding_map)
+{
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests()");
+  // Seems impossible that one of these is empty if the other isn't.
+  ASSERT(m_required_shader_resources_list.empty() == m_sorted_descriptor_set_layouts.empty());
+  utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> vhv_realized_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_binding_map);
+
+  //create_uniform_buffers
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

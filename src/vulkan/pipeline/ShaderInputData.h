@@ -62,6 +62,8 @@ class ShaderInputData
   using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
 
  private:
+  CharacteristicRange* m_owning_characteristic_range;
+
   //---------------------------------------------------------------------------
   // Vertex attributes.
   utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;          // Existing vertex shader input sets (a 'binding' slot).
@@ -94,6 +96,10 @@ class ShaderInputData
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
   using per_stage_declaration_contexts_container_t = std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t>;
   per_stage_declaration_contexts_container_t m_per_stage_declaration_contexts;
+
+  // List of shader resources that were added by the owning CharacteristicRange
+  // from the add_* functions like add_uniform_buffer.
+  std::vector<vulkan::shader_builder::shader_resource::Base const*> m_required_shader_resources_list;
 
   //---------------------------------------------------------------------------
 
@@ -148,6 +154,8 @@ class ShaderInputData
   //---------------------------------------------------------------------------
 
  public:
+  ShaderInputData(CharacteristicRange* owning_characteristic_range) : m_owning_characteristic_range(owning_characteristic_range) { }
+
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
@@ -164,6 +172,9 @@ class ShaderInputData
   void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
+
+  void request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource);
+  void handle_shader_resource_creation_requests(vulkan::descriptor::SetBindingMap const& set_binding_map);
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
@@ -236,7 +247,7 @@ class ShaderInputData
     Dout(dc::shaderresource, "Leaving ShaderInputData::realize_descriptor_set_layouts");
   }
 
-  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(vulkan::descriptor::SetBindingMap const& set_binding_map)
+  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(vulkan::descriptor::SetBindingMap const& set_binding_map) const
   {
     DoutEntering(dc::vulkan, "ShaderInputData::get_vhv_descriptor_set_layouts() [" << this << "]");
     // This function is called after realize_descriptor_set_layouts which means that the `binding` values

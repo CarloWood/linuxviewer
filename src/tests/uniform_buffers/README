@@ -42,7 +42,7 @@ F: Fragment shader
                            #2  a2 = h1                           #2  a1 = h1       
 
                        #0 a0 (T.1+U.0) <--> T + Ut           #0 a0 (T.1+U.0) <--> T + Ut
-                       #1 a1 (U.0)     <--> Ul               #1 a1 (U.0)     <--> U1
+                       #1 a1 (U.0)     <--> Ul               #1 a1 (U.0)     <--> Ul
                        #2 a2 (U.0)     <--> Ub               #2 a2 (U.0)     <--> Ub
 
 

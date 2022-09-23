@@ -13,7 +13,7 @@ class SetKeyToSetIndexHint
   std::map<SetKey, SetIndexHint> m_set_key_to_set_index_hint;
 
  public:
-  SetIndexHint try_emplace(SetKey set_key)
+  SetIndexHint try_emplace2(SetKey set_key)
   {
     DoutEntering(dc::vulkan, "SetKeyToSetIndexHint::try_emplace(" << set_key << ") [" << this << "]");
     auto res = m_set_key_to_set_index_hint.try_emplace(set_key, m_next_set_index_hint);

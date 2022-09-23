@@ -6,6 +6,7 @@
 #include "SynchronousTask.h"
 #include "vk_utils/TaskToTaskDeque.h"
 #include "threadsafe/aithreadsafe.h"
+#include "utils/at_scope_end.h"
 
 namespace task {
 
@@ -120,6 +121,7 @@ PipelineFactory::~PipelineFactory()
 
 void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
+  characteristic_range->set_owner(this);
   m_characteristics.push_back(std::move(characteristic_range));
 }
 
@@ -140,7 +142,10 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_start);
     AI_CASE_RETURN(PipelineFactory_initialize);
     AI_CASE_RETURN(PipelineFactory_initialized);
-    AI_CASE_RETURN(PipelineFactory_generate);
+    AI_CASE_RETURN(PipelineFactory_top_multiloop_for_loop);
+    AI_CASE_RETURN(PipelineFactory_top_multiloop_while_loop);
+    AI_CASE_RETURN(PipelineFactory_bottom_multiloop_while_loop);
+    AI_CASE_RETURN(PipelineFactory_bottom_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_done);
   }
   AI_NEVER_REACHED
@@ -164,189 +169,242 @@ void PipelineFactory::multiplex_impl(state_type run_state)
     else
       DEBUGCHANNELS::dc::shaderresource.on();
   }
+  // Call this when the function is left.
+  auto&& restore_shaderresource = at_scope_end([=](){
+    if (was_changed)
+    {
+      if (was_on)
+        DEBUGCHANNELS::dc::shaderresource.on();
+      else
+        DEBUGCHANNELS::dc::shaderresource.off();
+    }
+  });
 #endif
-  switch (run_state)
+  for (;;)
   {
-    case PipelineFactory_start:
+    switch (run_state)
     {
-      // Create our task::PipelineCache object.
-      m_pipeline_cache_task = statefultask::create<PipelineCache>(this COMMA_CWDEBUG_ONLY(mSMDebug));
-      m_pipeline_cache_task->run(vulkan::Application::instance().low_priority_queue(), this, pipeline_cache_set_up);
-      // Wait until the pipeline cache is ready, then continue with PipelineFactory_initialize.
-      set_state(PipelineFactory_initialize);
-      wait(pipeline_cache_set_up);
-      break;
-    }
-    case PipelineFactory_initialize:
-      // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
-      m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
-      m_move_new_pipelines_synchronously->run();
-      // Wait until the user is done adding CharacteristicRange objects and called generate().
-      set_state(PipelineFactory_initialized);
-      wait(fully_initialized);
-      break;
-    case PipelineFactory_initialized:
-    {
-      // Do not use an empty factory - it makes no sense.
-      ASSERT(!m_characteristics.empty());
-      vulkan::pipeline::Index max_pipeline_index{0};
-      // Call initialize on each characteristic.
-      for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+      case PipelineFactory_start:
       {
-        m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
-        m_characteristics[i]->update(max_pipeline_index, m_characteristics[i]->iend() - 1);
+        // Create our task::PipelineCache object.
+        m_pipeline_cache_task = statefultask::create<PipelineCache>(this COMMA_CWDEBUG_ONLY(mSMDebug));
+        m_pipeline_cache_task->run(vulkan::Application::instance().low_priority_queue(), this, pipeline_cache_set_up);
+        // Wait until the pipeline cache is ready, then continue with PipelineFactory_initialize.
+        set_state(PipelineFactory_initialize);
+        wait(pipeline_cache_set_up);
+        return;
       }
-      // max_pipeline_index is now equal to the maximum value that a pipeline_index can be.
-//FIXME: is max_pipeline_index still needed?      m_graphics_pipelines.resize(max_pipeline_index.get_value() + 1);
-
-      // Start as many for loops as there are characteristics.
-      m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
-      // Enter the multi-loop.
-      set_state(PipelineFactory_generate);
-      [[fallthrough]];
-    }
-    case PipelineFactory_generate:
-      // Each time we enter from the top, m_range_counters.finished() should be false.
-      // It is therefore the same as entering at the bottom of the while loop at *).
-      for (; !m_range_counters.finished(); m_range_counters.next_loop())                                                // This is just MultiLoop magic; these two lines result in
-        while (m_range_counters() < m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters}]->iend())   // having multiple for loops inside eachother.
+      case PipelineFactory_initialize:
+        // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
+        m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
+        m_move_new_pipelines_synchronously->run();
+        // Wait until the user is done adding CharacteristicRange objects and called generate().
+        set_state(PipelineFactory_initialized);
+        wait(fully_initialized);
+        return;
+      case PipelineFactory_initialized:
+      {
+        // Do not use an empty factory - it makes no sense.
+        ASSERT(!m_characteristics.empty());
+        vulkan::pipeline::Index max_pipeline_index{0};
+        // Call initialize on each characteristic.
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
-          // Set b to a random magic value to indicate that we are in the inner loop.
-          int b = std::numeric_limits<int>::max();
-          // Required MultiLoop magic.
-          if (m_range_counters.inner_loop())
+          m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
+          m_characteristics[i]->update(max_pipeline_index, m_characteristics[i]->iend() - 1);
+        }
+        // max_pipeline_index is now equal to the maximum value that a m_pipeline_index can be.
+  //FIXME: is max_pipeline_index still needed?      m_graphics_pipelines.resize(max_pipeline_index.get_value() + 1);
+
+        // Start as many for loops as there are characteristics.
+        m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
+        // Enter the multi-loop.
+        set_state(PipelineFactory_top_multiloop_for_loop);
+        [[fallthrough]];
+      }
+      // The first time we enter from the top, m_range_counters.finished() should be false.
+      // Therefore we can simply enter PipelineFactory_top_multiloop_for_loop, which replaces the
+      // normal MultiLoop for-loop, regardless.
+      //
+      // This state mimics the usual MultiLoop magic:
+      //   for(; !m_range_counters.finished(); m_range_counters.next_loop())
+      case PipelineFactory_top_multiloop_for_loop:
+        // We are now at the top of the for loop.
+        //
+        // This multiplex_impl function mimics the usual MultiLoop magic:
+        //   while (m_range_counters() < m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters}]->iend())
+        //   {
+        if (!(m_range_counters() < m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters}]->iend()))
+        {
+          // We did not enter the while loop body.
+          run_state = PipelineFactory_bottom_multiloop_for_loop;
+          break;
+        }
+        set_state(PipelineFactory_top_multiloop_while_loop);
+        [[fallthrough]];
+      case PipelineFactory_top_multiloop_while_loop: // Having multiple for loops inside eachother.
+        // We are not at the top of the while loop.
+        //
+        // Set m_start_of_next_loop to a random magic value to indicate that we are in the inner loop.
+        m_start_of_next_loop = std::numeric_limits<int>::max();
+        // Required MultiLoop magic.
+        if (!m_range_counters.inner_loop())
+        {
+          // This is not the inner loop; set m_start_of_next_loop to the start value of the next loop.
+          m_start_of_next_loop = m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters + 1}]->ibegin(); // Each loop, one per characteristic, runs from ibegin() till iend().
+          // Since the whole reason that we're mimicing the for() while() MultiLoop magic with task states
+          // is because we need to be able to leave and enter those loops in the middle of the inner loop,
+          // we can not have local state (on the stack); might as well use a goto therefore ;).
+          goto multiloop_magic_footer;
+        }
+        // MultiLoop inner loop body.
+
+        m_pipeline_index.set_to_zero();
+
+        // Run over each loop variable (and hence characteristic).
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+        {
+          // Call fill with its current range index.
+          m_characteristics[i]->fill(m_flat_create_info, m_range_counters[i.get_value()]);
+          // Calculate the m_pipeline_index.
+          m_characteristics[i]->update(m_pipeline_index, m_range_counters[i.get_value()]);
+        }
+
+        //-----------------------------------------------------------------
+        // Begin pipeline layout creation
+
+        {
+          vulkan::descriptor::SetBindingMap set_binding_map;
+
+          vulkan::pipeline::ShaderInputData::sorted_set_layouts_container_t* realized_descriptor_set_layouts = m_flat_create_info.get_realized_descriptor_set_layouts();
+          std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
+
+          m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
+
+          m_flat_create_info.do_set_binding_map_callbacks(set_binding_map);
+
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           {
-            // MultiLoop inner loop body.
+            m_characteristics[i]->handle_shader_resource_creation_requests(set_binding_map);
+          }
+        }
 
-            vulkan::pipeline::Index pipeline_index{0};
+//      case PipelineFactory_somename:
+//FIXME        m_owning_window->create_uniform_buffers(m_shader_input_data, set_binding_map);
 
-            // Run over each loop variable (and hence characteristic).
-            for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-            {
-              // Call fill with its current range index.
-              m_characteristics[i]->fill(m_flat_create_info, m_range_counters[i.get_value()]);
-              // Calculate the pipeline_index.
-              m_characteristics[i]->update(pipeline_index, m_range_counters[i.get_value()]);
-            }
+        // End pipeline layout creation
+        //-----------------------------------------------------------------
 
-            vk::PipelineLayout vh_pipeline_layout;
-            {
-              vulkan::pipeline::ShaderInputData::sorted_set_layouts_container_t* realized_descriptor_set_layouts = m_flat_create_info.get_realized_descriptor_set_layouts();
-              std::vector<vk::PushConstantRange>               const sorted_push_constant_ranges            = m_flat_create_info.get_sorted_push_constant_ranges();
+        // Bug in this library: the layout must be created.
+        ASSERT(m_vh_pipeline_layout);
 
-              //-----------------------------------------------------------------
-              // Begin pipeline layout creation
+        {
+          // Merge the results of all characteristics into local vectors.
+          std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions      = m_flat_create_info.get_vertex_input_binding_descriptions();
+          std::vector<vk::VertexInputAttributeDescription>   const vertex_input_attribute_descriptions    = m_flat_create_info.get_vertex_input_attribute_descriptions();
+          std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos     = m_flat_create_info.get_pipeline_shader_stage_create_infos();
+          std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states = m_flat_create_info.get_pipeline_color_blend_attachment_states();
+          std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
 
-              vulkan::descriptor::SetBindingMap set_binding_map;
-              vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
-              m_flat_create_info.do_set_binding_map_callbacks(set_binding_map);
+          vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
+            .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
+            .pVertexBindingDescriptions = vertex_input_binding_descriptions.data(),
+            .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_attribute_descriptions.size()),
+            .pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data()
+          };
 
-              // End pipeline layout creation
-              //-----------------------------------------------------------------
-              // Bug in this library: the layout must be created.
-              ASSERT(vh_pipeline_layout);
-            }
+          vk::PipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info{
+            .dynamicStateCount = static_cast<uint32_t>(dynamic_state.size()),
+            .pDynamicStates = dynamic_state.data()
+          };
 
-            // Merge the results of all characteristics into local vectors.
-            std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions      = m_flat_create_info.get_vertex_input_binding_descriptions();
-            std::vector<vk::VertexInputAttributeDescription>   const vertex_input_attribute_descriptions    = m_flat_create_info.get_vertex_input_attribute_descriptions();
-            std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos     = m_flat_create_info.get_pipeline_shader_stage_create_infos();
-            std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states = m_flat_create_info.get_pipeline_color_blend_attachment_states();
-            std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
-
-            vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
-              .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
-              .pVertexBindingDescriptions = vertex_input_binding_descriptions.data(),
-              .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_attribute_descriptions.size()),
-              .pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data()
-            };
-
-            vk::PipelineDynamicStateCreateInfo pipeline_dynamic_state_create_info{
-              .dynamicStateCount = static_cast<uint32_t>(dynamic_state.size()),
-              .pDynamicStates = dynamic_state.data()
-            };
-
-            vk::GraphicsPipelineCreateInfo pipeline_create_info{
-              .stageCount = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()),
-              .pStages = pipeline_shader_stage_create_infos.data(),
-              .pVertexInputState = &pipeline_vertex_input_state_create_info,
-              .pInputAssemblyState = &m_flat_create_info.m_pipeline_input_assembly_state_create_info,
-              .pTessellationState = nullptr,
-              .pViewportState = &m_flat_create_info.m_viewport_state_create_info,
-              .pRasterizationState = &m_flat_create_info.m_rasterization_state_create_info,
-              .pMultisampleState = &m_flat_create_info.m_multisample_state_create_info,
-              .pDepthStencilState = &m_flat_create_info.m_depth_stencil_state_create_info,
-              .pColorBlendState = &m_flat_create_info.m_color_blend_state_create_info,
-              .pDynamicState = &pipeline_dynamic_state_create_info,
-              .layout = vh_pipeline_layout,
-              .renderPass = m_vh_render_pass,
-              .subpass = 0,
-              .basePipelineHandle = vk::Pipeline{},
-              .basePipelineIndex = -1
-            };
+          vk::GraphicsPipelineCreateInfo pipeline_create_info{
+            .stageCount = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()),
+            .pStages = pipeline_shader_stage_create_infos.data(),
+            .pVertexInputState = &pipeline_vertex_input_state_create_info,
+            .pInputAssemblyState = &m_flat_create_info.m_pipeline_input_assembly_state_create_info,
+            .pTessellationState = nullptr,
+            .pViewportState = &m_flat_create_info.m_viewport_state_create_info,
+            .pRasterizationState = &m_flat_create_info.m_rasterization_state_create_info,
+            .pMultisampleState = &m_flat_create_info.m_multisample_state_create_info,
+            .pDepthStencilState = &m_flat_create_info.m_depth_stencil_state_create_info,
+            .pColorBlendState = &m_flat_create_info.m_color_blend_state_create_info,
+            .pDynamicState = &pipeline_dynamic_state_create_info,
+            .layout = m_vh_pipeline_layout,
+            .renderPass = m_vh_render_pass,
+            .subpass = 0,
+            .basePipelineHandle = vk::Pipeline{},
+            .basePipelineIndex = -1
+          };
 
 #ifdef CWDEBUG
-            Dout(dc::vulkan|continued_cf, "PipelineFactory [" << this << "] creating graphics pipeline with range values: ");
-            char const* prefix = "";
-            for (int i = 0; i < m_characteristics.size(); ++i)
-            {
-              Dout(dc::continued, prefix << m_range_counters[i]);
-              prefix = ", ";
-            }
-            Dout(dc::finish, " --> pipeline::Index " << pipeline_index);
+          Dout(dc::vulkan|continued_cf, "PipelineFactory [" << this << "] creating graphics pipeline with range values: ");
+          char const* prefix = "";
+          for (int i = 0; i < m_characteristics.size(); ++i)
+          {
+            Dout(dc::continued, prefix << m_range_counters[i]);
+            prefix = ", ";
+          }
+          Dout(dc::finish, " --> pipeline::Index " << m_pipeline_index);
 #endif
 
 #if 0
-            // FIXME: We stop here because continueing causes "Lost Device".
-            static std::atomic_int cnt{0};
-            int prev_cnt = cnt.fetch_add(1);
-            ASSERT(prev_cnt < 2);
-            if (prev_cnt == 0)
-            {
-              std::this_thread::sleep_for(std::chrono::milliseconds(100));
-              DoutFatal(dc::core, "Reached create_graphics_pipeline - after sleep!");
-            }
-            DoutFatal(dc::core, "Reached create_graphics_pipeline!");
-#endif
-
-            // Create and then store the graphics pipeline.
-            vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
-                COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
-
-            // Inform the SynchronousWindow.
-            m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{vh_pipeline_layout, {m_pipeline_factory_index, pipeline_index}}, std::move(pipeline)});
-
-            // End of MultiLoop inner loop.
-          }
-          else
-            // This is not the inner loop; set b to the start value of the next loop.
-            b = m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters + 1}]->ibegin(); // Each loop, one per characteristic, runs from ibegin() till iend().
-          // Required MultiLoop magic.
-          m_range_counters.start_next_loop_at(b);
-          // If this is true then we're at the end of the inner loop and want to yield.
-          if (b == std::numeric_limits<int>::max() && !m_range_counters.finished())
+          // FIXME: We stop here because continueing causes "Lost Device".
+          static std::atomic_int cnt{0};
+          int prev_cnt = cnt.fetch_add(1);
+          ASSERT(prev_cnt < 2);
+          if (prev_cnt == 0)
           {
-            yield();
-            return;     // Yield and then continue here --.
-          }             //                                |
-          // *) <-- actual entry point of this state <----'
-        }
-      set_state(PipelineFactory_done);
-      [[fallthrough]];
-    case PipelineFactory_done:
-      m_move_new_pipelines_synchronously->set_producer_finished();
-      finish();
-      break;
-  }
-#ifdef CWDEBUG
-  if (was_changed)
-  {
-    if (was_on)
-      DEBUGCHANNELS::dc::shaderresource.on();
-    else
-      DEBUGCHANNELS::dc::shaderresource.off();
-  }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            DoutFatal(dc::core, "Reached create_graphics_pipeline - after sleep!");
+          }
+          DoutFatal(dc::core, "Reached create_graphics_pipeline!");
 #endif
+
+          // Create and then store the graphics pipeline.
+          vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
+              COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
+
+          // Inform the SynchronousWindow.
+          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}}, std::move(pipeline)});
+        }
+
+        //
+        // End of MultiLoop inner loop.
+multiloop_magic_footer:
+        // Required MultiLoop magic.
+        m_range_counters.start_next_loop_at(m_start_of_next_loop);
+        // If this is true then we're at the end of the inner loop and want to yield.
+        if (m_start_of_next_loop == std::numeric_limits<int>::max() && !m_range_counters.finished())
+        {
+          yield();
+          set_state(PipelineFactory_bottom_multiloop_while_loop);
+          return;     // Yield and then continue here --------.
+        }                                               //    |
+      case PipelineFactory_bottom_multiloop_while_loop: // <--'
+        if (m_range_counters() < m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters}]->iend())
+        {
+          run_state = PipelineFactory_top_multiloop_while_loop;
+          set_state(PipelineFactory_top_multiloop_while_loop);
+          break;
+        }
+        [[fallthrough]];
+      case PipelineFactory_bottom_multiloop_for_loop:
+        m_range_counters.next_loop();
+        if (!m_range_counters.finished())
+        {
+          set_state(PipelineFactory_top_multiloop_for_loop);
+          run_state = PipelineFactory_top_multiloop_for_loop;
+          break;
+        }
+        set_state(PipelineFactory_done);
+        [[fallthrough]];
+      case PipelineFactory_done:
+        m_move_new_pipelines_synchronously->set_producer_finished();
+        finish();
+        return;
+    }
+  }
 }
 
 } // namespace task

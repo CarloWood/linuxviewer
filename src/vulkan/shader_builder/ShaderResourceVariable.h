@@ -9,10 +9,10 @@ class ShaderResourceDeclaration;
 class ShaderResourceVariable final : public ShaderVariable
 {
  private:
-  ShaderResourceDeclaration* m_shader_resource_ptr{};      // Pointer to the corresponding shader resource, that contains for example SetIndex and descriptor type.
+  ShaderResourceDeclaration* m_shader_resource_declaration_ptr{};       // Pointer to the corresponding shader resource declaration, that contains for example SetIndex and descriptor type.
 
  public:
-  ShaderResourceVariable(char const* glsl_id_full, ShaderResourceDeclaration* shader_resource_ptr) : ShaderVariable(glsl_id_full), m_shader_resource_ptr(shader_resource_ptr) { }
+  ShaderResourceVariable(char const* glsl_id_full, ShaderResourceDeclaration* shader_resource_declaration_ptr) : ShaderVariable(glsl_id_full), m_shader_resource_declaration_ptr(shader_resource_declaration_ptr) { }
 
   // Implement base class interface.
   DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;

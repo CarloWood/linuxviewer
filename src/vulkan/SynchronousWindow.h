@@ -504,6 +504,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   // Windows with the same pipeline_cache_name will share the same cache file.
   virtual std::u8string pipeline_cache_name() const;
 
+  //FIXME: this shouldn't be a virtual function here - uniform buffers should be automatically created.
+//  virtual void create_uniform_buffers(vulkan::pipeline::ShaderInputData const& shader_input_data, vulkan::descriptor::SetBindingMap const& set_binding_map);
+
  protected:
   void start_frame();
   void wait_command_buffer_completed();

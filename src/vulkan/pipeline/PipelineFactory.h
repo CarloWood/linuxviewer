@@ -49,11 +49,16 @@ class PipelineFactory : public AIStatefulTask
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   MultiLoop m_range_counters;
+  int m_start_of_next_loop;
   boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
-  // State PipelineFactory_generate (which calls set_pipeline).
+  // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
   PipelineFactoryIndex m_pipeline_factory_index;
+  // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.
+  vulkan::pipeline::Index m_pipeline_index;
+  // Layout of the current pipeline that is being created inside the MultiLoop.
+  vk::PipelineLayout m_vh_pipeline_layout;
 
  protected:
   using direct_base_type = AIStatefulTask;      // The immediate base class of this task.
@@ -63,7 +68,10 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_start = direct_base_type::state_end,
     PipelineFactory_initialize,
     PipelineFactory_initialized,
-    PipelineFactory_generate,
+    PipelineFactory_top_multiloop_for_loop,
+    PipelineFactory_top_multiloop_while_loop,
+    PipelineFactory_bottom_multiloop_while_loop,
+    PipelineFactory_bottom_multiloop_for_loop,
     PipelineFactory_done
   };
 
@@ -91,6 +99,8 @@ class PipelineFactory : public AIStatefulTask
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
   void set_pipeline(vulkan::Pipeline&& pipeline) { m_pipeline_out = std::move(pipeline); }
   characteristics_container_t const& characteristics() const { return m_characteristics; }
+
+  void added_creation_request(vulkan::pipeline::ShaderInputData const* shader_input_data);
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
   inline boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task();

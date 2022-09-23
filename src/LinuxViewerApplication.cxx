@@ -316,8 +316,8 @@ void main()
     m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
-    // The shader input data object needs to know who owns it.
-    vulkan::pipeline::ShaderInputData shader_input_data;
+    // The shader input data object doesn't need to know who owns it.
+    vulkan::pipeline::ShaderInputData shader_input_data{nullptr};
 
     shader_input_data.preprocess1(application().get_shader_info(m_shader_vert));
     shader_input_data.preprocess1(application().get_shader_info(m_shader_frag));

@@ -174,8 +174,8 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
 
-  // The shader input data object needs to know who owns it.
-  pipeline::ShaderInputData shader_input_data;
+  // The shader input data object doesn't need to know who owns it.
+  pipeline::ShaderInputData shader_input_data{nullptr};
 
   // Define the vertex shader input.
   shader_input_data.add_vertex_input_binding(m_ui);

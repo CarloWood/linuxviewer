@@ -12,12 +12,12 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
 {
   DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
-  Dout(dc::always, "Getting set_index_hint() of m_shader_resource_ptr " << m_shader_resource_ptr);
-  descriptor::SetIndexHint set_index_hint = m_shader_resource_ptr->set_index_hint();
+  Dout(dc::always, "Getting set_index_hint() of m_shader_resource_declaration_ptr " << m_shader_resource_declaration_ptr);
+  descriptor::SetIndexHint set_index_hint = m_shader_resource_declaration_ptr->set_index_hint();
   Dout(dc::always, "set_index_hint = " << set_index_hint);
 
   // Register that this shader resource is used in shader_stage.
-  m_shader_resource_ptr->used_in(shader_stage);
+  m_shader_resource_declaration_ptr->used_in(shader_stage);
 
   // We use a declaration context per (shader resource) descriptor set as this context is used to enumerate the 'binding =' values.
   auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
@@ -30,7 +30,7 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
   Dout(dc::always, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
 
   // Register that this shader resource is being used in this set.
-  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_ptr, shader_input_data);
+  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr, shader_input_data);
 
   // Return the declaration context.
   return shader_resource_declaration_context;
@@ -48,7 +48,7 @@ void ShaderResourceVariable::print_on(std::ostream& os) const
 {
   os << '{';
   os << "m_glsl_id_full:" << NAMESPACE_DEBUG::print_string(m_glsl_id_full) <<           // From base class ShaderVariable.
-     ", m_shader_resource:" << vk_utils::print_pointer(m_shader_resource_ptr);
+     ", m_shader_resource_declaration_ptr:" << vk_utils::print_pointer(m_shader_resource_declaration_ptr);
   os << '}';
 }
 #endif
