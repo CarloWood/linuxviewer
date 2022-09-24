@@ -23,7 +23,7 @@ class Ambifix
   std::string m_postfix;
 
  public:
-  Ambifix() { }
+  Ambifix() = default;
   Ambifix(std::string&& prefix) : m_prefix(std::move(prefix)) { }
   Ambifix(std::nullptr_t, std::string&& postfix) : m_postfix(std::move(postfix)) { }
   Ambifix(std::string&& prefix, std::string&& postfix) : m_prefix(std::move(prefix)), m_postfix(std::move(postfix)) { }

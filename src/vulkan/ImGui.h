@@ -116,6 +116,8 @@ class ImGui
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
  public:
+  ImGui(task::SynchronousWindow const* owning_window);
+
   void create_frame_resources(FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 

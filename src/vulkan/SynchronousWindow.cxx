@@ -753,10 +753,10 @@ void SynchronousWindow::set_image_memory_barrier(
   }
 }
 
-vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_texture(char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
+vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_texture(
+    char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
-    AIStatefulTask::condition_type texture_ready
-    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix))
+    AIStatefulTask::condition_type texture_ready)
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::upload_texture(" <<
       texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind <<
@@ -765,8 +765,7 @@ vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_textu
   // Create texture parameters.
   vulkan::shader_builder::shader_resource::Texture texture(glsl_id_full_postfix, m_logical_device, extent,
       image_view_kind, sampler_kind, m_graphics_settings,
-      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-      COMMA_CWDEBUG_ONLY(ambifix));
+      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 

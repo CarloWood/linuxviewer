@@ -36,7 +36,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  vulkan::shader_resource::Texture m_sample_texture;
+  vulkan::shader_resource::Texture m_sample_texture{CWDEBUG_ONLY(debug_name_prefix("m_sample_texture"))};
 
   enum class LocalShaderIndex {
     vertex0,
@@ -49,9 +49,9 @@ class Window : public task::SynchronousWindow
   vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
 
-  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer;
-  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer;
-  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer;
+  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer{CWDEBUG_ONLY(debug_name_prefix("m_top_buffer"))};
+  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer{CWDEBUG_ONLY(debug_name_prefix("m_left_buffer"))};
+  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer{CWDEBUG_ONLY(debug_name_prefix("m_bottom_buffer"))};
   std::atomic_bool m_uniform_buffers_initialized = false;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -86,9 +86,6 @@ class Window : public task::SynchronousWindow
     return vulkan::SwapchainIndex{4};
   }
 
-  //FIXME: this doesn't belong here
-  utils::Vector<vk::DescriptorSet, vulkan::descriptor::SetIndex> m_vhv_descriptor_sets;
-
   void create_textures() override
   {
     DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
@@ -110,8 +107,7 @@ class Window : public task::SynchronousWindow
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
             graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_sample_texture")));
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
             m_sample_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
@@ -640,13 +636,13 @@ else
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
-          m_vhv_descriptor_sets, {});
+          m_graphics_pipeline0.vhv_descriptor_sets(), {});
 
       command_buffer->draw(3, 1, 0, 0);
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
-          m_vhv_descriptor_sets, {});
+          m_graphics_pipeline1.vhv_descriptor_sets(), {});
 
       command_buffer->draw(3, 1, 0, 0);
 }

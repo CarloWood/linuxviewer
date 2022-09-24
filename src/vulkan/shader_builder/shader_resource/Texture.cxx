@@ -1,11 +1,27 @@
 #include "sys.h"
 #include "Texture.h"
+#include "SynchronousWindow.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_pointer.h"
 #include "utils/has_print_on.h"
 #endif
 
 namespace vulkan::shader_builder::shader_resource {
+
+void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding)
+{
+  // Update descriptor set of m_sample_texture.
+  std::vector<vk::DescriptorImageInfo> image_infos = {
+    {
+      .sampler = *m_sampler,
+      .imageView = *m_image_view,
+      .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+    }
+  };
+  // The 'top' descriptor set also contains the texture.
+  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+  //create_uniform_buffers
+}
 
 #ifdef CWDEBUG
 namespace detail {
@@ -23,7 +39,7 @@ void TextureShaderResourceMember::print_on(std::ostream& os) const
 void Texture::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "m_descriptor_set_key:" << m_descriptor_set_key <<
+  os << "Base::m_descriptor_set_key:" << descriptor_set_key() <<
       ", m_member:" << vk_utils::print_pointer(m_member) <<
       ", m_image_view:&" << m_image_view.get() <<
       ", m_sampler:&" << m_sampler.get();

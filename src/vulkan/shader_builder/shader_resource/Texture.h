@@ -51,14 +51,27 @@ class TextureShaderResourceMember
 struct Texture : public Base, memory::Image
 {
  private:
-  descriptor::SetKey    m_descriptor_set_key;
+#ifdef CWDEBUG
+  Ambifix m_ambifix;
+
+  // Implementation of virtual function of Base.
+  Ambifix const& ambifix() const override
+  {
+    return m_ambifix;
+  }
+#endif
+
   std::unique_ptr<detail::TextureShaderResourceMember> m_member;        // A Texture only has a single "member".
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
 
  public:
   // Used to move-assign later.
-  Texture() = default;
+#ifdef CWDEBUG
+  Texture(Ambifix const& ambifix) : Base(descriptor::SetKeyContext::instance()), m_ambifix(ambifix) { }
+#else
+  Texture() : Base(descriptor::SetKeyContext::instance()) { }
+#endif
   ~Texture() { DoutEntering(dc::vulkan, "shader_resource::Texture::~Texture() [" << this << "]"); }
 
   // Use sampler as-is.
@@ -68,13 +81,11 @@ struct Texture : public Base, memory::Image
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
       vk::UniqueSampler&& sampler,
-      MemoryCreateInfo memory_create_info
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
-    m_descriptor_set_key(descriptor::SetKeyContext::instance()),
+      MemoryCreateInfo memory_create_info) :
     memory::Image(logical_device, extent, image_view_kind, memory_create_info
-        COMMA_CWDEBUG_ONLY(ambifix)),
+        COMMA_CWDEBUG_ONLY(std::string{"FIXME"})),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
-        COMMA_CWDEBUG_ONLY(".m_image_view" + ambifix))),
+        COMMA_CWDEBUG_ONLY(std::string{".m_image_view FIXME"} /*+ ambifix*/))),
     m_sampler(std::move(sampler))
   {
     DoutEntering(dc::vulkan, "shader_resource::Texture::Texture(\"" << glsl_id_full_postfix << "\", " << logical_device << ", " << extent <<
@@ -92,12 +103,10 @@ struct Texture : public Base, memory::Image
       vulkan::ImageViewKind const& image_view_kind,
       SamplerKind const& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings,
-      MemoryCreateInfo memory_create_info
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+      MemoryCreateInfo memory_create_info) :
     Texture(glsl_id_full_postfix, logical_device, extent, image_view_kind,
-        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(".m_sampler" + ambifix)),
-        memory_create_info
-        COMMA_CWDEBUG_ONLY(ambifix))
+        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(std::string{".m_sampler FIXME" /*+ ambifix*/})),
+        memory_create_info)
   {
   }
 
@@ -109,18 +118,27 @@ struct Texture : public Base, memory::Image
       vulkan::ImageViewKind const& image_view_kind,
       SamplerKindPOD const&& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings,
-      MemoryCreateInfo memory_create_info
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+      MemoryCreateInfo memory_create_info) :
     Texture(glsl_id_full_postfix, logical_device, extent, image_view_kind,
         { logical_device, std::move(sampler_kind) }, graphics_settings,
-        memory_create_info
-        COMMA_CWDEBUG_ONLY(ambifix))
+        memory_create_info)
   {
   }
 
   // Class is move-only.
-  Texture(Texture&& rhs) = default;
-  Texture& operator=(Texture&& rhs) = default;
+  // Note: do NOT move the Ambifix and/or Base::m_descriptor_set_key!
+  // Those are only initialized in-place with the constructor that takes just the Ambifix.
+  Texture(Texture&& rhs) : m_member(std::move(rhs.m_member)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)) { }
+  Texture& operator=(Texture&& rhs)
+  {
+    m_member = std::move(rhs.m_member);
+    m_image_view = std::move(rhs.m_image_view);
+    m_sampler = std::move(rhs.m_sampler);
+    return *this;
+  }
+
+  void create(task::SynchronousWindow const* owning_window) override { }
+  void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) override;
 
   // Accessors.
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
@@ -128,10 +146,8 @@ struct Texture : public Base, memory::Image
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }
 
-  descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
+  void print_on(std::ostream& os) const override;
 #endif
 };
 

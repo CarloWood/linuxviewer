@@ -80,9 +80,9 @@ class CharacteristicRange : public AIRefCount
     pipeline_index |= Index{static_cast<unsigned int>(index - m_begin)};
   }
 
-  void handle_shader_resource_creation_requests(vulkan::descriptor::SetBindingMap const& set_binding_map)
+  void handle_shader_resource_creation_requests(task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map)
   {
-    m_shader_input_data.handle_shader_resource_creation_requests(set_binding_map);
+    m_shader_input_data.handle_shader_resource_creation_requests(owning_window, set_binding_map);
   }
 
   // Accessor.

@@ -86,6 +86,10 @@ struct TexPixelsRGBA32Feeder final : public DataFeeder
 // Just this compilation unit.
 using namespace imgui_ns;
 
+ImGui::ImGui(task::SynchronousWindow const* owning_window) : m_owning_window(owning_window), m_font_texture(CWDEBUG_ONLY(owning_window->debug_name_prefix("m_imgui.m_font_texture")))
+{
+}
+
 void ImGui::create_frame_resources(FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
@@ -389,8 +393,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
   io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_descriptor_set)));
   m_font_texture = owning_window->upload_texture("font_texture", std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready
-      COMMA_CWDEBUG_ONLY(ambifix(".m_font_texture")));
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready);
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));

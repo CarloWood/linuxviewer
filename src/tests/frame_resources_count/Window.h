@@ -50,8 +50,8 @@ class Window : public task::SynchronousWindow
   mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
-  vulkan::shader_resource::Texture m_background_texture;
-  vulkan::shader_resource::Texture m_benchmark_texture;
+  vulkan::shader_resource::Texture m_background_texture{CWDEBUG_ONLY(debug_name_prefix("m_background_texture"))};
+  vulkan::shader_resource::Texture m_benchmark_texture{CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture"))};
   vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
@@ -128,8 +128,7 @@ class Window : public task::SynchronousWindow
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
               graphics_settings(),
-              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-              COMMA_CWDEBUG_ONLY(debug_name_prefix("m_background_texture")));
+              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
             m_background_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
@@ -162,8 +161,7 @@ class Window : public task::SynchronousWindow
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
             graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture")));
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
             m_benchmark_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},

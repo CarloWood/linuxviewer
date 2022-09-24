@@ -23,7 +23,6 @@ namespace vulkan::shader_builder::shader_resource {
 class UniformBufferBase : public Base
 {
  protected:
-  descriptor::SetKey const m_descriptor_set_key;                                // A unique key for this shader resource.
   using members_container_t = ShaderResourceMember::container_t;
   members_container_t m_members;                                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
@@ -34,15 +33,17 @@ class UniformBufferBase : public Base
       shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
+ private:
+  virtual size_t size() const = 0;
+
  public:
-  UniformBufferBase(int number_of_members) : m_descriptor_set_key(descriptor::SetKeyContext::instance()) { }
+  UniformBufferBase(int number_of_members) : Base(descriptor::SetKeyContext::instance()) { }
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
-  void create(task::SynchronousWindow const* owning_window, vk::DeviceSize size
-      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
+  void create(task::SynchronousWindow const* owning_window) override;
+  void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) override;
 
   // Accessors.
-  descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
   members_container_t const& members() const { return m_members; }
   std::string glsl_id() const;
 
@@ -61,9 +62,27 @@ struct UniformBufferInstance : public memory::UniformBuffer
 template<typename ENTRY>
 class UniformBuffer final : public UniformBufferBase
 {
+ private:
+#ifdef CWDEBUG
+  Ambifix const m_ambifix;
+
+  // Implementation of virtual function of Base.
+  Ambifix const& ambifix() const override
+  {
+    return m_ambifix;
+  }
+#endif
+
+  // Implementation of base class virtual functions.
+  size_t size() const override
+  {
+    //FIXME: should be multiplied with the array size.
+    return sizeof(ENTRY);
+  }
+
  public:
   // Use create to initialize m_uniform_buffers.
-  UniformBuffer();
+  UniformBuffer(CWDEBUG_ONLY(Ambifix const& ambifix));
 
   UniformBufferInstance<ENTRY>& operator[](FrameResourceIndex frame_resource_index) { return static_cast<UniformBufferInstance<ENTRY>&>(m_uniform_buffers[frame_resource_index]); }
   UniformBufferInstance<ENTRY> const& operator[](FrameResourceIndex frame_resource_index) const { return static_cast<UniformBufferInstance<ENTRY> const&>(m_uniform_buffers[frame_resource_index]); }
@@ -100,7 +119,8 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
 }
 
 template<typename ENTRY>
-UniformBuffer<ENTRY>::UniformBuffer() : UniformBufferBase(shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout.members)
+UniformBuffer<ENTRY>::UniformBuffer(CWDEBUG_ONLY(Ambifix const& ambifix)) : UniformBufferBase(shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout.members)
+    COMMA_CWDEBUG_ONLY(m_ambifix(ambifix))
 {
   using namespace shader_builder;
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY

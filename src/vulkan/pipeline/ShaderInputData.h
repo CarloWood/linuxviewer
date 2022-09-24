@@ -99,7 +99,10 @@ class ShaderInputData
 
   // List of shader resources that were added by the owning CharacteristicRange
   // from the add_* functions like add_uniform_buffer.
-  std::vector<vulkan::shader_builder::shader_resource::Base const*> m_required_shader_resources_list;
+  std::vector<vulkan::shader_builder::shader_resource::Base*> m_required_shader_resources_list;
+
+  // Descriptor set handles, sorted by descriptor set index, required for the next pipeline.
+  utils::Vector<vk::DescriptorSet, vulkan::descriptor::SetIndex> m_vhv_descriptor_sets;
 
   //---------------------------------------------------------------------------
 
@@ -174,7 +177,7 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
   void request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource);
-  void handle_shader_resource_creation_requests(vulkan::descriptor::SetBindingMap const& set_binding_map);
+  void handle_shader_resource_creation_requests(task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map);
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
@@ -299,6 +302,8 @@ class ShaderInputData
   }
 
   per_stage_declaration_contexts_container_t const& per_stage_declaration_contexts() const { return m_per_stage_declaration_contexts; }
+
+  utils::Vector<vk::DescriptorSet, descriptor::SetIndex> const& vhv_descriptor_sets() const { return m_vhv_descriptor_sets; }
 };
 
 } // namespace pipeline

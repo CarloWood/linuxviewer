@@ -412,6 +412,7 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
 
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
+  texture.set_declaration(shader_resource_ptr);
 
   // Texture only has a single member.
   shader_resource_ptr->add_member(texture.member());
@@ -431,6 +432,9 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
     // We just used find() and it wasn't there?!
     ASSERT(res2.second);
   }
+
+  // Remember that this texture must be bound to its descriptor set from the PipelineFactory.
+  request_shader_resource_creation(&texture);
 }
 
 void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
@@ -449,6 +453,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
+  uniform_buffer.set_declaration(shader_resource_ptr);
 
   shader_resource_ptr->add_members(uniform_buffer.members());
   for (auto const& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
@@ -472,16 +477,41 @@ void ShaderInputData::request_shader_resource_creation(shader_builder::shader_re
 {
   // Add a pointer to the shader resource (Base) to a list of required shader resources.
   // The shader_resource should be an instance of the Window class.
-  m_required_shader_resources_list.push_back(shader_resource);
+  // The const_cast is "Okay" here because shader resource instances added with add_* (add_texture, add_uniform_buffer, etc)
+  // will only be created ONCE - synchronized globally (by the PipelineFactory) while all other PipelineFactory's will
+  // be waiting for that to be finished. So this const_cast allows the creation.
+  m_required_shader_resources_list.push_back(const_cast<shader_builder::shader_resource::Base*>(shader_resource));
 }
 
-void ShaderInputData::handle_shader_resource_creation_requests(vulkan::descriptor::SetBindingMap const& set_binding_map)
+void ShaderInputData::handle_shader_resource_creation_requests(task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map)
 {
+  using namespace vulkan::descriptor;
+
   DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests()");
   // Seems impossible that one of these is empty if the other isn't.
   ASSERT(m_required_shader_resources_list.empty() == m_sorted_descriptor_set_layouts.empty());
-  utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> vhv_realized_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_binding_map);
+  utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_binding_map);
 
+  LogicalDevice const* logical_device = owning_window->logical_device();
+  m_vhv_descriptor_sets = logical_device->allocate_descriptor_sets(
+      vhv_descriptor_set_layouts, logical_device->get_descriptor_pool()
+      COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));    // Add prefix and postfix later, when copying this vector to the Pipeline it will be used with.
+
+  for (vulkan::shader_builder::shader_resource::Base* shader_resource : m_required_shader_resources_list)
+  {
+    SetIndex set_index = set_binding_map.convert(get_set_index_hint(shader_resource->descriptor_set_key()));
+    uint32_t binding = shader_resource->declaration()->binding();
+
+    // Create the shader resource (if not already created).
+    shader_resource->create(owning_window);
+
+    // Bind it to a descriptor set.
+    shader_resource->update_descriptor_set(owning_window, m_vhv_descriptor_sets[set_index], binding);
+  }
+
+  //Base
+  //UniformBufferBase
+  //Texture
   //create_uniform_buffers
 }
 

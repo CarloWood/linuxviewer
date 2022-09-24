@@ -26,6 +26,7 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration 
   if (m_next_binding.iend() <= set_index_hint)
     m_next_binding.resize(set_index_hint.get_value() + 1);      // New elements are initialized to 0.
   m_bindings[shader_resource_declaration] = m_next_binding[set_index_hint];
+  shader_resource_declaration->set_binding(m_next_binding[set_index_hint]);
   int number_of_bindings = 1;
 #if 0
   if (vertex_attribute->layout().m_array_size > 0)
