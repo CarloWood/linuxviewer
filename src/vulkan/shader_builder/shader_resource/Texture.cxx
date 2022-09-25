@@ -8,6 +8,13 @@
 
 namespace vulkan::shader_builder::shader_resource {
 
+void Texture::create(task::SynchronousWindow const* owning_window)
+{
+#ifdef CWDEBUG
+  add_ambifix(owning_window->debug_name_prefix("PipelineFactory::"));
+#endif
+}
+
 void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding)
 {
   // Update descriptor set of m_sample_texture.

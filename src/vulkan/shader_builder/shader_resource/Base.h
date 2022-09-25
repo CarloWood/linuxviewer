@@ -2,13 +2,10 @@
 
 #include "descriptor/SetKey.h"
 #include <vulkan/vulkan.hpp>
-#include "debug.h"
-
 #ifdef CWDEBUG
-namespace vulkan {
-class Ambifix;
-} // namespace vulkan
+#include "debug/DebugSetName.h"
 #endif
+#include "debug.h"
 
 namespace task {
 class SynchronousWindow;
@@ -23,43 +20,43 @@ namespace shader_resource {
 class Base
 {
  private:
-  // Mutable because we need to set this later.
-  mutable ShaderResourceDeclaration const* m_declaration{};
   descriptor::SetKey m_descriptor_set_key;
 
+#ifdef CWDEBUG
+  Ambifix m_ambifix;
+
+ protected:
+  // Implementation of virtual function of Base.
+  Ambifix const& ambifix() const
+  {
+    return m_ambifix;
+  }
+
  public:
-  Base(descriptor::SetKey descriptor_set_key) : m_descriptor_set_key(descriptor_set_key) { }
+  void add_ambifix(Ambifix const& ambifix) { m_ambifix = ambifix(m_ambifix.object_name()); }
+#endif
+
+ public:
+  Base(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
+    m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_ambifix(debug_name)) { }
   Base() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
 
-  // Ignore m_descriptor_set_key when move-assigning; the target should already have the right key.
+  // Ignore m_descriptor_set_key when move- assigning and/or copying; the target should already have the right key.
+  Base(Base&& rhs)
+  {
+  }
   Base& operator=(Base&& rhs)
   {
-    // Aren't we moving before calling set_declaration?
-    ASSERT(!rhs.m_declaration);
-    // m_declaration = rhs.m_declaration;
     return *this;
   }
 
   // Disallow copy and move constructing.
   Base(Base const& rhs) = delete;
-  Base(Base&& rhs) = delete;
 
-  // Not really const but this is called only once.
-  void set_declaration(ShaderResourceDeclaration const* declaration) const
-  {
-    // Should only be called once.
-    ASSERT(!m_declaration);
-    m_declaration = declaration;
-  }
-
-#ifdef CWDEBUG
-  virtual Ambifix const& ambifix() const = 0;
-#endif
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) = 0;
 
   // Accessor.
-  ShaderResourceDeclaration const* declaration() const { return m_declaration; }
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
 
 #ifdef CWDEBUG

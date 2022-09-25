@@ -412,7 +412,7 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
 
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
-  texture.set_declaration(shader_resource_ptr);
+  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(texture_descriptor_set_key, shader_resource_ptr);
 
   // Texture only has a single member.
   shader_resource_ptr->add_member(texture.member());
@@ -444,7 +444,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
   //FIXME: implement (use preferred_descriptor_sets / undesirable_descriptor_sets).
   descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
-  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace2(uniform_buffer_descriptor_set_key);
+  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace_set_index_hint(uniform_buffer_descriptor_set_key);
   Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index_hint, uniform_buffer);
@@ -453,7 +453,7 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
-  uniform_buffer.set_declaration(shader_resource_ptr);
+  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(uniform_buffer_descriptor_set_key, shader_resource_ptr);
 
   shader_resource_ptr->add_members(uniform_buffer.members());
   for (auto const& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
@@ -500,7 +500,7 @@ void ShaderInputData::handle_shader_resource_creation_requests(task::Synchronous
   for (vulkan::shader_builder::shader_resource::Base* shader_resource : m_required_shader_resources_list)
   {
     SetIndex set_index = set_binding_map.convert(get_set_index_hint(shader_resource->descriptor_set_key()));
-    uint32_t binding = shader_resource->declaration()->binding();
+    uint32_t binding = get_declaration(shader_resource->descriptor_set_key())->binding();
 
     // Create the shader resource (if not already created).
     shader_resource->create(owning_window);

@@ -37,7 +37,8 @@ class UniformBufferBase : public Base
   virtual size_t size() const = 0;
 
  public:
-  UniformBufferBase(int number_of_members) : Base(descriptor::SetKeyContext::instance()) { }
+  UniformBufferBase(int number_of_members COMMA_CWDEBUG_ONLY(char const* debug_name)) :
+    Base(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
   void create(task::SynchronousWindow const* owning_window) override;
@@ -63,16 +64,6 @@ template<typename ENTRY>
 class UniformBuffer final : public UniformBufferBase
 {
  private:
-#ifdef CWDEBUG
-  Ambifix const m_ambifix;
-
-  // Implementation of virtual function of Base.
-  Ambifix const& ambifix() const override
-  {
-    return m_ambifix;
-  }
-#endif
-
   // Implementation of base class virtual functions.
   size_t size() const override
   {
@@ -82,7 +73,7 @@ class UniformBuffer final : public UniformBufferBase
 
  public:
   // Use create to initialize m_uniform_buffers.
-  UniformBuffer(CWDEBUG_ONLY(Ambifix const& ambifix));
+  UniformBuffer(char const* debug_name);
 
   UniformBufferInstance<ENTRY>& operator[](FrameResourceIndex frame_resource_index) { return static_cast<UniformBufferInstance<ENTRY>&>(m_uniform_buffers[frame_resource_index]); }
   UniformBufferInstance<ENTRY> const& operator[](FrameResourceIndex frame_resource_index) const { return static_cast<UniformBufferInstance<ENTRY> const&>(m_uniform_buffers[frame_resource_index]); }
@@ -119,8 +110,7 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
 }
 
 template<typename ENTRY>
-UniformBuffer<ENTRY>::UniformBuffer(CWDEBUG_ONLY(Ambifix const& ambifix)) : UniformBufferBase(shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout.members)
-    COMMA_CWDEBUG_ONLY(m_ambifix(ambifix))
+UniformBuffer<ENTRY>::UniformBuffer(char const* CWDEBUG_ONLY(debug_name)) : UniformBufferBase(shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout.members COMMA_CWDEBUG_ONLY(debug_name))
 {
   using namespace shader_builder;
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY

@@ -48,30 +48,16 @@ class TextureShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-struct Texture : public Base, memory::Image
+struct Texture : public Base, public memory::Image
 {
  private:
-#ifdef CWDEBUG
-  Ambifix m_ambifix;
-
-  // Implementation of virtual function of Base.
-  Ambifix const& ambifix() const override
-  {
-    return m_ambifix;
-  }
-#endif
-
   std::unique_ptr<detail::TextureShaderResourceMember> m_member;        // A Texture only has a single "member".
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
 
  public:
   // Used to move-assign later.
-#ifdef CWDEBUG
-  Texture(Ambifix const& ambifix) : Base(descriptor::SetKeyContext::instance()), m_ambifix(ambifix) { }
-#else
-  Texture() : Base(descriptor::SetKeyContext::instance()) { }
-#endif
+  Texture(char const* CWDEBUG_ONLY(debug_name)) : Base(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
   ~Texture() { DoutEntering(dc::vulkan, "shader_resource::Texture::~Texture() [" << this << "]"); }
 
   // Use sampler as-is.
@@ -128,16 +114,18 @@ struct Texture : public Base, memory::Image
   // Class is move-only.
   // Note: do NOT move the Ambifix and/or Base::m_descriptor_set_key!
   // Those are only initialized in-place with the constructor that takes just the Ambifix.
-  Texture(Texture&& rhs) : m_member(std::move(rhs.m_member)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)) { }
+  Texture(Texture&& rhs) : Base(std::move(rhs)), Image(std::move(rhs)), m_member(std::move(rhs.m_member)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)) { }
   Texture& operator=(Texture&& rhs)
   {
+    this->Base::operator=(std::move(rhs));
+    this->memory::Image::operator=(std::move(rhs));
     m_member = std::move(rhs.m_member);
     m_image_view = std::move(rhs.m_image_view);
     m_sampler = std::move(rhs.m_sampler);
     return *this;
   }
 
-  void create(task::SynchronousWindow const* owning_window) override { }
+  void create(task::SynchronousWindow const* owning_window) override;
   void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) override;
 
   // Accessors.

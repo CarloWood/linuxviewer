@@ -50,8 +50,8 @@ class Window : public task::SynchronousWindow
   mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
-  vulkan::shader_resource::Texture m_background_texture{CWDEBUG_ONLY(debug_name_prefix("m_background_texture"))};
-  vulkan::shader_resource::Texture m_benchmark_texture{CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture"))};
+  vulkan::shader_resource::Texture m_background_texture{"m_background_texture"};
+  vulkan::shader_resource::Texture m_benchmark_texture{"m_benchmark_texture"};
   vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
@@ -265,18 +265,18 @@ void main()
       // Register the vectors that we will fill.
       flat_create_info.add(&m_vertex_input_binding_descriptions);
       flat_create_info.add(&m_vertex_input_attribute_descriptions);
-      flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
+      flat_create_info.add(&shader_input_data().shader_stage_create_infos());
       flat_create_info.add(&m_pipeline_color_blend_attachment_states);
       flat_create_info.add(&m_dynamic_states);
-      flat_create_info.add_descriptor_set_layouts(&m_shader_input_data.sorted_descriptor_set_layouts());
+      flat_create_info.add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
       flat_create_info.add(&m_push_constant_ranges);
 
       // Define the pipeline.
-      m_shader_input_data.add_vertex_input_binding(m_heavy_rectangle);
-      m_shader_input_data.add_vertex_input_binding(m_random_positions);
-      m_shader_input_data.add_push_constant<PushConstant>();
-      m_shader_input_data.add_texture(window->m_background_texture);
-      m_shader_input_data.add_texture(window->m_benchmark_texture);
+      shader_input_data().add_vertex_input_binding(m_heavy_rectangle);
+      shader_input_data().add_vertex_input_binding(m_random_positions);
+      shader_input_data().add_push_constant<PushConstant>();
+      shader_input_data().add_texture(window->m_background_texture);
+      shader_input_data().add_texture(window->m_benchmark_texture);
 
       {
         using namespace vulkan::shader_builder;
@@ -284,8 +284,8 @@ void main()
         ShaderIndex shader_vert_index = window->m_shader_vert;
         ShaderIndex shader_frag_index = window->m_shader_frag;
 
-        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_vert_index));
-        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_frag_index));
+        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_vert_index));
+        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_frag_index));
 
         // Compile the shaders.
         flat_create_info.add_set_binding_map_callback(
@@ -294,10 +294,10 @@ void main()
               Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
               ShaderCompiler compiler;
 
-              m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
-              m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+              shader_input_data().build_shader(owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
             });
       }
 
@@ -328,9 +328,9 @@ void main()
       m_descriptor_set_layouts.push_back(descriptor_set_layout);
 #endif
 
-      m_vertex_input_binding_descriptions = m_shader_input_data.vertex_binding_descriptions();
-      m_vertex_input_attribute_descriptions = m_shader_input_data.vertex_input_attribute_descriptions();
-      m_push_constant_ranges = m_shader_input_data.push_constant_ranges();
+      m_vertex_input_binding_descriptions = shader_input_data().vertex_binding_descriptions();
+      m_vertex_input_attribute_descriptions = shader_input_data().vertex_input_attribute_descriptions();
+      m_push_constant_ranges = shader_input_data().push_constant_ranges();
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
@@ -341,11 +341,11 @@ void main()
       ASSERT(aithreadid::is_single_threaded(s_id));     // Fails if more than one thread executes this line.
       window->create_vertex_buffers(this);
 
-      m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+      shader_input_data().realize_descriptor_set_layouts(owning_window->logical_device());
 
       // We can do this here, because this application doesn't use any shader resources (no set or binding number are needed to be known):
 
-      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = m_shader_input_data.get_vhv_descriptor_set_layouts({});
+      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = shader_input_data().get_vhv_descriptor_set_layouts({});
       auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
       vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^

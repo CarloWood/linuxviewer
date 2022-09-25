@@ -4,6 +4,7 @@
 #include "PushConstantRangeCompare.h"
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetKeyToSetIndexHint.h"
+#include "descriptor/SetKeyToShaderResourceDeclaration.h"
 #include "descriptor/SetKeyPreference.h"
 #include "shader_builder/ShaderInfo.h"
 #include "shader_builder/ShaderIndex.h"
@@ -62,8 +63,6 @@ class ShaderInputData
   using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
 
  private:
-  CharacteristicRange* m_owning_characteristic_range;
-
   //---------------------------------------------------------------------------
   // Vertex attributes.
   utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;          // Existing vertex shader input sets (a 'binding' slot).
@@ -92,10 +91,11 @@ class ShaderInputData
   sorted_set_layouts_container_t m_sorted_descriptor_set_layouts;                               // A Vector of SetLayout object, containing vk::DescriptorSetLayout handles and the
                                                                                                 // vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were
                                                                                                 // created from.
-  descriptor::SetKeyToSetIndexHint m_shader_resource_set_key_to_set_index_hint;                     // Maps descriptor::SetKey's to identifier::SetIndexHint's.
+  descriptor::SetKeyToSetIndexHint m_shader_resource_set_key_to_set_index_hint;                 // Maps descriptor::SetKey's to identifier::SetIndexHint's.
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
   using per_stage_declaration_contexts_container_t = std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t>;
   per_stage_declaration_contexts_container_t m_per_stage_declaration_contexts;
+  descriptor::SetKeyToShaderResourceDeclaration m_shader_resource_set_key_to_shader_resource_declaration;       // Maps descriptor::SetKey's to shader resource declaration object used for the current pipeline.
 
   // List of shader resources that were added by the owning CharacteristicRange
   // from the add_* functions like add_uniform_buffer.
@@ -157,8 +157,6 @@ class ShaderInputData
   //---------------------------------------------------------------------------
 
  public:
-  ShaderInputData(CharacteristicRange* owning_characteristic_range) : m_owning_characteristic_range(owning_characteristic_range) { }
-
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
@@ -299,6 +297,11 @@ class ShaderInputData
   descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const
   {
     return m_shader_resource_set_key_to_set_index_hint.get_set_index_hint(set_key);
+  }
+
+  shader_builder::ShaderResourceDeclaration const* get_declaration(descriptor::SetKey set_key) const
+  {
+    return m_shader_resource_set_key_to_shader_resource_declaration.get_shader_resource_declaration(set_key);
   }
 
   per_stage_declaration_contexts_container_t const& per_stage_declaration_contexts() const { return m_per_stage_declaration_contexts; }

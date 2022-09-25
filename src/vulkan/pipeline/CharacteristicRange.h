@@ -23,7 +23,10 @@ class CharacteristicRange : public AIRefCount
   using index_type = int;                                       // An index into the range that uniquely defines the value of the characteristic.
 
  protected:
-  vulkan::pipeline::ShaderInputData m_shader_input_data;        // FIXME: is this correct? This way we have a ShaderInputData per Characteristic(Range)?!
+  ShaderInputData& shader_input_data();
+
+ public: // Required for Window::create_vertex_buffers ?!
+  ShaderInputData const& shader_input_data() const;
 
  private:
   index_type const m_begin;
@@ -33,8 +36,7 @@ class CharacteristicRange : public AIRefCount
 
  public:
   // The default has a range of a single entry with index 0.
-  CharacteristicRange(index_type begin = 0, index_type end = 1) :
-    m_shader_input_data(this), m_begin(begin), m_end(end),
+  CharacteristicRange(index_type begin = 0, index_type end = 1) : m_begin(begin), m_end(end),
     // Calculate the number of bits needed for a hash value of all possible values in the range [begin, end>.
     //
     // For example, if begin = 3 and end = 11, then the following values are used:
@@ -80,13 +82,7 @@ class CharacteristicRange : public AIRefCount
     pipeline_index |= Index{static_cast<unsigned int>(index - m_begin)};
   }
 
-  void handle_shader_resource_creation_requests(task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map)
-  {
-    m_shader_input_data.handle_shader_resource_creation_requests(owning_window, set_binding_map);
-  }
-
   // Accessor.
-  vulkan::pipeline::ShaderInputData const& shader_input_data() const { return m_shader_input_data; }
   task::PipelineFactory* owning_factory(utils::Badge<ShaderInputData>) const { return m_owning_factory; }
 
 #ifdef CWDEBUG

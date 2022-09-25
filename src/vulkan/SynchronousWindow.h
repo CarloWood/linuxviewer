@@ -250,7 +250,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // Initialized by create_imgui. Deinitialized by destruction.
   vk_utils::TimerData m_timer;
-  vulkan::ImGui m_imgui{this};          // ImGui framework.
+  vulkan::ImGui m_imgui;                // ImGui framework.
 
  protected:
   /// The base class of this task.

@@ -282,11 +282,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
 
           m_flat_create_info.do_set_binding_map_callbacks(set_binding_map);
-
-          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-          {
-            m_characteristics[i]->handle_shader_resource_creation_requests(m_owning_window, set_binding_map);
-          }
+          m_shader_input_data.handle_shader_resource_creation_requests(m_owning_window, set_binding_map);
         }
 
 //      case PipelineFactory_somename:
@@ -366,7 +362,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
           // Inform the SynchronousWindow.
-//          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}}, std::move(pipeline), m_vhv_descriptor_sets??});
+          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}, m_shader_input_data.vhv_descriptor_sets()}, std::move(pipeline)});
         }
 
         //

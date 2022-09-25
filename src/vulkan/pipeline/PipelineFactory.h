@@ -7,6 +7,7 @@
 #include "statefultask/RunningTasksTracker.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
+#include "utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 
 namespace vulkan {
@@ -48,6 +49,7 @@ class PipelineFactory : public AIStatefulTask
   boost::intrusive_ptr<PipelineCache> m_pipeline_cache_task;
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
+  vulkan::pipeline::ShaderInputData m_shader_input_data;
   MultiLoop m_range_counters;
   int m_start_of_next_loop;
   boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
@@ -101,6 +103,9 @@ class PipelineFactory : public AIStatefulTask
   characteristics_container_t const& characteristics() const { return m_characteristics; }
 
   void added_creation_request(vulkan::pipeline::ShaderInputData const* shader_input_data);
+  // Give pipeline::CharacteristicRange read/write access to m_shader_input_data.
+  vulkan::pipeline::ShaderInputData const& shader_input_data(utils::Badge<vulkan::pipeline::CharacteristicRange>) const { return m_shader_input_data; }
+  vulkan::pipeline::ShaderInputData& shader_input_data(utils::Badge<vulkan::pipeline::CharacteristicRange>) { return m_shader_input_data; }
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
   inline boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task();

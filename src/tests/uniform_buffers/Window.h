@@ -36,7 +36,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  vulkan::shader_resource::Texture m_sample_texture{CWDEBUG_ONLY(debug_name_prefix("m_sample_texture"))};
+  vulkan::shader_resource::Texture m_sample_texture{"m_sample_texture"};
 
   enum class LocalShaderIndex {
     vertex0,
@@ -49,9 +49,9 @@ class Window : public task::SynchronousWindow
   vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
 
-  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer{CWDEBUG_ONLY(debug_name_prefix("m_top_buffer"))};
-  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer{CWDEBUG_ONLY(debug_name_prefix("m_left_buffer"))};
-  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer{CWDEBUG_ONLY(debug_name_prefix("m_bottom_buffer"))};
+  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer{"m_top_buffer"};
+  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer{"m_left_buffer"};
+  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer{"m_bottom_buffer"};
   std::atomic_bool m_uniform_buffers_initialized = false;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -365,10 +365,10 @@ void main()
       Window const* window = static_cast<Window const*>(owning_window);
 
       // Register the vectors that we will fill.
-      flat_create_info.add(&m_shader_input_data.shader_stage_create_infos());
+      flat_create_info.add(&shader_input_data().shader_stage_create_infos());
       flat_create_info.add(&m_pipeline_color_blend_attachment_states);
       flat_create_info.add(&m_dynamic_states);
-      flat_create_info.add_descriptor_set_layouts(&m_shader_input_data.sorted_descriptor_set_layouts());
+      flat_create_info.add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
 
       // Define the pipeline.
       vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
@@ -377,19 +377,19 @@ void main()
       if (pipeline == 0)
       {
         // This assigns top to descriptor set 0 and left to 1.
-        m_shader_input_data.add_uniform_buffer(window->m_top_buffer);
-        m_shader_input_data.add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
+        shader_input_data().add_uniform_buffer(window->m_top_buffer);
+        shader_input_data().add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
       }
       else
       {
         // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
-        m_shader_input_data.add_uniform_buffer(window->m_left_buffer);
-        m_shader_input_data.add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
+        shader_input_data().add_uniform_buffer(window->m_left_buffer);
+        shader_input_data().add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
       }
       // This assigns bottom to set 2.
-      m_shader_input_data.add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
+      shader_input_data().add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
       // The texture must go into the same set as top.
-      m_shader_input_data.add_texture(window->m_sample_texture, { top_set_key_preference });
+      shader_input_data().add_texture(window->m_sample_texture, { top_set_key_preference });
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -403,12 +403,12 @@ void main()
 
         //ShaderCompiler compiler;
 
-        //m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler
-        //m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler
+        //shader_input_data().build_shader(owning_window, shader_vert_index, compiler
+        //shader_input_data().build_shader(owning_window, shader_frag_index, compiler
 
         // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_vert_index));
-        m_shader_input_data.preprocess1(owning_window->application().get_shader_info(shader_frag_index));
+        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_vert_index));
+        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_frag_index));
 
         // Compile the shaders.
         flat_create_info.add_set_binding_map_callback(
@@ -417,10 +417,10 @@ void main()
               Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
               ShaderCompiler compiler;
 
-              m_shader_input_data.build_shader(owning_window, shader_vert_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
-              m_shader_input_data.build_shader(owning_window, shader_frag_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "FrameResourcesCountPipelineCharacteristic::m_shader_input_data" }));
+              shader_input_data().build_shader(owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
             });
       }
 
@@ -485,7 +485,7 @@ void main()
       // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
       // Otherwise, if it does not already exist, create a new descriptor set layout using the
       // provided binding values as-is.
-      m_shader_input_data.realize_descriptor_set_layouts(owning_window->logical_device());
+      shader_input_data().realize_descriptor_set_layouts(owning_window->logical_device());
     }
 
    public:
