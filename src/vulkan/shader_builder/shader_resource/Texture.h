@@ -127,6 +127,7 @@ struct Texture : public Base, public memory::Image
 
   void create(task::SynchronousWindow const* owning_window) override;
   void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) override;
+  void ready() override { } //FIXME: isn't it better to *always* notified that the Texture is bound to a descriptor set?
 
   // Accessors.
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }

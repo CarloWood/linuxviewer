@@ -55,6 +55,7 @@ class Base
 
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) = 0;
+  virtual void ready() = 0;
 
   // Accessor.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }

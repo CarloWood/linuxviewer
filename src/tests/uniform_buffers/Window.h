@@ -5,6 +5,7 @@
 #include "TopPosition.h"
 #include "LeftPosition.h"
 #include "BottomPosition.h"
+#include "UniformBufferSlider.h"
 #include "queues/CopyDataToImage.h"
 #include "Pipeline.h"
 #include "shader_builder/ShaderIndex.h"
@@ -49,9 +50,9 @@ class Window : public task::SynchronousWindow
   vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
 
-  vulkan::shader_resource::UniformBuffer<TopPosition> m_top_buffer{"m_top_buffer"};
-  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer{"m_left_buffer"};
-  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer{"m_bottom_buffer"};
+  UniformBufferSlider<TopPosition> m_top_buffer{"m_top_buffer"};
+  UniformBufferSlider<LeftPosition> m_left_buffer{"m_left_buffer"};
+  UniformBufferSlider<BottomPosition> m_bottom_buffer{"m_bottom_buffer"};
   std::atomic_bool m_uniform_buffers_initialized = false;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -123,7 +124,7 @@ class Window : public task::SynchronousWindow
   }
 
  public:
-#if -0
+#if 0
   void create_uniform_buffers(vulkan::pipeline::ShaderInputData const& shader_input_data,
       vulkan::descriptor::SetBindingMap const& set_binding_map) override
   {
@@ -539,7 +540,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::get_frame_rate_interval() [" << this << "]");
     // Limit the frame rate of this window to 1000 frames per second.
-    return threadpool::Interval<1, std::chrono::milliseconds>{};
+    return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
 
   //===========================================================================
@@ -701,15 +702,14 @@ else
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
 
-    if (m_uniform_buffers_initialized)
-    {
-      // FIXME: not implemented: currently we're only using the first frame resource!
-      vulkan::FrameResourceIndex const hack0{0};
+    // FIXME: not implemented: currently we're only using the first frame resource!
+    vulkan::FrameResourceIndex const hack0{0};
 
+    if (m_top_buffer.is_ready())
       ((TopPosition*)(m_top_buffer[hack0].pointer()))[0].x = m_top_position;
-      ((TopPosition*)(m_top_buffer[hack0].pointer()))[1].x = m_top_position + 0.1;
+    if (m_left_buffer.is_ready())
       ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = m_left_position;
+    if (m_bottom_buffer.is_ready())
       ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = m_bottom_position;
-    }
   }
 };

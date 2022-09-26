@@ -61,7 +61,7 @@ struct UniformBufferInstance : public memory::UniformBuffer
 
 // Represents the descriptor set of a uniform buffer.
 template<typename ENTRY>
-class UniformBuffer final : public UniformBufferBase
+class UniformBuffer : public UniformBufferBase
 {
  private:
   // Implementation of base class virtual functions.

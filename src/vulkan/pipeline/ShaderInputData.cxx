@@ -403,6 +403,7 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
   if (!preferred_descriptor_sets.empty())
     set_index_hint = get_set_index_hint(preferred_descriptor_sets[0].descriptor_set_key());
   Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
+  m_shader_resource_set_key_to_set_index_hint.try_emplace_set_index_hint(texture_descriptor_set_key, set_index_hint);
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, texture);
 
@@ -507,6 +508,9 @@ void ShaderInputData::handle_shader_resource_creation_requests(task::Synchronous
 
     // Bind it to a descriptor set.
     shader_resource->update_descriptor_set(owning_window, m_vhv_descriptor_sets[set_index], binding);
+
+    // Notify the application that this shader resource is ready for use.
+    shader_resource->ready();
   }
 
   //Base
