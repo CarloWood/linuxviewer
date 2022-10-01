@@ -40,9 +40,9 @@ class SetKey
 
   // SetKey is used as a key in a std::map (SetKeyToSetIndexHint).
   // Add an ordering.
-  bool operator<(SetKey const& rhs) const
+  friend bool operator<(SetKey const& lhs, SetKey const& rhs)
   {
-    return m_id < rhs.m_id;
+    return lhs.m_id < rhs.m_id;
   }
 
 #ifdef CWDEBUG

@@ -345,6 +345,7 @@ void main()
 
       // We can do this here, because this application doesn't use any shader resources (no set or binding number are needed to be known):
 
+#if 0 //FIXME: doesn't compile and shouldn't be done here. This should be done by the PipelineFactory.
       std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = shader_input_data().get_vhv_descriptor_set_layouts({});
       auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_descriptor_pool()
           COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
@@ -378,6 +379,7 @@ void main()
         };
         owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
       }
+#endif
     }
 
    public:

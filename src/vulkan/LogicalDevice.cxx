@@ -927,11 +927,12 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
 }
 
 std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout
+    COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes),
     descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << vhv_descriptor_set_layout << ", @" << (void*)&descriptor_pool <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << vhv_descriptor_set_layout << ", " << set_indexes << ", @" << (void*)&descriptor_pool <<
       ", object_name:\"" << debug_name.object_name() << "\").");
   descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
@@ -941,19 +942,27 @@ std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
   };
   std::vector<vk::DescriptorSet> descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
 #ifdef CWDEBUG
-  for (int i = 0; i < descriptor_sets.size(); ++i)
-    DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"), this);
+  if (set_indexes.empty())
+  {
+    // This is only intended for single-descriptor set allocations (as used by ImGui).
+    ASSERT(descriptor_sets.size() == 1);
+    DebugSetName(descriptor_sets[0], debug_name, this);
+  }
+  else
+    for (int i = 0; i < descriptor_sets.size(); ++i)
+      DebugSetName(descriptor_sets[i], debug_name("[" + to_string(set_indexes[i]) + "]"), this);
 #endif
   Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;
 }
 
 std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_unique(
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout
+    COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes),
     descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets_unique(" << vhv_descriptor_set_layout << ", @" << (void*)&descriptor_pool <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets_unique(" << vhv_descriptor_set_layout << ", " << set_indexes << ", @" << (void*)&descriptor_pool <<
       ", object_name:\"" << debug_name.object_name() << "\").");
   descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
@@ -964,7 +973,7 @@ std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_uni
   std::vector<vk::UniqueDescriptorSet> descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
 #ifdef CWDEBUG
   for (int i = 0; i < descriptor_sets.size(); ++i)
-    DebugSetName(descriptor_sets[i], debug_name("[" + to_string(i) + "]"), this);
+    DebugSetName(descriptor_sets[i], debug_name("[" + to_string(set_indexes[i]) + "]"), this);
 #endif
   Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;

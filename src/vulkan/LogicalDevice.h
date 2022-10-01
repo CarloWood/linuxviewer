@@ -264,9 +264,9 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, descriptor_pool_t const& descriptor_pool
+  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes), descriptor_pool_t const& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout, descriptor_pool_t const& descriptor_pool
+  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes), descriptor_pool_t const& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;

@@ -509,10 +509,10 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
 
   // Try to be the first to get 'ownership' on each shader resource that has to be created.
   std::vector<Base*> acquired_required_shader_resources_list;
-  SetIndex largest_set_index(0);
+  SetIndex largest_set_index{0};
   for (Base const* shader_resource : m_required_shader_resources_list)
   {
-    SetKey const& set_key = shader_resource->descriptor_set_key();
+    SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_binding_map.convert(set_index_hint);
 
@@ -520,10 +520,8 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
       largest_set_index = set_index;
 
     if (shader_resource->is_created())  // Skip shader resources that are already created.
-    {
-      Dout(dc::always, "Shader resource was already created: " << *shader_resource);
       continue;
-    }
+
     // Try to get the lock on all other shader resources.
     if (!shader_resource->acquire_lock(pipeline_factory, task::PipelineFactory::create_shader_resources))
     {
@@ -547,11 +545,30 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   utils::Vector<std::vector<Base const*>, SetIndex> shader_resources_per_set_index(largest_set_index.get_value());
   for (Base const* shader_resource : m_required_shader_resources_list)
   {
-    SetKey const& set_key = shader_resource->descriptor_set_key();
+    SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_binding_map.convert(set_index_hint);
     shader_resources_per_set_index[set_index].push_back(shader_resource);
   }
+
+  // We're going to fill this vector now.
+  ASSERT(m_vhv_descriptor_sets.empty());
+  m_vhv_descriptor_sets.resize(largest_set_index.get_value() + 1);
+
+  std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;  // The descriptor set layout handles of descriptor sets that we need to create.
+  std::vector<SetIndex> set_indexes;                                    // The corresponding SetIndex-es of those descriptor sets.
+  {
+    //...
+//    m_vhv_descriptor_sets[set_index] = ...;
+  }
+
+  LogicalDevice const* logical_device = owning_window->logical_device();
+  std::vector<vk::DescriptorSet> missing_descriptor_sets = logical_device->allocate_descriptor_sets(
+      missing_descriptor_set_layouts COMMA_CWDEBUG_ONLY(set_indexes), logical_device->get_descriptor_pool()
+      COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));    // Add prefix and postfix later, when copying this vector to the Pipeline it will be used with.
+
+  for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
+    m_vhv_descriptor_sets[set_indexes[i]] = missing_descriptor_sets[i];
 
 //    uint32_t binding = get_declaration(set_key)->binding();
 
@@ -590,14 +607,10 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   // T  T2 -> <#1{ T, T }, 0>, <#0{ T, T }, 1>, ...
   // T  T1 -> <#1{ T, T }, 1>, <#0{ T, T }, 0>, ...
   //
-  LogicalDevice const* logical_device = owning_window->logical_device();
-  m_vhv_descriptor_sets = logical_device->allocate_descriptor_sets(
-      vhv_descriptor_set_layouts, logical_device->get_descriptor_pool()
-      COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));    // Add prefix and postfix later, when copying this vector to the Pipeline it will be used with.
 
   for (Base* shader_resource : acquired_required_shader_resources_list)
   {
-    SetKey const& set_key = shader_resource->descriptor_set_key();
+    SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex set_index = set_binding_map.convert(set_index_hint);
     uint32_t binding = get_declaration(set_key)->binding();

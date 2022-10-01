@@ -35,7 +35,7 @@ class SetKeyToSetIndexHint
     return res.first->second;
   }
 
-  SetIndexHint get_set_index_hint(SetKey const& set_key) const
+  SetIndexHint get_set_index_hint(SetKey set_key) const
   {
     DoutEntering(dc::vulkan, "SetKeyToSetIndexHint::get_set_index_hint(" << set_key << ") [" << this << "]");
     auto set_index_hint = m_set_key_to_set_index_hint.find(set_key);

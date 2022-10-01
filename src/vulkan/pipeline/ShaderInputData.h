@@ -292,7 +292,7 @@ class ShaderInputData
   sorted_descriptor_set_layouts_container_t& sorted_descriptor_set_layouts() { return m_sorted_descriptor_set_layouts; }
 
   // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
-  descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey const& set_key) const
+  descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const
   {
     return m_shader_resource_set_key_to_set_index_hint.get_set_index_hint(set_key);
   }
