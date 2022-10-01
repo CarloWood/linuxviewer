@@ -46,9 +46,10 @@ std::string UniformBufferBase::glsl_id() const
 void UniformBufferBase::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "Base::m_descriptor_set_key:" << descriptor_set_key() <<
-      ", m_members:" << m_members <<
-      ", m_uniform_buffers:" << m_uniform_buffers;
+  os << "(Base)";
+  Base::print_on(os);
+  os << ", m_members:" << m_members <<
+        ", m_uniform_buffers:" << m_uniform_buffers;
   os << '}';
 }
 #endif

@@ -46,10 +46,11 @@ void TextureShaderResourceMember::print_on(std::ostream& os) const
 void Texture::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "Base::m_descriptor_set_key:" << descriptor_set_key() <<
-      ", m_member:" << vk_utils::print_pointer(m_member) <<
-      ", m_image_view:&" << m_image_view.get() <<
-      ", m_sampler:&" << m_sampler.get();
+  os << "(Base)";
+  Base::print_on(os);
+  os << ", m_member:" << vk_utils::print_pointer(m_member) <<
+        ", m_image_view:&" << m_image_view.get() <<
+        ", m_sampler:&" << m_sampler.get();
   os << '}';
 }
 #endif // CWDEBUG

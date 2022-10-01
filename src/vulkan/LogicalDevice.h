@@ -126,9 +126,9 @@ class LogicalDevice
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
-  // The same type as ShaderInputData::sorted_set_layouts_container_t.
-  using sorted_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-  using pipeline_layouts_container_key_t = std::pair<sorted_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
+  // The same type as ShaderInputData::sorted_descriptor_set_layouts_container_t.
+  using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+  using pipeline_layouts_container_key_t = std::pair<sorted_descriptor_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
         utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
   using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
@@ -181,8 +181,12 @@ class LogicalDevice
   // does not influence the ordering; so it stays sorted the same way).
   vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
+  // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
+  // and returns an updated set_binding_map_out (see explanation in LogicalDevice.cxx) and an updated realized_descriptor_set_layouts*
+  // that points to a copy of the sorted_descriptor_set_layouts_container_t stored in m_pipeline_layouts. This returned pointer has a long
+  // life-time and is immutable, so that we can use references to it and/or its elements.
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_set_layouts_container_t* realized_descriptor_set_layouts,
+      sorted_descriptor_set_layouts_container_t*& realized_descriptor_set_layouts,
       descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;

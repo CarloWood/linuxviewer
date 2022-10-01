@@ -34,6 +34,7 @@ class PipelineFactory : public AIStatefulTask
 
   static constexpr condition_type pipeline_cache_set_up = 1;
   static constexpr condition_type fully_initialized = 2;
+  static constexpr condition_type create_shader_resources = 4;
 
  private:
   // Constructor.
@@ -41,22 +42,26 @@ class PipelineFactory : public AIStatefulTask
   vk::RenderPass m_vh_render_pass;
   // add.
   characteristics_container_t m_characteristics;
+  // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
+  PipelineFactoryIndex m_pipeline_factory_index;
 
   // run
   // initialize_impl.
   statefultask::RunningTasksTracker::index_type m_index;
   // State PipelineFactory_start.
   boost::intrusive_ptr<PipelineCache> m_pipeline_cache_task;
+  // State PipelineFactory_initialize.
+  boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   vulkan::pipeline::ShaderInputData m_shader_input_data;
   MultiLoop m_range_counters;
   int m_start_of_next_loop;
-  boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
+  // State PipelineFactory_top_multiloop_while_loop
+  vulkan::pipeline::ShaderInputData::sorted_descriptor_set_layouts_container_t* m_descriptor_set_layouts_canonical_ptr;
+  vulkan::descriptor::SetBindingMap m_set_binding_map;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
-  // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
-  PipelineFactoryIndex m_pipeline_factory_index;
   // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.
   vulkan::pipeline::Index m_pipeline_index;
   // Layout of the current pipeline that is being created inside the MultiLoop.
@@ -72,6 +77,7 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_initialized,
     PipelineFactory_top_multiloop_for_loop,
     PipelineFactory_top_multiloop_while_loop,
+    PipelineFactory_create_shader_resources,
     PipelineFactory_bottom_multiloop_while_loop,
     PipelineFactory_bottom_multiloop_for_loop,
     PipelineFactory_done

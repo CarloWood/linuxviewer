@@ -144,6 +144,7 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_initialized);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_while_loop);
+    AI_CASE_RETURN(PipelineFactory_create_shader_resources);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_while_loop);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_done);
@@ -273,16 +274,26 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
+        m_descriptor_set_layouts_canonical_ptr = m_flat_create_info.get_realized_descriptor_set_layouts();
         {
-          vulkan::descriptor::SetBindingMap set_binding_map;
-
-          vulkan::pipeline::ShaderInputData::sorted_set_layouts_container_t* realized_descriptor_set_layouts = m_flat_create_info.get_realized_descriptor_set_layouts();
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
 
-          m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(realized_descriptor_set_layouts, set_binding_map, sorted_push_constant_ranges);
+          // Realize (create or get from cache) the pipeline layout and return a suitable SetBindingMap.
+          m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(m_descriptor_set_layouts_canonical_ptr, m_set_binding_map, sorted_push_constant_ranges);
+        }
 
-          m_flat_create_info.do_set_binding_map_callbacks(set_binding_map);
-          m_shader_input_data.handle_shader_resource_creation_requests(m_owning_window, set_binding_map);
+        // Now that we have initialized m_set_binding_map, do the callbacks that need it.
+        m_flat_create_info.do_set_binding_map_callbacks(m_set_binding_map);
+
+        set_state(PipelineFactory_create_shader_resources);
+        [[fallthrough]];
+      case PipelineFactory_create_shader_resources:
+        // Also pass m_descriptor_set_layouts_canonical_ptr, a pointer to a sorted_descriptor_set_layouts_container_t with a long life-time.
+        if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_binding_map, m_descriptor_set_layouts_canonical_ptr))
+        {
+          //PipelineFactory
+          wait(create_shader_resources);
+          return;
         }
 
 //      case PipelineFactory_somename:
@@ -290,9 +301,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
         // End pipeline layout creation
         //-----------------------------------------------------------------
-
-        // Bug in this library: the layout must be created.
-        ASSERT(m_vh_pipeline_layout);
 
         {
           // Merge the results of all characteristics into local vectors.

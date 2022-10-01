@@ -1245,7 +1245,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
   }
 }
 
-// sorted_set_layouts_container_t is a std::vector of SetLayout objects
+// sorted_descriptor_set_layouts_container_t is a std::vector of SetLayout objects
 // that have three members:
 //      std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;
 //      SetIndexHint m_set_index_hint;
@@ -1334,7 +1334,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_set_layouts_container_t* realized_descriptor_set_layouts,
+    sorted_descriptor_set_layouts_container_t*& realized_descriptor_set_layouts,
     descriptor::SetBindingMap& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
@@ -1385,11 +1385,11 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
       }
       else
       {
-        sorted_set_layouts_container_t const& sorted_set_layouts = iter->first.first;
+        sorted_descriptor_set_layouts_container_t const& sorted_descriptor_set_layouts = iter->first.first;
         // This should always be the case: they compared equal as key!?
-        ASSERT(realized_descriptor_set_layouts->size() == sorted_set_layouts.size());
+        ASSERT(realized_descriptor_set_layouts->size() == sorted_descriptor_set_layouts.size());
         auto set_layout_in = realized_descriptor_set_layouts->begin();
-        auto set_layout_out = sorted_set_layouts.begin();
+        auto set_layout_out = sorted_descriptor_set_layouts.begin();
         while (set_layout_in != realized_descriptor_set_layouts->end())
         {
           // Same.

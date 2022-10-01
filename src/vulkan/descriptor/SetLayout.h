@@ -55,6 +55,12 @@ class SetLayout
   }
 
 #ifdef CWDEBUG
+  friend bool operator==(SetLayout const& sl1, SetLayout const& sl2)
+  {
+    // Used to test if sl1 was indeed a copy of sl2.
+    return sl1.m_handle == sl2.m_handle && sl1.m_set_index_hint == sl2.m_set_index_hint && sl1.m_sorted_bindings == sl2.m_sorted_bindings;
+  }
+
   void print_on(std::ostream& os) const
   {
     os << '{';
@@ -87,6 +93,12 @@ struct SetLayoutCompare
     return lhs.m_set_index_hint < rhs.m_set_index_hint;
 #endif
   }
+};
+
+struct CompareHint
+{
+  SetIndexHint m_set_index_hint;
+  bool operator()(SetLayout const& set_layout) { return set_layout.set_index_hint() == m_set_index_hint; }
 };
 
 } // namespace vulkan::descriptor

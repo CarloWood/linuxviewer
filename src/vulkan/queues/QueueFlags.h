@@ -15,7 +15,7 @@
 namespace vulkan {
 
 template<typename BaseEnum>
-struct Base
+struct QueueFlagBitsBase
 {
   static constexpr size_t count = magic_enum::enum_count<BaseEnum>();
   static constexpr BaseEnum last = magic_enum::enum_value<BaseEnum>(count - 1);
@@ -30,7 +30,7 @@ enum class QueueFlagBits : VkQueueFlags
   VULKAN_QUEUE_FLAGS_BASE_ELEMENTS(vk::QueueFlagBits,
     eGraphics, eCompute, eTransfer, eSparseBinding, eProtected)
 
-  ePresentation = Base<vk::QueueFlagBits>::last_value << 1
+  ePresentation = QueueFlagBitsBase<vk::QueueFlagBits>::last_value << 1
 };
 
 } // namespace vulkan
