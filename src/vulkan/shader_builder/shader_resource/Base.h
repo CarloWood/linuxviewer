@@ -31,9 +31,10 @@ class Base
   // that to be finished. The thread-safe functions that use this mutex aren't really 'const', but they
   // are thread-safe ;).
   mutable AIStatefulTaskMutex m_create_access_mutex;
-  std::atomic_bool m_created{false};
+  std::atomic_bool m_created_and_updated_descriptor_set{false};
   descriptor::SetKey m_descriptor_set_key;
-  set_layout_bindings_container_t m_set_layout_bindings;
+  using set_layout_bindings_t = aithreadsafe::Wrapper<set_layout_bindings_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  mutable set_layout_bindings_t m_set_layout_bindings;
 
 #ifdef CWDEBUG
   Ambifix m_ambifix;
@@ -75,14 +76,15 @@ class Base
     return m_create_access_mutex.lock(task, condition);
   }
 
-  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding)
+  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding) /*thread-safe*/ const
   {
-    m_set_layout_bindings.push_back(set_layout_binding);
+    set_layout_bindings_t::wat set_layout_bindings_w(m_set_layout_bindings);
+    set_layout_bindings_w->push_back(set_layout_binding);
   }
 
-  void set_created()
+  void set_created_and_updated_descriptor_set()
   {
-    m_created.store(true, std::memory_order::release);
+    m_created_and_updated_descriptor_set.store(true, std::memory_order::release);
   }
 
   void release_lock() /*thread-safe*/ const
@@ -90,19 +92,19 @@ class Base
     m_create_access_mutex.unlock();
   }
 
-  bool is_created() const
+  bool is_created_and_updated_descriptor_set() const
   {
-    return m_created.load(std::memory_order::acquire);
+    return m_created_and_updated_descriptor_set.load(std::memory_order::acquire);
   }
 
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
-  virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) = 0;
+  virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const = 0;
   virtual void ready() = 0;
   //---------------------------------------------------------------------------
 
   // Accessors.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-  set_layout_bindings_container_t const& set_layout_bindings() const { return m_set_layout_bindings; }
+  set_layout_bindings_t::crat set_layout_bindings() const { return m_set_layout_bindings; }
 
 #ifdef CWDEBUG
  public:

@@ -42,7 +42,7 @@ class UniformBufferBase : public Base
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
   void create(task::SynchronousWindow const* owning_window) override;
-  void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) override;
+  void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const override;
 
   // Accessors.
   members_container_t const& members() const { return m_members; }

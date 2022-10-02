@@ -17,7 +17,7 @@ void UniformBufferBase::create(task::SynchronousWindow const* owning_window)
   }
 }
 
-void UniformBufferBase::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding)
+void UniformBufferBase::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const
 {
   // FIXME: not implemented: currently we're only using the first frame resource!
   vulkan::FrameResourceIndex const hack0{0};

@@ -28,24 +28,6 @@ using utils::has_print_on::operator<<;
 
 #endif // HAVE_UTILS_CONFIG_H
 
-namespace std {
-
-// For debugging purposes, allow printing vectors.
-template<typename T>
-std::ostream& operator<<(std::ostream& os, std::vector<T> const& v)
-{
-  os << '{';
-  char const* prefix = "";
-  for (auto&& element : v)
-  {
-    os << prefix << element;
-    prefix = ", ";
-  }
-  return os << '}';
-}
-
-} // namespace std
-
 #if defined(CWDEBUG) && !defined(DOXYGEN)
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct vulkan;

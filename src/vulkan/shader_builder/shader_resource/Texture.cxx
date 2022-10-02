@@ -15,7 +15,7 @@ void Texture::create(task::SynchronousWindow const* owning_window)
 #endif
 }
 
-void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding)
+void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const
 {
   // Update descriptor set of m_sample_texture.
   std::vector<vk::DescriptorImageInfo> image_infos = {

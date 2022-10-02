@@ -289,7 +289,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         [[fallthrough]];
       case PipelineFactory_create_shader_resources:
         // Also pass m_descriptor_set_layouts_canonical_ptr, a pointer to a sorted_descriptor_set_layouts_container_t with a long life-time.
-        if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_binding_map, m_descriptor_set_layouts_canonical_ptr))
+        if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_binding_map))
+        {
+          //PipelineFactory
+          wait(create_shader_resources);
+          return;
+        }
+        if (!m_shader_input_data.allocate_and_update_missing_descriptor_sets(m_owning_window, m_set_binding_map, m_descriptor_set_layouts_canonical_ptr))
         {
           //PipelineFactory
           wait(create_shader_resources);

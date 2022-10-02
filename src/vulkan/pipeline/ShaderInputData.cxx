@@ -487,15 +487,12 @@ void ShaderInputData::request_shader_resource_creation(shader_builder::shader_re
 // Additionally, those descriptor sets are updated to bind to the respective shader resources. The descriptor sets are created
 // as needed: if there already exists a descriptor set that is bound to the same shader resources that we need, we just reuse
 // that descriptor set.
-bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, vulkan::pipeline::ShaderInputData::sorted_descriptor_set_layouts_container_t* descriptor_set_layouts_canonical_ptr)
+bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map)
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests(" << pipeline_factory << ", " << owning_window << ", " << set_binding_map << ")");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
-
-  // descriptor_set_layouts_canonical_ptr should be a pointer to a canonical copy (in LogicalDevice) of m_sorted_descriptor_set_layouts.
-  ASSERT(m_sorted_descriptor_set_layouts == *descriptor_set_layouts_canonical_ptr);
 
   // Seems impossible that one of these is empty if the other isn't.
   ASSERT(m_required_shader_resources_list.empty() == m_sorted_descriptor_set_layouts.empty());
@@ -508,18 +505,17 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   std::sort(m_required_shader_resources_list.begin(), m_required_shader_resources_list.end());
 
   // Try to be the first to get 'ownership' on each shader resource that has to be created.
-  std::vector<Base*> acquired_required_shader_resources_list;
-  SetIndex largest_set_index{0};
+  m_largest_set_index.set_to_zero();
   for (Base const* shader_resource : m_required_shader_resources_list)
   {
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_binding_map.convert(set_index_hint);
 
-    if (set_index > largest_set_index)
-      largest_set_index = set_index;
+    if (set_index > m_largest_set_index)
+      m_largest_set_index = set_index;
 
-    if (shader_resource->is_created())  // Skip shader resources that are already created.
+    if (shader_resource->is_created_and_updated_descriptor_set())  // Skip shader resources that are already created.
       continue;
 
     // Try to get the lock on all other shader resources.
@@ -531,18 +527,35 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
     // Now that we have the exclusive lock - it is safe to const_cast the const-ness away.
     // This is only safe because no other thread will be reading the (non-atomic) members
     // of the shader resources that we are creating while we are creating them.
-    acquired_required_shader_resources_list.push_back(const_cast<Base*>(shader_resource));
+    m_acquired_required_shader_resources_list.push_back(const_cast<Base*>(shader_resource));
   }
 
-  for (Base* shader_resource : acquired_required_shader_resources_list)
+  for (Base* shader_resource : m_acquired_required_shader_resources_list)
   {
     // Create the shader resource (if not already created (e.g. Texture)).
     shader_resource->create(owning_window);
   }
 
-  utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_binding_map);
+  return true;
+}
 
-  utils::Vector<std::vector<Base const*>, SetIndex> shader_resources_per_set_index(largest_set_index.get_value());
+bool ShaderInputData::allocate_and_update_missing_descriptor_sets(task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, vulkan::pipeline::ShaderInputData::sorted_descriptor_set_layouts_container_t* descriptor_set_layouts_canonical_ptr)
+{
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_and_update_missing_descriptor_sets(" << owning_window << ", " << set_binding_map << ", " << descriptor_set_layouts_canonical_ptr << ")");
+
+  using namespace vulkan::descriptor;
+  using namespace vulkan::shader_builder::shader_resource;
+
+  // descriptor_set_layouts_canonical_ptr should be a pointer to a canonical copy (in LogicalDevice) of m_sorted_descriptor_set_layouts.
+  ASSERT(m_sorted_descriptor_set_layouts == *descriptor_set_layouts_canonical_ptr);
+
+  utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_binding_map);
+  // Isn't this ALWAYS the case? Note that it might take a complex application that is skipping
+  // shader resources that are in a given descriptor set but aren't used in this pipeline; hence
+  // leave this assert here for a very long time.
+  ASSERT(m_largest_set_index + 1 == vhv_descriptor_set_layouts.iend());
+
+  utils::Vector<std::vector<Base const*>, SetIndex> shader_resources_per_set_index(m_largest_set_index.get_value() + 1);
   for (Base const* shader_resource : m_required_shader_resources_list)
   {
     SetKey const set_key = shader_resource->descriptor_set_key();
@@ -553,30 +566,11 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
 
   // We're going to fill this vector now.
   ASSERT(m_vhv_descriptor_sets.empty());
-  m_vhv_descriptor_sets.resize(largest_set_index.get_value() + 1);
+  m_vhv_descriptor_sets.resize(m_largest_set_index.get_value() + 1);
 
   std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;  // The descriptor set layout handles of descriptor sets that we need to create.
   std::vector<SetIndex> set_indexes;                                    // The corresponding SetIndex-es of those descriptor sets.
-  {
-    //...
-//    m_vhv_descriptor_sets[set_index] = ...;
-  }
 
-  LogicalDevice const* logical_device = owning_window->logical_device();
-  std::vector<vk::DescriptorSet> missing_descriptor_sets = logical_device->allocate_descriptor_sets(
-      missing_descriptor_set_layouts COMMA_CWDEBUG_ONLY(set_indexes), logical_device->get_descriptor_pool()
-      COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));    // Add prefix and postfix later, when copying this vector to the Pipeline it will be used with.
-
-  for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
-    m_vhv_descriptor_sets[set_indexes[i]] = missing_descriptor_sets[i];
-
-//    uint32_t binding = get_declaration(set_key)->binding();
-
-  // Shader resources: T1, T2, U1, U2 (each with a unique key)
-  // Descriptor set layout:             SetLayout
-  //   { U, U },                        #0{ U, U }
-  //   { U, T },
-  //   { T, T }                         #1{ T, T }
   // Descriptor sets: { U1, T1 }, { U2, T2 }, { T1, T2 }, { T2, T1 }, { U1, U2 }, { U2, U1 }, { U1, T2 }, { U2, T1 }
   // Pipeline layout:                   SetLayout
   //   ({ U, T }, { U, T }),            (#0{ U, T }, #1{ U, T })
@@ -607,35 +601,106 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   // T  T2 -> <#1{ T, T }, 0>, <#0{ T, T }, 1>, ...
   // T  T1 -> <#1{ T, T }, 1>, <#0{ T, T }, 0>, ...
   //
+  for (SetIndex set_index{0}; set_index <= m_largest_set_index; ++set_index)    // #0, #1, #2, #3
+  {
+    // We want to know if there is a set_layout_canonical_ptr that appears in every shader resource corresponding to this set_index.
+    std::map<SetLayout const*, int> admin;
+    int shader_resource_count_per_set_index = 0;
+    bool have_match = true;
+    vk::DescriptorSet existing_descriptor_set;
+    // Shader resources: T1, T2, T3, T4, U1, U2, U3, U4 (each with a unique key)
+    // PL0:              PL1:                    PL1 after conversion:
+    // #0 : { U2, U1 }   #0 : { U4, U3 } -> #0   #0 : { U4, U3 }
+    // #1 : { T2, T1 }   #1 : { U2, U1 } -> #2   #1 : { T4, T3 }
+    // #2 : { U3, U4 }   #2 : { T1, T2 } -> #3   #2 : { U2, U1 }
+    // #3 : { T4, T3 }   #3 : { T4, T3 } -> #1   #3 : { T1, T2 }                  // set index: #0        #1        #2        #3
+    for (Base const* shader_resource : shader_resources_per_set_index[set_index]) // PL0:       {U2, U1}, {T2, T1}, {U3, U4}, {T4, T3}
+    {                                                                             // PL1:       {U4, U3}, {T4, T3}, {U2, U1}, {T1, T2}
+      SetKey const set_key = shader_resource->descriptor_set_key();
+      uint32_t binding = get_declaration(set_key)->binding();
+      ++shader_resource_count_per_set_index;
 
-  for (Base* shader_resource : acquired_required_shader_resources_list)
+      auto set_layout_bindings_crat = shader_resource->set_layout_bindings();
+      bool still_have_match = false;
+
+      // Possible values as added
+      //          T1      T2      T3      T4      U1      U2      U3      U4
+      // by PL0:  {cp1,1} {cp1,0} {cp1,1} {cp1,0} {cp0,1} {cp0,0} {cp0,0} {cp0,1}
+      // by PL1:  {cp1,0} {cp1,1} {cp1,1} {cp1,0} {cp0,1} {cp0,0} {cp0,1} {cp0,0}
+      for (SetLayoutBinding const& set_layout_binding : *set_layout_bindings_crat)
+      {
+        // Descriptor set layout:             SetLayout         SetLayout const*'s
+        //   { U, U },                        #0{ U, U }        <--- cp0
+        //   { U, T },
+        //   { T, T }                         #1{ T, T }        <--- cp1
+        SetLayout const* set_layout_canonical_ptr = set_layout_binding.set_layout_canonical_ptr();
+        if (set_layout_binding.binding() == binding)
+          if (++admin[set_layout_canonical_ptr] == shader_resource_count_per_set_index)
+          {
+            still_have_match = true;
+            existing_descriptor_set = set_layout_binding.handle();
+          }
+      }
+      if (!still_have_match)
+      {
+        have_match = false;
+        break;
+      }
+    }
+    if (have_match)
+      m_vhv_descriptor_sets[set_index] = existing_descriptor_set;
+    else
+    {
+      missing_descriptor_set_layouts.push_back(vhv_descriptor_set_layouts[set_index]);
+      set_indexes.push_back(set_index);
+    }
+  }
+
+  LogicalDevice const* logical_device = owning_window->logical_device();
+  std::vector<vk::DescriptorSet> missing_descriptor_sets;
+  if (!missing_descriptor_set_layouts.empty())
+    missing_descriptor_sets = logical_device->allocate_descriptor_sets(
+        missing_descriptor_set_layouts COMMA_CWDEBUG_ONLY(set_indexes), logical_device->get_descriptor_pool()
+        COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));    // Add prefix and postfix later, when copying this vector to the Pipeline it will be used with.
+
+  for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
+    m_vhv_descriptor_sets[set_indexes[i]] = missing_descriptor_sets[i];
+
+  for (Base const* shader_resource : m_required_shader_resources_list)
   {
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex set_index = set_binding_map.convert(set_index_hint);
     uint32_t binding = get_declaration(set_key)->binding();
 
-    // Bind it to a descriptor set.
-    shader_resource->update_descriptor_set(owning_window, m_vhv_descriptor_sets[set_index], binding);
+    bool new_descriptor_set = std::find(set_indexes.begin(), set_indexes.end(), set_index) != set_indexes.end();
+    if (new_descriptor_set)
+    {
+      // Bind it to a descriptor set.
+      shader_resource->update_descriptor_set(owning_window, m_vhv_descriptor_sets[set_index], binding);
 
-    // Find the corresponding SetLayout.
-    auto descriptor_set_layout_canonical_iter = std::find_if(descriptor_set_layouts_canonical_ptr->begin(), descriptor_set_layouts_canonical_ptr->end(), CompareHint{set_index_hint});
-    ASSERT(descriptor_set_layout_canonical_iter != descriptor_set_layouts_canonical_ptr->end());
-    Dout(dc::notice, "shader_resource " << vk_utils::print_pointer(shader_resource) << " corresponds with " << *descriptor_set_layout_canonical_iter);
+      // Find the corresponding SetLayout.
+      auto descriptor_set_layout_canonical_iter = std::find_if(descriptor_set_layouts_canonical_ptr->begin(), descriptor_set_layouts_canonical_ptr->end(), CompareHint{set_index_hint});
+      ASSERT(descriptor_set_layout_canonical_iter != descriptor_set_layouts_canonical_ptr->end());
+      Dout(dc::notice, "shader_resource " << vk_utils::print_pointer(shader_resource) << " corresponds with " << *descriptor_set_layout_canonical_iter);
 
-    // Store a pointer to the canonical copy of the used SetLayout, along with the binding number, in the shader resource that was bound to it.
-    shader_resource->add_set_layout_binding({ &*descriptor_set_layout_canonical_iter, binding });
+      // Store a pointer to the canonical copy of the used SetLayout, along with the binding number, in the shader resource that was bound to it.
+      shader_resource->add_set_layout_binding({ &*descriptor_set_layout_canonical_iter, binding, m_vhv_descriptor_sets[set_index] });
+    }
+  }
 
-    // Let other pipeline factories know that this shader resource was already created.
+  for (Base* shader_resource : m_acquired_required_shader_resources_list)
+  {
+    // Let other pipeline factories know that this shader resource was already created and bound to a descriptor set.
     // It might be used immediately, even during this call.
-    shader_resource->set_created();
+    shader_resource->set_created_and_updated_descriptor_set();
 
     // Notify the application that this shader resource is ready for use.
     shader_resource->ready();
   }
 
   // Release all the task-mutexes, in reverse order.
-  for (auto shader_resource = acquired_required_shader_resources_list.rbegin(); shader_resource != acquired_required_shader_resources_list.rend(); ++shader_resource)
+  for (auto shader_resource = m_acquired_required_shader_resources_list.rbegin(); shader_resource != m_acquired_required_shader_resources_list.rend(); ++shader_resource)
     (*shader_resource)->release_lock();
 
   return true;
