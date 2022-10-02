@@ -22,7 +22,7 @@ namespace shader_resource {
 class Base
 {
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-  using set_layout_bindings_container_t = std::vector<descriptor::SetLayoutBinding>;
+  using set_layout_bindings_container_t = std::set<descriptor::SetLayoutBinding>;
 
  private:
   // 'mutable' because shader resource instances added with add_* (add_texture, add_uniform_buffer, etc)
@@ -76,10 +76,20 @@ class Base
     return m_create_access_mutex.lock(task, condition);
   }
 
-  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding) /*thread-safe*/ const
+  bool add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding_no_handle) /*thread-safe*/ const
   {
     set_layout_bindings_t::wat set_layout_bindings_w(m_set_layout_bindings);
-    set_layout_bindings_w->push_back(set_layout_binding);
+    auto res = set_layout_bindings_w->insert(set_layout_binding_no_handle);
+    return res.second;
+  }
+
+  void replace_layout_binding(descriptor::SetLayoutBinding set_layout_binding) /*thread-safe*/ const
+  {
+    set_layout_bindings_t::wat set_layout_bindings_w(m_set_layout_bindings);
+    auto iter = set_layout_bindings_w->find(set_layout_binding);
+    // This key (pointer + binding) should already have been inserted with add_set_layout_binding.
+    ASSERT(iter != set_layout_bindings_w->end());
+    iter->set_handle(set_layout_binding.handle());
   }
 
   void set_created_and_updated_descriptor_set()

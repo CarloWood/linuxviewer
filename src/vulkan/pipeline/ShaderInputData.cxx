@@ -617,7 +617,16 @@ bool ShaderInputData::allocate_and_update_missing_descriptor_sets(task::Synchron
     for (Base const* shader_resource : shader_resources_per_set_index[set_index]) // PL0:       {U2, U1}, {T2, T1}, {U3, U4}, {T4, T3}
     {                                                                             // PL1:       {U4, U3}, {T4, T3}, {U2, U1}, {T1, T2}
       SetKey const set_key = shader_resource->descriptor_set_key();
+      SetIndexHint const set_index_hint = get_set_index_hint(set_key);
       uint32_t binding = get_declaration(set_key)->binding();
+
+      // Find the corresponding SetLayout.
+      auto descriptor_set_layout_canonical_iter = std::find_if(descriptor_set_layouts_canonical_ptr->begin(), descriptor_set_layouts_canonical_ptr->end(), CompareHint{set_index_hint});
+      ASSERT(descriptor_set_layout_canonical_iter != descriptor_set_layouts_canonical_ptr->end());
+      Dout(dc::notice, "shader_resource " << vk_utils::print_pointer(shader_resource) << " corresponds with " << *descriptor_set_layout_canonical_iter);
+      SetLayout const* set_layout_canonical_ptr = &*descriptor_set_layout_canonical_iter;
+      bool existed = !shader_resource->add_set_layout_binding({ set_layout_canonical_ptr, binding, VK_NULL_HANDLE });
+
       ++shader_resource_count_per_set_index;
 
       auto set_layout_bindings_crat = shader_resource->set_layout_bindings();
@@ -629,6 +638,8 @@ bool ShaderInputData::allocate_and_update_missing_descriptor_sets(task::Synchron
       // by PL1:  {cp1,0} {cp1,1} {cp1,1} {cp1,0} {cp0,1} {cp0,0} {cp0,1} {cp0,0}
       for (SetLayoutBinding const& set_layout_binding : *set_layout_bindings_crat)
       {
+        if (!set_layout_binding.handle())
+          continue;
         // Descriptor set layout:             SetLayout         SetLayout const*'s
         //   { U, U },                        #0{ U, U }        <--- cp0
         //   { U, T },
@@ -681,11 +692,9 @@ bool ShaderInputData::allocate_and_update_missing_descriptor_sets(task::Synchron
 
       // Find the corresponding SetLayout.
       auto descriptor_set_layout_canonical_iter = std::find_if(descriptor_set_layouts_canonical_ptr->begin(), descriptor_set_layouts_canonical_ptr->end(), CompareHint{set_index_hint});
-      ASSERT(descriptor_set_layout_canonical_iter != descriptor_set_layouts_canonical_ptr->end());
-      Dout(dc::notice, "shader_resource " << vk_utils::print_pointer(shader_resource) << " corresponds with " << *descriptor_set_layout_canonical_iter);
-
-      // Store a pointer to the canonical copy of the used SetLayout, along with the binding number, in the shader resource that was bound to it.
-      shader_resource->add_set_layout_binding({ &*descriptor_set_layout_canonical_iter, binding, m_vhv_descriptor_sets[set_index] });
+      SetLayout const* set_layout_canonical_ptr = &*descriptor_set_layout_canonical_iter;
+      // Store the descriptor set handle corresponding to this pointer to the canonical copy of the used SetLayout and binding number.
+      shader_resource->replace_layout_binding({ set_layout_canonical_ptr, binding, m_vhv_descriptor_sets[set_index] });
     }
   }
 
