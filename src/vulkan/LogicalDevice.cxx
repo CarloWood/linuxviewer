@@ -1033,11 +1033,24 @@ void LogicalDevice::update_descriptor_set(
   DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_set(" <<
       vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << image_infos << ", " << buffer_infos << ", " << buffer_views << ")");
 
+  uint32_t descriptor_count{};
+
+  if (descriptor_type == vk::DescriptorType::eCombinedImageSampler || descriptor_type == vk::DescriptorType::eSampledImage ||
+      descriptor_type == vk::DescriptorType::eStorageImage || descriptor_type ==  vk::DescriptorType::eInputAttachment)
+    descriptor_count = image_infos.size();
+  else if (descriptor_type == vk::DescriptorType::eUniformBuffer || descriptor_type == vk::DescriptorType::eStorageBuffer ||
+      descriptor_type == vk::DescriptorType::eUniformBufferDynamic || descriptor_type == vk::DescriptorType::eStorageBufferDynamic)
+    descriptor_count = buffer_infos.size();
+  else if (descriptor_type == vk::DescriptorType::eUniformTexelBuffer || descriptor_type == vk::DescriptorType::eStorageTexelBuffer)
+    descriptor_count = buffer_views.size();
+  else
+    DoutFatal(dc::core, "Not implemented.");
+
   vk::WriteDescriptorSet descriptor_writes{
     .dstSet = vh_descriptor_set,
     .dstBinding = binding,
     .dstArrayElement = array_element,
-    .descriptorCount = 1,
+    .descriptorCount = descriptor_count,
     .descriptorType = descriptor_type,
     .pImageInfo = image_infos.size() ? image_infos.data() : nullptr,
     .pBufferInfo = buffer_infos.size() ? buffer_infos.data() : nullptr,

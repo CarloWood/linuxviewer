@@ -787,7 +787,7 @@ vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_textu
         .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
       }
     };
-    m_logical_device->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
+    m_logical_device->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
   }
 
   return texture;

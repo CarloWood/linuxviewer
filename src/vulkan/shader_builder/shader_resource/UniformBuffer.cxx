@@ -30,7 +30,7 @@ void UniformBufferBase::update_descriptor_set(task::SynchronousWindow const* own
       .range = size()
     }
   };
-  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0, {}, buffer_infos);
+  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0 /*array_element*/, {}, buffer_infos);
   //create_uniform_buffers
 }
 

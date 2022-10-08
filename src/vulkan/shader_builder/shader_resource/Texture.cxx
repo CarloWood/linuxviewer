@@ -17,7 +17,7 @@ void Texture::create(task::SynchronousWindow const* owning_window)
 
 void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const
 {
-  // Update descriptor set of m_sample_texture.
+  // Update vh_descriptor_set binding `binding` with this texture.
   std::vector<vk::DescriptorImageInfo> image_infos = {
     {
       .sampler = *m_sampler,
@@ -25,9 +25,7 @@ void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window
       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
     }
   };
-  // The 'top' descriptor set also contains the texture.
-  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0, image_infos);
-  //create_uniform_buffers
+  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
 }
 
 #ifdef CWDEBUG

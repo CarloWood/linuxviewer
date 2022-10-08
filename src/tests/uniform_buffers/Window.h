@@ -123,93 +123,6 @@ class Window : public task::SynchronousWindow
     }
   }
 
- public:
-#if 0
-  void create_uniform_buffers(vulkan::pipeline::ShaderInputData const& shader_input_data,
-      vulkan::descriptor::SetBindingMap const& set_binding_map) override
-  {
-    DoutEntering(dc::shaderresource|dc::vulkan, "Window::create_uniform_buffers(...) [" << this << "]");
-    utils::Vector<vk::DescriptorSetLayout, vulkan::descriptor::SetIndex> vhv_descriptor_set_layouts = shader_input_data.get_vhv_descriptor_set_layouts(set_binding_map);
-
-    vulkan::descriptor::SetIndex top_descriptor_set_index = set_binding_map.convert(shader_input_data.get_set_index_hint(m_top_buffer.descriptor_set_key()));
-    vulkan::descriptor::SetIndex left_descriptor_set_index = set_binding_map.convert(shader_input_data.get_set_index_hint(m_left_buffer.descriptor_set_key()));
-    vulkan::descriptor::SetIndex bottom_descriptor_set_index = set_binding_map.convert(shader_input_data.get_set_index_hint(m_bottom_buffer.descriptor_set_key()));
-
-    //FIXME: Find a way to find the actual texture_binding.
-    uint32_t texture_binding = 1;
-
-    // The descriptor set layouts are the same for both pipelines in this application, and because the descriptor sets
-    // created from it are updated with the same state, we also reuse the descriptors sets and have both pipelines use
-    // the same descriptor sets (this function is only called once: for whichever UniformBuffersTestPipelineCharacteristicBase's
-    // initialize finished first).
-    m_vhv_descriptor_sets = logical_device()->allocate_descriptor_sets(
-        vhv_descriptor_set_layouts,
-        logical_device()->get_descriptor_pool()
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vhv_descriptor_set")));
-
-    m_top_buffer.create(this, top_position_array_size * sizeof(TopPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_top_buffer")));
-    m_left_buffer.create(this, sizeof(LeftPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_left_buffer")));
-    m_bottom_buffer.create(this, sizeof(BottomPosition)
-        COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::m_bottom_buffer")));
-
-    // FIXME: not implemented: currently we're only using the first frame resource!
-    vulkan::FrameResourceIndex const hack0{0};
-
-    // Information about the buffer we want to point at in the descriptor.
-    std::vector<vk::DescriptorBufferInfo> top_buffer_infos = {
-      {
-        .buffer = m_top_buffer[hack0].m_vh_buffer,
-        .offset = 0,
-        .range = top_position_array_size * sizeof(TopPosition)
-      }
-    };
-    std::vector<vk::DescriptorBufferInfo> left_buffer_infos = {
-      {
-        .buffer = m_left_buffer[hack0].m_vh_buffer,
-        .offset = 0,
-        .range = sizeof(LeftPosition)
-      }
-    };
-    std::vector<vk::DescriptorBufferInfo> bottom_buffer_infos = {
-      {
-        .buffer = m_bottom_buffer[hack0].m_vh_buffer,
-        .offset = 0,
-        .range = sizeof(BottomPosition)
-      }
-    };
-
-    //vkUpdateDescriptorSets(_device, 1, &setWrite, 0, nullptr);
-    uint32_t binding = 0;
-    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[top_descriptor_set_index], vk::DescriptorType::eUniformBuffer, 1 - texture_binding, 0, {}, top_buffer_infos);
-    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[left_descriptor_set_index], vk::DescriptorType::eUniformBuffer, binding, 0, {}, left_buffer_infos);
-    logical_device()->update_descriptor_set(m_vhv_descriptor_sets[bottom_descriptor_set_index], vk::DescriptorType::eUniformBuffer, binding, 0, {}, bottom_buffer_infos);
-
-    // Fill the buffer...
-    for (int i = 0; i < top_position_array_size; ++i)
-      ((TopPosition*)(m_top_buffer[hack0].pointer()))[i].x = 0.8;
-    ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = 0.5;
-    ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = 0.5;
-
-    // Tell the render loop that we're done initializing the uniform buffers.
-    m_uniform_buffers_initialized = true;
-
-    // Update descriptor set of m_sample_texture.
-    {
-      std::vector<vk::DescriptorImageInfo> image_infos = {
-        {
-          .sampler = m_sample_texture.sampler(),
-          .imageView = m_sample_texture.image_view(),
-          .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        }
-      };
-      // The 'top' descriptor set also contains the texture.
-      m_logical_device->update_descriptor_set(m_vhv_descriptor_sets[top_descriptor_set_index], vk::DescriptorType::eCombinedImageSampler, texture_binding, 0, image_infos);
-    }
-  }
-#endif
-
  private:
   static constexpr std::string_view uniform_buffer_controlled_triangle0_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
@@ -311,13 +224,6 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
-#if 0
-    std::vector<vulkan::descriptor::SetLayout> m_descriptor_set_layouts;
-
-    vulkan::descriptor::SetLayout m_top_descriptor_set_layout;
-    vulkan::descriptor::SetLayout m_left_descriptor_set_layout;
-    vulkan::descriptor::SetLayout m_bottom_descriptor_set_layout;
-#endif
 
    protected:
     void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window, int pipeline)
@@ -363,11 +269,6 @@ void main()
         ShaderIndex shader_vert_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
         ShaderIndex shader_frag_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
 
-        //ShaderCompiler compiler;
-
-        //shader_input_data().build_shader(owning_window, shader_vert_index, compiler
-        //shader_input_data().build_shader(owning_window, shader_frag_index, compiler
-
         // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
         shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_vert_index));
         shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_frag_index));
@@ -387,61 +288,6 @@ void main()
       }
 
       flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
-
-#if 0
-      //FIXME: these vectors should be generated.
-      {
-        std::vector<vk::DescriptorSetLayoutBinding> top_layout_bindings = {
-          {
-            .binding = 0,
-            .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eVertex,
-          },
-          {
-            .binding = 1,
-            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eFragment,
-          }
-        };
-        std::vector<vk::DescriptorSetLayoutBinding> left_layout_bindings = {
-          {
-            .binding = 0,
-            .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eVertex,
-          }
-        };
-        std::vector<vk::DescriptorSetLayoutBinding> bottom_layout_bindings = {
-          {
-            .binding = 0,
-            .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eVertex,
-          }
-        };
-
-        m_top_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(top_layout_bindings));
-        m_left_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(left_layout_bindings));
-        m_bottom_descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(bottom_layout_bindings));
-      }
-
-      if (pipeline == 0)
-      {
-        // Define pipeline layout.
-        m_descriptor_set_layouts.push_back(m_top_descriptor_set_layout);
-        m_descriptor_set_layouts.push_back(m_left_descriptor_set_layout);
-        m_descriptor_set_layouts.push_back(m_bottom_descriptor_set_layout);
-      }
-      else
-      {
-        // Define pipeline layout.
-        m_descriptor_set_layouts.push_back(m_left_descriptor_set_layout);
-        m_descriptor_set_layouts.push_back(m_top_descriptor_set_layout);
-        m_descriptor_set_layouts.push_back(m_bottom_descriptor_set_layout);
-      }
-#endif
 
       // Realize the descriptor set layouts: if a layout already exists then use the existing
       // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
