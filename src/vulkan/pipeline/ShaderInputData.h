@@ -106,8 +106,12 @@ class ShaderInputData
   // Initialized in handle_shader_resource_creation_requests:
   // The list of shader resources that we managed to get the lock on and weren't already created before.
   std::vector<shader_builder::shader_resource::Base*> m_acquired_required_shader_resources_list;
-  // The largest set_index used in m_required_shader_resources_list.
-  descriptor::SetIndex m_largest_set_index{0};
+  // Initialized in initialize_shader_resources_per_set_index.
+  utils::Vector<std::vector<shader_builder::shader_resource::Base const*>, descriptor::SetIndex> m_shader_resources_per_set_index;
+  // The largest set_index used in m_required_shader_resources_list, plus one.
+  descriptor::SetIndex m_set_index_end;
+  // The current descriptor set index that we're processing in update_missing_descriptor_sets.
+  descriptor::SetIndex m_set_index;
 
   // Descriptor set handles, sorted by descriptor set index, required for the next pipeline.
   utils::Vector<vk::DescriptorSet, descriptor::SetIndex> m_vhv_descriptor_sets;
@@ -182,9 +186,24 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
+  // Called by add_textures and/or add_uniform_buffer (at the end), requesting to be created.
   void request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource);
+
+  //---------------------------------------------------------------------------
+  // Begin of MultiLoop states.
+
+  // Called by PipelineFactory_top_multiloop_while_loop.
+  bool sort_required_shader_resources_list();
+  // Called by PipelineFactory_create_shader_resources.
   bool handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map);
-  bool allocate_and_update_missing_descriptor_sets(task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map, ShaderInputData::sorted_descriptor_set_layouts_container_t* sorted_descriptor_set_layouts);
+  // Called by PipelineFactory_initialize_shader_resources_per_set_index.
+  void initialize_shader_resources_per_set_index(vulkan::descriptor::SetBindingMap const& set_binding_map);
+  // Called by PipelineFactory_update_missing_descriptor_sets.
+  bool update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map, bool have_lock);
+  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<descriptor::SetIndex> const& set_indexes, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
+
+  // End of MultiLoop states.
+  //---------------------------------------------------------------------------
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,

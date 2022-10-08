@@ -66,7 +66,7 @@ target_link_libraries(uniform_buffers_test
     dns::dns
 )
 
-add_executable(reflection_test2
+add_executable(reflection_test2 EXCLUDE_FROM_ALL
   reflection_test2.cpp
 )
 
@@ -79,4 +79,13 @@ target_link_libraries(reflection_test2
   PRIVATE
     AICxx::cwds
     Eigen3::Eigen
+)
+
+add_executable(horse_race EXCLUDE_FROM_ALL
+  horse_race.cpp
+)
+
+target_link_libraries(horse_race
+  PRIVATE
+    AICxx::cwds
 )

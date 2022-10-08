@@ -17,12 +17,73 @@ namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;
 
 namespace shader_resource {
+class Base;
+
+// Helper class that stores the descriptor set allocation mutex and a vector with vk::DescriptorSet handles bound to
+// the associated shader resource (m_debug_owner).
+//
+// Access to this class is protected by the read/write mutex on Base::m_set_layout_bindings_to_handles.
+class SetMutexAndSetHandles
+{
+ private:
+  AIStatefulTaskMutex m_mutex;                  // Mutex that is locked for the first shader resource of a given set a shader resources that we need a descriptor for.
+
+  using descriptor_set_container_t = std::vector<vk::DescriptorSet>;
+  descriptor_set_container_t m_descriptor_sets; // Vector containing all descriptor sets that the shader resource owning this SetLayoutBinding (stored in shader_resource::Base::m_set_layout_bindings) is bound to.
+
+#ifdef CWDEBUG
+  AIStatefulTask const* m_debug_have_lock{};    // Pointer to the task that successfully locked m_mutex, or nullptr when unlocked.
+  Base const* m_debug_owner;                    // The shader resource that has a map that contains this object.
+#endif
+
+ public:
+#ifndef CWDEBUG
+  // Construct a SetMutexAndSetHandles that contains no vk::DescriptorSet's.
+  SetMutexAndSetHandles() = default;
+  // Construct a SetMutexAndSetHandles that contains a single vk::DescriptorSet.
+  SetMutexAndSetHandles(vk::DescriptorSet descriptor_set) : m_descriptor_sets{descriptor_set} { }
+#else
+  // Construct a SetMutexAndSetHandles that contains no vk::DescriptorSet's.
+  SetMutexAndSetHandles(Base const* owner) : m_debug_owner(owner) { }
+  // Construct a SetMutexAndSetHandles that contains a single vk::DescriptorSet.
+  SetMutexAndSetHandles(vk::DescriptorSet descriptor_set, Base const* owner) : m_descriptor_sets{descriptor_set}, m_debug_owner(owner) { }
+#endif
+
+  void add_handle(vk::DescriptorSet descriptor_set)
+  {
+    m_descriptor_sets.push_back(descriptor_set);
+  }
+
+#ifdef CWDEBUG
+  bool lock_descriptor_sets(AIStatefulTask* task, AIStatefulTask::condition_type condition);
+  void set_have_lock(AIStatefulTask* task);
+#else
+  bool lock_descriptor_sets(AIStatefulTask* task, AIStatefulTask::condition_type condition) { return m_mutex.lock(task, condition); }
+#endif
+
+  // Accessor.
+  descriptor_set_container_t const& descriptor_sets(CWDEBUG_ONLY(AIStatefulTask const* task)) const
+  {
+    DoutEntering(dc::notice, "SetMutexAndSetHandles::descriptor_sets(" << task << ") [" << this << "]");
+    return m_descriptor_sets;
+  }
+
+#ifdef CWDEBUG
+  void unlock_descriptor_sets(AIStatefulTask const* task);
+#else
+  void unlock_descriptor_sets() { m_mutex.unlock(); }
+#endif
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
+};
 
 // Base class for shader resources.
 class Base
 {
-  using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-  using set_layout_bindings_container_t = std::set<descriptor::SetLayoutBinding>;
+ public:
+  using set_layout_bindings_to_handles_container_t = std::map<descriptor::SetLayoutBinding, SetMutexAndSetHandles>;
 
  private:
   // 'mutable' because shader resource instances added with add_* (add_texture, add_uniform_buffer, etc)
@@ -31,22 +92,21 @@ class Base
   // that to be finished. The thread-safe functions that use this mutex aren't really 'const', but they
   // are thread-safe ;).
   mutable AIStatefulTaskMutex m_create_access_mutex;
-  std::atomic_bool m_created_and_updated_descriptor_set{false};
+  std::atomic_bool m_created{false};
   descriptor::SetKey m_descriptor_set_key;
-  using set_layout_bindings_t = aithreadsafe::Wrapper<set_layout_bindings_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
-  mutable set_layout_bindings_t m_set_layout_bindings;
+  using set_layout_bindings_to_handles_t = aithreadsafe::Wrapper<set_layout_bindings_to_handles_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  mutable set_layout_bindings_to_handles_t m_set_layout_bindings_to_handles;
 
 #ifdef CWDEBUG
+ private:
   Ambifix m_ambifix;
 
- protected:
-  // Implementation of virtual function of Base.
+ public:
   Ambifix const& ambifix() const
   {
     return m_ambifix;
   }
 
- public:
   void add_ambifix(Ambifix const& ambifix) { m_ambifix = ambifix(m_ambifix.object_name()); }
 #endif
 
@@ -71,40 +131,79 @@ class Base
   // The call to create and update_descriptor_set must happen after acquire_lock returned true,
   // followed by a call to set_created and before the accompanied call to release_lock.
 
-  bool acquire_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
+  bool acquire_create_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
   {
+    DoutEntering(dc::notice, "Base::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << " (" << m_ambifix.object_name() << ")]");
     return m_create_access_mutex.lock(task, condition);
   }
 
-  bool add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding_no_handle) /*thread-safe*/ const
+  bool lock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
   {
-    set_layout_bindings_t::wat set_layout_bindings_w(m_set_layout_bindings);
-    auto res = set_layout_bindings_w->insert(set_layout_binding_no_handle);
-    return res.second;
+    DoutEntering(dc::notice, "lock_set_layout_binding(" << set_layout_binding << ", " << task << ", " << task->print_conditions(condition) << ")");
+    set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
+    auto pib = set_layout_bindings_to_handles_w->try_emplace(set_layout_binding COMMA_CWDEBUG_ONLY(this));  // Get existing or default construct SetMutexAndSetHandles.
+    return pib.first->second.lock_descriptor_sets(task, condition);
   }
 
-  void replace_layout_binding(descriptor::SetLayoutBinding set_layout_binding) /*thread-safe*/ const
+#ifdef CWDEBUG
+  void set_have_lock(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task) /*thread-safe*/ const
   {
-    set_layout_bindings_t::wat set_layout_bindings_w(m_set_layout_bindings);
-    auto iter = set_layout_bindings_w->find(set_layout_binding);
-    // This key (pointer + binding) should already have been inserted with add_set_layout_binding.
-    ASSERT(iter != set_layout_bindings_w->end());
-    iter->set_handle(set_layout_binding.handle());
+    DoutEntering(dc::notice, "set_have_lock(" << set_layout_binding << ", " << task << ")");
+    set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
+    auto iter = set_layout_bindings_to_handles_w->find(set_layout_binding);     // Get existing SetMutexAndSetHandles (see lock_set_layout_binding which created it when it didn't already exist then).
+    ASSERT(iter != set_layout_bindings_to_handles_w->end());
+    return iter->second.set_have_lock(task);
+  }
+#endif
+
+  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, vk::DescriptorSet descriptor_set, AIStatefulTask* locked_by_task) /*thread-safe*/ const
+  {
+    DoutEntering(dc::notice, "add_set_layout_binding(" << set_layout_binding << ", " << descriptor_set << ", " << locked_by_task << ") for [" << this << " (" << m_ambifix.object_name() << ")]");
+    set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
+    Dout(dc::notice, "m_set_layout_bindings_to_handles currently contains: " << *set_layout_bindings_to_handles_w);
+    auto iter = set_layout_bindings_to_handles_w->find(set_layout_binding);
+    if (iter == set_layout_bindings_to_handles_w->end())
+    {
+      Dout(dc::notice, "The key was not found, adding it...");
+      CWDEBUG_ONLY(auto pib =) set_layout_bindings_to_handles_w->try_emplace(set_layout_binding, descriptor_set COMMA_CWDEBUG_ONLY(this));
+      // We just couldn't find this key?!
+      ASSERT(pib.second);
+    }
+    else
+    {
+      Dout(dc::notice, "This key was found, adding handle...");
+      iter->second.add_handle(descriptor_set);
+      if (locked_by_task)
+      {
+        iter->second.unlock_descriptor_sets(CWDEBUG_ONLY(locked_by_task));
+      }
+    }
   }
 
-  void set_created_and_updated_descriptor_set()
+  void unlock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding COMMA_CWDEBUG_ONLY(AIStatefulTask* task)) /*thread-safe*/ const
   {
-    m_created_and_updated_descriptor_set.store(true, std::memory_order::release);
+    DoutEntering(dc::notice, "unlock_set_layout_binding(" << set_layout_binding << ", " << task << ")");
+    set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
+    auto iter = set_layout_bindings_to_handles_w->find(set_layout_binding);
+    // Call lock_set_layout_binding before calling unlock_set_layout_binding.
+    ASSERT(iter != set_layout_bindings_to_handles_w->end());
+    iter->second.unlock_descriptor_sets(CWDEBUG_ONLY(task));
   }
 
-  void release_lock() /*thread-safe*/ const
+  void set_created()
   {
+    m_created.store(true, std::memory_order::release);
+  }
+
+  void release_create_lock() /*thread-safe*/ const
+  {
+    DoutEntering(dc::notice, "Base::release_create_lock() [" << this << " (" << m_ambifix.object_name() << ")]");
     m_create_access_mutex.unlock();
   }
 
-  bool is_created_and_updated_descriptor_set() const
+  bool is_created() const
   {
-    return m_created_and_updated_descriptor_set.load(std::memory_order::acquire);
+    return m_created.load(std::memory_order::acquire);
   }
 
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
@@ -114,7 +213,7 @@ class Base
 
   // Accessors.
   descriptor::SetKey descriptor_set_key() const { return m_descriptor_set_key; }
-  set_layout_bindings_t::crat set_layout_bindings() const { return m_set_layout_bindings; }
+  set_layout_bindings_to_handles_t::crat set_layout_bindings_to_handles() const { return m_set_layout_bindings_to_handles; }
 
 #ifdef CWDEBUG
  public:

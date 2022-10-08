@@ -131,6 +131,8 @@ char const* PipelineFactory::condition_str_impl(condition_type condition) const
   {
     AI_CASE_RETURN(pipeline_cache_set_up);
     AI_CASE_RETURN(fully_initialized);
+    AI_CASE_RETURN(obtained_create_lock);
+    AI_CASE_RETURN(obtained_set_layout_binding_lock);
   }
   return direct_base_type::condition_str_impl(condition);
 }
@@ -145,6 +147,8 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_top_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_while_loop);
     AI_CASE_RETURN(PipelineFactory_create_shader_resources);
+    AI_CASE_RETURN(PipelineFactory_initialize_shader_resources_per_set_index);
+    AI_CASE_RETURN(PipelineFactory_update_missing_descriptor_sets);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_while_loop);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_done);
@@ -274,36 +278,47 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
-        m_descriptor_set_layouts_canonical_ptr = m_flat_create_info.get_realized_descriptor_set_layouts();
         {
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
 
           // Realize (create or get from cache) the pipeline layout and return a suitable SetBindingMap.
-          m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(m_descriptor_set_layouts_canonical_ptr, m_set_binding_map, sorted_push_constant_ranges);
+          m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
+              m_flat_create_info.get_realized_descriptor_set_layouts(), m_set_binding_map, sorted_push_constant_ranges);
         }
 
         // Now that we have initialized m_set_binding_map, do the callbacks that need it.
         m_flat_create_info.do_set_binding_map_callbacks(m_set_binding_map);
 
+        if (m_shader_input_data.sort_required_shader_resources_list())
+        {
+          // No need to call PipelineFactory_create_shader_resources: there are no shader resources that need to be created.
+          run_state = PipelineFactory_initialize_shader_resources_per_set_index;
+          set_state(PipelineFactory_initialize_shader_resources_per_set_index);
+          break;
+        }
         set_state(PipelineFactory_create_shader_resources);
         [[fallthrough]];
       case PipelineFactory_create_shader_resources:
-        // Also pass m_descriptor_set_layouts_canonical_ptr, a pointer to a sorted_descriptor_set_layouts_container_t with a long life-time.
         if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_binding_map))
         {
           //PipelineFactory
-          wait(create_shader_resources);
+          wait(obtained_create_lock);
           return;
         }
-        if (!m_shader_input_data.allocate_and_update_missing_descriptor_sets(m_owning_window, m_set_binding_map, m_descriptor_set_layouts_canonical_ptr))
+        set_state(PipelineFactory_initialize_shader_resources_per_set_index);
+        [[fallthrough]];
+      case PipelineFactory_initialize_shader_resources_per_set_index:
+        m_have_lock = false;
+        m_shader_input_data.initialize_shader_resources_per_set_index(m_set_binding_map);
+        set_state(PipelineFactory_update_missing_descriptor_sets);
+        [[fallthrough]];
+      case PipelineFactory_update_missing_descriptor_sets:
+        if (!m_shader_input_data.update_missing_descriptor_sets(this, m_owning_window, m_set_binding_map, m_have_lock))
         {
-          //PipelineFactory
-          wait(create_shader_resources);
+          m_have_lock = true;   // Next time we're woken up (by signal obtained_set_layout_binding_lock) we'll have the lock.
+          wait(obtained_set_layout_binding_lock);
           return;
         }
-
-//      case PipelineFactory_somename:
-//FIXME        m_owning_window->create_uniform_buffers(m_shader_input_data, set_binding_map);
 
         // End pipeline layout creation
         //-----------------------------------------------------------------

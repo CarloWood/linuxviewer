@@ -182,11 +182,9 @@ class LogicalDevice
   vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
-  // and returns an updated set_binding_map_out (see explanation in LogicalDevice.cxx) and an updated realized_descriptor_set_layouts*
-  // that points to a copy of the sorted_descriptor_set_layouts_container_t stored in m_pipeline_layouts. This returned pointer has a long
-  // life-time and is immutable, so that we can use references to it and/or its elements.
+  // and returns an updated set_binding_map_out (see explanation in LogicalDevice.cxx).
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_descriptor_set_layouts_container_t*& realized_descriptor_set_layouts,
+      sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
       descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;

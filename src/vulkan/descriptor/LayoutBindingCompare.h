@@ -26,12 +26,6 @@ struct LayoutBindingCompare
     }
 
     return lhs.descriptorCount < rhs.descriptorCount;
-#if 0
-    if (lhs.descriptorCount != rhs.descriptorCount)
-      return lhs.descriptorCount < rhs.descriptorCount;
-
-    return lhs.binding < rhs.binding;
-#endif
   }
 };
 

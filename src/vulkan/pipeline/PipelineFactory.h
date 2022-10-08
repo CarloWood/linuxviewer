@@ -34,7 +34,8 @@ class PipelineFactory : public AIStatefulTask
 
   static constexpr condition_type pipeline_cache_set_up = 1;
   static constexpr condition_type fully_initialized = 2;
-  static constexpr condition_type create_shader_resources = 4;
+  static constexpr condition_type obtained_create_lock = 4;
+  static constexpr condition_type obtained_set_layout_binding_lock = 8;
 
  private:
   // Constructor.
@@ -58,7 +59,6 @@ class PipelineFactory : public AIStatefulTask
   MultiLoop m_range_counters;
   int m_start_of_next_loop;
   // State PipelineFactory_top_multiloop_while_loop
-  vulkan::pipeline::ShaderInputData::sorted_descriptor_set_layouts_container_t* m_descriptor_set_layouts_canonical_ptr;
   vulkan::descriptor::SetBindingMap m_set_binding_map;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
@@ -66,6 +66,8 @@ class PipelineFactory : public AIStatefulTask
   vulkan::pipeline::Index m_pipeline_index;
   // Layout of the current pipeline that is being created inside the MultiLoop.
   vk::PipelineLayout m_vh_pipeline_layout;
+  // Set to true when calling ShaderInputData::update_missing_descriptor_sets while already having the set_layout_binding lock for the current pipeline/set_index/first_shader_resource.
+  bool m_have_lock;
 
  protected:
   using direct_base_type = AIStatefulTask;      // The immediate base class of this task.
@@ -78,6 +80,8 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_top_multiloop_for_loop,
     PipelineFactory_top_multiloop_while_loop,
     PipelineFactory_create_shader_resources,
+    PipelineFactory_initialize_shader_resources_per_set_index,
+    PipelineFactory_update_missing_descriptor_sets,
     PipelineFactory_bottom_multiloop_while_loop,
     PipelineFactory_bottom_multiloop_for_loop,
     PipelineFactory_done

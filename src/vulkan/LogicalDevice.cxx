@@ -1343,7 +1343,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_descriptor_set_layouts_container_t*& realized_descriptor_set_layouts,
+    sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
     descriptor::SetBindingMap& set_binding_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {

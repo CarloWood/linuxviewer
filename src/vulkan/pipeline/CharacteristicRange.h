@@ -10,6 +10,7 @@
 
 namespace task {
 class SynchronousWindow;
+class PipelineFactory;
 } // namespace task
 
 namespace vulkan::pipeline {

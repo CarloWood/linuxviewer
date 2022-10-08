@@ -83,15 +83,6 @@ struct SetLayoutCompare
       return true;
 
     return utils::VectorCompare<LayoutBindingCompare>{}(lhs.m_sorted_bindings, rhs.m_sorted_bindings);
-#if 0
-    if (utils::VectorCompare<LayoutBindingCompare>{}(lhs.m_sorted_bindings, rhs.m_sorted_bindings))
-      return true;
-
-    if (utils::VectorCompare<LayoutBindingCompare>{}(rhs.m_sorted_bindings, lhs.m_sorted_bindings))
-      return false;
-
-    return lhs.m_set_index_hint < rhs.m_set_index_hint;
-#endif
   }
 };
 
