@@ -52,7 +52,6 @@ class Window : public task::SynchronousWindow
  public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
   vulkan::shader_resource::Texture m_background_texture{"m_background_texture"};
   vulkan::shader_resource::Texture m_benchmark_texture{"m_benchmark_texture"};
-  vk::DescriptorSet m_vh_descriptor_set;        // The lifetime of this resource is entirely controlled by its pool: LogicalDevice::m_descriptor_pool.
  private:
   vulkan::Pipeline m_graphics_pipeline;
 
@@ -301,33 +300,6 @@ void main()
             });
       }
 
-#if 0
-      vulkan::descriptor::SetLayout descriptor_set_layout;
-      {
-        std::vector<vk::DescriptorSetLayoutBinding> layout_bindings = {
-          {
-            .binding = 0,
-            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            .pImmutableSamplers = nullptr
-          },
-          {
-            .binding = 1,
-            .descriptorType = vk::DescriptorType::eCombinedImageSampler,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eFragment,
-            .pImmutableSamplers = nullptr
-          }
-        };
-
-        descriptor_set_layout = owning_window->logical_device()->realize_descriptor_set_layout(std::move(layout_bindings));
-      }
-
-      // Define pipeline layout.
-      m_descriptor_set_layouts.push_back(descriptor_set_layout);
-#endif
-
       m_vertex_input_binding_descriptions = shader_input_data().vertex_binding_descriptions();
       m_vertex_input_attribute_descriptions = shader_input_data().vertex_input_attribute_descriptions();
       m_push_constant_ranges = shader_input_data().push_constant_ranges();
@@ -342,44 +314,6 @@ void main()
       window->create_vertex_buffers(this);
 
       shader_input_data().realize_descriptor_set_layouts(owning_window->logical_device());
-
-      // We can do this here, because this application doesn't use any shader resources (no set or binding number are needed to be known):
-
-#if 0 //FIXME: doesn't compile and shouldn't be done here. This should be done by the PipelineFactory.
-      std::vector<vk::DescriptorSetLayout> vhv_descriptor_set_layouts = shader_input_data().get_vhv_descriptor_set_layouts({});
-      auto descriptor_sets = owning_window->logical_device()->allocate_descriptor_sets(vhv_descriptor_set_layouts, owning_window->logical_device()->get_descriptor_pool()
-          COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_vh_descriptor_set")));
-      vk::DescriptorSet vh_descriptor_set = descriptor_sets[0];    // We only have one descriptor set --^
-      // Store the descriptor set handle: it is used in draw_frame().
-      //FIXME: m_vh_descriptor_set shouldn't exist... for now just use it, which is only safe because this function
-      // is single threaded for this test application.
-      const_cast<Window*>(window)->m_vh_descriptor_set = vh_descriptor_set;
-
-      //FIXME: this needs a rewrite (of API) such that the updates happen automatically
-      // as a result of the texture registrations (aka, the Texture template specialization).
-      // Update descriptor set of m_background_texture.
-      {
-        std::vector<vk::DescriptorImageInfo> image_infos = {
-          {
-            .sampler = window->m_background_texture.sampler(),
-            .imageView = window->m_background_texture.image_view(),
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-          }
-        };
-        owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 0, 0, image_infos);
-      }
-      // Update descriptor set of m_benchmark_texture.
-      {
-        std::vector<vk::DescriptorImageInfo> image_infos = {
-          {
-            .sampler = window->m_benchmark_texture.sampler(),
-            .imageView = window->m_benchmark_texture.image_view(),
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-          }
-        };
-        owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, 1, 0, image_infos);
-      }
-#endif
     }
 
    public:
@@ -586,8 +520,7 @@ if (!m_graphics_pipeline.handle())
 else
 {
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
-//FIXME: m_vh_descriptor_set should not exist; this is just a hack... need still to design where/how to store descriptor sets...
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */, { m_vh_descriptor_set }, {});
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */, m_graphics_pipeline.vhv_descriptor_sets(), {});
       {
         vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
         vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
