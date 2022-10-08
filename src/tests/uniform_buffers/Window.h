@@ -214,19 +214,6 @@ class Window : public task::SynchronousWindow
   static constexpr std::string_view uniform_buffer_controlled_triangle0_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
 
-//FIXME: remove
-//layout(std140, set = 0, binding = 0) uniform u_s0b0 {
-//  TopPosition m_top_position[32];
-//} v4238767198234540653;
-
-//layout(set = 1, binding = 0) uniform u_s1b0 {
-//  LeftPosition m_left_position;
-//} v10031191547342547505;
-
-//layout(set = 2, binding = 0) uniform u_s2b0 {
-//  BottomPosition bottom_position;
-//} v1652305533358859285;
-
 vec2 positions[3] = vec2[](
   vec2(0.0, -1.0),
   vec2(-1.0, 1.0),
@@ -235,13 +222,9 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  //positions[0].x = TopPosition::x - 1.0;
-  //something = BottomPosition::unused;
-  positions[0].x = v4238767198234540653.m_top_position.x - 1.0;
-  //positions[1].y = LeftPosition::y;
-  positions[1].y = v10031191547342547505.m_left_position.y;
-  //positions[2].x = BottomPosition::x - 1.0;
-  positions[2].x = v1652305533358859285.m_bottom_position.x - 1.0;
+  positions[0].x = TopPosition::x - 1.0;
+  positions[1].y = LeftPosition::y;
+  positions[2].x = BottomPosition::x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
@@ -249,19 +232,6 @@ void main()
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;
-
-// FIXME: remove
-//layout(set = 0, binding = 0) uniform LeftPosition {
-//    mat4 unused;
-//    float y;
-//} v10031191547342547505;
-//layout(set = 1, binding = 0) uniform TopPositionArray {
-//    TopPosition top_position[32];
-//} v4238767198234540653;
-//layout(set = 2, binding = 0) uniform BottomPosition {
-//    vec2 unused;
-//    float x;
-//} v1652305533358859285;
 
 vec2 positions[3] = vec2[](
     vec2(0.0, -1.0),
@@ -271,21 +241,15 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  //positions[0].x = TopPosition::x;
-  positions[0].x = v4238767198234540653.m_top_position.x;
-  //positions[1].y = LeftPosition::y;
-  positions[1].y = v10031191547342547505.m_left_position.y;
-  //positions[2].x = BottomPosition::x;
-  positions[2].x = v1652305533358859285.m_bottom_position.x;
+  positions[0].x = TopPosition::x;
+  positions[1].y = LeftPosition::y;
+  positions[2].x = BottomPosition::x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
   v_Texcoord = 0.5 * (positions[gl_VertexIndex] + vec2(1.0, 1.0));
 }
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle0_frag_glsl = R"glsl(
-// FIXME: remove
-//layout(set=0, binding=1) uniform sampler2D u_Vort3Texture;
-
 layout(location = 0) in vec2 v_Texcoord;
 
 layout(location = 0) out vec4 outColor;
@@ -298,9 +262,6 @@ void main()
 )glsl";
 
   static constexpr std::string_view uniform_buffer_controlled_triangle1_frag_glsl = R"glsl(
-// FIXME: remove
-//layout(set=1, binding=1) uniform sampler2D u_Vort3Texture;
-
 layout(location = 0) in vec2 v_Texcoord;
 
 layout(location = 0) out vec4 outColor;

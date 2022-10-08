@@ -17,6 +17,7 @@ class ShaderResourceVariable final : public ShaderVariable
   // Implement base class interface.
   DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
   std::string name() const override;
+  std::string substitution() const override;
 
 #ifdef CWDEBUG
  public:

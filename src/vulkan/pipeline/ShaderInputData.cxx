@@ -79,7 +79,7 @@ std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& 
     for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
     {
       id_to_name_growth += shader_variable->name().length() - match_string.length();
-      positions[pos] = std::make_pair(match_string, shader_variable->name());
+      positions[pos] = std::make_pair(match_string, shader_variable->substitution());
     }
   }
 

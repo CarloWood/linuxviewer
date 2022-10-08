@@ -2,7 +2,7 @@
 #include "snake_case.h"
 #include <cctype>
 
-namespace vulkan::vk_utils {
+namespace vk_utils {
 
 std::string snake_case(std::string_view camel_case)
 {

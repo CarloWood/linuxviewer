@@ -3,6 +3,7 @@
 #include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/print_pointer.h"
+#include "vk_utils/snake_case.h"
 #include <sstream>
 #include "debug.h"
 
@@ -41,6 +42,25 @@ std::string ShaderResourceVariable::name() const
   std::ostringstream oss;
   oss << "u_" << prefix() << "_" << member_name();
   return oss.str();
+}
+
+std::string ShaderResourceVariable::substitution() const
+{
+  switch (m_shader_resource_declaration_ptr->descriptor_type())
+  {
+    case vk::DescriptorType::eUniformBuffer:
+    {
+      std::string prefix = this->prefix();
+      std::size_t const prefix_hash = std::hash<std::string>{}(prefix);
+      std::ostringstream oss;
+      // The same as the declaration, see ShaderResourceDeclarationContext::generate.
+      oss << 'v' << prefix_hash << ".m_" << vk_utils::snake_case(prefix) << '.' << member_name();
+      return oss.str();
+    }
+    default:
+      break;
+  }
+  return name();
 }
 
 #ifdef CWDEBUG
