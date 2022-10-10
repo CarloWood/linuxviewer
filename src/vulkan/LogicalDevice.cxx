@@ -926,54 +926,66 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
   return set_layout;
 }
 
-std::vector<vk::DescriptorSet> LogicalDevice::allocate_descriptor_sets(
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout
-    COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes),
+std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::allocate_descriptor_sets(
+    FrameResourceIndex number_of_frame_resources,
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs,
     descriptor_pool_t const& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << vhv_descriptor_set_layout << ", " << set_indexes << ", @" << (void*)&descriptor_pool <<
-      ", object_name:\"" << debug_name.object_name() << "\").");
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << number_of_frame_resources << ", " << vhv_descriptor_set_layout <<
+      ", " << set_index_has_frame_resource_pairs << ", @" << (void*)&descriptor_pool << ", object_name:\"" << debug_name.object_name() << "\").");
+  uint32_t descriptorSetCount = 0;
+  vk::DescriptorSetLayout const* pSetLayouts = vhv_descriptor_set_layout.data();
+  std::vector<vk::DescriptorSetLayout> tmp_vhv_layouts;
+  static constexpr FrameResourceIndex one{1};
+  int n = 0;
+  for (vk::DescriptorSetLayout vh_descriptor_set_layout : vhv_descriptor_set_layout)
+  {
+    for (FrameResourceIndex frame_index{0}; frame_index < (set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources : one); ++frame_index)
+    {
+      tmp_vhv_layouts.push_back(vh_descriptor_set_layout);
+      ++descriptorSetCount;
+    }
+    ++n;
+  }
+  pSetLayouts = tmp_vhv_layouts.data();
   descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
   vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
     .descriptorPool = descriptor_pool_r->get(),
-    .descriptorSetCount = static_cast<uint32_t>(vhv_descriptor_set_layout.size()),
-    .pSetLayouts = vhv_descriptor_set_layout.data()
+    .descriptorSetCount = descriptorSetCount,
+    .pSetLayouts = pSetLayouts
   };
-  std::vector<vk::DescriptorSet> descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
+  std::vector<vk::DescriptorSet> raw_descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
+
+  std::vector<descriptor::FrameResourceCapableDescriptorSet> descriptor_sets;
+  auto raw_descriptor_set = raw_descriptor_sets.begin();
+  for (n = 0; n < vhv_descriptor_set_layout.size(); ++n)
+  {
+    size_t nfrs = set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources.get_value() : 1;
+    descriptor_sets.emplace_back(raw_descriptor_set, raw_descriptor_set + nfrs);
+    raw_descriptor_set += nfrs;
+  }
 #ifdef CWDEBUG
-  if (set_indexes.empty())
+  if (set_index_has_frame_resource_pairs.empty())
   {
     // This is only intended for single-descriptor set allocations (as used by ImGui).
     ASSERT(descriptor_sets.size() == 1);
-    DebugSetName(descriptor_sets[0], debug_name, this);
+    if (!set_index_has_frame_resource_pairs[0].second)
+      DebugSetName(static_cast<vk::DescriptorSet>(descriptor_sets[0]), debug_name, this);
+    else
+      for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
+        DebugSetName(descriptor_sets[0][frame_index], debug_name("[" + to_string(frame_index) + "]"), this);
   }
   else
-    for (int i = 0; i < descriptor_sets.size(); ++i)
-      DebugSetName(descriptor_sets[i], debug_name("[" + to_string(set_indexes[i]) + "]"), this);
-#endif
-  Dout(dc::shaderresource, "Returning: " << descriptor_sets);
-  return descriptor_sets;
-}
-
-std::vector<vk::UniqueDescriptorSet> LogicalDevice::allocate_descriptor_sets_unique(
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout
-    COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes),
-    descriptor_pool_t const& descriptor_pool
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
-{
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets_unique(" << vhv_descriptor_set_layout << ", " << set_indexes << ", @" << (void*)&descriptor_pool <<
-      ", object_name:\"" << debug_name.object_name() << "\").");
-  descriptor_pool_t::crat descriptor_pool_r(descriptor_pool);
-  vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-    .descriptorPool = descriptor_pool_r->get(),
-    .descriptorSetCount = static_cast<uint32_t>(vhv_descriptor_set_layout.size()),
-    .pSetLayouts = vhv_descriptor_set_layout.data()
-  };
-  std::vector<vk::UniqueDescriptorSet> descriptor_sets = m_device->allocateDescriptorSetsUnique(descriptor_set_allocate_info);
-#ifdef CWDEBUG
-  for (int i = 0; i < descriptor_sets.size(); ++i)
-    DebugSetName(descriptor_sets[i], debug_name("[" + to_string(set_indexes[i]) + "]"), this);
+  {
+    for (int n = 0; n < descriptor_sets.size(); ++n)
+      for (FrameResourceIndex frame_index{0}; frame_index < (set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources : one); ++frame_index)
+        if (!set_index_has_frame_resource_pairs[n].second)
+          DebugSetName(static_cast<vk::DescriptorSet>(descriptor_sets[n]), debug_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "]"), this);
+        else
+          DebugSetName(descriptor_sets[n][frame_index], debug_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "][" + to_string(frame_index) + "]"), this);
+  }
 #endif
   Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;
@@ -1019,45 +1031,6 @@ void LogicalDevice::free_command_buffers(vk::CommandPool vh_pool, uint32_t count
   // commandBufferCount must be greater than 0
   ASSERT(count > 0);
   m_device->freeCommandBuffers(vh_pool, count, command_buffers);
-}
-
-void LogicalDevice::update_descriptor_set(
-    vk::DescriptorSet vh_descriptor_set,
-    vk::DescriptorType descriptor_type,
-    uint32_t binding,
-    uint32_t array_element,
-    std::vector<vk::DescriptorImageInfo> const& image_infos,
-    std::vector<vk::DescriptorBufferInfo> const& buffer_infos,
-    std::vector<vk::BufferView> const& buffer_views) const
-{
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_set(" <<
-      vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << image_infos << ", " << buffer_infos << ", " << buffer_views << ")");
-
-  uint32_t descriptor_count{};
-
-  if (descriptor_type == vk::DescriptorType::eCombinedImageSampler || descriptor_type == vk::DescriptorType::eSampledImage ||
-      descriptor_type == vk::DescriptorType::eStorageImage || descriptor_type ==  vk::DescriptorType::eInputAttachment)
-    descriptor_count = image_infos.size();
-  else if (descriptor_type == vk::DescriptorType::eUniformBuffer || descriptor_type == vk::DescriptorType::eStorageBuffer ||
-      descriptor_type == vk::DescriptorType::eUniformBufferDynamic || descriptor_type == vk::DescriptorType::eStorageBufferDynamic)
-    descriptor_count = buffer_infos.size();
-  else if (descriptor_type == vk::DescriptorType::eUniformTexelBuffer || descriptor_type == vk::DescriptorType::eStorageTexelBuffer)
-    descriptor_count = buffer_views.size();
-  else
-    DoutFatal(dc::core, "Not implemented.");
-
-  vk::WriteDescriptorSet descriptor_writes{
-    .dstSet = vh_descriptor_set,
-    .dstBinding = binding,
-    .dstArrayElement = array_element,
-    .descriptorCount = descriptor_count,
-    .descriptorType = descriptor_type,
-    .pImageInfo = image_infos.size() ? image_infos.data() : nullptr,
-    .pBufferInfo = buffer_infos.size() ? buffer_infos.data() : nullptr,
-    .pTexelBufferView = buffer_views.size() ? buffer_views.data() : nullptr
-  };
-
-  m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
 }
 
 vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(

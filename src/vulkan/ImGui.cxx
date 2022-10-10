@@ -119,7 +119,9 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
   };
   m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(layout_bindings
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
-  auto descriptor_sets = logical_device()->allocate_descriptor_sets({ *m_descriptor_set_layout } COMMA_CWDEBUG_ONLY({}), logical_device()->get_descriptor_pool()
+  // Note: no frame resource support is required for a descriptor set if just one texture in it.
+  auto descriptor_sets = logical_device()->allocate_descriptor_sets(FrameResourceIndex{1},
+      { *m_descriptor_set_layout }, { std::make_pair(descriptor::SetIndex{}, false) }, logical_device()->get_descriptor_pool()
       COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
   m_descriptor_set = descriptor_sets[0];        // We only have one descriptor set --^
 }

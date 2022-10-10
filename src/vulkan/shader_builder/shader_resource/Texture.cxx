@@ -15,8 +15,9 @@ void Texture::create(task::SynchronousWindow const* owning_window)
 #endif
 }
 
-void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const
+void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const
 {
+  DoutEntering(dc::shaderresource, "Texture::update_descriptor_set(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << std::boolalpha << has_frame_resource << ")");
   // Update vh_descriptor_set binding `binding` with this texture.
   std::vector<vk::DescriptorImageInfo> image_infos = {
     {
@@ -25,7 +26,11 @@ void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window
       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
     }
   };
-  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
+  if (has_frame_resource)
+    for (FrameResourceIndex frame_index{0}; frame_index < owning_window->max_number_of_frame_resources(); ++frame_index)
+      owning_window->logical_device()->update_descriptor_sets(descriptor_set[frame_index], vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
+  else
+    owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
 }
 
 #ifdef CWDEBUG

@@ -42,4 +42,13 @@ concept ConceptUniqueVulkanHandle = is_unique_handle<T>::value;
 template<typename T>
 concept ConceptPipelineCharacteristic = std::is_base_of_v<pipeline::CharacteristicRange, T>;
 
+template<typename T>
+concept ConceptWriteDescriptorSetUpdateInfo =
+  std::is_same_v<T, std::array<vk::DescriptorImageInfo, 1>> ||
+  std::is_same_v<T, std::array<vk::DescriptorBufferInfo, 1>> ||
+  std::is_same_v<T, std::array<vk::BufferView, 1>> ||
+  std::is_same_v<T, std::vector<vk::DescriptorImageInfo>> ||
+  std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>> ||
+  std::is_same_v<T, std::vector<vk::BufferView>>;
+
 } // namespace vulkan

@@ -503,7 +503,7 @@ bool ShaderInputData::sort_required_shader_resources_list()
 
 // Returns true if this PipelineFactory task succeeded in creating all shader resources needed by the current pipeline (being created),
 // and false if one or more other tasks are creating one or more of those shader resources at this moment.
-// Upon successful return m_vhv_descriptor_sets was initialized with handles to the descriptor sets needed by the current pipeline.
+// Upon successful return m_descriptor_set_per_set_index was initialized with handles to the descriptor sets needed by the current pipeline.
 // Additionally, those descriptor sets are updated to bind to the respective shader resources. The descriptor sets are created
 // as needed: if there already exists a descriptor set that is bound to the same shader resources that we need, we just reuse
 // that descriptor set.
@@ -605,8 +605,8 @@ void ShaderInputData::initialize_shader_resources_per_set_index(vulkan::descript
   }
 
   // We're going to fill this vector now.
-  ASSERT(m_vhv_descriptor_sets.empty());
-  m_vhv_descriptor_sets.resize(m_set_index_end.get_value());
+  ASSERT(m_descriptor_set_per_set_index.empty());
+  m_descriptor_set_per_set_index.resize(m_set_index_end.get_value());
 }
 
 bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, bool have_lock)
@@ -622,8 +622,8 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
   // leave this assert here for a very long time.
   ASSERT(m_set_index_end == vhv_descriptor_set_layouts.iend());
 
-  std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;  // The descriptor set layout handles of descriptor sets that we need to create.
-  std::vector<SetIndex> set_indexes;                                    // The corresponding SetIndex-es of those descriptor sets.
+  std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;          // The descriptor set layout handles of descriptor sets that we need to create.
+  std::vector<std::pair<SetIndex, bool>> set_index_has_frame_resource_pairs;    // The corresponding SetIndex-es, and a flag indicating if this is a frame resource, of those descriptor sets.
 
   // Descriptor sets: { U1, T1 }, { U2, T2 }, { T1, T2 }, { T2, T1 }, { U1, U2 }, { U2, U1 }, { U1, T2 }, { U2, T1 }
   // Pipeline layout:                   SetLayout
@@ -659,11 +659,11 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
   for (SetIndex set_index = m_set_index; set_index < m_set_index_end; ++set_index)    // #0, #1, #2, #3
   {
     // We want to know if there is a vk::DescriptorSetLayout that appears in every shader resource corresponding to this set_index.
-    std::map<vk::DescriptorSet, int> number_of_shader_resources_bound_to;
+    std::map<descriptor::FrameResourceCapableDescriptorSetAsKey, int> number_of_shader_resources_bound_to;
     int number_of_shader_resources_in_this_set_index = 0;
     descriptor::SetLayoutBinding locked_set_layout_binding{VK_NULL_HANDLE, 0};
     bool have_match = false;
-    vk::DescriptorSet existing_descriptor_set;
+    descriptor::FrameResourceCapableDescriptorSet existing_descriptor_set;
     // Shader resources: T1, T2, T3, T4, U1, U2, U3, U4 (each with a unique key)
     // PL0:              PL1:                    PL1 after conversion:
     // #0 : { U2, U1 }   #0 : { U4, U3 } -> #0   #0 : { U4, U3 }
@@ -672,13 +672,19 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
     // #3 : { T4, T3 }   #3 : { T4, T3 } -> #1   #3 : { T1, T2 }                  // set index: #0        #1        #2        #3
     Dout(dc::shaderresource, "Loop over all shader resources with index " << set_index);
     bool first_shader_resource = true;
-    for (Base const* shader_resource : m_shader_resources_per_set_index[set_index]) // PL0:       {U2, U1}, {T2, T1}, {U3, U4}, {T4, T3}
-    {                                                                               // PL1:       {U4, U3}, {T4, T3}, {U2, U1}, {T1, T2}
+    bool has_frame_resource = false;
+    auto shader_resource_iter = m_shader_resources_per_set_index[set_index].begin();
+    for (; shader_resource_iter != m_shader_resources_per_set_index[set_index].end(); ++shader_resource_iter)
+    {
+      Base const* shader_resource = *shader_resource_iter;
       Dout(dc::shaderresource, "shader_resource = " << shader_resource->ambifix().object_name());
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
       uint32_t binding = get_declaration(set_key)->binding();
       Dout(dc::shaderresource, "binding = " << binding);
+
+      if (shader_resource->is_frame_resource())
+        has_frame_resource = true;
 
       // Find the corresponding SetLayout.
       auto sorted_descriptor_set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), CompareHint{set_index_hint});
@@ -750,7 +756,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
           // set_index that we processed this call (which is m_set_index) then continue with
           // handling the set indexes that we already processed: [m_set_index, set_index>.
           if (set_index > m_set_index)
-            allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_binding_map, missing_descriptor_set_layouts, set_indexes, m_set_index, set_index);
+            allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_binding_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, set_index);
           // Next time continue with the current set_index.
           m_set_index = set_index;
           return false; // Wait until the other pipeline factory unlocked shader_resource->m_set_layout_bindings_to_handles[set_layout_binding].
@@ -775,13 +781,13 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
         else
           Dout(dc::shaderresource, "Found SetMutexAndSetHandles for " << set_layout_binding);
 
-        // Run over all vk::DescriptorSet that this shader resource is already bound to.
+        // Run over all descriptor::FrameResourceCapableDescriptorSet that this shader resource is already bound to.
         auto const& descriptor_sets = set_layout_binding_handles_pair_iter->second.descriptor_sets(CWDEBUG_ONLY(pipeline_factory));
         Dout(dc::shaderresource, "Running over " << descriptor_sets.size() << " descriptor sets.");
-        for (vk::DescriptorSet descriptor_set : descriptor_sets)
+        for (descriptor::FrameResourceCapableDescriptorSet const& descriptor_set : descriptor_sets)
         {
           Dout(dc::shaderresource, "Incrementing count for descriptor set " << descriptor_set);
-          if (++number_of_shader_resources_bound_to[descriptor_set] == number_of_shader_resources_in_this_set_index)
+          if (++number_of_shader_resources_bound_to[descriptor_set.as_key()] == number_of_shader_resources_in_this_set_index)
           {
             Dout(dc::shaderresource, "descriptor_set = " << descriptor_set << " and binding = " << binding << " leads to still_have_match = true.");
             have_match = still_have_match = true;
@@ -791,7 +797,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
           else
           {
             Dout(dc::shaderresource, "number_of_shader_resources_in_this_set_index = " << number_of_shader_resources_in_this_set_index <<
-                " but number_of_shader_resources_bound_to[descriptor_set] now is only " << number_of_shader_resources_bound_to[descriptor_set]);
+                " but number_of_shader_resources_bound_to[descriptor_set] now is only " << number_of_shader_resources_bound_to[descriptor_set.as_key()]);
           }
         }
       } // Destruct set_layout_bindings_to_handles_crat.
@@ -806,7 +812,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
 
     if (have_match)
     {
-      m_vhv_descriptor_sets[set_index] = existing_descriptor_set;
+      m_descriptor_set_per_set_index[set_index] = existing_descriptor_set;
       // It should not be possible to get here without locking a set_layout_binding on a shader_resource.
       ASSERT(!m_shader_resources_per_set_index[set_index].empty() && locked_set_layout_binding.descriptor_set_layout());
       (*m_shader_resources_per_set_index[set_index].begin())->unlock_set_layout_binding(locked_set_layout_binding, pipeline_factory);
@@ -814,34 +820,39 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
     else
     {
       missing_descriptor_set_layouts.push_back(vhv_descriptor_set_layouts[set_index]);
-      Dout(dc::shaderresource, "Adding set_index " << set_index << " to set_indexes because have_match is false.");
-      set_indexes.push_back(set_index);
+      Dout(dc::shaderresource, "Adding set_index " << set_index << " to set_index_has_frame_resource_pairs because have_match is false.");
+      // See if there is any shader resource in this set index that is a frame resource.
+      for (; !has_frame_resource && shader_resource_iter != m_shader_resources_per_set_index[set_index].end(); ++shader_resource_iter)
+        if ((*shader_resource_iter)->is_frame_resource())
+          has_frame_resource = true;
+      set_index_has_frame_resource_pairs.emplace_back(set_index, has_frame_resource);
     }
     // This is only true when we just (re)entered this function, not for the next set_index.
     have_lock = false;
   }
 
-  allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_binding_map, missing_descriptor_set_layouts, set_indexes, m_set_index, m_set_index_end);
+  allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_binding_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, m_set_index_end);
   return true;
 }
 
-void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<descriptor::SetIndex> const& set_indexes, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end)
+void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " << owning_window << ", " << missing_descriptor_set_layouts << ", " << set_indexes << ")");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " << owning_window << ", " << missing_descriptor_set_layouts << ", " << set_index_has_frame_resource_pairs << ")");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
 
   LogicalDevice const* logical_device = owning_window->logical_device();
-  std::vector<vk::DescriptorSet> missing_descriptor_sets;
+  std::vector<FrameResourceCapableDescriptorSet> missing_descriptor_sets;
   if (!missing_descriptor_set_layouts.empty())
     missing_descriptor_sets = logical_device->allocate_descriptor_sets(
-        missing_descriptor_set_layouts COMMA_CWDEBUG_ONLY(set_indexes), logical_device->get_descriptor_pool()
+        owning_window->max_number_of_frame_resources(),
+        missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
         COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));  // Add prefix and postfix later, when copying this
                                                                 // vector to the Pipeline it will be used with.
 
   for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
-    m_vhv_descriptor_sets[set_indexes[i]] = missing_descriptor_sets[i];
+    m_descriptor_set_per_set_index[set_index_has_frame_resource_pairs[i].first] = missing_descriptor_sets[i];
 
   Dout(dc::shaderresource, "Updating, adding handles and unlocking: loop over set_index [" << set_index_begin << " - " << set_index_end << ">");
   for (SetIndex set_index = set_index_begin; set_index < set_index_end; ++set_index)
@@ -859,12 +870,12 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
       Dout(dc::shaderresource, "shader_resource = " << shader_resource->ambifix().object_name() << "; set_index = " << set_index <<
           "; binding = " << binding);
 
-      bool new_descriptor_set = std::find(set_indexes.begin(), set_indexes.end(), set_index) != set_indexes.end();
-      if (new_descriptor_set)
+      auto new_descriptor_set = std::find_if(set_index_has_frame_resource_pairs.begin(), set_index_has_frame_resource_pairs.end(), [=](std::pair<SetIndex, bool> const& p) { return p.first == set_index; });
+      if (new_descriptor_set != set_index_has_frame_resource_pairs.end())
       {
-        Dout(dc::shaderresource, "The set_index was found in set_indexes.");
+        Dout(dc::shaderresource, "The set_index was found in set_index_has_frame_resource_pairs.");
         // Bind it to a descriptor set.
-        shader_resource->update_descriptor_set(owning_window, m_vhv_descriptor_sets[set_index], binding);
+        shader_resource->update_descriptor_set(owning_window, m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second);
 
         // Find the corresponding SetLayout.
         auto sorted_descriptor_set_layout =
@@ -873,11 +884,11 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
         Dout(dc::shaderresource, "descriptor_set_layout = " << descriptor_set_layout);
         // Store the descriptor set handle corresponding to the used vk::DescriptorSetLayout (SetLayout) and binding number.
         // This unlocks the '{ descriptor_set_layout, binding }' key when the last argument is non-NULL.
-        shader_resource->add_set_layout_binding({ descriptor_set_layout, binding }, m_vhv_descriptor_sets[set_index],
+        shader_resource->add_set_layout_binding({ descriptor_set_layout, binding }, m_descriptor_set_per_set_index[set_index],
             first_shader_resource ? pipeline_factory : nullptr);
       }
       else
-        Dout(dc::shaderresource, "The set_index was not found in set_indexes.");
+        Dout(dc::shaderresource, "The set_index was not found in set_index_has_frame_resource_pairs.");
     }
   }
 

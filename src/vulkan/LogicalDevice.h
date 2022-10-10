@@ -8,6 +8,8 @@
 #include "ImageKind.h"
 #include "SamplerKind.h"
 #include "SwapchainIndex.h"
+#include "Concepts.h"
+#include "FrameResourceIndex.h"
 #include "queues/Queue.h"
 #include "queues/QueueRequestKey.h"
 #include "queues/QueueReply.h"
@@ -16,6 +18,7 @@
 #include "descriptor/LayoutBindingCompare.h"
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetBindingMap.h"
+#include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "pipeline/PushConstantRangeCompare.h"
 #include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
@@ -35,7 +38,6 @@
 #include <Tracy.hpp>
 #ifdef TRACY_ENABLE
 #include <TracyVulkan.hpp>
-#include "FrameResourceIndex.h"
 #endif
 
 namespace task {
@@ -262,16 +264,16 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::DescriptorSet> allocate_descriptor_sets(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes), descriptor_pool_t const& descriptor_pool
-      COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  std::vector<vk::UniqueDescriptorSet> allocate_descriptor_sets_unique(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout COMMA_CWDEBUG_ONLY(std::vector<descriptor::SetIndex> const& set_indexes), descriptor_pool_t const& descriptor_pool
+  std::vector<descriptor::FrameResourceCapableDescriptorSet> allocate_descriptor_sets(FrameResourceIndex number_of_frame_resources,
+      std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+      std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor_pool_t const& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;
   void free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
-  void update_descriptor_set(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
-      std::vector<vk::DescriptorImageInfo> const& image_infos = {}, std::vector<vk::DescriptorBufferInfo> const& buffer_infos = {},
-      std::vector<vk::BufferView> const& buffer_views = {}) const;
+  template<ConceptWriteDescriptorSetUpdateInfo T>
+  void update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
+      T const& write_descriptor_set_update_infos) const;
   vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
@@ -534,6 +536,50 @@ vk::UniqueCommandPool LogicalDevice::create_command_pool(uint32_t queue_family_i
 void LogicalDevice::destroy_command_pool(vk::CommandPool vh_command_pool) const
 {
   m_device->destroyCommandPool(vh_command_pool);
+}
+
+template<ConceptWriteDescriptorSetUpdateInfo T>
+void LogicalDevice::update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
+    T const& write_descriptor_set_update_infos) const
+{
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_sets(" <<
+      vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << write_descriptor_set_update_infos << ")");
+
+  vk::DescriptorImageInfo const* pImageInfo = nullptr;
+  vk::DescriptorBufferInfo const* pBufferInfo = nullptr;
+  vk::BufferView const* pTexelBufferView = nullptr;
+
+  if constexpr (std::is_same_v<T, std::vector<vk::DescriptorImageInfo>> || std::is_same_v<T, std::array<vk::DescriptorImageInfo, 1>>)
+  {
+    ASSERT(descriptor_type == vk::DescriptorType::eCombinedImageSampler || descriptor_type == vk::DescriptorType::eSampledImage ||
+      descriptor_type == vk::DescriptorType::eStorageImage || descriptor_type ==  vk::DescriptorType::eInputAttachment);
+    pImageInfo = write_descriptor_set_update_infos.data();
+  }
+  else if constexpr (std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>> || std::is_same_v<T, std::array<vk::DescriptorBufferInfo, 1>>)
+  {
+    ASSERT(descriptor_type == vk::DescriptorType::eUniformBuffer || descriptor_type == vk::DescriptorType::eStorageBuffer ||
+      descriptor_type == vk::DescriptorType::eUniformBufferDynamic || descriptor_type == vk::DescriptorType::eStorageBufferDynamic);
+    pBufferInfo = write_descriptor_set_update_infos.data();
+  }
+  else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>, std::is_same_v<T, std::array<vk::BufferView, 1>>)
+  {
+    ASSERT(descriptor_type == vk::DescriptorType::eUniformTexelBuffer || descriptor_type == vk::DescriptorType::eStorageTexelBuffer);
+    pTexelBufferView = write_descriptor_set_update_infos.data();
+  }
+  uint32_t const descriptor_count = write_descriptor_set_update_infos.size();
+
+  vk::WriteDescriptorSet descriptor_writes{
+    .dstSet = vh_descriptor_set,
+    .dstBinding = binding,
+    .dstArrayElement = array_element,
+    .descriptorCount = descriptor_count,
+    .descriptorType = descriptor_type,
+    .pImageInfo = pImageInfo,
+    .pBufferInfo = pBufferInfo,
+    .pTexelBufferView = pTexelBufferView
+  };
+
+  m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
 }
 
 } // namespace vulkan

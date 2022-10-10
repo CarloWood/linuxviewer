@@ -63,6 +63,7 @@ class ShaderInputData
 {
  public:
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+  using descriptor_set_per_set_index_t = utils::Vector<descriptor::FrameResourceCapableDescriptorSet, descriptor::SetIndex>;
 
  private:
   //---------------------------------------------------------------------------
@@ -114,7 +115,7 @@ class ShaderInputData
   descriptor::SetIndex m_set_index;
 
   // Descriptor set handles, sorted by descriptor set index, required for the next pipeline.
-  utils::Vector<vk::DescriptorSet, descriptor::SetIndex> m_vhv_descriptor_sets;
+  descriptor_set_per_set_index_t m_descriptor_set_per_set_index;
 
   //---------------------------------------------------------------------------
 
@@ -200,7 +201,7 @@ class ShaderInputData
   void initialize_shader_resources_per_set_index(vulkan::descriptor::SetBindingMap const& set_binding_map);
   // Called by PipelineFactory_update_missing_descriptor_sets.
   bool update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map, bool have_lock);
-  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<descriptor::SetIndex> const& set_indexes, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
+  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
 
   // End of MultiLoop states.
   //---------------------------------------------------------------------------
@@ -330,7 +331,7 @@ class ShaderInputData
 
   per_stage_declaration_contexts_container_t const& per_stage_declaration_contexts() const { return m_per_stage_declaration_contexts; }
 
-  utils::Vector<vk::DescriptorSet, descriptor::SetIndex> const& vhv_descriptor_sets() const { return m_vhv_descriptor_sets; }
+  descriptor_set_per_set_index_t const& descriptor_set_per_set_index() const { return m_descriptor_set_per_set_index; }
 };
 
 } // namespace pipeline

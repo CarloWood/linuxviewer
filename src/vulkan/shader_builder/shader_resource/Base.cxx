@@ -10,7 +10,8 @@ namespace vulkan::shader_builder::shader_resource {
 #ifdef CWDEBUG
 bool SetMutexAndSetHandles::lock_descriptor_sets(AIStatefulTask* task, AIStatefulTask::condition_type condition)
 {
-  DoutEntering(dc::notice, "SetMutexAndSetHandles::lock_descriptor_sets(" << task << ", " << task->print_conditions(condition) << ") [" << this << " (" << m_debug_owner->ambifix().object_name() << ")]");
+  DoutEntering(dc::notice, "SetMutexAndSetHandles::lock_descriptor_sets(" << task << ", " << task->print_conditions(condition) << ") [" << this <<
+      " (" << m_debug_owner->ambifix().object_name() << ")]");
   bool success = m_mutex.lock(task, condition);
   if (success)
   {

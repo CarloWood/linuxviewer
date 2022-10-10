@@ -520,7 +520,7 @@ if (!m_graphics_pipeline.handle())
 else
 {
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */, m_graphics_pipeline.vhv_descriptor_sets(), {});
+      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */, m_graphics_pipeline.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
       {
         vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
         vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);

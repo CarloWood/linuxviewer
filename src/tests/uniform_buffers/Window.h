@@ -79,7 +79,7 @@ class Window : public task::SynchronousWindow
 
   vulkan::FrameResourceIndex max_number_of_frame_resources() const override
   {
-    return vulkan::FrameResourceIndex{1};
+    return vulkan::FrameResourceIndex{10};
   }
 
   vulkan::SwapchainIndex max_number_of_swapchain_images() const override
@@ -444,13 +444,13 @@ else
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
-          m_graphics_pipeline0.vhv_descriptor_sets(), {});
+          m_graphics_pipeline0.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
       command_buffer->draw(3, 1, 0, 0);
 
       command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
       command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
-          m_graphics_pipeline1.vhv_descriptor_sets(), {});
+          m_graphics_pipeline1.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
       command_buffer->draw(3, 1, 0, 0);
 }
@@ -509,14 +509,12 @@ else
     ImGui::SliderFloat("Bottom position", &m_bottom_position, 0.0, 1.0);
     ImGui::End();
 
-    // FIXME: not implemented: currently we're only using the first frame resource!
-    vulkan::FrameResourceIndex const hack0{0};
-
+    vulkan::FrameResourceIndex frame_index = m_current_frame.m_resource_index;
     if (m_top_buffer.is_ready())
-      ((TopPosition*)(m_top_buffer[hack0].pointer()))[0].x = m_top_position;
+      ((TopPosition*)(m_top_buffer[frame_index].pointer()))[0].x = m_top_position + frame_index.get_value() * 0.1;
     if (m_left_buffer.is_ready())
-      ((LeftPosition*)(m_left_buffer[hack0].pointer()))->y = m_left_position;
+      ((LeftPosition*)(m_left_buffer[frame_index].pointer()))->y = m_left_position;
     if (m_bottom_buffer.is_ready())
-      ((BottomPosition*)(m_bottom_buffer[hack0].pointer()))->x = m_bottom_position;
+      ((BottomPosition*)(m_bottom_buffer[frame_index].pointer()))->x = m_bottom_position;
   }
 };

@@ -10,6 +10,8 @@ void UniformBufferBase::create(task::SynchronousWindow const* owning_window)
 #ifdef CWDEBUG
   add_ambifix(owning_window->debug_name_prefix("PipelineFactory::"));
 #endif
+  // You must use at least 2 frame resources.
+  ASSERT(owning_window->max_number_of_frame_resources().get_value() > 1);
   for (vulkan::FrameResourceIndex i{0}; i != owning_window->max_number_of_frame_resources(); ++i)
   {
     m_uniform_buffers.emplace_back(owning_window->logical_device(), size()
@@ -17,21 +19,17 @@ void UniformBufferBase::create(task::SynchronousWindow const* owning_window)
   }
 }
 
-void UniformBufferBase::update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const
+void UniformBufferBase::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool CWDEBUG_ONLY(has_frame_resource)) const
 {
-  // FIXME: not implemented: currently we're only using the first frame resource!
-  vulkan::FrameResourceIndex const hack0{0};
-
-  // Information about the buffer we want to point at in the descriptor.
-  std::vector<vk::DescriptorBufferInfo> buffer_infos = {
-    {
-      .buffer = m_uniform_buffers[hack0].m_vh_buffer,
-      .offset = 0,
-      .range = size()
-    }
-  };
-  owning_window->logical_device()->update_descriptor_set(vh_descriptor_set, vk::DescriptorType::eUniformBuffer, binding, 0 /*array_element*/, {}, buffer_infos);
-  //create_uniform_buffers
+  DoutEntering(dc::shaderresource, "UniformBufferBase::update_descriptor_set(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << std::boolalpha << has_frame_resource << ")");
+  for (FrameResourceIndex frame_index{0}; frame_index < owning_window->max_number_of_frame_resources(); ++frame_index)
+  {
+    // Information about the buffer we want to point at in the descriptor.
+    std::array<vk::DescriptorBufferInfo, 1> buffer_infos = {{
+      m_uniform_buffers[frame_index].m_vh_buffer, 0, size()
+    }};
+    owning_window->logical_device()->update_descriptor_sets(descriptor_set[frame_index], vk::DescriptorType::eUniformBuffer, binding, 0 /*array_element*/, buffer_infos);
+  }
 }
 
 std::string UniformBufferBase::glsl_id() const

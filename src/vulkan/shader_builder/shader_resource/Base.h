@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FrameResourceIndex.h"
+#include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetLayoutBinding.h"
 #include "threadsafe/aithreadsafe.h"
@@ -19,7 +21,7 @@ class ShaderResourceDeclaration;
 namespace shader_resource {
 class Base;
 
-// Helper class that stores the descriptor set allocation mutex and a vector with vk::DescriptorSet handles bound to
+// Helper class that stores the descriptor set allocation mutex and a vector with FrameResourceCapableDescriptorSet handles bound to
 // the associated shader resource (m_debug_owner).
 //
 // Access to this class is protected by the read/write mutex on Base::m_set_layout_bindings_to_handles.
@@ -28,7 +30,7 @@ class SetMutexAndSetHandles
  private:
   AIStatefulTaskMutex m_mutex;                  // Mutex that is locked for the first shader resource of a given set a shader resources that we need a descriptor for.
 
-  using descriptor_set_container_t = std::vector<vk::DescriptorSet>;
+  using descriptor_set_container_t = std::vector<descriptor::FrameResourceCapableDescriptorSet>;
   descriptor_set_container_t m_descriptor_sets; // Vector containing all descriptor sets that the shader resource owning this SetLayoutBinding (stored in shader_resource::Base::m_set_layout_bindings) is bound to.
 
 #ifdef CWDEBUG
@@ -38,18 +40,19 @@ class SetMutexAndSetHandles
 
  public:
 #ifndef CWDEBUG
-  // Construct a SetMutexAndSetHandles that contains no vk::DescriptorSet's.
+  // Construct a SetMutexAndSetHandles that contains no FrameResourceCapableDescriptorSet's.
   SetMutexAndSetHandles() = default;
-  // Construct a SetMutexAndSetHandles that contains a single vk::DescriptorSet.
-  SetMutexAndSetHandles(vk::DescriptorSet descriptor_set) : m_descriptor_sets{descriptor_set} { }
+  // Construct a SetMutexAndSetHandles that contains a single FrameResourceCapableDescriptorSet.
+  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet&& descriptor_set) : m_descriptor_sets(std::move(descriptor_set)) { }
 #else
-  // Construct a SetMutexAndSetHandles that contains no vk::DescriptorSet's.
+  // Construct a SetMutexAndSetHandles that contains no FrameResourceCapableDescriptorSet's.
   SetMutexAndSetHandles(Base const* owner) : m_debug_owner(owner) { }
-  // Construct a SetMutexAndSetHandles that contains a single vk::DescriptorSet.
-  SetMutexAndSetHandles(vk::DescriptorSet descriptor_set, Base const* owner) : m_descriptor_sets{descriptor_set}, m_debug_owner(owner) { }
+  // Construct a SetMutexAndSetHandles that contains a single FrameResourceCapableDescriptorSet.
+  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, Base const* owner) :
+    m_descriptor_sets(1, descriptor_set), m_debug_owner(owner) { }
 #endif
 
-  void add_handle(vk::DescriptorSet descriptor_set)
+  void add_handle(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set)
   {
     m_descriptor_sets.push_back(descriptor_set);
   }
@@ -156,7 +159,7 @@ class Base
   }
 #endif
 
-  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, vk::DescriptorSet descriptor_set, AIStatefulTask* locked_by_task) /*thread-safe*/ const
+  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, AIStatefulTask* locked_by_task) /*thread-safe*/ const
   {
     DoutEntering(dc::notice, "add_set_layout_binding(" << set_layout_binding << ", " << descriptor_set << ", " << locked_by_task << ") for [" << this << " (" << m_ambifix.object_name() << ")]");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
@@ -207,7 +210,8 @@ class Base
   }
 
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
-  virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, vk::DescriptorSet vh_descriptor_set, uint32_t binding) const = 0;
+  virtual bool is_frame_resource() const { return false; }
+  virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
   virtual void ready() = 0;
   //---------------------------------------------------------------------------
 

@@ -5,7 +5,7 @@ namespace vulkan {
 
 std::string to_string(FrameResourceIndex index)
 {
-  std::string result = "f";
+  std::string result = "F#";
   result += std::to_string(index.get_value());
   return result;
 }
