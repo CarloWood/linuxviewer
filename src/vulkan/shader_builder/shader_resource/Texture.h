@@ -127,7 +127,9 @@ struct Texture : public Base, public memory::Image
 
   void create(task::SynchronousWindow const* owning_window) override;
   void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const override;
-  void ready() override { } //FIXME: isn't it better to *always* notified that the Texture is bound to a descriptor set?
+  //FIXME: this is called once the texture is bound to a descriptor set of the first pipeline that uses it.
+  //Shouldn't it be used? What if a texture is used by another pipeline?
+  void ready() override { }
 
   // Accessors.
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }

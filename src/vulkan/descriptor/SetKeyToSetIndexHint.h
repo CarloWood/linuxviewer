@@ -29,8 +29,7 @@ class SetKeyToSetIndexHint
     auto res = m_set_key_to_set_index_hint.try_emplace(set_key, m_next_set_index_hint);
     // Do not add the same set_key twice.
     ASSERT(res.second);
-//    if (res.second)    FIXME: remove this if (see the above ASSERT).
-      ++m_next_set_index_hint;
+    ++m_next_set_index_hint;
     Dout(dc::vulkan, "Returning SetIndex " << res.first->second);
     return res.first->second;
   }
