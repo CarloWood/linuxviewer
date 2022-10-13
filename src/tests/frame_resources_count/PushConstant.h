@@ -7,11 +7,11 @@ struct PushConstant;
 LAYOUT_DECLARATION(PushConstant, push_constant_std430)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(Float, pc1),
-    MEMBER(Float, pc2),
-    MEMBER(Float, aspect_scale),
-    MEMBER(Float, pc4),
-    MEMBER(Float, pc5)
+    LAYOUT(Float, pc1),
+    LAYOUT(Float, pc2),
+    LAYOUT(Float, aspect_scale),
+    LAYOUT(Float, pc4),
+    LAYOUT(Float, pc5)
   );
 };
 

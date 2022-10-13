@@ -77,22 +77,22 @@ struct Bar;
 LAYOUT_DECLARATION(Foo, uniform_std140)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec3, m_v3),
-    MEMBER(mat2, m_m2),
-    MEMBER(mat3, m_m3),
-    MEMBER(Float, m_f),
-    MEMBER(dmat4x3, m_dm43)
+    LAYOUT(vec3, m_v3),
+    LAYOUT(mat2, m_m2),
+    LAYOUT(mat3, m_m3),
+    LAYOUT(Float, m_f),
+    LAYOUT(dmat4x3, m_dm43)
   );
 };
 
 LAYOUT_DECLARATION(Bar, uniform_scalar)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec3, m_v3),
-    MEMBER(mat2, m_m2),
-    MEMBER(mat3, m_m3),
-    MEMBER(Float, m_f),
-    MEMBER(dmat4x3, m_dm43)
+    LAYOUT(vec3, m_v3),
+    LAYOUT(mat2, m_m2),
+    LAYOUT(mat3, m_m3),
+    LAYOUT(Float, m_f),
+    LAYOUT(dmat4x3, m_dm43)
   );
 };
 

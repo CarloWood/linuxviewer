@@ -1,0 +1,153 @@
+GLSL for Vulkan knows five different scalar types:
+
+float f;
+double d;
+bool b;
+int i; 
+uint u;
+Then there are vectors of these types with 2, 3 or 4 elements:
+
+vec2
+vec3
+vec4
+dvec2
+dvec3
+dvec4
+bvec2
+bvec3
+bvec4
+ivec2
+ivec3
+ivec4
+uvec2
+uvec3
+uvec4
+
+And there are matrices for the types float and double (only) (in the notation <prefix>mat<cols>x<rows>):
+
+mat2
+mat2x3
+mat2x4
+mat3x2
+mat3
+mat3x4
+mat4x2
+mat4x3
+mat4
+dmat2
+dmat2x3
+dmat2x4
+dmat3x2
+dmat3
+dmat3x4
+dmat4x2
+dmat4x3
+dmat4
+
+All of the above types may be used to declare arrays:
+
+uint uia[200];
+bvec3 bv3[50];
+dmat3x3 dm3[144];
+
+Then all of the above can be put in structs, including - recursively - structs themselves; where it is also allowed to create arrays of structs. For example,
+
+struct S1 {
+  float fa[7];
+  mat4 m4;
+  bool b;
+};
+
+struct S2 {
+  vec3 v3;
+  S1 s1a[20];
+  float x[10];
+};
+
+Any of the above can be used for Shader Storage Buffer Objects (SSBO), uniform buffers, or push constants. Also Vertex Attributes are written to GLSL variables, but they fall out of the scope of this article.
+
+In most cases, certainly beginners, one would initialize such variables (structs, arrays) in CPU memory and then transfer them to the GPU where the above declarations exist (defined in a GLSL shader).
+
+In order for this to succeed you need to know the memory layout; make sure that the alignments and offsets in memory all correspond in CPU memory to what the GPU expects.
+
+The description of this is in the GLSL spec, but that isn't very easy reading material.
+
+Therefore, follows my analysis.
+
+There are three different standards for how to layout variables:
+
+std430 - the default for push constants.
+std140 - the default for uniform buffers. and when using an extension,
+scalar - which I shall call std_scalar below in order to remove any ambiguity.
+
+Definitions.
+
+scalar : the types float (bool, int, uint) and double.
+vector : the types vec* (bvec*, ivec*, uvec*) and dvec*.
+matrix : the types mat* and dmat*.
+a basic type : a scalar, vector or matrix.
+base type: the underlaying scalar type of a basic type (double or float (etc)).
+base size: the size of the base type (8 or 4).
+alignment :
+
+consider the following:
+
+struct Test {
+    bool wedge;    // minimum size (4), offset = 0
+    TheType test;  // offset = alignment of TheType.
+};
+
+then the offset of test in Test will be the alignment of TheType.
+
+size :
+
+consider the following:
+
+struct Test {
+    TheType test;  // offset = 0;
+    bool lid;      // minimum alignment (4), offset = size of TheType.
+};
+
+then the offset of lid in Test will be the size of TheType.
+
+array stride :
+
+consider the following:
+
+struct Test {
+    TheType test[10];
+    bool lid;
+};
+
+then the offset of lid in Test will be 10 times the array stride of TheType. Note that an array is padded if necessary: the offset of lid will always be a multiple of the size of the array.
+
+1. The size of all scalars are 4 bytes, except double which is 8 bytes. Therefore one can forget about bool, int and uint - they act exactly the same as a float with respect to alignment/size/array_stride etc.
+
+2. For scalars, and when using the std_scalar layout any basic type, the alignment is equal to the size of the base type.
+
+3. Otherwise (std140 and std430), the alignment of vectors is equal to 2 or 4 times their base size: 2 when they have 2 rows, and 4 when they have 3 or 4 rows.
+
+4. Otherwise (matrices), the alignment of matrices is equal to the alignment of one of its columns (a vector, see point 3 above), but for std140 rounded up to 16 bytes.
+
+5. For vectors, and when using the std_scalar layout any basic type, the size is equal to the size of the base type (aka, their alignment) times the number of columns and rows.
+
+6. Otherwise (std140/std430 matrices) their size is equal to their alignment times the number of columns.
+
+7. For std_scalar, the array stride of basic types is equal to their size.
+
+8. Otherwise (std140/std430) the array stride is equal to the alignment (of one column, in the case of matrices), for std140 rounded up to 16, times the number of columns.
+
+7 and 8 can also be formulated as: the array stride of any basic type is the larger value of their alignment and size - and in the case of std140 16.
+
+This can be put in code as follows:
+(See actual source code).
+
+9. The alignment of an array is equal to the alignment of one of its elements (even if the array stride is larger).
+
+10. The size of an array is equal the array stride of one of its elements times the number of elements.
+
+11. The alignment of a struct is equal to the largest alignment of each of its members.
+
+12. The offset of member N in a struct is equal to the offset of member N-1 plus the size of the member N-1, rounded up to the nearest multiple of the alignment of member N.
+
+13. The size of a struct is equal to the offset of its last member plus the size of its last member, rounded up to the nearest multiple of the alignment of the struct.

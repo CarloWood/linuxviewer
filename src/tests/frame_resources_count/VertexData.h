@@ -7,8 +7,8 @@ struct VertexData;
 LAYOUT_DECLARATION(VertexData, per_vertex_data)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec4[3], m_position),
-    MEMBER(vec2, m_texture_coordinates)
+    LAYOUT(vec4[3], m_position),
+    LAYOUT(vec2, m_texture_coordinates)
   );
 };
 

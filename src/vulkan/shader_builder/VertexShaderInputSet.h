@@ -58,8 +58,8 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 // LAYOUT_DECLARATION(InstanceData, per_instance_data)
 // {
 //   static constexpr auto struct_layout = make_struct_layout(
-//     MEMBER(vec4, m_position),
-//     MEMBER(mat4, m_matrix)
+//     LAYOUT(vec4, m_position),
+//     LAYOUT(mat4, m_matrix)
 //   );
 // };
 //

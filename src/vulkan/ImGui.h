@@ -28,9 +28,9 @@ struct ImDrawVert;
 LAYOUT_DECLARATION(imgui::ImDrawVert, per_vertex_data)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec2, pos),
-    MEMBER(vec2, uv),
-    MEMBER(u8vec4, col)
+    LAYOUT(vec2, pos),
+    LAYOUT(vec2, uv),
+    LAYOUT(u8vec4, col)
   );
 };
 

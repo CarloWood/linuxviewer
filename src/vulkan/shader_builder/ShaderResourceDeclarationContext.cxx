@@ -130,7 +130,10 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         for (ShaderResourceMember const& member : members)
         {
           BasicType basic_type = member.basic_type();
-          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member.member_name() << ";\n";
+          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member.member_name();
+          if (member.is_array())
+            oss << "[" << member.array_size() << "]";
+          oss << ";\n";
         }
         oss << "};\nlayout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform "
           "u_s" << set_index.get_value() << "b" << binding << " {\n  " <<

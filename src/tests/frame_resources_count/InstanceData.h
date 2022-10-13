@@ -7,8 +7,8 @@ struct InstanceData;
 LAYOUT_DECLARATION(InstanceData, per_instance_data)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec3[5], m_unused),
-    MEMBER(vec4[3], m_position)
+    LAYOUT(vec3[5], m_unused),
+    LAYOUT(vec4[3], m_position)
   );
 };
 

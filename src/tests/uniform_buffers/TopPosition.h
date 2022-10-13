@@ -2,28 +2,26 @@
 
 #include "shader_builder/ShaderVariableLayouts.h"
 
+static constexpr int top_position_array_size = 32;
+
 struct TopPosition;
 
 LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(mat2, unused1),
-//    MEMBER(Double[4], unused2),
-    MEMBER(Float, x)
-//    MEMBER(Float, "TopPosition::unused3")
+    LAYOUT(mat2, unused1),
+    LAYOUT(Double[4], unused2),
+    LAYOUT(Float[top_position_array_size], x)
   );
 };
 
 // Struct describing data type and format of uniform block.
-struct TopPosition //: glsl::uniform_std140
+STRUCT_DECLARATION(TopPosition)
 {
-  glsl::mat2 unused1;
-  float padding[4];
-//  glsl::Double unused2[4];
-  glsl::Float x;
-//  /*glsl::Double*/ glsl::Float unused2;
-//  glsl::Float unused3;
+  MEMBER(0, mat2, unused1);
+  MEMBER(1, double[4], unused2);
+  MEMBER(2, float[top_position_array_size], x);
 };
 
-static_assert(offsetof(TopPosition, x) == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset,
+static_assert(offsetof(TopPosition, x) == std::tuple_element_t<2, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset,
     "Offset of x is wrong.");

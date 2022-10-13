@@ -7,8 +7,8 @@ struct BottomPosition;
 LAYOUT_DECLARATION(BottomPosition, uniform_std140)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    MEMBER(vec2, unused),
-    MEMBER(Float, x)
+    LAYOUT(vec2, unused),
+    LAYOUT(Float, x)
   );
 };
 

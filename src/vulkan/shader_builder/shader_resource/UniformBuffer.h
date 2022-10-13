@@ -33,6 +33,12 @@ class UniformBufferBase : public Base
       shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
+  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+  void add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
+      shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
+
  private:
   virtual size_t size() const = 0;
 
@@ -108,6 +114,20 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
 
   m_members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset);
+}
+
+template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
+    shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+{
+  std::string_view glsl_id_full = static_cast<std::string_view>(member_layout.glsl_id_full);
+
+  shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
+    .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
+
+  m_members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset, Elements);
 }
 
 template<typename ENTRY>

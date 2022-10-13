@@ -10,6 +10,8 @@
 #include <map>
 #include <cstdint>
 #include <string>
+#include <type_traits>
+#include <numeric>
 #include "debug.h"
 
 namespace vulkan_shader_builder_specialization_classes {
@@ -24,7 +26,7 @@ struct ShaderVariableLayoutsBase;
 template<typename ENTRY>
 struct ShaderVariableLayouts;
 
-} // vulkan_shader_builder_specialization_classes
+} // namespace vulkan_shader_builder_specialization_classes
 
 namespace vulkan::shader_builder {
 using namespace vulkan_shader_builder_specialization_classes;
@@ -32,7 +34,10 @@ using namespace vulkan_shader_builder_specialization_classes;
 // This template struct is specialized below for BasicTypeLayout, MemberLayout, ArrayLayout and StructLayout.
 // It provides a generic interface to the common parameters of a layout: alignment, size and array_stride.
 template<typename XLayout>
-struct Layout;
+struct Layout
+{
+  // This is unused, unless the ConceptXLayout fails.
+};
 
 // BasicTypeLayout
 //
@@ -51,6 +56,7 @@ struct BasicTypeLayout
 template<glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride>
 struct Layout<BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>>
 {
+  using xlayout_t = BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>;
   static constexpr glsl::Standard standard = Standard;
   static constexpr size_t alignment = Alignment;
   static constexpr size_t size = Size;
@@ -80,6 +86,7 @@ struct MemberLayout
 template<typename ContainingClass, typename XLayout, int Index, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
 struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>>
 {
+  using xlayout_t = MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::size;
   static constexpr size_t array_stride = Layout<XLayout>::array_stride;
@@ -93,12 +100,14 @@ struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset
 template<typename XLayout, size_t Elements>
 struct ArrayLayout
 {
+  using element_xlayout_t = XLayout;
   static constexpr glsl::Standard standard = XLayout::standard;
 };
 
 template<typename XLayout, size_t Elements>
 struct Layout<ArrayLayout<XLayout, Elements>>
 {
+  using xlayout_t = ArrayLayout<XLayout, Elements>;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::array_stride * Elements;
   static constexpr size_t array_stride = size;
@@ -134,10 +143,18 @@ struct Layout<StructLayout<MembersTuple>>
   static constexpr size_t array_stride = std::max({size, alignment, (StructLayout<MembersTuple>::standard == glsl::std140) ? 16 : 0});
 };
 
-//
-// The type returned by the macro MEMBER.
+template<typename XLayout>
+concept ConceptXLayout = requires
+{
+  typename Layout<XLayout>::xlayout_t;
+};
+
 template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
-struct StructMember
+struct StructMember;
+
+// The type returned by the macro LAYOUT.
+template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName>
+struct StructMember<ContainingClass, XLayout, MemberName>
 {
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
@@ -146,7 +163,7 @@ struct StructMember
 };
 
 // Specialization for arrays.
-template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
+template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
 struct StructMember<ContainingClass, XLayout[Elements], MemberName>
 {
   static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
@@ -160,6 +177,7 @@ struct StructMember<ContainingClass, XLayout[Elements], MemberName>
   struct vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname> \
   { \
     using containing_class = classname; \
+    using glsl_standard = glsl::standard; \
     static constexpr std::array long_prefix_a = std::to_array(BOOST_PP_STRINGIZE(classname)"::"); \
     static constexpr std::string_view long_prefix{long_prefix_a.data(), long_prefix_a.size()}; \
     static constexpr std::string_view prefix_sv = long_prefix.substr(long_prefix.find_last_of(':', long_prefix.size() - 4) + 1); \
@@ -169,8 +187,14 @@ struct StructMember<ContainingClass, XLayout[Elements], MemberName>
   template<> \
   struct vulkan_shader_builder_specialization_classes::ShaderVariableLayouts<classname> : glsl::standard, vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname>
 
-#define MEMBER(membertype, membername) \
+#define LAYOUT(membertype, membername) \
   (::vulkan::shader_builder::StructMember<containing_class, membertype, BOOST_PP_STRINGIZE(membername)>{})
+
+#define STRUCT_DECLARATION(classname) \
+  struct classname : glsl::Data<classname>
+
+#define MEMBER(member_index, membertype, membername) \
+  glsl::AlignAndResize<membertype, layout<member_index>> membername
 
 //=============================================================================
 // Helper classes for constructing StructLayout<> types.
@@ -304,5 +328,158 @@ struct push_constant_scalar : vulkan::shader_builder::standards::scalar::TypeEnc
   using tag_type = push_constant_scalar;
 };
 #endif
+
+struct BasicTypesBase
+{
+  using Float   = glsl::Float;
+  using vec2    = glsl::vec2;
+  using vec3    = glsl::vec3;
+  using vec4    = glsl::vec4;
+  using mat2    = glsl::mat2;
+  using mat3x2  = glsl::mat3x2;
+  using mat4x2  = glsl::mat4x2;
+  using mat2x3  = glsl::mat2x3;
+  using mat3    = glsl::mat3;
+  using mat4x3  = glsl::mat4x3;
+  using mat2x4  = glsl::mat2x4;
+  using mat3x4  = glsl::mat3x4;
+  using mat4    = glsl::mat4;
+
+  using Double  = glsl::Double;
+  using dvec2   = glsl::dvec2;
+  using dvec3   = glsl::dvec3;
+  using dvec4   = glsl::dvec4;
+  using dmat2   = glsl::dmat2;
+  using dmat3x2 = glsl::dmat3x2;
+  using dmat4x2 = glsl::dmat4x2;
+  using dmat2x3 = glsl::dmat2x3;
+  using dmat3   = glsl::dmat3;
+  using dmat4x3 = glsl::dmat4x3;
+  using dmat2x4 = glsl::dmat2x4;
+  using dmat3x4 = glsl::dmat3x4;
+  using dmat4   = glsl::dmat4;
+
+  using Bool    = glsl::Bool;
+  using bvec2   = glsl::bvec2;
+  using bvec3   = glsl::bvec3;
+  using bvec4   = glsl::bvec4;
+
+  using Int     = glsl::Int;
+  using ivec2   = glsl::ivec2;
+  using ivec3   = glsl::ivec3;
+  using ivec4   = glsl::ivec4;
+
+  using Uint    = glsl::Uint;
+  using uvec2   = glsl::uvec2;
+  using uvec3   = glsl::uvec3;
+  using uvec4   = glsl::uvec4;
+};
+
+template<Standard>
+struct BasicTypes : BasicTypesBase
+{
+};
+
+template<>
+struct BasicTypes<vertex_attributes> : BasicTypesBase
+{
+  using Int8    = glsl::Int8;
+  using i8vec2  = glsl::i8vec2;
+  using i8vec3  = glsl::i8vec3;
+  using i8vec4  = glsl::i8vec4;
+
+  using Uint8   = glsl::Uint8;
+  using u8vec2  = glsl::u8vec2;
+  using u8vec3  = glsl::u8vec3;
+  using u8vec4  = glsl::u8vec4;
+
+  using Int16   = glsl::Int16;
+  using i16vec2 = glsl::i16vec2;
+  using i16vec3 = glsl::i16vec3;
+  using i16vec4 = glsl::i16vec4;
+
+  using Uint16  = glsl::Uint16;
+  using u16vec2 = glsl::u16vec2;
+  using u16vec3 = glsl::u16vec3;
+  using u16vec4 = glsl::u16vec4;
+};
+
+template<size_t padding, size_t alignment>
+struct alignas(alignment) AlignedPadding
+{
+  char __padding[padding];
+};
+
+template<size_t alignment>
+struct alignas(alignment) AlignedPadding<0, alignment>
+{
+};
+
+template<typename T>
+struct WrappedType : T
+{
+};
+
+template<typename T>
+concept ConceptBaseType = std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, bool> || std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t>;
+
+// Note: this type is only used for declaration; so conversion to T upon using it in any way is perfectly OK.
+template<ConceptBaseType T>
+struct Builtin
+{
+  alignas(std::is_same_v<T, double> ? 8 : 4) T m_val;
+
+  Builtin(T val = {}) : m_val(val) { }
+  operator T() const { return m_val; }
+  operator T&() { return m_val; }
+  Builtin& operator=(T val) { m_val = val; return *this; }
+};
+
+template<ConceptBaseType T>
+struct WrappedType<T> : Builtin<T>
+{
+  using Builtin<T>::Builtin;
+};
+
+template<typename T, typename Layout>
+struct AlignAndResize : WrappedType<T>
+{
+  static constexpr size_t required_alignment = Layout::alignment;
+  // In C++ the size must always be a multiple of the alignment. Therefore, we have to possibly relax
+  // the (C++ enforced) alignment or the resulting size will be too large!
+  // In order to get the right alignment in that case, padding must be added before WrappedType<T>,
+  // which will depend on the previous elements.
+  static constexpr size_t enforced_alignment = std::gcd(required_alignment, Layout::size);
+  static constexpr size_t rounded_up_size = (sizeof(T) + enforced_alignment - 1) / enforced_alignment * enforced_alignment;
+  static_assert(Layout::size >= rounded_up_size, "You can't request a size that is less than the actual size of T.");
+  static constexpr size_t required_padding = Layout::size - rounded_up_size;
+
+  using WrappedType<T>::WrappedType;
+
+  [[no_unique_address]] AlignedPadding<required_padding, enforced_alignment> __padding;
+};
+
+template<typename Layout>
+struct ArrayElement
+{
+  static constexpr size_t alignment = Layout::alignment;
+  static constexpr size_t size = Layout::array_stride;
+};
+
+template<typename T, typename Layout, size_t Elements>
+struct AlignAndResize<T[Elements], Layout> :
+    std::array<AlignAndResize<T, ArrayElement<vulkan::shader_builder::Layout<typename Layout::xlayout_t::element_xlayout_t>>>, Elements>
+{
+  // Array of arrays? Not supported.
+  static_assert(Elements != 0);
+};
+
+template<typename ContainingClass>
+struct Data : BasicTypes<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::glsl_standard::TypeEncodings::glsl_standard>
+{
+  using containing_class = ContainingClass;
+  template<int member_index>
+  using layout = vulkan::shader_builder::Layout<typename std::tuple_element_t<member_index, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ContainingClass>::struct_layout)::members_tuple>::layout_type>;
+};
 
 } // glsl

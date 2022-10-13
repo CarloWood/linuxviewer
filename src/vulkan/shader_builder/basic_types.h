@@ -20,6 +20,9 @@ using encode = BasicTypeLayout<glsl_standard, scalar_index, rows, cols, alignmen
 
 struct TypeEncodings
 {
+  // So we can access this from glsl 'standards' structs.
+  static constexpr Standard glsl_standard = glsl::SHADERBUILDER_STANDARD;
+
   // All the vectors are encoded as column-vectors, because you have to pick something.
   using Float   = encode<1, 1, eFloat>;
   using vec2    = encode<2, 1, eFloat>;
