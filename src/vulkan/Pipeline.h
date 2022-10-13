@@ -31,17 +31,24 @@ class Pipeline
  public:
   Pipeline() = default;
   Pipeline(Pipeline&&) = default;
-  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t const& descriptor_sets) :
+  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t const& descriptor_sets, FrameResourceIndex const max_number_of_frame_resources) :
     m_vh_layout(vh_layout), m_handle(handle)
   {
-    FrameResourceIndex const number_of_frame_resources = descriptor_sets.begin()->number_of_frame_resources();
+    size_t const number_of_frame_resources = max_number_of_frame_resources.get_value();
     descriptor::SetIndex const number_of_set_indexes{descriptor_sets.size()};
-    m_descriptor_set_per_set_index_per_frame_resource.resize(number_of_frame_resources.get_value());
-    for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
+    // Reorder the descriptor sets in memory for fast binding.
+    m_descriptor_set_per_set_index_per_frame_resource.resize(number_of_frame_resources);
+    for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
     {
       m_descriptor_set_per_set_index_per_frame_resource[frame_index].resize(number_of_set_indexes.get_value());
       for (descriptor::SetIndex set_index{0}; set_index < number_of_set_indexes; ++set_index)
-        m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = descriptor_sets[set_index][frame_index];
+      {
+        if (descriptor_sets[set_index].is_frame_resource())
+          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = descriptor_sets[set_index][frame_index];
+        else
+          // Use the same descriptor set for each frame.
+          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = descriptor_sets[set_index];
+      }
     }
   }
 

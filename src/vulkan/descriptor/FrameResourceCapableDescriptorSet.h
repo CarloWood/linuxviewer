@@ -46,10 +46,15 @@ class FrameResourceCapableDescriptorSet
     return *this;
   }
 
+  bool is_frame_resource() const
+  {
+    return m_descriptor_set.size() > 1;
+  }
+
   operator vk::DescriptorSet() const
   {
     // Only use automatic conversion when this represents a single descriptor set handle.
-    ASSERT(m_descriptor_set.size() == 1);
+    ASSERT(!is_frame_resource());
     return *m_descriptor_set.begin();
   }
 
@@ -62,13 +67,8 @@ class FrameResourceCapableDescriptorSet
   vk::DescriptorSet operator[](FrameResourceIndex index) const
   {
     // Only use operator[] when this represents more than one descriptor set handle; one per frame resource.
-    ASSERT(m_descriptor_set.size() > 1);
+    ASSERT(is_frame_resource());
     return m_descriptor_set[index];
-  }
-
-  FrameResourceIndex number_of_frame_resources() const
-  {
-    return FrameResourceIndex{m_descriptor_set.size()};
   }
 
 #ifdef CWDEBUG
