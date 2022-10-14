@@ -1,8 +1,9 @@
 #pragma once
 
 #include "shader_builder/ShaderVariableLayouts.h"
+#include "debug.h"
 
-static constexpr int top_position_array_size = 32;
+static constexpr int top_position_array_size = 7;
 
 struct TopPosition;
 
@@ -10,7 +11,7 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 {
   static constexpr auto struct_layout = make_struct_layout(
     LAYOUT(Float, unused1),
-    LAYOUT(vec3, v)
+    LAYOUT(vec3[top_position_array_size], v)
   );
 };
 
@@ -18,7 +19,5 @@ LAYOUT_DECLARATION(TopPosition, uniform_std140)
 STRUCT_DECLARATION(TopPosition)
 {
   MEMBER(0, Float, unused1);
-  MEMBER(1, vec3, v);
+  MEMBER(1, vec3[top_position_array_size], v);
 };
-
-static_assert(offsetof(TopPosition, v) + decltype(TopPosition::v)::debug_internal_offset == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset, "Offset of v is wrong.");

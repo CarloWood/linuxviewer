@@ -21,7 +21,7 @@
 
 #define ENABLE_IMGUI 1
 
-static constexpr int top_position_array_index = 27;
+static constexpr int top_position_array_index = 6;
 
 class Window : public task::SynchronousWindow
 {
@@ -134,7 +134,7 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  positions[0].x = TopPosition::v.x - 1.0;
+  positions[0].x = TopPosition::v[6].z - 1.0;
   positions[1].y = LeftPosition::y;
   positions[2].x = BottomPosition::x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
@@ -153,7 +153,7 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  positions[0].x = TopPosition::v.x;
+  positions[0].x = TopPosition::v[6].z;
   positions[1].y = LeftPosition::y;
   positions[2].x = BottomPosition::x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
@@ -510,7 +510,7 @@ else
 
     vulkan::FrameResourceIndex frame_index = m_current_frame.m_resource_index;
     if (m_top_buffer.is_ready())
-      ((TopPosition*)(m_top_buffer[frame_index].pointer()))->v[0] = m_top_position + frame_index.get_value() * 0.1f;
+      ((TopPosition*)(m_top_buffer[frame_index].pointer()))->v[top_position_array_index][2] = m_top_position + frame_index.get_value() * 0.1f;
     if (m_left_buffer.is_ready())
       ((LeftPosition*)(m_left_buffer[frame_index].pointer()))->y = m_left_position;
     if (m_bottom_buffer.is_ready())

@@ -488,17 +488,25 @@ consteval size_t required_padding()
   {
     constexpr size_t previous_member_offset = MembersTuple<member_index - 1>::offset;
     constexpr size_t previous_member_size = layout_t<MembersTuple<member_index - 1>>::size;
+    constexpr size_t member_size = layout_t<MembersTuple<member_index>>::size;
+    constexpr size_t required_member_alignment = layout_t<MembersTuple<member_index>>::alignment;
+    constexpr size_t enforced_alignment = std::gcd(required_member_alignment, member_size);
+    constexpr size_t current_offset = (previous_member_offset + previous_member_size + enforced_alignment - 1) / enforced_alignment * enforced_alignment;
     constexpr size_t required_offset = MembersTuple<member_index>::offset;
     // --previous_member_offset--> PPP ^
     //                             PPP | -- previous_member_size
     //                             PPP v
     //                                 ^
+    //                                 | -- padding added by C++ compiler
+    //                                 v
+    // ------------------------------------------- <-- aligned address of current object (cpp_palignment) <-- current_offset.
+    //                                 ^
     //                                 | -- returned padding.
     //                                 v
     // --required_offset---------> MMM
     // Paranoia check.
-    static_assert(required_offset >= previous_member_offset + previous_member_size);
-    return required_offset - previous_member_offset - previous_member_size;
+    static_assert(required_offset >= current_offset);
+    return required_offset - current_offset;
   }
 }
 
