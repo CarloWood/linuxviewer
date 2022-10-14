@@ -21,4 +21,4 @@ STRUCT_DECLARATION(TopPosition)
   MEMBER(1, vec3, v);
 };
 
-static_assert(offsetof(TopPosition, v) == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset, "Offset of v is wrong.");
+static_assert(offsetof(TopPosition, v) + decltype(TopPosition::v)::debug_internal_offset == std::tuple_element_t<1, decltype(vulkan::shader_builder::ShaderVariableLayouts<TopPosition>::struct_layout)::members_tuple>::offset, "Offset of v is wrong.");

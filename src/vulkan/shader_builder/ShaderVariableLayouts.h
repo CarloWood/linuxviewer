@@ -188,7 +188,7 @@ struct StructMember<ContainingClass, XLayout[Elements], MemberName>
   struct classname : glsl::Data<classname>
 
 #define MEMBER(member_index, membertype, membername) \
-  glsl::AlignAndResize<membertype, layout<member_index>> membername
+  glsl::OffsetAlignAndResize<membertype, MembersTuple, member_index> membername
 
 //=============================================================================
 // Helper classes for constructing StructLayout<> types.
@@ -470,12 +470,63 @@ struct AlignAndResize<T[Elements], Layout> :
   static_assert(Elements != 0);
 };
 
+template<typename MemberLayout>
+struct layout
+{
+  using type = vulkan::shader_builder::Layout<typename MemberLayout::layout_type>;
+};
+
+template<typename MemberLayout>
+using layout_t = typename layout<MemberLayout>::type;
+
+template<template<int> class MembersTuple, int member_index>
+consteval size_t required_padding()
+{
+  if constexpr (member_index == 0)
+    return 0;
+  else
+  {
+    constexpr size_t previous_member_offset = MembersTuple<member_index - 1>::offset;
+    constexpr size_t previous_member_size = layout_t<MembersTuple<member_index - 1>>::size;
+    constexpr size_t required_offset = MembersTuple<member_index>::offset;
+    // --previous_member_offset--> PPP ^
+    //                             PPP | -- previous_member_size
+    //                             PPP v
+    //                                 ^
+    //                                 | -- returned padding.
+    //                                 v
+    // --required_offset---------> MMM
+    // Paranoia check.
+    static_assert(required_offset >= previous_member_offset + previous_member_size);
+    return required_offset - previous_member_offset - previous_member_size;
+  }
+}
+
+// AlignAndResize with pre-padding.
+template<size_t padding, typename T, template<int> class MembersTuple, int member_index>
+struct PaddedAlignAndResize :
+  AlignedPadding<padding, std::gcd(layout_t<MembersTuple<member_index>>::alignment, layout_t<MembersTuple<member_index>>::size)>,
+  AlignAndResize<T, layout_t<MembersTuple<member_index>>>
+{
+  using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::AlignAndResize;
+};
+
+// Specialization for a required padding of zero.
+template<typename T, template<int> class MembersTuple, int member_index>
+struct PaddedAlignAndResize<0, T, MembersTuple, member_index> : AlignAndResize<T, layout_t<MembersTuple<member_index>>>
+{
+  using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::AlignAndResize;
+};
+
+template<typename T, template<int> class MembersTuple, int member_index>
+using OffsetAlignAndResize = PaddedAlignAndResize<required_padding<MembersTuple, member_index>(), T, MembersTuple, member_index>;
+
 template<typename ContainingClass>
 struct Data : BasicTypes<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::glsl_standard::TypeEncodings::glsl_standard>
 {
   using containing_class = ContainingClass;
   template<int member_index>
-  using layout = vulkan::shader_builder::Layout<typename std::tuple_element_t<member_index, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ContainingClass>::struct_layout)::members_tuple>::layout_type>;
+  using MembersTuple = std::tuple_element_t<member_index, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ContainingClass>::struct_layout)::members_tuple>;
 };
 
 } // glsl
