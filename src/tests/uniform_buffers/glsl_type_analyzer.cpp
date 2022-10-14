@@ -148,7 +148,8 @@ enum What
 {
   eAlignment,
   eSize,
-  eArrayStride
+  eArrayStride,
+  eArrayAlignment
 };
 
 std::string what_str(int what)
@@ -161,6 +162,8 @@ std::string what_str(int what)
       return "eSize";
     case eArrayStride:
       return "eArrayStride";
+    case eArrayAlignment:
+      return "eArrayAlignment";
   }
   return "UNKNOWN";
 }
@@ -191,6 +194,31 @@ std::array<int, number_of_standards> determine(std::string type_name, What what,
 {
 #ifdef DEBUG
   std::cout << "Entering determine(" << type_name << ", " << what_str(what) << ", ...)" << std::endl;
+
+  std::ostringstream oss;
+  oss << (test_header.data() + 1);
+  if (what == eAlignment)
+  {
+    oss << "  bool b_wedge_0;\n";
+    oss << "  " << type_name << " v_" << type_name << "_1;";
+  }
+  else if (what == eSize)
+  {
+    oss << "  " << type_name << " v_" << type_name << "_0;\n";
+    oss << "  bool b_lid_1;\n";
+  }
+  else if (what == eArrayStride)
+  {
+    oss << "  " << type_name << " v_" << type_name << "_0[10];\n";
+    oss << "  bool b_lid_1;\n";
+  }
+  else // what == eArrayAlignment
+  {
+    oss << "  bool b_wedge_0;\n";
+    oss << "  " << type_name << " v_" << type_name << "_1[3];";
+  }
+  oss << test_footer;
+  std::cout << "---\nCompiling:\n" << oss.str() << "\n---\n";
 #endif
 
   using namespace redi;
@@ -208,10 +236,15 @@ std::array<int, number_of_standards> determine(std::string type_name, What what,
     compiler << "  " << type_name << " v_" << type_name << "_0;";
     compiler << "  bool b_lid_1;\n";
   }
-  else // what == eArrayStride
+  else if (what == eArrayStride)
   {
     compiler << "  " << type_name << " v_" << type_name << "_0[10];";
     compiler << "  bool b_lid_1;\n";
+  }
+  else // what == eArrayAlignment
+  {
+    compiler << "  bool b_wedge_0;\n";
+    compiler << "  " << type_name << " v_" << type_name << "_1[3];";
   }
 
 //  if (what == array_stride)
@@ -342,6 +375,10 @@ std::array<int, number_of_standards> determine(std::string type_name, What what,
       assert(measured_array_stride[st]);
       std::cout << "next member offset: " << measured_second_offset[st] << "; array_stride: " << measured_array_stride[st];
     }
+    else if (what == eArrayAlignment)
+    {
+      std::cout << "array alignment: " << measured_second_offset[st];
+    }
 
     if (offsets_are_the_same)
       break;
@@ -361,6 +398,7 @@ struct Info
   int size;             // The (padded) size of this type when not used in an array.
   int array_stride;     // The alignment and size of array elements of this type.
   int next_member;      // The minimum base offset of a member (ie, an uint) that follows an array of this type, relative to the base offset of that array.
+  int array_alignment;  // The alignment of this type as array.
 };
 
 std::ostream& operator<<(std::ostream& os, Info const& info)
@@ -378,12 +416,13 @@ void store(int scalar_type, int rows, int cols,
     std::array<int, number_of_standards> const& alignments,
     std::array<int, number_of_standards> const& sizes,
     std::array<int, number_of_standards> const& strides,
-    std::array<int, number_of_standards> const& next_members)
+    std::array<int, number_of_standards> const& next_members,
+    std::array<int, number_of_standards> const& array_alignments)
 {
   for (int st = 0; st < number_of_standards; ++st)
   {
     database[scalar_type][rows][cols][st] = Info{
-      .scalar_type = scalar_type, .rows = rows, .cols = cols, .standard = st, .alignment = alignments[st], .size = sizes[st], .array_stride = strides[st], .next_member = next_members[st]
+      .scalar_type = scalar_type, .rows = rows, .cols = cols, .standard = st, .alignment = alignments[st], .size = sizes[st], .array_stride = strides[st], .next_member = next_members[st], .array_alignment = array_alignments[st]
     };
   }
 }
@@ -605,6 +644,12 @@ uint32_t array_stride(glsl::Standard standard, glsl::TypeIndex scalar_type, int 
   return (standard == glsl::std140) ? std::max(array_stride, 16U) : array_stride;
 }
 
+uint32_t array_alignment(glsl::Standard standard, glsl::TypeIndex scalar_type, int rows, int cols)
+{
+  uint32_t base_alignment = alignment(standard, scalar_type, rows, cols);
+  return (standard == glsl::std140) ? std::max(base_alignment, 16U) : base_alignment;
+}
+
 int main()
 {
   // Run over all basic types.
@@ -617,7 +662,8 @@ int main()
         auto alignments = determine(type_name, eAlignment, strides);
         auto sizes = determine(type_name, eSize, strides);
         auto next_members = determine(type_name, eArrayStride, strides);
-        store(scalar_type, rows, cols, alignments, sizes, strides, next_members);
+        auto array_alignments = determine(type_name, eArrayAlignment, strides);
+        store(scalar_type, rows, cols, alignments, sizes, strides, next_members, array_alignments);
       }
   check_rules();
   for (int sti = 0; sti < number_of_standards; ++sti)
@@ -633,11 +679,13 @@ int main()
           std::string type_name = make_type_name(scalar_type, rows, cols);
           Info& info = database[scalar_type][rows][cols][st];
           std::cout << std::setw(8) << type_name << ": encode(" << rows << ", " << cols << ", " << std::setw(11) << enum_name(scalar_type) <<
-            ", " << std::setw(3) << info.alignment << ", " << std::setw(3) << info.size << ", " << std::setw(3) << info.array_stride << ")\n";
+            ", " << std::setw(3) << info.alignment << ", " << std::setw(3) << info.size << ", " << std::setw(3) << info.array_stride <<
+            ", " << std::setw(3) << info.array_alignment << ")\n";
           // Test the three functions.
           assert(info.alignment == alignment(st, scalar_type, rows, cols));
           assert(info.size == size(st, scalar_type, rows, cols));
           assert(info.array_stride == array_stride(st, scalar_type, rows, cols));
+          assert(info.array_alignment == array_alignment(st, scalar_type, rows, cols));
         }
     }
   }

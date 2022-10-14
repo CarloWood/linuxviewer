@@ -467,4 +467,11 @@ constexpr uint32_t array_stride(Standard standard, ScalarIndex scalar_type, int 
   return (standard == std140) ? std::max(array_stride, 16U) : array_stride;
 }
 
+constexpr uint32_t array_alignment(Standard standard, uint32_t element_alignment)
+{
+  // The alignment of an array is equal to the alignment of one of its elements (even if the array stride is larger),
+  // rounded up to 16 for std140.
+  return (standard == glsl::std140) ? std::max(element_alignment, 16U) : element_alignment;
+}
+
 } // namespace glsl

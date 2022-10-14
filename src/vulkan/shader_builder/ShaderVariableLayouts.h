@@ -51,13 +51,13 @@ struct Layout
 template<glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride>
 struct BasicTypeLayout
 {
+  static constexpr glsl::Standard standard = Standard;
 };
 
 template<glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride>
 struct Layout<BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>>
 {
   using xlayout_t = BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>;
-  static constexpr glsl::Standard standard = Standard;
   static constexpr size_t alignment = Alignment;
   static constexpr size_t size = Size;
   static constexpr size_t array_stride = ArrayStride;
@@ -135,14 +135,6 @@ struct StructLayout
   constexpr StructLayout(MembersTuple) {}
 };
 
-template<typename MembersTuple>
-struct Layout<StructLayout<MembersTuple>>
-{
-  static constexpr size_t alignment = StructLayout<MembersTuple>::alignment;
-  static constexpr size_t size = StructLayout<MembersTuple>::size;
-  static constexpr size_t array_stride = std::max({size, alignment, (StructLayout<MembersTuple>::standard == glsl::std140) ? 16 : 0});
-};
-
 template<typename XLayout>
 concept ConceptXLayout = requires
 {
@@ -167,7 +159,7 @@ template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateString
 struct StructMember<ContainingClass, XLayout[Elements], MemberName>
 {
   static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
-  static constexpr size_t alignment = Layout<XLayout>::alignment;
+  static constexpr size_t alignment = array_alignment(XLayout::standard, Layout<XLayout>::alignment);
   using containing_class = ContainingClass;
   using layout_type = ArrayLayout<XLayout, Elements>;
 };
@@ -246,7 +238,7 @@ constexpr auto make_struct_layout(FirstMember const& first_member, RestMembers c
 {
   using ContainingClass = typename FirstMember::containing_class;
   using FirstType = typename FirstMember::layout_type;
-  using FirstMemberLayout = MemberLayout<ContainingClass, FirstType, 0/*index*/, Layout<FirstType>::alignment, 0/*offset*/, FirstMember::glsl_id_full>;
+  using FirstMemberLayout = MemberLayout<ContainingClass, FirstType, 0/*index*/, FirstMember::alignment, 0/*offset*/, FirstMember::glsl_id_full>;
 
   return StructLayout{make_layouts_impl(std::tuple(FirstMemberLayout{}), restMembers...)};
 }
@@ -462,7 +454,7 @@ struct AlignAndResize : WrappedType<T>
 template<typename Layout>
 struct ArrayElement
 {
-  static constexpr size_t alignment = Layout::alignment;
+  static constexpr size_t alignment = array_alignment(Layout::xlayout_t::standard, Layout::alignment);
   static constexpr size_t size = Layout::array_stride;
 };
 

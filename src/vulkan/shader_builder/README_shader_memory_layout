@@ -142,7 +142,7 @@ then the offset of lid in Test will be 10 times the array stride of TheType. Not
 This can be put in code as follows:
 (See actual source code).
 
-9. The alignment of an array is equal to the alignment of one of its elements (even if the array stride is larger).
+9. The alignment of an array is equal to the alignment of one of its elements (even if the array stride is larger), for std140 rounded up to 16.
 
 10. The size of an array is equal the array stride of one of its elements times the number of elements.
 
