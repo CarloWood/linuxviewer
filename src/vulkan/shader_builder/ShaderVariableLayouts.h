@@ -87,6 +87,7 @@ template<typename ContainingClass, typename XLayout, int Index, size_t MaxAlignm
 struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>>
 {
   using xlayout_t = MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>;
+  static constexpr size_t offset = xlayout_t::offset;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::size;
   static constexpr size_t array_stride = Layout<XLayout>::array_stride;
@@ -108,6 +109,7 @@ template<typename XLayout, size_t Elements>
 struct Layout<ArrayLayout<XLayout, Elements>>
 {
   using xlayout_t = ArrayLayout<XLayout, Elements>;
+  static constexpr size_t offset = xlayout_t::element_xlayout_t::offset;        //FIXME: is this correct?
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::array_stride * Elements;
   static constexpr size_t array_stride = size;
@@ -436,6 +438,8 @@ struct WrappedType<T> : Builtin<T>
 template<typename T, typename Layout>
 struct AlignAndResize : WrappedType<T>
 {
+  static constexpr size_t previous_member_offset = Layout::offset;
+//  static constexpr size_t previous_member_size = ?;
   static constexpr size_t required_alignment = Layout::alignment;
   // In C++ the size must always be a multiple of the alignment. Therefore, we have to possibly relax
   // the (C++ enforced) alignment or the resulting size will be too large!
