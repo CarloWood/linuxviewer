@@ -212,7 +212,6 @@ class Base
   virtual void create(task::SynchronousWindow const* owning_window) = 0;
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
-  virtual void ready() = 0;
   //---------------------------------------------------------------------------
 
   // Accessors.

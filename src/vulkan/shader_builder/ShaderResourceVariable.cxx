@@ -51,10 +51,9 @@ std::string ShaderResourceVariable::substitution() const
     case vk::DescriptorType::eUniformBuffer:
     {
       std::string prefix = this->prefix();
-      std::size_t const prefix_hash = std::hash<std::string>{}(prefix);
       std::ostringstream oss;
       // The same as the declaration, see ShaderResourceDeclarationContext::generate.
-      oss << 'v' << prefix_hash << ".m_" << vk_utils::snake_case(prefix) << '.' << member_name();
+      oss << prefix << '.' << member_name();
       return oss.str();
     }
     default:

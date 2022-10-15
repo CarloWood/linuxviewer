@@ -9,9 +9,11 @@
 #include "shader_resource/UniformBuffer.h"
 #include "memory/UniformBuffer.h"
 #include "utils/Vector.h"
+#include "debug.h"
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #include <cxxabi.h>
+#include "src/tests/uniform_buffers/TopPosition.h"
 #endif
 
 namespace task {
@@ -26,18 +28,6 @@ class UniformBufferBase : public Base
   using members_container_t = ShaderResourceMember::container_t;
   members_container_t m_members;                                                // The members of ENTRY (of the derived class).
   utils::Vector<memory::UniformBuffer, FrameResourceIndex> m_uniform_buffers;   // The actual uniform buffer(s), one for each frame resource.
-
-  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  void add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
-      shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
-      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
-
-  template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
-      int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-  void add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
-      shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
-      MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
  private:
   virtual size_t size() const = 0;
@@ -74,7 +64,7 @@ class UniformBuffer : public UniformBufferBase
   // Implementation of base class virtual functions.
   size_t size() const override
   {
-    //FIXME: should be multiplied with the array size.
+    // A UniformBuffer can not be an array: it exists of this single ENTRY (which can be a struct that contains an array of structs).
     return sizeof(ENTRY);
   }
 
@@ -90,21 +80,9 @@ class UniformBuffer : public UniformBufferBase
 #endif
 };
 
-#if 0
-// Helper class to extract the glsl_id_full prefix from an ENTRY type.
-template<typename ENTRY, int member>
-struct GlslIdStr
-{
-  static constexpr utils::TemplateStringLiteral glsl_id_full =
-    std::tuple_element_t<member, typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple>::glsl_id_full;
-  static constexpr std::string_view glsl_id_sv = static_cast<std::string_view>(glsl_id_full);
-  static constexpr std::string_view prefix{glsl_id_sv.data(), glsl_id_sv.find(':')};
-};
-#endif
-
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
+void add_uniform_buffer_member(ShaderResourceMember::container_t& members, shader_builder::MemberLayout<ContainingClass,
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -113,12 +91,12 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
 
-  m_members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset);
+  members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset);
 }
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<ContainingClass,
+void add_uniform_buffer_member(ShaderResourceMember::container_t& members, shader_builder::MemberLayout<ContainingClass,
     shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -127,13 +105,75 @@ void UniformBufferBase::add_uniform_buffer_member(shader_builder::MemberLayout<C
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
 
-  m_members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset, Elements);
+  members.emplace_back(glsl_id_full.data(), MemberIndex, basic_type, Offset, Elements);
+}
+
+template<typename ContainingClass, typename MembersTuple,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
+void add_uniform_buffer_member(ShaderResourceMember::container_t& members, shader_builder::MemberLayout<ContainingClass,
+    shader_builder::StructLayout<MembersTuple>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+{
+  std::string_view glsl_id_full = member_layout.glsl_id_full;
+  std::string_view glsl_id_full_struct = shader_builder::StructLayout<MembersTuple>::glsl_id_full;
+
+  ShaderResourceMember::container_t struct_type;
+
+  [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
+  {
+    ([&]
+    {
+      {
+#if 0 // Print the type MemberLayout.
+        int rc;
+        char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
+        Dout(dc::vulkan, "1. Calling add_uniform_buffer_member(m_members, " << demangled_type << ", \"" << glsl_id_full_struct << "\")");
+#endif
+        static constexpr int member_index = MemberLayout::member_index;
+        add_uniform_buffer_member(struct_type, std::get<member_index>(layouts));
+      }
+    }(), ...);
+  }(MembersTuple{});
+
+  members.emplace_back(glsl_id_full.data(), MemberIndex, std::move(struct_type), Offset, glsl_id_full_struct);
+}
+
+template<typename ContainingClass, typename MembersTuple,
+    int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
+void add_uniform_buffer_member(ShaderResourceMember::container_t& members, shader_builder::MemberLayout<ContainingClass,
+    shader_builder::ArrayLayout<shader_builder::StructLayout<MembersTuple>, Elements>,
+    MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
+{
+  std::string_view glsl_id_full = member_layout.glsl_id_full;
+  std::string_view glsl_id_full_struct = shader_builder::StructLayout<MembersTuple>::glsl_id_full;
+
+  ShaderResourceMember::container_t struct_type;
+
+  [&]<typename... MemberLayout>(std::tuple<MemberLayout...> const& layouts)
+  {
+    ([&]
+    {
+      {
+#if 0 // Print the type MemberLayout.
+        int rc;
+        char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
+        Dout(dc::vulkan, "2. Calling add_uniform_buffer_member(m_members, " << demangled_type << ", \"" << glsl_id_full_struct << "\")");
+#endif
+        static constexpr int member_index = MemberLayout::member_index;
+        add_uniform_buffer_member(struct_type, std::get<member_index>(layouts));
+      }
+    }(), ...);
+  }(MembersTuple{});
+
+  members.emplace_back(glsl_id_full.data(), MemberIndex, std::move(struct_type), Offset, glsl_id_full_struct, Elements);
 }
 
 template<typename ENTRY>
 UniformBuffer<ENTRY>::UniformBuffer(char const* CWDEBUG_ONLY(debug_name)) : UniformBufferBase(shader_builder::ShaderVariableLayouts<ENTRY>::struct_layout.members COMMA_CWDEBUG_ONLY(debug_name))
 {
   using namespace shader_builder;
+  std::string_view glsl_id_full_struct = ShaderVariableLayouts<ENTRY>::prefix;
+  glsl_id_full_struct.remove_suffix(2); // Strip off the "::".
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
   // in the form of a tuple, of the uniform buffer struct members `layouts`.
   // Then for each member layout call add_uniform_buffer_member.
@@ -145,10 +185,10 @@ UniformBuffer<ENTRY>::UniformBuffer(char const* CWDEBUG_ONLY(debug_name)) : Unif
 #if 0 // Print the type MemberLayout.
         int rc;
         char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
-        Dout(dc::vulkan, "We get here for type " << demangled_type);
+        Dout(dc::vulkan, "3. Calling add_uniform_buffer_member(m_members, " << demangled_type << ")");
 #endif
         static constexpr int member_index = MemberLayout::member_index;
-        add_uniform_buffer_member(std::get<member_index>(layouts));
+        add_uniform_buffer_member(m_members, std::get<member_index>(layouts));
       }
     }(), ...);
   }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});

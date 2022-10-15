@@ -78,6 +78,34 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
   }
 }
 
+std::string write_members_to(std::ostream& os, ShaderResourceMember::container_t const& members)
+{
+  std::string declarations;
+  for (ShaderResourceMember const& member : members)
+  {
+    if (!member.is_struct())
+    {
+      BasicType basic_type = member.basic_type();
+      os << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols());
+    }
+    else
+    {
+      ShaderResourceMember::container_t const& struct_type = member.struct_type();
+      std::ostringstream oss;
+      oss << "struct " << member.struct_name() << "\n{\n";
+      declarations += write_members_to(oss, struct_type);
+      oss << "};\n";
+      declarations += oss.str();
+      os << "  " << member.struct_name();
+    }
+    os << ' ' << member.member_name();
+    if (member.is_array())
+      os << "[" << member.array_size() << "]";
+    os << ";\n";
+  }
+  return declarations;
+}
+
 std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(" << shader_stage << ") [" << this << "]");
@@ -113,32 +141,25 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
       case vk::DescriptorType::eUniformBuffer:
       {
         // struct TopPosition {
-        //   mat2 unused1;
-        //   float x;
+        //   float unused1;
+        //   vec3 v[7];
         // };
         //
         // layout(set = 0, binding = 1) uniform u_s0b1 {
-        //   TopPosition m_top_position;
-        // } v4238767198234540653;
+        //   float unused;
+        //   TopPosition foo;
+        // } MyUniformBuffer;
+
+        oss << "layout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform "
+          "u_s" << set_index.get_value() << "b" << binding << " {\n";
 
         std::string const& prefix = shader_resource_declaration->glsl_id();
-        std::size_t const prefix_hash = std::hash<std::string>{}(prefix);
         shader_resource::Base const& base = shader_resource_declaration->shader_resource();
         shader_resource::UniformBufferBase const& uniform_buffer = static_cast<shader_resource::UniformBufferBase const&>(base);
         auto const& members = uniform_buffer.members();
-        oss << "struct " << prefix << " {\n";
-        for (ShaderResourceMember const& member : members)
-        {
-          BasicType basic_type = member.basic_type();
-          oss << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols()) << ' ' << member.member_name();
-          if (member.is_array())
-            oss << "[" << member.array_size() << "]";
-          oss << ";\n";
-        }
-        oss << "};\nlayout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform "
-          "u_s" << set_index.get_value() << "b" << binding << " {\n  " <<
-          prefix << " m_" << vk_utils::snake_case(prefix) << ";\n} v" << prefix_hash << ";\n";
-        break;
+        std::string declarations = write_members_to(oss, members);
+        oss << "} " << prefix << ";\n";
+        return declarations + oss.str();
       }
       default:
         //FIXME: not implemented.

@@ -891,15 +891,6 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
         Dout(dc::shaderresource, "The set_index was not found in set_index_has_frame_resource_pairs.");
     }
   }
-
-  if (set_index_end == m_set_index_end)
-  {
-    for (Base* shader_resource : m_acquired_required_shader_resources_list)
-    {
-      // Notify the application that this shader resource is ready for use.
-      shader_resource->ready();
-    }
-  }
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,

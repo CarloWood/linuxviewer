@@ -5,7 +5,6 @@
 #include "TopPosition.h"
 #include "LeftPosition.h"
 #include "BottomPosition.h"
-#include "UniformBufferSlider.h"
 #include "queues/CopyDataToImage.h"
 #include "Pipeline.h"
 #include "shader_builder/ShaderIndex.h"
@@ -49,9 +48,9 @@ class Window : public task::SynchronousWindow
   vulkan::Pipeline m_graphics_pipeline0;
   vulkan::Pipeline m_graphics_pipeline1;
 
-  UniformBufferSlider<TopPosition> m_top_buffer{"m_top_buffer"};
-  UniformBufferSlider<LeftPosition> m_left_buffer{"m_left_buffer"};
-  UniformBufferSlider<BottomPosition> m_bottom_buffer{"m_bottom_buffer"};
+  vulkan::shader_resource::UniformBuffer<MyUniformBuffer> m_top_buffer{"m_top_buffer"};
+  vulkan::shader_resource::UniformBuffer<LeftPosition> m_left_buffer{"m_left_buffer"};
+  vulkan::shader_resource::UniformBuffer<BottomPosition> m_bottom_buffer{"m_bottom_buffer"};
   std::atomic_bool m_uniform_buffers_initialized = false;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -134,7 +133,7 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  positions[0].x = TopPosition::v[6].z - 1.0;
+  positions[0].x = MyUniformBuffer::foo[2].v[6].z - 1.0;
   positions[1].y = LeftPosition::y;
   positions[2].x = BottomPosition::x - 1.0;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
@@ -153,7 +152,7 @@ vec2 positions[3] = vec2[](
 
 void main()
 {
-  positions[0].x = TopPosition::v[6].z;
+  positions[0].x = MyUniformBuffer::foo[2].v[6].z;
   positions[1].y = LeftPosition::y;
   positions[2].x = BottomPosition::x;
   gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
@@ -509,11 +508,11 @@ else
     ImGui::End();
 
     vulkan::FrameResourceIndex frame_index = m_current_frame.m_resource_index;
-    if (m_top_buffer.is_ready())
-      ((TopPosition*)(m_top_buffer[frame_index].pointer()))->v[top_position_array_index][2] = m_top_position + frame_index.get_value() * 0.1f;
-    if (m_left_buffer.is_ready())
+    if (m_top_buffer.is_created())
+      ((MyUniformBuffer*)(m_top_buffer[frame_index].pointer()))->foo[2].v[top_position_array_index][2] = m_top_position + frame_index.get_value() * 0.1f;
+    if (m_left_buffer.is_created())
       ((LeftPosition*)(m_left_buffer[frame_index].pointer()))->y = m_left_position;
-    if (m_bottom_buffer.is_ready())
+    if (m_bottom_buffer.is_created())
       ((BottomPosition*)(m_bottom_buffer[frame_index].pointer()))->x = m_bottom_position;
   }
 };

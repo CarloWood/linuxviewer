@@ -13,8 +13,8 @@ LAYOUT_DECLARATION(BottomPosition, uniform_std140)
 };
 
 // Struct describing data type and format of uniform block.
-struct BottomPosition
+STRUCT_DECLARATION(BottomPosition)
 {
-  glsl::vec2 unused;
-  glsl::Float x;
+  MEMBER(0, vec2, unused);
+  MEMBER(1, Float, x);
 };

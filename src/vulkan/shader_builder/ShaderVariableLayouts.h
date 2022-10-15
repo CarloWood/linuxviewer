@@ -87,7 +87,6 @@ template<typename ContainingClass, typename XLayout, int Index, size_t MaxAlignm
 struct Layout<MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>>
 {
   using xlayout_t = MemberLayout<ContainingClass, XLayout, Index, MaxAlignment, Offset, GlslIdStr>;
-  static constexpr size_t offset = xlayout_t::offset;
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::size;
   static constexpr size_t array_stride = Layout<XLayout>::array_stride;
@@ -109,86 +108,10 @@ template<typename XLayout, size_t Elements>
 struct Layout<ArrayLayout<XLayout, Elements>>
 {
   using xlayout_t = ArrayLayout<XLayout, Elements>;
-  static constexpr size_t offset = xlayout_t::element_xlayout_t::offset;        //FIXME: is this correct?
   static constexpr size_t alignment = Layout<XLayout>::alignment;
   static constexpr size_t size = Layout<XLayout>::array_stride * Elements;
   static constexpr size_t array_stride = size;
 };
-
-// StructLayout
-//
-// MembersTuple : A tuple of all MemberLayout's.
-//
-template<typename MembersTuple>
-struct StructLayout
-{
-  using members_tuple = MembersTuple;
-  static constexpr int members = std::tuple_size_v<MembersTuple>;
-  static_assert(members > 0, "There must be at least one member in a StructLayout");
-  using last_member_layout = std::tuple_element_t<members - 1, MembersTuple>;
-  using underlying_class = typename last_member_layout::containing_class;        // Should be the same for every member.
-  static constexpr glsl::Standard standard = last_member_layout::standard;
-  static constexpr size_t alignment = last_member_layout::max_alignment;
-  static constexpr size_t size = round_up_to_multiple_off(last_member_layout::offset + Layout<typename last_member_layout::layout_type>::size, alignment);
-  static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_full);
-  static constexpr size_t underlying_class_name_len = last_member_glsl_id_sv.find(':');
-  static constexpr utils::TemplateStringLiteral<underlying_class_name_len> glsl_id_full{last_member_glsl_id_sv.data(), underlying_class_name_len};
-
-  constexpr StructLayout(MembersTuple) {}
-};
-
-template<typename XLayout>
-concept ConceptXLayout = requires
-{
-  typename Layout<XLayout>::xlayout_t;
-};
-
-template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
-struct StructMember;
-
-// The type returned by the macro LAYOUT.
-template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName>
-struct StructMember<ContainingClass, XLayout, MemberName>
-{
-  static constexpr size_t alignment = Layout<XLayout>::alignment;
-  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
-  using containing_class = ContainingClass;
-  using layout_type = XLayout;
-};
-
-// Specialization for arrays.
-template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
-struct StructMember<ContainingClass, XLayout[Elements], MemberName>
-{
-  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
-  static constexpr size_t alignment = array_alignment(XLayout::standard, Layout<XLayout>::alignment);
-  using containing_class = ContainingClass;
-  using layout_type = ArrayLayout<XLayout, Elements>;
-};
-
-#define LAYOUT_DECLARATION(classname, standard) \
-  template<> \
-  struct vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname> \
-  { \
-    using containing_class = classname; \
-    using glsl_standard = glsl::standard; \
-    static constexpr std::array long_prefix_a = std::to_array(BOOST_PP_STRINGIZE(classname)"::"); \
-    static constexpr std::string_view long_prefix{long_prefix_a.data(), long_prefix_a.size()}; \
-    static constexpr std::string_view prefix_sv = long_prefix.substr(long_prefix.find_last_of(':', long_prefix.size() - 4) + 1); \
-    static constexpr utils::TemplateStringLiteral<prefix_sv.size()> prefix{prefix_sv.data(), prefix_sv.size()}; \
-  }; \
-  \
-  template<> \
-  struct vulkan_shader_builder_specialization_classes::ShaderVariableLayouts<classname> : glsl::standard, vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname>
-
-#define LAYOUT(membertype, membername) \
-  (::vulkan::shader_builder::StructMember<containing_class, membertype, BOOST_PP_STRINGIZE(membername)>{})
-
-#define STRUCT_DECLARATION(classname) \
-  struct classname : glsl::Data<classname>
-
-#define MEMBER(member_index, membertype, membername) \
-  glsl::OffsetAlignAndResize<membertype, MembersTuple, member_index> membername
 
 //=============================================================================
 // Helper classes for constructing StructLayout<> types.
@@ -235,6 +158,95 @@ constexpr auto make_layouts_impl(std::tuple<MemberLayouts...> layouts, FirstUnpr
   return make_layouts_impl(std::tuple_cat(layouts, std::tuple<NextLayout>{}), unprocessedMembers...);
 }
 
+// End of Helper classes for constructing StructLayout<> types.
+//=============================================================================
+
+// StructLayout
+//
+// MembersTuple : A tuple of all MemberLayout's.
+//
+template<typename MembersTuple>
+struct StructLayout
+{
+  using members_tuple = MembersTuple;
+  static constexpr int members = std::tuple_size_v<MembersTuple>;
+  static_assert(members > 0, "There must be at least one member in a StructLayout");
+  using last_member_layout = std::tuple_element_t<members - 1, MembersTuple>;
+  static constexpr glsl::Standard standard = last_member_layout::standard;
+  static constexpr size_t alignment = last_member_layout::max_alignment;
+  static constexpr size_t size = round_up_to_multiple_off(last_member_layout::offset + Layout<typename last_member_layout::layout_type>::size, alignment);
+  using underlying_class = typename last_member_layout::containing_class;        // Should be the same for every member.
+  static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_full);
+  static constexpr size_t underlying_class_name_len = last_member_glsl_id_sv.find(':');
+  // Note the last character (a ':') is not copied into the TemplateStringLiteral; it is replaced with a terminating zero.
+  static constexpr utils::TemplateStringLiteral<underlying_class_name_len + 1> glsl_id_full{last_member_glsl_id_sv.data(), underlying_class_name_len + 1};
+
+  constexpr StructLayout(MembersTuple) {}
+};
+
+template<typename MembersTuple>
+struct Layout<StructLayout<MembersTuple>>
+{
+  using xlayout_t = StructLayout<MembersTuple>;
+  static constexpr size_t alignment = xlayout_t::alignment;
+  static constexpr size_t size = xlayout_t::size;
+  static constexpr size_t non140_array_stride = std::max(alignment, size);
+  static constexpr size_t array_stride = xlayout_t::standard == glsl::std140 ? std::max(non140_array_stride, size_t{16}) : non140_array_stride;
+};
+
+template<typename XLayout>
+concept ConceptXLayout = requires
+{
+  typename Layout<XLayout>::xlayout_t;
+};
+
+template<typename ContainingClass, typename XLayout, utils::TemplateStringLiteral MemberName>
+struct StructMember;
+
+// The type returned by the macro LAYOUT.
+template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName>
+struct StructMember<ContainingClass, XLayout, MemberName>
+{
+  static constexpr size_t alignment = Layout<XLayout>::alignment;
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  using containing_class = ContainingClass;
+  using layout_type = XLayout;
+};
+
+// Specialization for arrays.
+template<typename ContainingClass, ConceptXLayout XLayout, utils::TemplateStringLiteral MemberName, size_t Elements>
+struct StructMember<ContainingClass, XLayout[Elements], MemberName>
+{
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  static constexpr size_t alignment = array_alignment(XLayout::standard, Layout<XLayout>::alignment);
+  using containing_class = ContainingClass;
+  using layout_type = ArrayLayout<XLayout, Elements>;
+};
+
+template<typename ContainingClass>
+concept ConceptShaderVariableLayout = requires
+{
+  vulkan_shader_builder_specialization_classes::ShaderVariableLayouts<ContainingClass>{};
+};
+
+template<typename ContainingClass, ConceptShaderVariableLayout ContainingClassMember, utils::TemplateStringLiteral MemberName>
+struct StructMember<ContainingClass, ContainingClassMember, MemberName>
+{
+  using layout_type = StructLayout<typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ContainingClassMember>::struct_layout)::members_tuple>;
+  static constexpr size_t alignment = Layout<layout_type>::alignment;
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  using containing_class = ContainingClass;
+};
+
+template<typename ContainingClass, ConceptShaderVariableLayout ContainingClassMember, utils::TemplateStringLiteral MemberName, size_t Elements>
+struct StructMember<ContainingClass, ContainingClassMember[Elements], MemberName>
+{
+  using layout_type = ArrayLayout<StructLayout<typename decltype(vulkan::shader_builder::ShaderVariableLayouts<ContainingClassMember>::struct_layout)::members_tuple>, Elements>;
+  static constexpr size_t alignment = array_alignment(layout_type::standard, Layout<layout_type>::alignment);
+  static constexpr utils::TemplateStringLiteral glsl_id_full = utils::Catenate_v<vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<ContainingClass>::prefix, MemberName>;
+  using containing_class = ContainingClass;
+};
+
 template<typename FirstMember, typename... RestMembers>
 constexpr auto make_struct_layout(FirstMember const& first_member, RestMembers const&... restMembers)
 {
@@ -245,8 +257,29 @@ constexpr auto make_struct_layout(FirstMember const& first_member, RestMembers c
   return StructLayout{make_layouts_impl(std::tuple(FirstMemberLayout{}), restMembers...)};
 }
 
-// End of Helper classes for constructing StructLayout<> types.
-//=============================================================================
+#define LAYOUT_DECLARATION(classname, standard) \
+  template<> \
+  struct vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname> \
+  { \
+    using containing_class = classname; \
+    using glsl_standard = glsl::standard; \
+    static constexpr std::array long_prefix_a = std::to_array(BOOST_PP_STRINGIZE(classname)"::"); \
+    static constexpr std::string_view long_prefix{long_prefix_a.data(), long_prefix_a.size()}; \
+    static constexpr std::string_view prefix_sv = long_prefix.substr(long_prefix.find_last_of(':', long_prefix.size() - 4) + 1); \
+    static constexpr utils::TemplateStringLiteral<prefix_sv.size()> prefix{prefix_sv.data(), prefix_sv.size()}; \
+  }; \
+  \
+  template<> \
+  struct vulkan_shader_builder_specialization_classes::ShaderVariableLayouts<classname> : glsl::standard, vulkan_shader_builder_specialization_classes::ShaderVariableLayoutsBase<classname>
+
+#define LAYOUT(membertype, membername) \
+  (::vulkan::shader_builder::StructMember<containing_class, membertype, BOOST_PP_STRINGIZE(membername)>{})
+
+#define STRUCT_DECLARATION(classname) \
+  struct classname : glsl::Data<classname>
+
+#define MEMBER(member_index, membertype, membername) \
+  glsl::OffsetAlignAndResize<membertype, MembersTuple, member_index> membername
 
 namespace standards {
 using Standard = glsl::Standard;
