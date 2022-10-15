@@ -3,6 +3,7 @@
 #include "SynchronousWindow.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
+#include "shader_builder/DeclarationsString.h"
 #include "utils/malloc_size.h"
 #include "debug.h"
 #include <cstring>
@@ -61,10 +62,10 @@ std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& 
   }
 
   // Generate the declarations.
-  std::string declarations;
+  shader_builder::DeclarationsString declarations;
   for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
-    declarations += declaration_context->generate(shader_info.stage());
-  declarations += '\n';
+    declaration_context->add_declarations_for_stage(declarations, shader_info.stage());
+  declarations.add_newline();   // For pretty printing debug output.
 
   // Store each position where a match string occurs, together with an std::pair
   // containing the found substring that has to be replaced (first) and the
@@ -84,11 +85,11 @@ std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& 
   }
 
   static constexpr char const* version_header = "#version 450\n\n";
-  size_t final_source_code_size = std::strlen(version_header) + declarations.size() + source.length() + id_to_name_growth;
+  size_t final_source_code_size = std::strlen(version_header) + declarations.length() + source.length() + id_to_name_growth;
 
   glsl_source_code_buffer.reserve(utils::malloc_size(final_source_code_size + 1) - 1);
   glsl_source_code_buffer = version_header;
-  glsl_source_code_buffer += declarations;
+  glsl_source_code_buffer += declarations.content();
 
   // Next copy alternating, the characters in between the strings and the replacements of the substrings.
   size_t start = 0;

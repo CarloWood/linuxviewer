@@ -3,6 +3,7 @@
 #include "ShaderVariable.h"
 #include "PushConstant.h"
 #include "pipeline/ShaderInputData.h"
+#include "shader_builder/DeclarationsString.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_flags.h"
 #endif
@@ -69,24 +70,22 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   }
 }
 
-std::string PushConstantDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
+void PushConstantDeclarationContext::add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const
 {
-  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate(" << shader_stage << ")");
+  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate(declarations_out, " << shader_stage << ")");
 
   // No declaration if this stage doesn't use any push constants.
   if (!m_minimum_offset.contains(shader_stage))
-    return {};
+    return;
 
   Dout(dc::vulkan, "m_minimum_offset:" << m_minimum_offset.at(shader_stage) << ", m_maximum_offset:" << m_maximum_offset.at(shader_stage));
-  std::string result;
 #ifdef CWDEBUG
-  result = "// " + to_string(shader_stage) + " shader.\n";
+  declarations_out += "// " + to_string(shader_stage) + " shader.\n";
 #endif
-  result += m_header;
+  declarations_out += m_header;
   for (auto&& element : m_elements)
-    result += "  " + element;
-  result += m_footer;
-  return result;
+    declarations_out += "  " + element;
+  declarations_out += m_footer;
 }
 
 } // namespace vulkan::shader_builder

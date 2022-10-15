@@ -21,7 +21,7 @@ class PushConstantDeclarationContext final : public DeclarationContext
 
   void glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data);
 
-  std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
+  void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
 };
 
 } // namespace vulkan::shader_builder

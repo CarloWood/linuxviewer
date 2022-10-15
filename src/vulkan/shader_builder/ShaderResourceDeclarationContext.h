@@ -7,8 +7,11 @@
 #include <cstdint>
 #include <map>
 
-namespace vulkan::shader_builder {
+namespace vulkan::pipeline {
+class ShaderInputData;
+} // namespace vulkan::pipeline
 
+namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;
 
 struct ShaderResourceDeclarationContext final : DeclarationContext
@@ -39,7 +42,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
 
   void generate1(vk::ShaderStageFlagBits shader_stage) const;
   void set_set_binding_map(descriptor::SetBindingMap const* set_binding_map) { m_set_binding_map = set_binding_map; }
-  std::string generate(vk::ShaderStageFlagBits shader_stage) const override;
+  void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

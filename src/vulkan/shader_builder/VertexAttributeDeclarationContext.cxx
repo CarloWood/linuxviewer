@@ -2,6 +2,7 @@
 #include "VertexAttributeDeclarationContext.h"
 #include "VertexAttribute.h"
 #include "pipeline/ShaderInputData.h"
+#include "shader_builder/DeclarationsString.h"
 #include <sstream>
 #include "debug.h"
 #ifdef CWDEBUG
@@ -28,7 +29,7 @@ void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl
   update_location(vertex_attribute);
 }
 
-std::string VertexAttributeDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
+void VertexAttributeDeclarationContext::add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const
 {
   std::ostringstream oss;
   ASSERT(m_next_location <= 999); // 3 chars max.
@@ -43,7 +44,7 @@ std::string VertexAttributeDeclarationContext::generate(vk::ShaderStageFlagBits 
       oss << '[' << vertex_attribute->array_size() << ']';
     oss << ";\t// " << vertex_attribute->glsl_id_full() << "\n";
   }
-  return oss.str();
+  declarations_out += oss.str();
 }
 
 } // namespace vulkan::shader_builder

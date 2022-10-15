@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderResourceDeclarationContext.h"
 #include "ShaderResourceDeclaration.h"
+#include "shader_builder/DeclarationsString.h"
 #include "shader_resource/UniformBuffer.h"
 #include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
@@ -78,37 +79,9 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
   }
 }
 
-std::string write_members_to(std::ostream& os, ShaderResourceMember::container_t const& members)
+void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const
 {
-  std::string declarations;
-  for (ShaderResourceMember const& member : members)
-  {
-    if (!member.is_struct())
-    {
-      BasicType basic_type = member.basic_type();
-      os << "  " << glsl::type2name(basic_type.scalar_type(), basic_type.rows(), basic_type.cols());
-    }
-    else
-    {
-      ShaderResourceMember::container_t const& struct_type = member.struct_type();
-      std::ostringstream oss;
-      oss << "struct " << member.struct_name() << "\n{\n";
-      declarations += write_members_to(oss, struct_type);
-      oss << "};\n";
-      declarations += oss.str();
-      os << "  " << member.struct_name();
-    }
-    os << ' ' << member.member_name();
-    if (member.is_array())
-      os << "[" << member.array_size() << "]";
-    os << ";\n";
-  }
-  return declarations;
-}
-
-std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits shader_stage) const
-{
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(" << shader_stage << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(declarations_out, " << shader_stage << ") [" << this << "]");
 
   std::ostringstream oss;
   Dout(dc::vulkan, "Generating declaration; running over m_bindings that has the contents: " << m_bindings);
@@ -157,16 +130,16 @@ std::string ShaderResourceDeclarationContext::generate(vk::ShaderStageFlagBits s
         shader_resource::Base const& base = shader_resource_declaration->shader_resource();
         shader_resource::UniformBufferBase const& uniform_buffer = static_cast<shader_resource::UniformBufferBase const&>(base);
         auto const& members = uniform_buffer.members();
-        std::string declarations = write_members_to(oss, members);
+        declarations_out.write_members_to(oss, members);
         oss << "} " << prefix << ";\n";
-        return declarations + oss.str();
+        break;
       }
       default:
         //FIXME: not implemented.
         ASSERT(false);
     }
   }
-  return oss.str();
+  declarations_out += oss.str();
 }
 
 #ifdef CWDEBUG
