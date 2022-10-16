@@ -1370,7 +1370,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           }
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
-            COMMA_CWDEBUG_ONLY(Ambifix{"m_pipeline_layouts[...]"}));
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layouts[" + std::to_string(pipeline_layouts_r->size()) + "]")));
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
         auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!

@@ -37,8 +37,6 @@ namespace task {
 
 PipelineCache::PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
 {
-  Debug(m_create_ambifix = vulkan::Ambifix("PipelineCache", "[" + utils::ulong_to_base(reinterpret_cast<uint64_t>(this), "0123456789abcdef") + "]"));
-
   // We depend on the owning window, but should not be aborted at program termination.
   // Note: increment() can, theoretically, throw -- but that should never happen in
   // this case: a PipelineCache is created in PipelineFactory_start, but all PipelineFactory
@@ -102,7 +100,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
           .initialDataSize = 0
         };
         m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
-            COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
+            COMMA_CWDEBUG_ONLY({"PipelineCache_initialize::m_pipeline_cache", vulkan::as_postfix(this)}));
         set_state(PipelineCache_ready);
         break;
       }
@@ -216,7 +214,7 @@ void PipelineCache::load(boost::archive::binary_iarchive& archive, unsigned int 
     .pInitialData = tmp_storage
   };
   m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
-      COMMA_CWDEBUG_ONLY(".m_pipeline_cache" + m_create_ambifix));
+      COMMA_CWDEBUG_ONLY({"PipelineCache::m_pipeline_cache", vulkan::as_postfix(this)}));
   free(tmp_storage);
 }
 

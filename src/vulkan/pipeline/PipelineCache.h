@@ -39,10 +39,6 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
 
   bool m_is_merger = false;
 
-#ifdef CWDEBUG
-  vulkan::Ambifix m_create_ambifix;
-#endif
-
  protected:
   // The different states of the stateful task.
   enum PipelineCache_state_type {

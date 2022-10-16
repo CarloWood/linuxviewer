@@ -16,8 +16,13 @@ class CommandBufferFactory final : public statefultask::ResourceFactory
  private:
   using command_pool_type = vulkan::CommandPool<pool_type>;
   command_pool_type m_command_pool;
+#ifdef CWDEBUG
+  mutable Ambifix m_ambifix;       // Ambifix set just before calling ResourcePool<CommandBufferFactory>::acquire, so it can be used in do_allocate.
+#endif
 
  public:
+  void set_ambifix(Ambifix ambifix) const { m_ambifix = std::move(ambifix); }
+
   // Implement virtual functions of statefultask::ResourceFactory.
   void do_allocate(void* ptr_to_array_of_resources, size_t size) override;
   void do_free(void const* ptr_to_array_of_resources, size_t size) override;

@@ -378,7 +378,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
           // Inform the SynchronousWindow.
-          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}, m_shader_input_data.descriptor_set_per_set_index(), m_owning_window->max_number_of_frame_resources()}, std::move(pipeline)});
+          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}, m_shader_input_data.descriptor_set_per_set_index(), m_owning_window->max_number_of_frame_resources()
+              COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(pipeline)});
         }
 
         //

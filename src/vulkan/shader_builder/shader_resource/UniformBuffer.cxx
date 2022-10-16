@@ -15,7 +15,7 @@ void UniformBufferBase::create(task::SynchronousWindow const* owning_window)
   for (vulkan::FrameResourceIndex i{0}; i != owning_window->max_number_of_frame_resources(); ++i)
   {
     m_uniform_buffers.emplace_back(owning_window->logical_device(), size()
-      COMMA_CWDEBUG_ONLY(ambifix() + "[" + to_string(i) + "]"));
+      COMMA_CWDEBUG_ONLY("[" + to_string(i) + "]" + ambifix()));
   }
 }
 

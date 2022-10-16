@@ -849,9 +849,8 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
     missing_descriptor_sets = logical_device->allocate_descriptor_sets(
         owning_window->max_number_of_frame_resources(),
         missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
-        COMMA_CWDEBUG_ONLY(Ambifix{".m_vhv_descriptor_set"}));  // Add prefix and postfix later, when copying this
-                                                                // vector to the Pipeline it will be used with.
-
+        COMMA_CWDEBUG_ONLY(Ambifix{"ShaderInputData::m_descriptor_set_per_set_index", as_postfix(this)}));
+           // Note: the debug name is changed when copying this vector to the Pipeline it will be used with.
   for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
     m_descriptor_set_per_set_index[set_index_has_frame_resource_pairs[i].first] = missing_descriptor_sets[i];
 

@@ -120,6 +120,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
         // Acquire n command buffers from the command buffer pool.
         std::vector<vulkan::handle::CommandBuffer> command_buffers(n);
         // Attempt to acquire n buffers - this might fail.
+        Debug(m_command_buffer_pool.factory().set_ambifix({"ImmediateSubmitQueue_need_action::command_buffers", as_postfix(this)}));
         size_t const acquired = m_command_buffer_pool.acquire(command_buffers);
         if (AI_LIKELY(acquired > 0))
         {

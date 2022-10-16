@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
+#include "debug/DebugSetName.h"
 #endif
 
 namespace vulkan {
@@ -31,7 +32,8 @@ class Pipeline
  public:
   Pipeline() = default;
   Pipeline(Pipeline&&) = default;
-  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t const& descriptor_sets, FrameResourceIndex const max_number_of_frame_resources) :
+  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t const& descriptor_sets, FrameResourceIndex const max_number_of_frame_resources
+      COMMA_CWDEBUG_ONLY(LogicalDevice const* logical_device)) :
     m_vh_layout(vh_layout), m_handle(handle)
   {
     size_t const number_of_frame_resources = max_number_of_frame_resources.get_value();
@@ -44,10 +46,21 @@ class Pipeline
       for (descriptor::SetIndex set_index{0}; set_index < number_of_set_indexes; ++set_index)
       {
         if (descriptor_sets[set_index].is_frame_resource())
-          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = descriptor_sets[set_index][frame_index];
+        {
+          vk::DescriptorSet vh_descriptor_set = descriptor_sets[set_index][frame_index];
+          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = vh_descriptor_set;
+          DebugSetName(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
+        }
         else
+        {
+          vk::DescriptorSet vh_descriptor_set = descriptor_sets[set_index];
           // Use the same descriptor set for each frame.
-          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = descriptor_sets[set_index];
+          m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = vh_descriptor_set;
+#ifdef CWDEBUG
+          if (frame_index.is_zero())
+            DebugSetName(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
+#endif
+        }
       }
     }
   }
