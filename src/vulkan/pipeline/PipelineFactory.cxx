@@ -373,19 +373,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           Dout(dc::finish, " --> pipeline::Index " << m_pipeline_index);
 #endif
 
-#if 0
-          // FIXME: We stop here because continueing causes "Lost Device".
-          static std::atomic_int cnt{0};
-          int prev_cnt = cnt.fetch_add(1);
-          ASSERT(prev_cnt < 2);
-          if (prev_cnt == 0)
-          {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            DoutFatal(dc::core, "Reached create_graphics_pipeline - after sleep!");
-          }
-          DoutFatal(dc::core, "Reached create_graphics_pipeline!");
-#endif
-
           // Create and then store the graphics pipeline.
           vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
