@@ -127,7 +127,8 @@ class Window : public task::SynchronousWindow
               { .mipmapMode = vk::SamplerMipmapMode::eNearest,
                 .anisotropyEnable = VK_FALSE },
               graphics_settings(),
-              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
+              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+              COMMA_CWDEBUG_ONLY(debug_name_prefix(".m_background_texture")));
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
             m_background_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
@@ -160,7 +161,8 @@ class Window : public task::SynchronousWindow
             { .mipmapMode = vk::SamplerMipmapMode::eNearest,
               .anisotropyEnable = VK_FALSE },
             graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture")));
 
         auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
             m_benchmark_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},

@@ -35,8 +35,8 @@ Buffer::Buffer(
   };
 
   m_vh_buffer = logical_device->create_buffer({}, buffer_create_info, vma_allocation_create_info, &m_vh_allocation, memory_create_info.allocation_info_out
-      COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
-  DebugSetName(m_vh_buffer, ambifix(".m_vh_buffer"), logical_device);
+      COMMA_CWDEBUG_ONLY(".m_vh_allocation" + ambifix));
+  DebugSetName(m_vh_buffer, ambifix.object_name(".m_vh_buffer"), logical_device);
 
 #ifdef CWDEBUG
   vk::MemoryRequirements buffer_memory_requirements = logical_device->get_buffer_memory_requirements(m_vh_buffer);

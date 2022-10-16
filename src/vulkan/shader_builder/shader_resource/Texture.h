@@ -67,11 +67,12 @@ struct Texture : public Base, public memory::Image
       vk::Extent2D extent,
       vulkan::ImageViewKind const& image_view_kind,
       vk::UniqueSampler&& sampler,
-      MemoryCreateInfo memory_create_info) :
+      MemoryCreateInfo memory_create_info
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
     memory::Image(logical_device, extent, image_view_kind, memory_create_info
-        COMMA_CWDEBUG_ONLY(std::string{"FIXME"})),
+        COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
-        COMMA_CWDEBUG_ONLY(std::string{".m_image_view FIXME"} /*+ ambifix*/))),
+        COMMA_CWDEBUG_ONLY(".m_image_view" + ambifix))),
     m_sampler(std::move(sampler))
   {
     DoutEntering(dc::vulkan, "shader_resource::Texture::Texture(\"" << glsl_id_full_postfix << "\", " << logical_device << ", " << extent <<
@@ -89,10 +90,12 @@ struct Texture : public Base, public memory::Image
       vulkan::ImageViewKind const& image_view_kind,
       SamplerKind const& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings,
-      MemoryCreateInfo memory_create_info) :
+      MemoryCreateInfo memory_create_info
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
     Texture(glsl_id_full_postfix, logical_device, extent, image_view_kind,
-        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(std::string{".m_sampler FIXME" /*+ ambifix*/})),
-        memory_create_info)
+        logical_device->create_sampler(sampler_kind, graphics_settings COMMA_CWDEBUG_ONLY(".m_sampler" + ambifix)),
+        memory_create_info
+        COMMA_CWDEBUG_ONLY(ambifix))
   {
   }
 
@@ -104,10 +107,12 @@ struct Texture : public Base, public memory::Image
       vulkan::ImageViewKind const& image_view_kind,
       SamplerKindPOD const&& sampler_kind,
       GraphicsSettingsPOD const& graphics_settings,
-      MemoryCreateInfo memory_create_info) :
+      MemoryCreateInfo memory_create_info
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
     Texture(glsl_id_full_postfix, logical_device, extent, image_view_kind,
         { logical_device, std::move(sampler_kind) }, graphics_settings,
-        memory_create_info)
+        memory_create_info
+        COMMA_CWDEBUG_ONLY(ambifix))
   {
   }
 

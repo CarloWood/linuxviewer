@@ -93,7 +93,7 @@ void ImGui::create_frame_resources(FrameResourceIndex number_of_frame_resources
   for (FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)
   {
 #ifdef CWDEBUG
-    Ambifix const list_ambifix = ambifix(".m_frame_resources_list[" + to_string(i) + "]");
+    Ambifix const list_ambifix = ".m_frame_resources_list[" + to_string(i) + "]" + ambifix;
 #endif
   }
 }
@@ -118,11 +118,11 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
     }
   };
   m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(layout_bindings
-      COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set_layout")));
+      COMMA_CWDEBUG_ONLY(".m_descriptor_set_layout" + ambifix));
   // Note: no frame resource support is required for a descriptor set if just one texture in it.
   auto descriptor_sets = logical_device()->allocate_descriptor_sets(FrameResourceIndex{1},
       { *m_descriptor_set_layout }, { std::make_pair(descriptor::SetIndex{}, false) }, logical_device()->get_descriptor_pool()
-      COMMA_CWDEBUG_ONLY(ambifix(".m_descriptor_set")));
+      COMMA_CWDEBUG_ONLY(".m_descriptor_set" + ambifix));
   m_descriptor_set = descriptor_sets[0];        // We only have one descriptor set --^
 }
 
@@ -174,7 +174,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .size = 4 * sizeof(float)
   };
   m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set_layout }, { push_constant_ranges }
-      COMMA_CWDEBUG_ONLY(ambifix(".m_pipeline_layout")));
+      COMMA_CWDEBUG_ONLY(".m_pipeline_layout" + ambifix));
 
   // The shader input data object doesn't need to know who owns it.
   pipeline::ShaderInputData shader_input_data;
@@ -304,7 +304,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   };
 
   m_graphics_pipeline = logical_device()->create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
-      COMMA_CWDEBUG_ONLY(ambifix(".m_graphics_pipeline")));
+      COMMA_CWDEBUG_ONLY(".m_graphics_pipeline" + ambifix));
 }
 
 void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready
@@ -391,10 +391,11 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
   io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_descriptor_set)));
 #ifdef CWDEBUG
-  m_font_texture.add_ambifix(ambifix);
+//  m_font_texture.add_ambifix(ambifix);
 #endif
   m_font_texture = owning_window->upload_texture("font_texture", std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready);
+      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready
+      COMMA_CWDEBUG_ONLY(".m_font_texture" + ambifix));
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));
@@ -881,7 +882,7 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
             .vma_allocation_create_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
             .vma_memory_usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
             .allocation_info_out = &allocation_info }
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer")));
+          COMMA_CWDEBUG_ONLY(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_vertex_buffer" + ambifix));
       frame_resources.m_mapped_vertex_buffer = static_cast<imgui::ImDrawVert*>(allocation_info.pMappedData);
     }
 
@@ -896,7 +897,7 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
             .vma_allocation_create_flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
             .vma_memory_usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
             .allocation_info_out = &allocation_info }
-          COMMA_CWDEBUG_ONLY(ambifix(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer")));
+          COMMA_CWDEBUG_ONLY(".m_frame_resources_list[" + std::to_string(index.get_value()) + "].m_index_buffer" + ambifix));
       frame_resources.m_mapped_index_buffer = static_cast<ImDrawIdx*>(allocation_info.pMappedData);
     }
   }

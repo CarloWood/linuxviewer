@@ -110,7 +110,7 @@ class Base
     return m_ambifix;
   }
 
-  void add_ambifix(Ambifix const& ambifix) { m_ambifix = ambifix(m_ambifix.object_name()); }
+  void add_ambifix(Ambifix const& ambifix) { m_ambifix = m_ambifix.object_name() + ambifix; }
 #endif
 
  public:

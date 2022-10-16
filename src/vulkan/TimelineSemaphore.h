@@ -76,7 +76,7 @@ namespace vulkan {
 // inline
 TimelineSemaphore::TimelineSemaphore(LogicalDevice const* logical_device, uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
   m_logical_device(logical_device),
-  m_semaphore(logical_device->create_timeline_semaphore(initial_value COMMA_CWDEBUG_ONLY(ambifix(".m_semaphore")))),
+  m_semaphore(logical_device->create_timeline_semaphore(initial_value COMMA_CWDEBUG_ONLY(".m_semaphore" + ambifix))),
   m_signal_value(initial_value) { }
 
 // Add a poll for this timeline semaphore for the last signal value.

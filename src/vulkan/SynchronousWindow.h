@@ -428,7 +428,8 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::shader_builder::shader_resource::Texture upload_texture(
       char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
       int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
-      AIStatefulTask::condition_type texture_ready);
+      AIStatefulTask::condition_type texture_ready
+      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix));
 
   void detect_if_imgui_is_used();
 

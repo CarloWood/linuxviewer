@@ -15,6 +15,9 @@ class SynchronousWindow;
 } // namespace task
 
 namespace vulkan {
+#ifdef CWDEBUG
+class Ambifix;
+#endif
 
 namespace pipeline {
 class ShaderInputData;
@@ -40,7 +43,7 @@ class SPIRVCache
   vk::UniqueShaderModule create_module(
       utils::Badge<vulkan::pipeline::ShaderInputData>, // Use vulkan::pipeline::ShaderInputData::build_shader(shader_info, compiler) instead of this function.
       LogicalDevice const* logical_device
-      COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& ambifix)) const;
+      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const;
 
   // Free resources.
   void reset();

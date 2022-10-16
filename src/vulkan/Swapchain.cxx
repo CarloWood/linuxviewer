@@ -189,7 +189,7 @@ void Swapchain::prepare(task::SynchronousWindow* owning_window, vk::ImageUsageFl
   m_min_image_count = desired_image_count;
 
   m_acquire_semaphore = owning_window->logical_device()->create_semaphore(
-        CWDEBUG_ONLY(ambifix(".m_acquire_semaphore")));
+        CWDEBUG_ONLY(".m_acquire_semaphore" + ambifix));
 
   // In case of re-use, cant_render_bit might be reset.
   owning_window->no_swapchain({});
@@ -256,20 +256,20 @@ void Swapchain::recreate_swapchain_images(task::SynchronousWindow* owning_window
 
   m_extent = surface_extent;
   m_swapchain = logical_device->create_swapchain(surface_extent, m_min_image_count, owning_window->presentation_surface(), m_kind, *old_handle
-      COMMA_CWDEBUG_ONLY(ambifix(".m_swapchain")));
+      COMMA_CWDEBUG_ONLY(".m_swapchain" + ambifix));
   m_vhv_images = logical_device->get_swapchain_images(owning_window, *m_swapchain
-      COMMA_CWDEBUG_ONLY(ambifix(".m_vhv_images")));
+      COMMA_CWDEBUG_ONLY(".m_vhv_images" + ambifix));
   Dout(dc::vulkan, "Actual number of swap chain images: " << m_vhv_images.size());
 
   // Create the corresponding resources: image view and semaphores.
   for (SwapchainIndex i = m_vhv_images.ibegin(); i != m_vhv_images.iend(); ++i)
   {
     vk::UniqueImageView image_view = logical_device->create_image_view(m_vhv_images[i], image_view_kind()
-        COMMA_CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_image_view")));
+        COMMA_CWDEBUG_ONLY(".m_resources[" + to_string(i) + "].m_image_view" + ambifix));
     vk::UniqueSemaphore image_available_semaphore = logical_device->create_semaphore(
-        CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore")));
+        CWDEBUG_ONLY(".m_resources[" + to_string(i) + "].m_vh_image_available_semaphore" + ambifix));
     vk::UniqueSemaphore rendering_finished_semaphore = logical_device->create_semaphore(
-        CWDEBUG_ONLY(ambifix(".m_resources[" + to_string(i) + "].m_rendering_finished_semaphore")));
+        CWDEBUG_ONLY(".m_resources[" + to_string(i) + "].m_rendering_finished_semaphore" + ambifix));
 
     m_resources.emplace_back(std::move(image_view), std::move(image_available_semaphore), std::move(rendering_finished_semaphore));
   }

@@ -18,8 +18,8 @@ Image::Image(
   };
 
   m_vh_image = logical_device->create_image({}, image_view_kind.image_kind()(extent), vma_allocation_create_info, &m_vh_allocation, memory_create_info.allocation_info_out
-      COMMA_CWDEBUG_ONLY(ambifix(".m_vh_allocation")));
-  DebugSetName(m_vh_image, ".m_vh_image" + ambifix, logical_device);
+      COMMA_CWDEBUG_ONLY(".m_vh_allocation" + ambifix));
+  DebugSetName(m_vh_image, ambifix.object_name(".m_vh_image"), logical_device);
 
 #ifdef CWDEBUG
   vk::MemoryRequirements image_memory_requirements = logical_device->get_image_memory_requirements(m_vh_image);

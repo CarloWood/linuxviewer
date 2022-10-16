@@ -29,12 +29,12 @@ void PresentationSurface::set_queues(Queue graphics_queue, Queue presentation_qu
   // Only call set_queues once.
   ASSERT(!m_graphics_queue && !m_presentation_queue);
   m_graphics_queue = graphics_queue;
-  DebugSetName(static_cast<vk::Queue>(m_graphics_queue), ambifix(".m_graphics_queue"));
+  DebugSetName(static_cast<vk::Queue>(m_graphics_queue), ".m_graphics_queue" + ambifix);
   m_presentation_queue = presentation_queue;
-  DebugSetName(static_cast<vk::Queue>(m_presentation_queue), ambifix(".m_presentation_queue"));
+  DebugSetName(static_cast<vk::Queue>(m_presentation_queue), ".m_presentation_queue" + ambifix);
 #ifdef TRACY_ENABLE
   m_tracy_context = owning_window->logical_device()->tracy_context(m_graphics_queue
-      COMMA_CWDEBUG_ONLY(ambifix(".m_tracy_context")));
+      COMMA_CWDEBUG_ONLY(".m_tracy_context" + ambifix));
 #endif
 }
 

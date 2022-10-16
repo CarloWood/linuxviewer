@@ -975,16 +975,16 @@ std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::alloca
       DebugSetName(static_cast<vk::DescriptorSet>(descriptor_sets[0]), debug_name, this);
     else
       for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
-        DebugSetName(descriptor_sets[0][frame_index], debug_name("[" + to_string(frame_index) + "]"), this);
+        DebugSetName(descriptor_sets[0][frame_index], debug_name.object_name("[" + to_string(frame_index) + "]"), this);
   }
   else
   {
     for (int n = 0; n < descriptor_sets.size(); ++n)
       for (FrameResourceIndex frame_index{0}; frame_index < (set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources : one); ++frame_index)
         if (!set_index_has_frame_resource_pairs[n].second)
-          DebugSetName(static_cast<vk::DescriptorSet>(descriptor_sets[n]), debug_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "]"), this);
+          DebugSetName(static_cast<vk::DescriptorSet>(descriptor_sets[n]), debug_name.object_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "]"), this);
         else
-          DebugSetName(descriptor_sets[n][frame_index], debug_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "][" + to_string(frame_index) + "]"), this);
+          DebugSetName(descriptor_sets[n][frame_index], debug_name.object_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "][" + to_string(frame_index) + "]"), this);
   }
 #endif
   Dout(dc::shaderresource, "Returning: " << descriptor_sets);
@@ -1019,7 +1019,7 @@ void LogicalDevice::allocate_command_buffers(
     DebugSetName(*command_buffers_out, debug_name, this);
   else
     for (int i = 0; i < count; ++i)
-      DebugSetName(command_buffers_out[i], debug_name("[" + std::to_string(i) + "]"), this);
+      DebugSetName(command_buffers_out[i], debug_name.object_name("[" + std::to_string(i) + "]"), this);
 #endif
 }
 
@@ -1098,7 +1098,7 @@ Swapchain::images_type LogicalDevice::get_swapchain_images(
 
   for (SwapchainIndex i = swapchain_images.ibegin(); i != swapchain_images.iend(); ++i)
   {
-    DebugSetName(swapchain_images[i], ambifix("[" + to_string(i) + "]"), this);
+    DebugSetName(swapchain_images[i], ambifix.object_name("[" + to_string(i) + "]"), this);
     // Pre-transition all swapchain images away from an undefined layout.
     owning_window->set_image_memory_barrier(
       new_image_resource_state,
@@ -1127,7 +1127,7 @@ vk::UniquePipelineCache LogicalDevice::create_pipeline_cache(
 {
   DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_cache(" << pipeline_cache_create_info << ")");
   vk::UniquePipelineCache pipeline_cache = m_device->createPipelineCacheUnique(pipeline_cache_create_info);
-  Debug(debug_set_object_name(*pipeline_cache, debug_name(""), this));
+  Debug(debug_set_object_name(*pipeline_cache, debug_name.object_name(), this));
   return pipeline_cache;
 }
 
@@ -1432,13 +1432,13 @@ LogicalDevice::~LogicalDevice()
 
 #ifdef TRACY_ENABLE
 utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue const& queue, FrameResourceIndex max_number_of_frame_resources
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
 {
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   CommandPool<pool_type> tmp_command_pool(this, queue.queue_family()//);
-      COMMA_CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_pool")));
+      COMMA_CWDEBUG_ONLY("-tracy_context()::tmp_command_pool" + ambifix));
   vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
-      CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_buffer")));
+      CWDEBUG_ONLY("-tracy_context()::tmp_command_buffer" + ambifix));
   utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_contexts;
   for (FrameResourceIndex i{0}; i != max_number_of_frame_resources; ++i)
   {
@@ -1446,7 +1446,7 @@ utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue
         VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
     tracy_contexts.push_back(context);
 #ifdef CWDEBUG
-    std::string context_name = debug_name.object_name() + " [" + to_string(i) + "]";
+    std::string context_name = ambifix.object_name(" [" + to_string(i) + "]");
     TracyVkContextName(tracy_contexts[i], context_name.c_str(), context_name.size());
 #endif
   }
@@ -1454,17 +1454,17 @@ utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue
 }
 
 TracyVkCtx LogicalDevice::tracy_context(Queue const& queue
-    COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
 {
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
   CommandPool<pool_type> tmp_command_pool(this, queue.queue_family()//);
-      COMMA_CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_pool")));
+      COMMA_CWDEBUG_ONLY("-tracy_context()::tmp_command_pool" + ambifix));
   vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
-      CWDEBUG_ONLY(debug_name("-tracy_context()::tmp_command_buffer")));
+      CWDEBUG_ONLY("-tracy_context()::tmp_command_buffer" + ambifix));
   TracyVkCtx context = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
       VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);
 #ifdef CWDEBUG
-  std::string context_name = debug_name.object_name();
+  std::string context_name = ambifix.object_name();
   TracyVkContextName(context, context_name.c_str(), context_name.size());
 #endif
   return context;

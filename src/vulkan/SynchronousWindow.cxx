@@ -756,7 +756,8 @@ void SynchronousWindow::set_image_memory_barrier(
 vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_texture(
     char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
     int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
-    AIStatefulTask::condition_type texture_ready)
+    AIStatefulTask::condition_type texture_ready
+    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::upload_texture(" <<
       texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind <<
@@ -765,7 +766,8 @@ vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_textu
   // Create texture parameters.
   vulkan::shader_builder::shader_resource::Texture texture(glsl_id_full_postfix, m_logical_device, extent,
       image_view_kind, sampler_kind, m_graphics_settings,
-      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal });
+      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+      COMMA_CWDEBUG_ONLY(ambifix));
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 
@@ -1078,17 +1080,17 @@ void SynchronousWindow::create_frame_resources()
         number_of_registered_attachments(),
         // Constructor arguments for m_command_pool.
         m_logical_device, m_presentation_surface.graphics_queue().queue_family()
-        COMMA_CWDEBUG_ONLY(ambifix("->m_command_pool")));
+        COMMA_CWDEBUG_ONLY("->m_command_pool" + ambifix));
 
     // A handle alias for the newly created frame resources object.
     auto& frame_resources = m_frame_resources_list[i];
 
     // Create the 'command_buffers_completed' fence (using bufferS, even though we only have a single command buffer right now).
-    frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, ambifix("->m_command_buffers_completed")));
+    frame_resources->m_command_buffers_completed = m_logical_device->create_fence(true COMMA_CWDEBUG_ONLY(true, "->m_command_buffers_completed" + ambifix));
 
     // Create the command buffer.
     frame_resources->m_command_buffer = frame_resources->m_command_pool.allocate_buffer(
-        CWDEBUG_ONLY(ambifix("->m_command_buffer")));
+        CWDEBUG_ONLY("->m_command_buffer" + ambifix));
 
 #if 0 // FIXME: See FIXME above.
     // Move the overlapping descriptor set into m_frame_resources_list.

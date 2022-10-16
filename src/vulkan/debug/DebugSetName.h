@@ -16,6 +16,9 @@ namespace vulkan {
 
 class LogicalDevice;
 
+template<typename Ambifix>
+concept ConceptAmbifix = std::same_as<std::string, decltype(Ambifix::m_prefix)> && std::same_as<std::string, decltype(Ambifix::m_postfix)>;
+
 class Ambifix
 {
  protected:
@@ -29,6 +32,7 @@ class Ambifix
   Ambifix(std::string&& prefix, std::string&& postfix) : m_prefix(std::move(prefix)), m_postfix(std::move(postfix)) { }
 
   // Append prefix.
+  template<ConceptAmbifix Ambifix>
   friend Ambifix operator+(std::string const& prefix, Ambifix ambifix)
   {
     ambifix.m_prefix += prefix;
@@ -36,6 +40,7 @@ class Ambifix
   }
 
   // Prepend postfix.
+  template<ConceptAmbifix Ambifix>
   friend Ambifix operator+(Ambifix ambifix, std::string postfix)
   {
     postfix += ambifix.m_postfix;
@@ -47,9 +52,9 @@ class Ambifix
 
   std::string const& prefix() const { return m_prefix; }
   std::string const& postfix() const { return m_postfix; }
-  // Add infix.
-  std::string operator()(std::string infix) const { return m_prefix + infix + m_postfix; }
-  // No infix.
+  // Add infix and return string.
+  std::string object_name(std::string infix) const { return m_prefix + infix + m_postfix; }
+  // Catenate prefix and postfix and return string.
   std::string object_name() const { return prefix() + postfix(); }
 };
 
@@ -65,15 +70,6 @@ class AmbifixOwner : public Ambifix
 
   // Accessors.
   LogicalDevice const* logical_device() const { return m_logical_device; }
-
-  // With infix.
-  AmbifixOwner operator()(std::string infix) const
-  {
-    AmbifixOwner result(*this);
-    // Cheat a bit here. Just add it to the prefix;
-    result.m_prefix += infix;
-    return result;
-  }
 };
 
 template<ConceptVulkanHandle ObjectType>
@@ -121,6 +117,8 @@ void debug_set_object_name(ObjectType const& object, std::string const& name, Lo
   };
   logical_device->set_debug_name(name_info);
   Dout(dc::vulkan, "Created object \"" << name << "\" with handle 0x" << std::hex << name_info.objectHandle << " and type " << libcwd::type_info_of<ObjectType>().demangled_name());
+  if (name.substr(0, 26) == "m_imgui.m_descriptor_set [")
+    Debug(attach_gdb());
 }
 
 template<ConceptVulkanHandle ObjectType>

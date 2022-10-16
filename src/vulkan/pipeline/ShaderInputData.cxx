@@ -908,7 +908,7 @@ void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
   m_shader_modules.push_back(spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY(ambifix(".m_shader_modules[" + std::to_string(m_shader_modules.size()) + "]"))));
+      COMMA_CWDEBUG_ONLY(".m_shader_modules[" + std::to_string(m_shader_modules.size()) + "]" + ambifix)));
   m_shader_stage_create_infos.push_back(
     {
       .flags = vk::PipelineShaderStageCreateFlags(0),

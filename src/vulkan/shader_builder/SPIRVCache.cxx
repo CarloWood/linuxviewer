@@ -76,7 +76,7 @@ void SPIRVCache::compile(std::string_view glsl_source_code, ShaderCompiler const
 }
 
 vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::ShaderInputData>, vulkan::LogicalDevice const* logical_device
-    COMMA_CWDEBUG_ONLY(vulkan::AmbifixOwner const& debug_name)) const
+    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "SPIRVCache::create({}, " << logical_device << ")");
 
