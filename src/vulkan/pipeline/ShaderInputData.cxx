@@ -568,7 +568,7 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   for (Base* shader_resource : m_acquired_required_shader_resources_list)
   {
     // Create the shader resource (if not already created (e.g. Texture)).
-    shader_resource->create2(owning_window COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix(shader_resource->debug_name())));
+    shader_resource->instantiate(owning_window COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix(shader_resource->debug_name())));
 
     // Let other pipeline factories know that this shader resource was already created.
     // It might be used immediately, even during this call.

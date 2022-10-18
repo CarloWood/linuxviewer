@@ -207,7 +207,7 @@ class Base
     return m_created.load(std::memory_order::acquire);
   }
 
-  virtual void create2(task::SynchronousWindow const* owning_window
+  virtual void instantiate(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) = 0;
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;

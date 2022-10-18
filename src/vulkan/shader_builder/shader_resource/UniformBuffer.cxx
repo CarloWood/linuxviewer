@@ -4,7 +4,7 @@
 
 namespace vulkan::shader_builder::shader_resource {
 
-void UniformBufferBase::create2(task::SynchronousWindow const* owning_window
+void UniformBufferBase::instantiate(task::SynchronousWindow const* owning_window
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "UniformBufferBase::create(" << owning_window << ")");

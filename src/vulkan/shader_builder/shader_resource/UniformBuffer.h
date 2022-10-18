@@ -37,7 +37,7 @@ class UniformBufferBase : public Base
     Base(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
-  void create2(task::SynchronousWindow const* owning_window
+  void instantiate(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override;
   bool is_frame_resource() const override { return true; }
   void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool UNUSED_ARG(has_frame_resource)) const override;
