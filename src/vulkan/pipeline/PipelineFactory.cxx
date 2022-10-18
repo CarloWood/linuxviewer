@@ -211,15 +211,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       {
         // Do not use an empty factory - it makes no sense.
         ASSERT(!m_characteristics.empty());
-        vulkan::pipeline::Index max_pipeline_index{0};
         // Call initialize on each characteristic.
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-        {
           m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
-          m_characteristics[i]->update(max_pipeline_index, m_characteristics[i]->iend() - 1);
-        }
-        // max_pipeline_index is now equal to the maximum value that a m_pipeline_index can be.
-  //FIXME: is max_pipeline_index still needed?      m_graphics_pipelines.resize(max_pipeline_index.get_value() + 1);
 
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());

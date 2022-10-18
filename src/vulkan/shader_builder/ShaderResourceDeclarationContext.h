@@ -32,9 +32,6 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
     return m_bindings.at(shader_resource);
   }
 
-  //FIXME: this shouldn't exist? I added this for the sake of ubt, to get the texture binding in create_uniform_buffers.
-  std::map<ShaderResourceDeclaration const*, uint32_t> const& bindings() const { return m_bindings; }
-
   void reserve_binding(descriptor::SetKey descriptor_set_key);
   void update_binding(ShaderResourceDeclaration const* shader_resource);
 

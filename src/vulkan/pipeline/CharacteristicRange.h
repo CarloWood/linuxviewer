@@ -75,6 +75,17 @@ class CharacteristicRange : public AIRefCount
   // for each CharacteristicRange that was added to a PipelineFactory with the current
   // characteristic index. This must be done in the same order as the characteristics
   // where added to the factory.
+  //
+  // Each characteristic has defined a range [m_begin, m_end>.
+  // The 'pipeline_index' contains the values of each of its characteristics:
+  //
+  // pipeline_index: 0010110101001101110100100010101010100011101010100
+  //                   ^^^^^----^^^^^^----^^^^^^-------^^^^---^^----^^
+  //                     /    /    \   \ ...                         \
+  //                    /  range 1  2   3                            10
+  //                   /
+  //     characteristic range 0 offset (should be added to m_begin to get the (characteristic) index_type.
+  //
   void update(Index& pipeline_index, int index) const
   {
     // Out of range.

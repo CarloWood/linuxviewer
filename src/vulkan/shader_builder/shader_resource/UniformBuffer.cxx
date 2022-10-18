@@ -4,18 +4,16 @@
 
 namespace vulkan::shader_builder::shader_resource {
 
-void UniformBufferBase::create(task::SynchronousWindow const* owning_window)
+void UniformBufferBase::create2(task::SynchronousWindow const* owning_window
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "UniformBufferBase::create(" << owning_window << ")");
-#ifdef CWDEBUG
-  add_ambifix(owning_window->debug_name_prefix("PipelineFactory::"));
-#endif
   // You must use at least 2 frame resources.
   ASSERT(owning_window->max_number_of_frame_resources().get_value() > 1);
   for (vulkan::FrameResourceIndex i{0}; i != owning_window->max_number_of_frame_resources(); ++i)
   {
     m_uniform_buffers.emplace_back(owning_window->logical_device(), size()
-      COMMA_CWDEBUG_ONLY("[" + to_string(i) + "]" + ambifix()));
+      COMMA_CWDEBUG_ONLY(".m_uniform_buffers[" + to_string(i) + "]" + ambifix));
   }
 }
 

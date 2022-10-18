@@ -102,20 +102,18 @@ class Base
 
 #ifdef CWDEBUG
  private:
-  Ambifix m_ambifix;
+  char const* m_debug_name;
 
  public:
-  Ambifix const& ambifix() const
-  {
-    return m_ambifix;
-  }
-
-  void add_ambifix(Ambifix const& ambifix) { m_ambifix = m_ambifix.object_name() + ambifix; }
+  char const* debug_name() const { return m_debug_name; }
 #endif
 
  public:
   Base(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
-    m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_ambifix(debug_name)) { }
+    m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_debug_name(debug_name))
+  {
+    DoutEntering(dc::notice, "Base(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ")");
+  }
   Base() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
 
   // Ignore m_descriptor_set_key when move- assigning and/or copying; the target should already have the right key.
@@ -136,7 +134,7 @@ class Base
 
   bool acquire_create_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
   {
-    DoutEntering(dc::notice, "Base::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << " (" << m_ambifix.object_name() << ")]");
+    DoutEntering(dc::notice, "Base::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << "]");
     return m_create_access_mutex.lock(task, condition);
   }
 
@@ -161,7 +159,7 @@ class Base
 
   void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, AIStatefulTask* locked_by_task) /*thread-safe*/ const
   {
-    DoutEntering(dc::notice, "add_set_layout_binding(" << set_layout_binding << ", " << descriptor_set << ", " << locked_by_task << ") for [" << this << " (" << m_ambifix.object_name() << ")]");
+    DoutEntering(dc::notice, "add_set_layout_binding(" << set_layout_binding << ", " << descriptor_set << ", " << locked_by_task << ") for [" << this << "]");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
     Dout(dc::notice, "m_set_layout_bindings_to_handles currently contains: " << *set_layout_bindings_to_handles_w);
     auto iter = set_layout_bindings_to_handles_w->find(set_layout_binding);
@@ -200,7 +198,7 @@ class Base
 
   void release_create_lock() /*thread-safe*/ const
   {
-    DoutEntering(dc::notice, "Base::release_create_lock() [" << this << " (" << m_ambifix.object_name() << ")]");
+    DoutEntering(dc::notice, "Base::release_create_lock() [" << this << "]");
     m_create_access_mutex.unlock();
   }
 
@@ -209,7 +207,8 @@ class Base
     return m_created.load(std::memory_order::acquire);
   }
 
-  virtual void create(task::SynchronousWindow const* owning_window) = 0;
+  virtual void create2(task::SynchronousWindow const* owning_window
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) = 0;
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
   //---------------------------------------------------------------------------

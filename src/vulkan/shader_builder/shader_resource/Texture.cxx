@@ -8,11 +8,9 @@
 
 namespace vulkan::shader_builder::shader_resource {
 
-void Texture::create(task::SynchronousWindow const* owning_window)
+void Texture::create2(task::SynchronousWindow const* UNUSED_ARG(owning_window)
+    COMMA_CWDEBUG_ONLY(Ambifix const& UNUSED_ARG(ambifix)))
 {
-#ifdef CWDEBUG
-  add_ambifix(owning_window->debug_name_prefix("PipelineFactory::"));
-#endif
 }
 
 void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const

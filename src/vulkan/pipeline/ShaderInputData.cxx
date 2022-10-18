@@ -9,6 +9,9 @@
 #include <cstring>
 
 namespace vulkan::pipeline {
+#ifdef CWDEBUG
+using NAMESPACE_DEBUG::print_string;
+#endif
 
 // Returns the declaration contexts that are used in this shader.
 void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
@@ -559,14 +562,18 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
     m_acquired_required_shader_resources_list.push_back(const_cast<Base*>(shader_resource));
   }
 
+#ifdef CWDEBUG
+  int index = 0;
+#endif
   for (Base* shader_resource : m_acquired_required_shader_resources_list)
   {
     // Create the shader resource (if not already created (e.g. Texture)).
-    shader_resource->create(owning_window);
+    shader_resource->create2(owning_window COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix(shader_resource->debug_name())));
 
     // Let other pipeline factories know that this shader resource was already created.
     // It might be used immediately, even during this call.
     shader_resource->set_created();
+    Debug(++index);
   }
 
   // Release all the task-mutexes, in reverse order.
@@ -591,8 +598,8 @@ void ShaderInputData::initialize_shader_resources_per_set_index(vulkan::descript
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_binding_map.convert(set_index_hint);
-    Dout(dc::shaderresource, "  shader_resource \"" << shader_resource->ambifix().object_name() << "\" has set_index_hint = " << set_index_hint <<
-        ", set_index = " << set_index);
+    Dout(dc::shaderresource, "  shader_resource " << shader_resource << " (" << print_string(shader_resource->debug_name()) <<
+        ") has set_index_hint = " << set_index_hint << ", set_index = " << set_index);
     m_shader_resources_per_set_index[set_index].push_back(shader_resource);
   }
   // Sort the vectors inside m_shader_resources_per_set_index so that pipeline factories that attempt
@@ -678,7 +685,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
     for (; shader_resource_iter != m_shader_resources_per_set_index[set_index].end(); ++shader_resource_iter)
     {
       Base const* shader_resource = *shader_resource_iter;
-      Dout(dc::shaderresource, "shader_resource = " << shader_resource->ambifix().object_name());
+      Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << print_string(shader_resource->debug_name()) << ")");
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
       uint32_t binding = get_declaration(set_key)->binding();
@@ -854,7 +861,7 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
   for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
     m_descriptor_set_per_set_index[set_index_has_frame_resource_pairs[i].first] = missing_descriptor_sets[i];
 
-  Dout(dc::shaderresource, "Updating, adding handles and unlocking: loop over set_index [" << set_index_begin << " - " << set_index_end << ">");
+  Dout(dc::shaderresource, "Updating, adding handles and unlocking: loop over set_index [" << set_index_begin << " - " << set_index_end << ">.");
   for (SetIndex set_index = set_index_begin; set_index < set_index_end; ++set_index)
   {
     // Run over all shader resources in reverse, so that the first one which is the one that is locked, is processed last!
@@ -867,8 +874,8 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
       ASSERT(set_index == set_binding_map.convert(set_index_hint));
       uint32_t binding = get_declaration(set_key)->binding();
-      Dout(dc::shaderresource, "shader_resource = " << shader_resource->ambifix().object_name() << "; set_index = " << set_index <<
-          "; binding = " << binding);
+      Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << print_string(shader_resource->debug_name()) <<
+          "); set_index = " << set_index << "; binding = " << binding);
 
       auto new_descriptor_set = std::find_if(set_index_has_frame_resource_pairs.begin(), set_index_has_frame_resource_pairs.end(), [=](std::pair<SetIndex, bool> const& p) { return p.first == set_index; });
       if (new_descriptor_set != set_index_has_frame_resource_pairs.end())

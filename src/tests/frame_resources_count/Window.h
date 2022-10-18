@@ -338,8 +338,8 @@ void main()
     pipeline_factory.generate(this);
   }
 
-  // This member function only uses m_vertex_buffers, which aithreadsafe.
-  // Therefore, the function as whole is made threadsafe-const
+  // This member function only uses m_vertex_buffers, which is aithreadsafe.
+  // Therefore, the function as a whole is made threadsafe-const
   void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner) /*threadsafe-*/ const
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
@@ -354,11 +354,10 @@ void main()
       {
         vertex_buffers_type::wat vertex_buffers_w(m_vertex_buffers);
 
-        // Seems a compiler bug that I have to specify `vulkan::memory::Buffer` even when using emplace_back.
-        vertex_buffers_w->push_back(vulkan::memory::Buffer(logical_device(), buffer_size,
+        vertex_buffers_w->push_back(vulkan::memory::Buffer{logical_device(), buffer_size,
             { .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
               .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(vertex_buffers_w->size()) + "]"))));
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(vertex_buffers_w->size()) + "]"))});
 
         new_buffer = vertex_buffers_w->back().m_vh_buffer;
       }
