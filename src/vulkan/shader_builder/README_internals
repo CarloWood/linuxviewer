@@ -25,14 +25,10 @@
         |.----------------------------------------------------------------------------------------------------------------------------. |
 set 0   ||  // Declaration for "TopPosition"                       |  // Declaration of "Texture::vort3"                              | |
         ||                                                         |                                                                  | |
-        ||  struct TopPosition {                                   |  layout(set = 0, binding = 1) uniform sampler2D u_Vort3Texture;  | |
+        ||  layout(std140, set = 0, binding = 0) uniform u_s0b0 {  |  layout(set = 0, binding = 1) uniform sampler2D u_Vort3Texture;  | |
         ||    mat2 unused1;         // "TopPosition::unused1"      |                                                                  | |
         ||    float x;              // "TopPosition::x"            |  // End of declaration of Texture::vort3                         | |
-        ||  };                                                     |                                                                  | |
-        ||                                                         |                                                                  | |
-        ||  layout(std140, set = 0, binding = 0) uniform u_s0b0 {  |                                                                  | |
-        ||    TopPosition m_top_position;                          |                                                                  | |
-        ||  } top12345678;                                         |                                                                  | |
+        ||  } TopPosition;                                         |                                                                  | |
         ||                                                         |                                                                  | |
         ||  // End of declaration of TopPosition                   |                                                                  | |
         |'----------------------------------------------------------------------------------------------------------------------------' |
@@ -41,14 +37,10 @@ set 0   ||  // Declaration for "TopPosition"                       |  // Declara
         |------------------------------------------------------------------------------------------------------------------------------ |
 set 1   ||  // Declaration of "LeftPosition"                       |                                                                    |
         ||                                                         |                                                                    |
-        ||  struct LeftPosition {                                  |                                                                    |
+        ||  layout(set = 1, binding = 0) uniform u_s1b0 {          |                                                                    |
         ||    mat4 unused;          // "LeftPosition::unused"      |                                                                    |
         ||    float y;              // "LeftPosition::y"           |                                                                    |
-        ||  };                                                     |                                                                    |
-        ||                                                         |                                                                    |
-        ||  layout(set = 1, binding = 0) uniform u_s1b0 {          |                                                                    |
-        ||    LeftPosition m_left_position;                        |                                                                    |
-        ||  } left12345678;                                        |                                                                    |
+        ||  } LeftPosition;
         ||                                                         |                                                                    |
         ||  // End of declaration of LeftPosition                  |                                                                    |
         |'----------------------------------------------------------------------------------------------------------------------------- |

@@ -24,6 +24,10 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
   auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
   // This set index should already have been inserted by ShaderInputData::add_texture, add_uniform_buffer, etc.
   //
+  // A call to ShaderInputData::add_uniform_buffer and ShaderInputData::add_texture generates a descriptor::SetIndexHint
+  // for that shader resource that is subsequently used to create a ShaderResourceDeclaration with that added
+  // to the map ShaderInputData::m_glsl_id_to_shader_resource.
+  //
   // FIXME: when does this happen?
   ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).end());
   ShaderResourceDeclarationContext* shader_resource_declaration_context = &shader_resource_declaration_context_iter->second;
