@@ -26,7 +26,6 @@ void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
   {
     // m_shader_variables contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
-    Dout(dc::always, "Searching in m_shader_variables @" << (void*)&m_shader_variables << " [" << this << "].");
     for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
     {
       std::string match_string = shader_variable->glsl_id_full();
@@ -425,9 +424,11 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
   for (auto& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
     m_shader_variables.push_back(&shader_resource_variable);
 
-  Dout(dc::always, "m_shader_variables (@" << (void*)&m_shader_variables << " [" << this << "]) currently contains:");
+#if 0
+  Dout(dc::debug, "m_shader_variables (@" << (void*)&m_shader_variables << " [" << this << "]) currently contains:");
   for (auto shader_variable_ptr : m_shader_variables)
-    Dout(dc::always, "  " << vk_utils::print_pointer(shader_variable_ptr));
+    Dout(dc::debug, "  " << vk_utils::print_pointer(shader_variable_ptr));
+#endif
 
   // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
   if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())

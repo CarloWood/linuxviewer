@@ -11,7 +11,7 @@ namespace vulkan::shader_builder::shader_resource {
 void Texture::instantiate(task::SynchronousWindow const* CWDEBUG_ONLY(owning_window)
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
-  DoutEntering(dc::always, "Texture::instantiate(" << owning_window << ", \"" << ambifix.object_name() << "\")");
+  DoutEntering(dc::shaderresource, "Texture::instantiate(" << owning_window << ", \"" << ambifix.object_name() << "\")");
 }
 
 void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const

@@ -13,9 +13,7 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
 {
   DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
 
-  Dout(dc::always, "Getting set_index_hint() of m_shader_resource_declaration_ptr " << m_shader_resource_declaration_ptr);
   descriptor::SetIndexHint set_index_hint = m_shader_resource_declaration_ptr->set_index_hint();
-  Dout(dc::always, "set_index_hint = " << set_index_hint);
 
   // Register that this shader resource is used in shader_stage.
   m_shader_resource_declaration_ptr->used_in(shader_stage);
@@ -24,15 +22,18 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
   auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
   // This set index should already have been inserted by ShaderInputData::add_texture, add_uniform_buffer, etc.
   //
-  // A call to ShaderInputData::add_uniform_buffer and ShaderInputData::add_texture generates a descriptor::SetIndexHint
-  // for that shader resource that is subsequently used to create a ShaderResourceDeclaration with that added
-  // to the map ShaderInputData::m_glsl_id_to_shader_resource.
+  // Those calls generates a descriptor::SetIndexHint for the shader resource (texture, uniformbuffer, ...) that is subsequently
+  // used to create a ShaderResourceDeclaration with, that is added to the map ShaderInputData::m_glsl_id_to_shader_resource.
+  // Additionally those functions add the SetIndexHint to ShaderInputData::m_set_index_hint_to_shader_resource_declaration_context.
+  // Then, when the glsl_id of the shader resource is found in shader template code, in preprocess1, then this
+  // function is called on the associated ShaderResourceVariable. Hence it is impossible to get here and fail to find
+  // the set_index_hint in this map.
   //
-  // FIXME: when does this happen?
+  // Paranoia check:
   ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).end());
   ShaderResourceDeclarationContext* shader_resource_declaration_context = &shader_resource_declaration_context_iter->second;
 
-  Dout(dc::always, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
+  Dout(dc::shaderresource, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
 
   // Register that this shader resource is being used in this set.
   shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr, shader_input_data);
