@@ -38,7 +38,7 @@ class SetKey
     return m_id;
   }
 
-  // SetKey is used as a key in a std::map (SetKeyToSetIndexHint).
+  // SetKey is used as a key in a std::map (ShaderInputData::m_set_key_to_set_index_hint).
   // Add an ordering.
   friend bool operator<(SetKey const& lhs, SetKey const& rhs)
   {

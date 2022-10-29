@@ -133,6 +133,7 @@ struct Texture : public Base, public memory::Image
   void instantiate(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override;
   void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const override;
+  void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
 
   // Accessors.
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }

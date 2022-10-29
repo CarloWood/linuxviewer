@@ -4,6 +4,7 @@
 #include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetLayoutBinding.h"
+#include "shader_builder/ShaderResourceIndex.h"
 #include "threadsafe/aithreadsafe.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
@@ -112,7 +113,7 @@ class Base
   Base(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
     m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_debug_name(debug_name))
   {
-    DoutEntering(dc::notice, "Base(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ")");
+    DoutEntering(dc::notice, "Base::Base(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ") [" << this << "]");
   }
   Base() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
 
@@ -211,6 +212,7 @@ class Base
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) = 0;
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
+  virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const = 0;
   //---------------------------------------------------------------------------
 
   // Accessors.

@@ -38,6 +38,11 @@ std::string UniformBufferBase::glsl_id() const
   return member.prefix();
 }
 
+void UniformBufferBase::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
+{
+  shader_input_data->prepare_uniform_buffer_declaration(*this, set_index_hint);
+}
+
 #ifdef CWDEBUG
 void UniformBufferBase::print_on(std::ostream& os) const
 {

@@ -3,7 +3,6 @@
 
 #include "PushConstantRangeCompare.h"
 #include "descriptor/SetLayout.h"
-#include "descriptor/SetKeyToSetIndexHint.h"
 #include "descriptor/SetKeyToShaderResourceDeclaration.h"
 #include "descriptor/SetKeyPreference.h"
 #include "shader_builder/ShaderInfo.h"
@@ -17,6 +16,7 @@
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "shader_builder/ShaderResourceVariable.h"
 #include "shader_builder/shader_resource/Base.h"
+#include "shader_builder/ShaderResourceIndex.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
@@ -87,22 +87,30 @@ class ShaderInputData
 
   //---------------------------------------------------------------------------
   // Shader resources.
+
+  bool m_called_prepare_shader_resource_declarations{false};                                    // Set to true when prepare_shader_resource_declarations was called.
+
+  // Set index hints.
+  using set_key_to_set_index_hint_container_t = std::map<descriptor::SetKey, descriptor::SetIndexHint>;
+  set_key_to_set_index_hint_container_t m_set_key_to_set_index_hint;                            // Maps descriptor::SetKey's to descriptor::SetIndexHint's.
+  using glsl_id_to_shader_resource_container_t = std::map<std::string, shader_builder::ShaderResourceDeclaration, std::less<>>;
+  glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;  // Set index hint needs to be updated afterwards.
   using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;
   set_index_hint_to_shader_resource_declaration_context_container_t m_set_index_hint_to_shader_resource_declaration_context;
-  using glsl_id_to_shader_resource_container_t = std::map<std::string, shader_builder::ShaderResourceDeclaration, std::less<>>;
-  glsl_id_to_shader_resource_container_t m_glsl_id_to_shader_resource;
-  sorted_descriptor_set_layouts_container_t m_sorted_descriptor_set_layouts;                               // A Vector of SetLayout object, containing vk::DescriptorSetLayout handles and the
+
+  sorted_descriptor_set_layouts_container_t m_sorted_descriptor_set_layouts;                    // A Vector of SetLayout object, containing vk::DescriptorSetLayout handles and the
                                                                                                 // vk::DescriptorSetLayoutBinding objects, stored in a sorted vector, that they were
                                                                                                 // created from.
-  descriptor::SetKeyToSetIndexHint m_shader_resource_set_key_to_set_index_hint;                 // Maps descriptor::SetKey's to identifier::SetIndexHint's.
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
   using per_stage_declaration_contexts_container_t = std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t>;
   per_stage_declaration_contexts_container_t m_per_stage_declaration_contexts;
   descriptor::SetKeyToShaderResourceDeclaration m_shader_resource_set_key_to_shader_resource_declaration;       // Maps descriptor::SetKey's to shader resource declaration object used for the current pipeline.
 
-  // List of shader resources that were added by the owning CharacteristicRange
-  // from the add_* functions like add_uniform_buffer.
-  std::vector<shader_builder::shader_resource::Base const*> m_required_shader_resources_list;
+  // List of shader resources that were added by the owning CharacteristicRange from the add_* functions like add_uniform_buffer.
+  utils::Vector<shader_builder::shader_resource::Base const*, shader_builder::ShaderResourceIndex> m_required_shader_resources_list;
+  // Corresponding preferred and undesirable descriptor sets.
+  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourceIndex> m_preferred_descriptor_sets;
+  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourceIndex> m_undesirable_descriptor_sets;
 
   // Initialized in handle_shader_resource_creation_requests:
   // The list of shader resources that we managed to get the lock on and weren't already created before.
@@ -169,6 +177,15 @@ class ShaderInputData
   // End push constants.
   //---------------------------------------------------------------------------
 
+  //---------------------------------------------------------------------------
+  // Shader resources.
+
+  // Called near the bottom from add_texture and add_uniform_buffer.
+  void realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint);
+
+  // End shader resources.
+  //---------------------------------------------------------------------------
+
  public:
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
@@ -183,12 +200,19 @@ class ShaderInputData
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
+  void prepare_texture_declaration(shader_builder::shader_resource::Texture const& texture, descriptor::SetIndexHint set_index_hint);
+
   void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  // Called by add_textures and/or add_uniform_buffer (at the end), requesting to be created.
-  void request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource);
+  void prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
+
+  // Called by add_textures and/or add_uniform_buffer (at the end), requesting to be created
+  // and storing the preferred and undesirable descriptor set vectors.
+  void register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
+      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 
   //---------------------------------------------------------------------------
   // Begin of MultiLoop states.
@@ -219,6 +243,9 @@ class ShaderInputData
     shader_builder::SPIRVCache tmp_spirv_cache;
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_binding_map COMMA_CWDEBUG_ONLY(ambifix));
   }
+
+  // Called from the top of the first call to preprocess1.
+  void prepare_shader_resource_declarations();
 
   // Create glsl code from template source code.
   //
@@ -305,7 +332,6 @@ class ShaderInputData
 
   // Used by ShaderResourceVariable::is_used_in to look up the declaration context.
   set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceVariable>) { return m_set_index_hint_to_shader_resource_declaration_context; }
-//  glsl_id_to_shader_resource_container_t const& glsl_id_to_shader_resource() const { return m_glsl_id_to_shader_resource; }
 
   // Returns information on what was added with add_vertex_input_binding.
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
@@ -321,7 +347,10 @@ class ShaderInputData
   // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
   descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const
   {
-    return m_shader_resource_set_key_to_set_index_hint.get_set_index_hint(set_key);
+    auto set_index_hint = m_set_key_to_set_index_hint.find(set_key);
+    // Don't call get_set_index_hint for a key that wasn't added yet.
+    ASSERT(set_index_hint != m_set_key_to_set_index_hint.end());
+    return set_index_hint->second;
   }
 
   shader_builder::ShaderResourceDeclaration const* get_declaration(descriptor::SetKey set_key) const

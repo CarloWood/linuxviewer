@@ -13,10 +13,30 @@ namespace vulkan::pipeline {
 using NAMESPACE_DEBUG::print_string;
 #endif
 
+void ShaderInputData::prepare_shader_resource_declarations()
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_shader_resource_declarations()");
+
+  utils::Vector<descriptor::SetIndexHint> set_index_hints;
+
+//descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
+//m_set_key_to_set_index_hint.try_emplace_set_index_hint(texture_descriptor_set_key, set_index_hint);
+//descriptor::SetIndexHint set_index_hint = m_set_key_to_set_index_hint.try_emplace_set_index_hint(uniform_buffer_descriptor_set_key);
+
+  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
+      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+    m_required_shader_resources_list[shader_resource_index]->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
+
+  m_called_prepare_shader_resource_declarations = true;
+}
+
 // Returns the declaration contexts that are used in this shader.
 void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::preprocess1(" << shader_info << ") [" << this << "]");
+
+  if (!m_called_prepare_shader_resource_declarations)
+    prepare_shader_resource_declarations();
 
   declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()]; // All the declaration contexts that are involved.
   std::string_view const source = shader_info.glsl_template_code();
@@ -394,29 +414,51 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   return vertex_input_attribute_descriptions;
 }
 
+void ShaderInputData::realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint)
+{
+  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
+  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
+  {
+    DEBUG_ONLY(auto res2 =)
+      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
+    // We just used find() and it wasn't there?!
+    ASSERT(res2.second);
+  }
+}
+
 void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const& texture,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
 
-  //FIXME: implement using preferred_descriptor_sets / undesirable_descriptor_sets.
-  descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
-  descriptor::SetIndexHint set_index_hint{0};
-  if (!preferred_descriptor_sets.empty())
-    set_index_hint = get_set_index_hint(preferred_descriptor_sets[0].descriptor_set_key());
-  Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
-  m_shader_resource_set_key_to_set_index_hint.try_emplace_set_index_hint(texture_descriptor_set_key, set_index_hint);
+  // Remember that this texture must be bound to its descriptor set from the PipelineFactory.
+  register_shader_resource(&texture, preferred_descriptor_sets, undesirable_descriptor_sets);
+}
+
+void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+{
+  m_preferred_descriptor_sets.push_back(preferred_descriptor_sets);
+  m_undesirable_descriptor_sets.push_back(undesirable_descriptor_sets);
+  // Add a thread-safe pointer to the shader resource (Base) to a list of required shader resources.
+  // The shader_resource should point to a member of the Window class.
+  m_required_shader_resources_list.push_back(shader_resource);
+}
+
+void ShaderInputData::prepare_texture_declaration(shader_builder::shader_resource::Texture const& texture, descriptor::SetIndexHint set_index_hint)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_texture_declaration(" << texture << ", " << set_index_hint << ")");
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, texture);
-
   auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
   // The m_glsl_id_full of each Texture must be unique. And of course, don't register the same texture twice.
   ASSERT(res1.second);
 
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
-  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(texture_descriptor_set_key, shader_resource_ptr);
+  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(texture.descriptor_set_key(), shader_resource_ptr);
 
   // Texture only has a single member.
   shader_resource_ptr->add_member(texture.member());
@@ -430,17 +472,8 @@ void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const
     Dout(dc::debug, "  " << vk_utils::print_pointer(shader_variable_ptr));
 #endif
 
-  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
-  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
-  {
-    DEBUG_ONLY(auto res2 =)
-      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
-    // We just used find() and it wasn't there?!
-    ASSERT(res2.second);
-  }
-
-  // Remember that this texture must be bound to its descriptor set from the PipelineFactory.
-  request_shader_resource_creation(&texture);
+  // Create and store ShaderResourceDeclarationContext in a map with key set_index_hint, if that doesn't already exists.
+  realize_shader_resource_declaration_context(set_index_hint);
 }
 
 void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
@@ -448,42 +481,28 @@ void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::Unifor
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ")");
-  //FIXME: implement (use preferred_descriptor_sets / undesirable_descriptor_sets).
-  descriptor::SetKey uniform_buffer_descriptor_set_key = uniform_buffer.descriptor_set_key();
-  descriptor::SetIndexHint set_index_hint = m_shader_resource_set_key_to_set_index_hint.try_emplace_set_index_hint(uniform_buffer_descriptor_set_key);
-  Dout(dc::vulkan, "Using SetIndexHint " << set_index_hint);
+
+  // Remember that this uniform buffer must be created from the PipelineFactory.
+  register_shader_resource(&uniform_buffer, preferred_descriptor_sets, undesirable_descriptor_sets);
+}
+
+void ShaderInputData::prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_uniform_buffer_declaration(" << uniform_buffer << ", " << set_index_hint << ")");
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, set_index_hint, uniform_buffer);
-
   auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{uniform_buffer.glsl_id(), shader_resource_tmp});
   // The m_glsl_id_prefix of each UniformBuffer must be unique. And of course, don't register the same uniform buffer twice.
   ASSERT(res1.second);
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
-  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(uniform_buffer_descriptor_set_key, shader_resource_ptr);
+  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(uniform_buffer.descriptor_set_key(), shader_resource_ptr);
 
   shader_resource_ptr->add_members(uniform_buffer.members());
   for (auto const& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
     m_shader_variables.push_back(&shader_resource_variable);
 
-  //FIXME: remove code duplication (this also exists in add_texture).
-  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
-  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
-  {
-    DEBUG_ONLY(auto res2 =)
-      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
-    // We just used find() and it wasn't there?!
-    ASSERT(res2.second);
-  }
-
-  // Remember that this uniform buffer must be created from the PipelineFactory.
-  request_shader_resource_creation(&uniform_buffer);
-}
-
-void ShaderInputData::request_shader_resource_creation(shader_builder::shader_resource::Base const* shader_resource)
-{
-  // Add a thread-safe pointer to the shader resource (Base) to a list of required shader resources.
-  // The shader_resource should be an instance of the Window class.
-  m_required_shader_resources_list.push_back(shader_resource);
+  // Create and store ShaderResourceDeclarationContext in a map with key set_index_hint, if that doesn't already exists.
+  realize_shader_resource_declaration_context(set_index_hint);
 }
 
 bool ShaderInputData::sort_required_shader_resources_list()

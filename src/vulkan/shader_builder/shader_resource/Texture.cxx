@@ -32,6 +32,11 @@ void Texture::update_descriptor_set(task::SynchronousWindow const* owning_window
     owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
 }
 
+void Texture::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
+{
+  shader_input_data->prepare_texture_declaration(*this, set_index_hint);
+}
+
 #ifdef CWDEBUG
 namespace detail {
 using utils::has_print_on::operator<<;
