@@ -215,6 +215,30 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
+  void add_shader_resources_to(vulkan::pipeline::ShaderInputData& shader_input_data, int pipeline) const
+  {
+    // Define the pipeline.
+    vulkan::descriptor::SetKeyPreference top_set_key_preference(m_top_buffer.descriptor_set_key(), 1.0);
+    vulkan::descriptor::SetKeyPreference left_set_key_preference(m_left_buffer.descriptor_set_key(), 1.0);
+
+    if (pipeline == 0)
+    {
+      // This assigns top to descriptor set 0 and left to 1.
+      shader_input_data.add_uniform_buffer(m_top_buffer);
+      shader_input_data.add_uniform_buffer(m_left_buffer, {}, { top_set_key_preference });
+    }
+    else
+    {
+      // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
+      shader_input_data.add_uniform_buffer(m_left_buffer);
+      shader_input_data.add_uniform_buffer(m_top_buffer, {}, { left_set_key_preference });
+    }
+    // This assigns bottom to set 2.
+    shader_input_data.add_uniform_buffer(m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
+    // The texture must go into the same set as top.
+    shader_input_data.add_texture(m_sample_texture, { top_set_key_preference });
+  }
+
   class UniformBuffersTestPipelineCharacteristicBase : public vulkan::pipeline::Characteristic
   {
    private:
@@ -237,26 +261,7 @@ void main()
       flat_create_info.add(&m_dynamic_states);
       flat_create_info.add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
 
-      // Define the pipeline.
-      vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
-      vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
-
-      if (pipeline == 0)
-      {
-        // This assigns top to descriptor set 0 and left to 1.
-        shader_input_data().add_uniform_buffer(window->m_top_buffer);
-        shader_input_data().add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
-      }
-      else
-      {
-        // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
-        shader_input_data().add_uniform_buffer(window->m_left_buffer);
-        shader_input_data().add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
-      }
-      // This assigns bottom to set 2.
-      shader_input_data().add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
-      // The texture must go into the same set as top.
-      shader_input_data().add_texture(window->m_sample_texture, { top_set_key_preference });
+      window->add_shader_resources_to(shader_input_data(), pipeline);
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

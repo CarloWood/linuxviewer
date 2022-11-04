@@ -49,10 +49,9 @@ class Window : public task::SynchronousWindow
   using vertex_buffers_type = aithreadsafe::Wrapper<vertex_buffers_container_type, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
   mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
- public: //FIXME: make this private again once 'FrameResourcesCountPipelineCharacteristic::initialize()' doesn't need it anymore.
+ private:
   vulkan::shader_resource::Texture m_background_texture{"m_background_texture"};
   vulkan::shader_resource::Texture m_benchmark_texture{"m_benchmark_texture"};
- private:
   vulkan::Pipeline m_graphics_pipeline;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -232,6 +231,12 @@ void main()
     m_shader_frag = indices[1];
   }
 
+  void add_shader_resources_to(vulkan::pipeline::ShaderInputData& shader_input_data) const
+  {
+    shader_input_data.add_texture(m_background_texture);
+    shader_input_data.add_texture(m_benchmark_texture);
+  }
+
   class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
@@ -276,8 +281,7 @@ void main()
       shader_input_data().add_vertex_input_binding(m_heavy_rectangle);
       shader_input_data().add_vertex_input_binding(m_random_positions);
       shader_input_data().add_push_constant<PushConstant>();
-      shader_input_data().add_texture(window->m_background_texture);
-      shader_input_data().add_texture(window->m_benchmark_texture);
+      window->add_shader_resources_to(shader_input_data());
 
       {
         using namespace vulkan::shader_builder;
