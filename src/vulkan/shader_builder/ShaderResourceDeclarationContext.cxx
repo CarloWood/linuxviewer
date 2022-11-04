@@ -28,13 +28,7 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration 
     m_next_binding.resize(set_index_hint.get_value() + 1);      // New elements are initialized to 0.
   m_bindings[shader_resource_declaration] = m_next_binding[set_index_hint];
   shader_resource_declaration->set_binding(m_next_binding[set_index_hint]);
-  int number_of_bindings = 1;
-#if 0
-  if (vertex_attribute->layout().m_array_size > 0)
-    number_of_attribute_indices *= vertex_attribute->layout().m_array_size;
-#endif
-  Dout(dc::notice, "Changing m_next_binding[set_index_hint:" << set_index_hint << "] from " << m_next_binding[set_index_hint] << " to " << (m_next_binding[set_index_hint] + number_of_bindings) << ".");
-  m_next_binding[set_index_hint] += number_of_bindings;
+  ++m_next_binding[set_index_hint];
 }
 
 void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration, pipeline::ShaderInputData* shader_input_data)
