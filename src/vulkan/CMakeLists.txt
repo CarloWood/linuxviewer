@@ -30,6 +30,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/partitions/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.cxx
@@ -43,6 +44,7 @@ file(GLOB HEADER_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/rendergraph/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/pipeline/partitions/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/queues/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/vk_utils/*.h

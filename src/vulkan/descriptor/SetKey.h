@@ -45,6 +45,11 @@ class SetKey
     return lhs.m_id < rhs.m_id;
   }
 
+  friend bool operator==(SetKey const& lhs, SetKey const& rhs)
+  {
+    return lhs.m_id == rhs.m_id;
+  }
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif

@@ -1,33 +1,204 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
+#include "partitions/PartitionTask.h"
+#include "partitions/ElementPair.h"
+#include "partitions/PartitionIteratorExplode.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "shader_builder/DeclarationsString.h"
 #include "utils/malloc_size.h"
+#include "utils/almost_equal.h"
 #include "debug.h"
 #include <cstring>
+#include <cmath>
 
 namespace vulkan::pipeline {
 #ifdef CWDEBUG
 using NAMESPACE_DEBUG::print_string;
 #endif
 
+void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::fill_set_index_hints(" << set_index_hints_out << ")");
+
+  using namespace partitions;
+
+  LogicalDevice const* logical_device = m_owning_window->logical_device();
+  uint32_t const max_number_of_sets = logical_device->max_bound_descriptor_sets();
+  int const number_of_elements = m_required_shader_resources_list.size();
+
+  PartitionTask partition_task(number_of_elements, max_number_of_sets);
+
+  // Run over all required shader resources.
+  for (shader_builder::ShaderResourceIndex shader_resource_index1 = m_required_shader_resources_list.ibegin();
+      shader_resource_index1 != m_required_shader_resources_list.iend(); ++shader_resource_index1)
+  {
+    for (shader_builder::ShaderResourceIndex shader_resource_index2 = m_required_shader_resources_list.ibegin();
+        shader_resource_index2 != m_required_shader_resources_list.iend(); ++shader_resource_index2)
+    {
+      if (shader_resource_index1 == shader_resource_index2)
+        continue;
+
+      double preferred_preference = 0.0;
+      for (std::vector<descriptor::SetKeyPreference>::const_iterator preferred = m_preferred_descriptor_sets[shader_resource_index1].begin();
+          preferred != m_preferred_descriptor_sets[shader_resource_index1].end(); ++preferred)
+      {
+        if (preferred->descriptor_set_key() == m_required_shader_resources_list[shader_resource_index2]->descriptor_set_key())
+        {
+          preferred_preference = preferred->preference();
+          break;
+        }
+      }
+
+      double undesirable_preference = 0.0;
+      for (std::vector<descriptor::SetKeyPreference>::const_iterator undesirable = m_undesirable_descriptor_sets[shader_resource_index1].begin();
+          undesirable != m_undesirable_descriptor_sets[shader_resource_index1].end(); ++undesirable)
+      {
+        if (undesirable->descriptor_set_key() == m_required_shader_resources_list[shader_resource_index2]->descriptor_set_key())
+        {
+          undesirable_preference = undesirable->preference();
+          break;
+        }
+      }
+
+      // Looking for a formula such that,
+      //   f(p, 0) = p
+      //   f(0, u) = -u
+      //   f(x, x) = 0
+      //   f(1, x) = 1  for x < 1
+      //   f(x, 1) = -1 for x < 1
+      double preference = (preferred_preference - undesirable_preference) / (1.0 - preferred_preference * undesirable_preference);
+
+      if (preference == 0.0)
+        continue;
+
+      Score score;
+
+      if (utils::almost_equal(preference, 1.0, 1e-7))
+        score = positive_inf;
+      else if (utils::almost_equal(preference, -1.0, 1e-7))
+        score = negative_inf;
+      else
+      {
+        // 1 --> inf
+        // 0 --> 0
+        // -1 --> -inf
+        score = preference / (1.0 - preference * preference);
+      }
+
+      // ElementIndex is equivalent to ShaderResourceIndex.
+      ASSERT(shader_resource_index2.get_value() < max_number_of_elements);
+      ElementIndex e1{ElementIndexPOD{static_cast<int8_t>(shader_resource_index1.get_value())}};
+      ElementIndex e2{ElementIndexPOD{static_cast<int8_t>(shader_resource_index2.get_value())}};
+      ElementPair ep(e1, e2);
+      int score_index = ep.score_index();
+      Score existing_score = partition_task.score(score_index);
+      if (!existing_score.is_zero())
+      {
+        if (!existing_score.is_infinite())
+        {
+          if (!score.is_infinite())
+          {
+            double existing_preference = (-1.0 / existing_score.value() +
+                std::sqrt(1.0 / (existing_score.value() * existing_score.value()) + 4)) * 0.5;
+            double new_preference = (existing_preference + preference) / (1.0 + existing_preference * preference);
+            score = new_preference / (1.0 - new_preference * new_preference);
+          }
+        }
+        else if (!score.is_infinite())
+          score = existing_score;
+        else
+          // Can not demand two shader resources to be in the same descriptor set and not be in the same descriptor set.
+          ASSERT(score.is_positive_inf() == existing_score.is_positive_inf());
+      }
+      Dout(dc::notice, "Assigned score for {" << m_required_shader_resources_list[shader_resource_index1]->debug_name() << ", " <<
+          m_required_shader_resources_list[shader_resource_index2]->debug_name() << "} = " << score);
+      partition_task.set_score(score_index, score);
+    }
+  }
+
+  partition_task.initialize_set23_to_score();
+
+  Score best_score(negative_inf);
+  Partition best_partition;
+  int best_rp = 0;
+  int best_count = 0;
+  //
+  // 500 : { ... }
+  // 503 : { ... }
+  // 510 : { ... }
+  // 550 : { ... }
+  // 553 : { ... }
+  // 553 : { ... }
+  //
+  //
+  //
+  //
+  //
+  //
+  for (int rp = 0; rp < 1000; ++rp)
+  {
+    Partition partition = partition_task.random();
+    Score score = partition.find_local_maximum(partition_task);
+    int count = 0;
+    for (PartitionIteratorExplode explode = partition.sbegin(partition_task); !explode.is_end(); ++explode)
+    {
+      Partition partition2 = explode.get_partition(partition_task);
+      Score score2 = partition2.find_local_maximum(partition_task);
+      if (score2 > score)
+      {
+        partition = partition2;
+        score = score2;
+      }
+      if (++count == PartitionIteratorExplode::total_loop_count_limit)
+        break;
+    }
+    if (score > best_score)
+    {
+      best_partition = partition;
+      best_score = score;
+      best_rp = rp;
+      best_count = 1;
+    }
+    else if (score.unchanged(best_score))
+      ++best_count;
+    // Stop when the chance to have missed the best score until now would have been less than 1%, but no
+    // sooner than after 20 attempts and only if the last half of all attempts didn't give an improvement.
+    if (rp > std::max(20, 2 * best_rp) && std::exp(rp * std::log(static_cast<double>(rp - best_count) / rp)) < 0.01)
+      break;
+  }
+
+  // Run over all required shader resources.
+  set_index_hints_out.reserve(m_required_shader_resources_list.size());
+  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
+      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+  {
+    // partitions::ElementIndex is equivalent to ShaderResourceIndex.
+    ElementIndex element_index{ElementIndexPOD{static_cast<int8_t>(shader_resource_index.get_value())}};
+    // partitions::SetIndex is equivalent to SetIndexHint.
+    set_index_hints_out.push_back(descriptor::SetIndexHint{static_cast<size_t>(best_partition.set_of(element_index))});
+  }
+}
+
 void ShaderInputData::prepare_shader_resource_declarations()
 {
   DoutEntering(dc::vulkan, "ShaderInputData::prepare_shader_resource_declarations()");
+  m_called_prepare_shader_resource_declarations = true;
 
-  utils::Vector<descriptor::SetIndexHint> set_index_hints;
-
-//descriptor::SetKey texture_descriptor_set_key = texture.descriptor_set_key();
-//m_set_key_to_set_index_hint.try_emplace_set_index_hint(texture_descriptor_set_key, set_index_hint);
-//descriptor::SetIndexHint set_index_hint = m_set_key_to_set_index_hint.try_emplace_set_index_hint(uniform_buffer_descriptor_set_key);
+  utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex> set_index_hints;
+  if (m_required_shader_resources_list.size() > 1)
+    fill_set_index_hints(set_index_hints);
+  else
+    set_index_hints.emplace_back(0UL);
 
   for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
       shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
-    m_required_shader_resources_list[shader_resource_index]->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
-
-  m_called_prepare_shader_resource_declarations = true;
+  {
+    shader_builder::shader_resource::Base const* shader_resource = m_required_shader_resources_list[shader_resource_index];
+    m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_index];
+    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
+  }
 }
 
 // Returns the declaration contexts that are used in this shader.

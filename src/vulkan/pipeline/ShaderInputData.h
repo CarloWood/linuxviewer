@@ -66,6 +66,8 @@ class ShaderInputData
   using descriptor_set_per_set_index_t = utils::Vector<descriptor::FrameResourceCapableDescriptorSet, descriptor::SetIndex>;
 
  private:
+  task::SynchronousWindow const* m_owning_window;
+
   //---------------------------------------------------------------------------
   // Vertex attributes.
   utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;          // Existing vertex shader input sets (a 'binding' slot).
@@ -131,6 +133,10 @@ class ShaderInputData
                                                                                                 // m_glsl_id_full_to_push_constant, m_glsl_id_to_shader_resource, ...).
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   std::vector<vk::UniqueShaderModule> m_shader_modules;
+
+ public:
+  // Constructor.
+  ShaderInputData(task::SynchronousWindow const* owning_window) : m_owning_window(owning_window) { }
 
  private:
   //---------------------------------------------------------------------------
@@ -244,6 +250,8 @@ class ShaderInputData
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_binding_map COMMA_CWDEBUG_ONLY(ambifix));
   }
 
+  // Called from prepare_shader_resource_declarations.
+  void fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out);
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();
 
