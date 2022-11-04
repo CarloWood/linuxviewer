@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "PartitionTask.h"
 #include "ElementPair.h"
+#include "LogicalDevice.h"
 #include <iomanip>
 
 namespace vulkan::pipeline::partitions {
@@ -60,11 +61,19 @@ v   1   2   3   4   5 ...     <-- number of sets (sets)
 // Cache of the number of partitions existing of 'sets' sets when starting with 'top_sets'
 // and adding 'depth' new elements.
 //static
-std::array<std::array<PartitionTask::partition_count_t, max_number_of_elements * (max_number_of_elements + 1) / 2>, max_number_of_elements> PartitionTask::s_table3d;
+std::array<std::array<partition_count_t, max_number_of_elements * (max_number_of_elements + 1) / 2>, max_number_of_elements> PartitionTask::s_table3d;
+
+PartitionTask::PartitionTask(int8_t number_of_elements, LogicalDevice const* logical_device) :
+  m_logical_device(logical_device),
+  m_number_of_elements(number_of_elements),
+  m_max_number_of_sets(std::min(static_cast<uint32_t>(number_of_elements), logical_device->max_bound_descriptor_sets())),
+  m_scores(64 * (number_of_elements - 1) + number_of_elements)
+{
+}
 
 // Returns a reference into the cache for a given top_sets, depth and sets.
 //static
-PartitionTask::partition_count_t& PartitionTask::number_of_partitions_with_sets(int top_sets, int depth, int sets)
+partition_count_t& PartitionTask::number_of_partitions_with_sets(int top_sets, int depth, int sets)
 {
   // The cache is compressed: we don't store the zeroes.
   // That is, the inner array stores the triangle of non-zero values for a given 'Table' (for a given top_sets)
@@ -75,7 +84,7 @@ PartitionTask::partition_count_t& PartitionTask::number_of_partitions_with_sets(
 //static
 int PartitionTask::table(int top_sets, int depth, int sets)
 {
-  assert(top_sets + depth <= max_number_of_elements);
+  ASSERT(top_sets + depth <= max_number_of_elements);
   if (sets > depth + top_sets || sets < top_sets)
     return 0;
   partition_count_t& te = number_of_partitions_with_sets(top_sets, depth, sets);
@@ -91,39 +100,25 @@ int PartitionTask::table(int top_sets, int depth, int sets)
   return te;
 }
 
-//static
-PartitionTask::partition_count_t PartitionTask::number_of_partitions(int top_sets, int depth, int max_number_of_sets)
-{
-  partition_count_t sum = 0;
-  for (int8_t sets = top_sets; sets <= max_number_of_sets; ++sets)
-  {
-    partition_count_t term = table(top_sets, depth, sets);
-    if (term == 0)
-      break;
-    sum += term;
-  }
-  return sum;
-}
-
 // Print the table 'top_sets'.
-//static
-void PartitionTask::print_table(int top_sets, int max_number_of_sets)
+void PartitionTask::print_table(int top_sets)
 {
   std::cout << "  ";
-  for (int8_t sets = 1; sets <= max_number_of_sets; ++sets)
+  for (int8_t sets = 1; sets <= m_max_number_of_sets; ++sets)
   {
     std::cout << std::setw(8) << sets;
   }
   std::cout << '\n';
-  for (int8_t depth = 0; depth <= 4 /*max_number_of_elements - top_sets*/; ++depth)
+  for (int8_t depth = 0; depth <= std::min(5, max_number_of_elements - 1 - top_sets); ++depth)   // Use 5 because for larger depth the numbers get way too big.
   {
+    partitions::partition_count_t nop = m_logical_device->number_of_partitions(top_sets, depth);
     std::cout << std::setw(2) << depth;
-    for (int8_t sets = 1; sets <= max_number_of_sets; ++sets)
+    for (int8_t sets = 1; sets <= m_max_number_of_sets; ++sets)
     {
       int v = table(top_sets, depth, sets);
       std::cout << std::setw(8) << v;
     }
-    std::cout << " = " << number_of_partitions(top_sets, depth, max_number_of_sets) << '\n';
+    std::cout << " = " << nop << '\n';
   }
   std::cout << '\n';
 }
@@ -171,8 +166,8 @@ Partition PartitionTask::random()
   {
     Element const new_element('A' + top_elements);
     int8_t depth = m_number_of_elements - top_elements;
-    partition_count_t existing_set = PartitionTask::number_of_partitions(top_sets, depth - 1, m_max_number_of_sets);
-    partition_count_t new_set = PartitionTask::number_of_partitions(top_sets + 1, depth - 1, m_max_number_of_sets);
+    partition_count_t existing_set = m_logical_device->number_of_partitions(top_sets, depth - 1);
+    partition_count_t new_set = m_logical_device->number_of_partitions(top_sets + 1, depth - 1);
     partition_count_t total = top_sets * existing_set + new_set;
 
     std::uniform_int_distribution<partition_count_t> distr{0, total - 1};

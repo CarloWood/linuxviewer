@@ -6,6 +6,7 @@
 #include "PresentationSurface.h"
 #include "SynchronousWindow.h"
 #include "descriptor/SetBinding.h"
+#include "pipeline/partitions/PartitionTask.h"
 #include "queues/QueueFamilyProperties.h"
 #include "queues/QueueReply.h"
 #include "infos/DeviceCreateInfo.h"
@@ -1428,6 +1429,28 @@ LogicalDevice::LogicalDevice() : m_semaphore_watcher(statefultask::create<task::
 
 LogicalDevice::~LogicalDevice()
 {
+}
+
+void LogicalDevice::initialize_number_of_partitions() /*threadsafe-*/const
+{
+  DoutEntering(dc::vulkan, "LogicalDevice::initialize_number_of_partitions()");
+  using namespace pipeline::partitions;
+  uint32_t max_number_of_sets = max_bound_descriptor_sets();
+  for (int top_sets = 1; top_sets <= max_number_of_sets; ++top_sets)
+  {
+    for (int depth = 0; depth < max_number_of_elements - top_sets; ++depth)
+    {
+      partition_count_t sum = 0;
+      for (int8_t sets = top_sets; sets <= max_number_of_sets; ++sets)
+      {
+        partition_count_t term = PartitionTask::table(top_sets, depth, sets);
+        if (term == 0)
+          break;
+        sum += term;
+      }
+      m_number_of_partitions[top_sets][depth] = sum;
+    }
+  }
 }
 
 #ifdef TRACY_ENABLE

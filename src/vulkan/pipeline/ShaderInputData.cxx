@@ -25,10 +25,9 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
   using namespace partitions;
 
   LogicalDevice const* logical_device = m_owning_window->logical_device();
-  uint32_t const max_number_of_sets = logical_device->max_bound_descriptor_sets();
   int const number_of_elements = m_required_shader_resources_list.size();
 
-  PartitionTask partition_task(number_of_elements, max_number_of_sets);
+  PartitionTask partition_task(number_of_elements, logical_device);
 
   // Run over all required shader resources.
   for (shader_builder::ShaderResourceIndex shader_resource_index1 = m_required_shader_resources_list.ibegin();

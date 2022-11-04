@@ -20,6 +20,7 @@
 #include "descriptor/SetBindingMap.h"
 #include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "pipeline/PushConstantRangeCompare.h"
+#include "pipeline/partitions/Defs.h"
 #include "vk_utils/print_list.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
@@ -31,6 +32,8 @@
 #include <vk_mem_alloc.h>
 #include <filesystem>
 #include <set>
+#include <array>
+#include <mutex>
 #ifdef CWDEBUG
 #include "vk_utils/MemoryRequirementsPrinter.h"
 #include "debug/set_device.h"
@@ -136,6 +139,10 @@ class LogicalDevice
   using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   mutable pipeline_layouts_t m_pipeline_layouts;
 
+  using number_of_partitions_t = std::array<std::array<pipeline::partitions::partition_count_t, pipeline::partitions::max_number_of_elements>, pipeline::partitions::max_number_of_elements>;
+  mutable std::once_flag m_number_of_partitions_initialization; // Used for initialization for m_number_of_partitions.
+  mutable number_of_partitions_t m_number_of_partitions;        // One-time initialized by initialize_number_of_partitions.
+
 #ifdef CWDEBUG
   std::string m_debug_name;
 #endif
@@ -190,6 +197,12 @@ class LogicalDevice
       descriptor::SetBindingMap& set_binding_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
+
+  pipeline::partitions::partition_count_t number_of_partitions(int top_sets, int depth) /*threadsafe-*/const
+  {
+    std::call_once(m_number_of_partitions_initialization, [this](){ initialize_number_of_partitions(); });
+    return m_number_of_partitions[top_sets][depth];
+  }
 
   // Return the (next) queue for queue_request_key as passed to Application::create_root_window).
   Queue acquire_queue(QueueRequestKey queue_request_key) const;
@@ -405,6 +418,8 @@ class LogicalDevice
 #endif
 
  private:
+  void initialize_number_of_partitions() /*threadsafe-*/const;
+
   // Override this function to change the default physical device features.
   virtual void prepare_physical_device_features(
       vk::PhysicalDeviceFeatures& features10,
