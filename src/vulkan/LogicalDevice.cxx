@@ -1435,6 +1435,8 @@ void LogicalDevice::initialize_number_of_partitions() /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::initialize_number_of_partitions()");
   using namespace pipeline::partitions;
+  // Cache of the number of partitions existing of 'sets' sets when starting with 'top_sets' and adding 'depth' new elements.
+  std::unique_ptr<table3d_t> table3d = std::make_unique<table3d_t>();
   uint32_t max_number_of_sets = max_bound_descriptor_sets();
   for (int top_sets = 1; top_sets <= max_number_of_sets; ++top_sets)
   {
@@ -1443,7 +1445,7 @@ void LogicalDevice::initialize_number_of_partitions() /*threadsafe-*/const
       partition_count_t sum = 0;
       for (int8_t sets = top_sets; sets <= max_number_of_sets; ++sets)
       {
-        partition_count_t term = PartitionTask::table(top_sets, depth, sets);
+        partition_count_t term = PartitionTask::table(top_sets, depth, sets, table3d.get());
         if (term == 0)
           break;
         sum += term;

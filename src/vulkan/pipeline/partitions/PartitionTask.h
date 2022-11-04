@@ -18,9 +18,6 @@ namespace vulkan::pipeline::partitions {
 class PartitionTask
 {
  private:
-  //FIXME: can't this be a temporary?
-  static std::array<std::array<partition_count_t, max_number_of_elements * (max_number_of_elements + 1) / 2>, max_number_of_elements> s_table3d;
-
   LogicalDevice const* m_logical_device;        // The device that this is being used for: it determines the max_number_of_sets.
   int8_t m_number_of_elements;                  // The number of elements that we need to partition.
   int8_t m_max_number_of_sets;                  // The maximum number of sets that will be used by this task.
@@ -32,9 +29,9 @@ class PartitionTask
  public:
   PartitionTask(int8_t number_of_elements, LogicalDevice const* logical_device);
 
-  static partition_count_t& number_of_partitions_with_sets(int top_sets, int depth, int sets);
-  static int table(int top_sets, int depth, int sets);
-  void print_table(int top_sets);
+  static partition_count_t& number_of_partitions_with_sets(int top_sets, int depth, int sets, table3d_t* table3d);
+  static int table(int top_sets, int depth, int sets, table3d_t* table3d);
+  void print_table(int top_sets, table3d_t* table3d);
 
   Score score(Set set23) const
   {

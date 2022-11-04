@@ -58,11 +58,6 @@ v   1   2   3   4   5 ...     <-- number of sets (sets)
 .
 */
 
-// Cache of the number of partitions existing of 'sets' sets when starting with 'top_sets'
-// and adding 'depth' new elements.
-//static
-std::array<std::array<partition_count_t, max_number_of_elements * (max_number_of_elements + 1) / 2>, max_number_of_elements> PartitionTask::s_table3d;
-
 PartitionTask::PartitionTask(int8_t number_of_elements, LogicalDevice const* logical_device) :
   m_logical_device(logical_device),
   m_number_of_elements(number_of_elements),
@@ -73,21 +68,21 @@ PartitionTask::PartitionTask(int8_t number_of_elements, LogicalDevice const* log
 
 // Returns a reference into the cache for a given top_sets, depth and sets.
 //static
-partition_count_t& PartitionTask::number_of_partitions_with_sets(int top_sets, int depth, int sets)
+partition_count_t& PartitionTask::number_of_partitions_with_sets(int top_sets, int depth, int sets, table3d_t* table3d)
 {
   // The cache is compressed: we don't store the zeroes.
   // That is, the inner array stores the triangle of non-zero values for a given 'Table' (for a given top_sets)
   // and the table for 'top_sets' is shifted top_sets - 1 to the left.
-  return s_table3d[top_sets - 1][depth * (depth + 1) / 2 + sets - top_sets];
+  return (*table3d)[top_sets - 1][depth * (depth + 1) / 2 + sets - top_sets];
 }
 
 //static
-int PartitionTask::table(int top_sets, int depth, int sets)
+int PartitionTask::table(int top_sets, int depth, int sets, table3d_t* table3d)
 {
   ASSERT(top_sets + depth <= max_number_of_elements);
   if (sets > depth + top_sets || sets < top_sets)
     return 0;
-  partition_count_t& te = number_of_partitions_with_sets(top_sets, depth, sets);
+  partition_count_t& te = number_of_partitions_with_sets(top_sets, depth, sets, table3d);
   if (te == 0)
   {
     if (depth == 0)
@@ -95,13 +90,13 @@ int PartitionTask::table(int top_sets, int depth, int sets)
     else if (depth + top_sets == sets)
       te = 1;
     else
-      te = table(top_sets, depth - 1, sets - 1) + sets * table(top_sets, depth - 1, sets);
+      te = table(top_sets, depth - 1, sets - 1, table3d) + sets * table(top_sets, depth - 1, sets, table3d);
   }
   return te;
 }
 
 // Print the table 'top_sets'.
-void PartitionTask::print_table(int top_sets)
+void PartitionTask::print_table(int top_sets, table3d_t* table3d)
 {
   std::cout << "  ";
   for (int8_t sets = 1; sets <= m_max_number_of_sets; ++sets)
@@ -115,7 +110,7 @@ void PartitionTask::print_table(int top_sets)
     std::cout << std::setw(2) << depth;
     for (int8_t sets = 1; sets <= m_max_number_of_sets; ++sets)
     {
-      int v = table(top_sets, depth, sets);
+      int v = table(top_sets, depth, sets, table3d);
       std::cout << std::setw(8) << v;
     }
     std::cout << " = " << nop << '\n';
