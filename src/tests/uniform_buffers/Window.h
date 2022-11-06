@@ -249,17 +249,19 @@ void main()
     };
 
    protected:
-    void initializeX(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window, int pipeline)
-    {
-      DoutEntering(dc::vulkan, "initializeX(FlatCreateInfo @" << (void*)&flat_create_info << ", " << owning_window << ", " << pipeline << ")");
+    using vulkan::pipeline::Characteristic::Characteristic;
 
-      Window const* window = static_cast<Window const*>(owning_window);
+    void initializeX(int pipeline)
+    {
+      DoutEntering(dc::vulkan, "initializeX(" << pipeline << ")");
+
+      Window const* window = static_cast<Window const*>(m_owning_window);
 
       // Register the vectors that we will fill.
-      flat_create_info.add(&shader_input_data().shader_stage_create_infos());
-      flat_create_info.add(&m_pipeline_color_blend_attachment_states);
-      flat_create_info.add(&m_dynamic_states);
-      flat_create_info.add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
+      m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
+      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
+      m_flat_create_info->add(&m_dynamic_states);
+      m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
 
       window->add_shader_resources_to(shader_input_data(), pipeline);
 
@@ -274,30 +276,30 @@ void main()
         ShaderIndex shader_frag_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
 
         // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_vert_index));
-        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_frag_index));
+        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
+        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
 
         // Compile the shaders.
-        flat_create_info.add_set_binding_map_callback(
+        m_flat_create_info->add_set_binding_map_callback(
             [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
             {
               Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
               ShaderCompiler compiler;
 
-              shader_input_data().build_shader(owning_window, shader_vert_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
-              shader_input_data().build_shader(owning_window, shader_frag_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
             });
       }
 
-      flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+      m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
       // Realize the descriptor set layouts: if a layout already exists then use the existing
       // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
       // Otherwise, if it does not already exist, create a new descriptor set layout using the
       // provided binding values as-is.
-      shader_input_data().realize_descriptor_set_layouts(owning_window->logical_device());
+      shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
     }
 
    public:
@@ -311,17 +313,19 @@ void main()
 
   class UniformBuffersTestPipelineCharacteristic0 : public UniformBuffersTestPipelineCharacteristicBase
   {
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
+    using UniformBuffersTestPipelineCharacteristicBase::UniformBuffersTestPipelineCharacteristicBase;
+    void initialize() override
     {
-      initializeX(flat_create_info, owning_window, 0);
+      initializeX(0);
     }
   };
 
   class UniformBuffersTestPipelineCharacteristic1 : public UniformBuffersTestPipelineCharacteristicBase
   {
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
+    using UniformBuffersTestPipelineCharacteristicBase::UniformBuffersTestPipelineCharacteristicBase;
+    void initialize() override
     {
-      initializeX(flat_create_info, owning_window, 1);
+      initializeX(1);
     }
   };
 
@@ -335,11 +339,11 @@ void main()
 
     m_pipeline_factory0 = create_pipeline_factory(m_graphics_pipeline0, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory0_keep_alive = pipeline_factory(m_pipeline_factory0.factory_index());
-    m_pipeline_factory0.add_characteristic<UniformBuffersTestPipelineCharacteristic0>(this);
+    m_pipeline_factory0.add_characteristic<UniformBuffersTestPipelineCharacteristic0>(this COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory0.generate(this);
 
     m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this);
+    m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.generate(this);
   }
 

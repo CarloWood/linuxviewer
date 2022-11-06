@@ -12,11 +12,6 @@
 
 namespace vulkan {
 class LogicalDevice;
-
-namespace pipeline {
-class CharacteristicRange;
-} // namespace pipeline
-
 } // namespace vulkan
 
 namespace task {
@@ -31,11 +26,14 @@ class PipelineFactory : public AIStatefulTask
  public:
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
   using characteristics_container_t = utils::Vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>, vulkan::pipeline::CharacteristicRangeIndex>;
+  using pipeline_index_t = vulkan::pipeline::CharacteristicRange::pipeline_index_t;
 
   static constexpr condition_type pipeline_cache_set_up = 1;
   static constexpr condition_type fully_initialized = 2;
-  static constexpr condition_type obtained_create_lock = 4;
-  static constexpr condition_type obtained_set_layout_binding_lock = 8;
+  static constexpr condition_type characteristics_initialized = 4;
+  static constexpr condition_type characteristics_filled = 8;
+  static constexpr condition_type obtained_create_lock = 16;
+  static constexpr condition_type obtained_set_layout_binding_lock = 32;
 
  private:
   // Constructor.
@@ -56,14 +54,16 @@ class PipelineFactory : public AIStatefulTask
   // State PipelineFactory_initialized.
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   vulkan::pipeline::ShaderInputData m_shader_input_data;
+  utils::Vector<unsigned int, vulkan::pipeline::CharacteristicRangeIndex> m_range_shift;
   MultiLoop m_range_counters;
   int m_start_of_next_loop;
+  std::atomic<size_t> m_number_of_running_characteristic_tasks;
   // State PipelineFactory_top_multiloop_while_loop
   vulkan::descriptor::SetBindingMap m_set_binding_map;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.
-  vulkan::pipeline::Index m_pipeline_index;
+  pipeline_index_t m_pipeline_index;
   // Layout of the current pipeline that is being created inside the MultiLoop.
   vk::PipelineLayout m_vh_pipeline_layout;
   // Set to true when calling ShaderInputData::update_missing_descriptor_sets while already having the set_layout_binding lock for the current pipeline/set_index/first_shader_resource.
@@ -77,8 +77,10 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_start = direct_base_type::state_end,
     PipelineFactory_initialize,
     PipelineFactory_initialized,
+    PipelineFactory_characteristics_initialized,
     PipelineFactory_top_multiloop_for_loop,
     PipelineFactory_top_multiloop_while_loop,
+    PipelineFactory_characteristics_filled,
     PipelineFactory_create_shader_resources,
     PipelineFactory_initialize_shader_resources_per_set_index,
     PipelineFactory_update_missing_descriptor_sets,
@@ -106,11 +108,15 @@ class PipelineFactory : public AIStatefulTask
   // Accessor.
   SynchronousWindow* owning_window() const { return m_owning_window; }
 
-  void add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
+  void add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
   void set_pipeline(vulkan::Pipeline&& pipeline) { m_pipeline_out = std::move(pipeline); }
   characteristics_container_t const& characteristics() const { return m_characteristics; }
+
+  // Called from CharacteristicRange::multiplex_impl.
+  void characteristic_range_initialized();
+  void characteristic_range_filled(vulkan::pipeline::CharacteristicRangeIndex index);
 
   void added_creation_request(vulkan::pipeline::ShaderInputData const* shader_input_data);
   // Give pipeline::CharacteristicRange read/write access to m_shader_input_data.

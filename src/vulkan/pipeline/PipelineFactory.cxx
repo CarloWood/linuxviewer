@@ -119,7 +119,7 @@ PipelineFactory::~PipelineFactory()
   vulkan::Application::instance().m_dependent_tasks.remove(m_index);
 }
 
-void PipelineFactory::add(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
+void PipelineFactory::add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
   characteristic_range->set_owner(this);
   m_characteristics.push_back(std::move(characteristic_range));
@@ -144,8 +144,10 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_start);
     AI_CASE_RETURN(PipelineFactory_initialize);
     AI_CASE_RETURN(PipelineFactory_initialized);
+    AI_CASE_RETURN(PipelineFactory_characteristics_initialized);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_while_loop);
+    AI_CASE_RETURN(PipelineFactory_characteristics_filled);
     AI_CASE_RETURN(PipelineFactory_create_shader_resources);
     AI_CASE_RETURN(PipelineFactory_initialize_shader_resources_per_set_index);
     AI_CASE_RETURN(PipelineFactory_update_missing_descriptor_sets);
@@ -159,6 +161,21 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
 char const* PipelineFactory::task_name_impl() const
 {
   return "PipelineFactory";
+}
+
+void PipelineFactory::characteristic_range_initialized()
+{
+  if (m_number_of_running_characteristic_tasks.fetch_sub(1, std::memory_order::acq_rel) == 1)
+    signal(characteristics_initialized);
+}
+
+void PipelineFactory::characteristic_range_filled(vulkan::pipeline::CharacteristicRangeIndex characteristic_range_index)
+{
+  // Calculate the m_pipeline_index.
+  size_t cr_index = characteristic_range_index.get_value();
+  m_characteristics[characteristic_range_index]->update(pipeline_index_t::wat{m_pipeline_index}, cr_index, m_range_counters[cr_index], m_range_shift[characteristic_range_index]);
+  if (m_number_of_running_characteristic_tasks-- == 1)
+    signal(characteristics_filled);
 }
 
 void PipelineFactory::multiplex_impl(state_type run_state)
@@ -211,10 +228,23 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       {
         // Do not use an empty factory - it makes no sense.
         ASSERT(!m_characteristics.empty());
+        boost::intrusive_ptr<PipelineFactory> parent = this;
+        m_number_of_running_characteristic_tasks = m_characteristics.size();
         // Call initialize on each characteristic.
+        unsigned int range_shift = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-          m_characteristics[i]->initialize(m_flat_create_info, m_owning_window);
-
+        {
+          m_range_shift[i] = range_shift;
+          range_shift += m_characteristics[i]->range_width();
+          m_characteristics[i]->set_flat_create_info(&m_flat_create_info);
+          m_characteristics[i]->run(this, characteristics_initialized);
+        }
+        set_state(PipelineFactory_characteristics_initialized);
+        wait(characteristics_initialized);
+        return;
+      }
+      case PipelineFactory_characteristics_initialized:
+      {
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
         // Enter the multi-loop.
@@ -258,17 +288,22 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         }
         // MultiLoop inner loop body.
 
-        m_pipeline_index.set_to_zero();
+        pipeline_index_t::wat{m_pipeline_index}->set_to_zero();
 
+        m_number_of_running_characteristic_tasks = m_characteristics.size();
         // Run over each loop variable (and hence characteristic).
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
+          // Do not accidently delete the parent task while still running a child task.
           // Call fill with its current range index.
-          m_characteristics[i]->fill(m_flat_create_info, m_range_counters[i.get_value()]);
-          // Calculate the m_pipeline_index.
-          m_characteristics[i]->update(m_pipeline_index, m_range_counters[i.get_value()]);
+          m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
+          m_characteristics[i]->set_characteristic_range_index(i);
+          m_characteristics[i]->signal(vulkan::pipeline::CharacteristicRange::do_fill);
         }
-
+        set_state(PipelineFactory_characteristics_filled);
+        wait(characteristics_filled);
+        return;
+      case PipelineFactory_characteristics_filled:
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
@@ -364,7 +399,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             Dout(dc::continued, prefix << m_range_counters[i]);
             prefix = ", ";
           }
-          Dout(dc::finish, " --> pipeline::Index " << m_pipeline_index);
+          Dout(dc::finish, " --> pipeline::Index " << *pipeline_index_t::rat{m_pipeline_index});
 #endif
 
           // Create and then store the graphics pipeline.
@@ -372,7 +407,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
           // Inform the SynchronousWindow.
-          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, m_pipeline_index}, m_shader_input_data.descriptor_set_per_set_index(), m_owning_window->max_number_of_frame_resources()
+          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_shader_input_data.descriptor_set_per_set_index(), m_owning_window->max_number_of_frame_resources()
               COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(pipeline)});
         }
 

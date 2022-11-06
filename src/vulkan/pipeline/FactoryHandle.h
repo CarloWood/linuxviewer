@@ -62,7 +62,7 @@ void FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_win
       ::NAMESPACE_DEBUG::type_name_of<CHARACTERISTIC>() <<
       ((LibcwDoutStream << ... << (std::string(", ") + ::NAMESPACE_DEBUG::type_name_of<ARGS>())), ">(") <<
       owning_window << ", " << join(", ", args...) << ")");
-  owning_window->pipeline_factory(m_factory_index)->add(new CHARACTERISTIC(std::forward<ARGS>(args)...));
+  owning_window->pipeline_factory(m_factory_index)->add_characteristic(new CHARACTERISTIC(owning_window, std::forward<ARGS>(args)...));
 }
 
 } // namespace vulkan::pipeline

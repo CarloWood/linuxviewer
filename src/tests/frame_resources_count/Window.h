@@ -262,20 +262,20 @@ void main()
     HeavyRectangle m_heavy_rectangle;           // A rectangle with many vertices.
     RandomPositions m_random_positions;         // Where to put those rectangles.
 
-    void initialize(vulkan::pipeline::FlatCreateInfo& flat_create_info, task::SynchronousWindow const* owning_window) override
+    void initialize() override
     {
-      Dout(dc::notice, "FrameResourcesCountPipelineCharacteristic::initialize(...)");
+      Dout(dc::notice, "FrameResourcesCountPipelineCharacteristic::initialize()");
 
-      Window const* window = static_cast<Window const*>(owning_window);
+      Window const* window = static_cast<Window const*>(m_owning_window);
 
       // Register the vectors that we will fill.
-      flat_create_info.add(&m_vertex_input_binding_descriptions);
-      flat_create_info.add(&m_vertex_input_attribute_descriptions);
-      flat_create_info.add(&shader_input_data().shader_stage_create_infos());
-      flat_create_info.add(&m_pipeline_color_blend_attachment_states);
-      flat_create_info.add(&m_dynamic_states);
-      flat_create_info.add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
-      flat_create_info.add(&m_push_constant_ranges);
+      m_flat_create_info->add(&m_vertex_input_binding_descriptions);
+      m_flat_create_info->add(&m_vertex_input_attribute_descriptions);
+      m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
+      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
+      m_flat_create_info->add(&m_dynamic_states);
+      m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
+      m_flat_create_info->add(&m_push_constant_ranges);
 
       // Define the pipeline.
       shader_input_data().add_vertex_input_binding(m_heavy_rectangle);
@@ -289,20 +289,20 @@ void main()
         ShaderIndex shader_vert_index = window->m_shader_vert;
         ShaderIndex shader_frag_index = window->m_shader_frag;
 
-        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_vert_index));
-        shader_input_data().preprocess1(owning_window->application().get_shader_info(shader_frag_index));
+        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
+        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
 
         // Compile the shaders.
-        flat_create_info.add_set_binding_map_callback(
+        m_flat_create_info->add_set_binding_map_callback(
             [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
             {
               Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
               ShaderCompiler compiler;
 
-              shader_input_data().build_shader(owning_window, shader_vert_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
-              shader_input_data().build_shader(owning_window, shader_frag_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+              shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_binding_map
+                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
             });
       }
 
@@ -310,7 +310,7 @@ void main()
       m_vertex_input_attribute_descriptions = shader_input_data().vertex_input_attribute_descriptions();
       m_push_constant_ranges = shader_input_data().push_constant_ranges();
 
-      flat_create_info.m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+      m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
       // Generate vertex buffers.
       // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
@@ -319,11 +319,11 @@ void main()
       ASSERT(aithreadid::is_single_threaded(s_id));     // Fails if more than one thread executes this line.
       window->create_vertex_buffers(this);
 
-      shader_input_data().realize_descriptor_set_layouts(owning_window->logical_device());
+      shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
     }
 
    public:
-    FrameResourcesCountPipelineCharacteristic() = default;
+    using vulkan::pipeline::Characteristic::Characteristic;
 
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
@@ -338,7 +338,7 @@ void main()
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
     auto pipeline_factory = create_pipeline_factory(m_graphics_pipeline, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this);
+    pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.generate(this);
   }
 
