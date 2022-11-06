@@ -24,6 +24,7 @@ class CharacteristicRange : public AIStatefulTask
 {
  public:
   static constexpr condition_type do_fill = 1;
+  static constexpr condition_type do_terminate = 2;
 
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
   using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -31,6 +32,7 @@ class CharacteristicRange : public AIStatefulTask
  protected:
   task::SynchronousWindow const* m_owning_window;
   FlatCreateInfo* m_flat_create_info{};
+  bool m_terminate{false};                      // Set to true when the task must terminate.
 
  private:
   index_type const m_begin;
@@ -124,10 +126,12 @@ class CharacteristicRange : public AIStatefulTask
   void set_flat_create_info(FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
   void set_fill_index(index_type fill_index) { m_fill_index = fill_index; }
   void set_characteristic_range_index(CharacteristicRangeIndex characteristic_range_index) { m_characteristic_range_index = characteristic_range_index; }
+  void terminate() { m_terminate = true; signal(do_terminate); }
 
  protected:
   char const* task_name_impl() const override { return "CharacteristicRange"; }
   char const* state_str_impl(state_type run_state) const override;
+  char const* condition_str_impl(condition_type condition) const override;
   void multiplex_impl(state_type run_state) override;
 
 #ifdef CWDEBUG

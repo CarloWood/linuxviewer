@@ -131,6 +131,8 @@ char const* PipelineFactory::condition_str_impl(condition_type condition) const
   {
     AI_CASE_RETURN(pipeline_cache_set_up);
     AI_CASE_RETURN(fully_initialized);
+    AI_CASE_RETURN(characteristics_initialized);
+    AI_CASE_RETURN(characteristics_filled);
     AI_CASE_RETURN(obtained_create_lock);
     AI_CASE_RETURN(obtained_set_layout_binding_lock);
   }
@@ -228,7 +230,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       {
         // Do not use an empty factory - it makes no sense.
         ASSERT(!m_characteristics.empty());
-        m_number_of_running_characteristic_tasks = m_characteristics.size();
+        size_t const number_of_characteristic_range_tasks = m_characteristics.size();
+        m_range_shift.resize(number_of_characteristic_range_tasks);
+        m_number_of_running_characteristic_tasks.store(number_of_characteristic_range_tasks, std::memory_order::relaxed);
         // Call initialize on each characteristic.
         unsigned int range_shift = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
@@ -441,11 +445,18 @@ multiloop_magic_footer:
         set_state(PipelineFactory_done);
         [[fallthrough]];
       case PipelineFactory_done:
-        m_move_new_pipelines_synchronously->set_producer_finished();
         finish();
         return;
     }
   }
+}
+
+void PipelineFactory::finish_impl()
+{
+  // The characteristic range tasks never stopped running. We must kill them.
+  for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+    m_characteristics[i]->terminate();
+  m_move_new_pipelines_synchronously->set_producer_finished();
 }
 
 } // namespace task

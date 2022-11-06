@@ -100,6 +100,7 @@ class PipelineFactory : public AIStatefulTask
   char const* state_str_impl(state_type run_state) const override;
   char const* task_name_impl() const override;
   void multiplex_impl(state_type run_state) override;
+  void finish_impl() override;
 
  public:
   PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
