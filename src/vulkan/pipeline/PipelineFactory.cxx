@@ -228,7 +228,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       {
         // Do not use an empty factory - it makes no sense.
         ASSERT(!m_characteristics.empty());
-        boost::intrusive_ptr<PipelineFactory> parent = this;
         m_number_of_running_characteristic_tasks = m_characteristics.size();
         // Call initialize on each characteristic.
         unsigned int range_shift = 0;
