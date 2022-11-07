@@ -146,7 +146,7 @@ This can be put in code as follows:
 
 10. The size of an array is equal the array stride of one of its elements times the number of elements.
 
-11. The alignment of a struct is equal to the largest alignment of each of its members.
+11. The alignment of a struct is equal to the largest alignment of each of its members, for std140 rounded up to 16.
 
 12. The offset of member N in a struct is equal to the offset of member N-1 plus the size of the member N-1, rounded up to the nearest multiple of the alignment of member N.
 

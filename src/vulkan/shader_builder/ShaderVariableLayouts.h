@@ -173,7 +173,7 @@ struct StructLayout
   static_assert(members > 0, "There must be at least one member in a StructLayout");
   using last_member_layout = std::tuple_element_t<members - 1, MembersTuple>;
   static constexpr glsl::Standard standard = last_member_layout::standard;
-  static constexpr size_t alignment = last_member_layout::max_alignment;
+  static constexpr size_t alignment = standard == glsl::std140 ? std::max(last_member_layout::max_alignment, size_t{16}) : last_member_layout::max_alignment;
   static constexpr size_t size = round_up_to_multiple_off(last_member_layout::offset + Layout<typename last_member_layout::layout_type>::size, alignment);
   using underlying_class = typename last_member_layout::containing_class;        // Should be the same for every member.
   static constexpr std::string_view last_member_glsl_id_sv = static_cast<std::string_view>(last_member_layout::glsl_id_full);
