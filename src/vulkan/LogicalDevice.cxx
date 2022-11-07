@@ -5,7 +5,6 @@
 #include "Exceptions.h"
 #include "PresentationSurface.h"
 #include "SynchronousWindow.h"
-#include "descriptor/SetBinding.h"
 #include "pipeline/partitions/PartitionTask.h"
 #include "queues/QueueFamilyProperties.h"
 #include "queues/QueueReply.h"
@@ -1331,7 +1330,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
-    descriptor::SetBindingMap& set_binding_map_out,
+    descriptor::SetIndexHintMap& set_index_hint_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::realize_pipeline_layout(" << vk_utils::print_pointer(realized_descriptor_set_layouts) << ", " << sorted_push_constant_ranges << ")");
@@ -1345,7 +1344,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     prev_set_layout = &set_layout;
   }
   // What do you think you are doing?
-  ASSERT(set_binding_map_out.empty());
+  ASSERT(set_index_hint_map_out.empty());
 #endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
@@ -1362,13 +1361,8 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
         for (auto&& layout : *realized_descriptor_set_layouts)
         {
           vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
-          // Create an identity set binding map.
-          set_binding_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
-          for (vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : layout.sorted_bindings())
-          {
-            descriptor::SetBinding set_binding(layout.set_index_hint(), descriptor_set_layout_binding.binding);
-            set_binding_map_out.add_from_to(set_binding, set_binding.binding());
-          }
+          // Create an identity set index hint map.
+          set_index_hint_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layouts[" + std::to_string(pipeline_layouts_r->size()) + "]")));
@@ -1392,14 +1386,11 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
           auto binding_in = set_layout_in->sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings().begin();
-          set_binding_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
+          set_index_hint_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings().end())
           {
-            descriptor::SetBinding set_binding_in(set_layout_in->set_index_hint(), binding_in->binding);
-            descriptor::SetBinding set_binding_out(set_layout_out->set_index_hint(), binding_out->binding);
-            // I think this shouldn't happen no? *confused*
-            ASSERT(set_binding_in.binding() == binding_out->binding);
-            set_binding_map_out.add_from_to(set_binding_in, binding_out->binding);
+            descriptor::SetIndexHint set_index_hint_in = set_layout_in->set_index_hint();
+            descriptor::SetIndexHint set_index_hint_out = set_layout_out->set_index_hint();
             binding_in->binding = binding_out->binding;
             ++binding_in;
             ++binding_out;
@@ -1407,7 +1398,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ++set_layout_in;
           ++set_layout_out;
         }
-        Dout(dc::shaderresource, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_binding_map_out << ".");
+        Dout(dc::shaderresource, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_index_hint_map_out << ".");
       }
       ASSERT(*iter->second);
       Dout(dc::shaderresource, "Leaving LogicalDevice::realize_pipeline_layout");
@@ -1417,7 +1408,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     {
       Dout(dc::shaderresource, "Another thread is also trying to convert read to write lock: dropping creation and trying again...");
       m_pipeline_layouts.rd2wryield();
-      set_binding_map_out.clear();
+      set_index_hint_map_out.clear();
     }
   }
 }

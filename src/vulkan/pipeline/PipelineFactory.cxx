@@ -313,13 +313,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         {
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
 
-          // Realize (create or get from cache) the pipeline layout and return a suitable SetBindingMap.
+          // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
-              m_flat_create_info.get_realized_descriptor_set_layouts(), m_set_binding_map, sorted_push_constant_ranges);
+              m_flat_create_info.get_realized_descriptor_set_layouts(), m_set_index_hint_map, sorted_push_constant_ranges);
         }
 
-        // Now that we have initialized m_set_binding_map, do the callbacks that need it.
-        m_flat_create_info.do_set_binding_map_callbacks(m_set_binding_map);
+        // Now that we have initialized m_set_index_hint_map, do the callbacks that need it.
+        m_flat_create_info.do_set_index_hint_map_callbacks(m_set_index_hint_map);
 
         if (m_shader_input_data.sort_required_shader_resources_list())
         {
@@ -331,7 +331,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         set_state(PipelineFactory_create_shader_resources);
         [[fallthrough]];
       case PipelineFactory_create_shader_resources:
-        if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_binding_map))
+        if (!m_shader_input_data.handle_shader_resource_creation_requests(this, m_owning_window, m_set_index_hint_map))
         {
           //PipelineFactory
           wait(obtained_create_lock);
@@ -341,11 +341,11 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         [[fallthrough]];
       case PipelineFactory_initialize_shader_resources_per_set_index:
         m_have_lock = false;
-        m_shader_input_data.initialize_shader_resources_per_set_index(m_set_binding_map);
+        m_shader_input_data.initialize_shader_resources_per_set_index(m_set_index_hint_map);
         set_state(PipelineFactory_update_missing_descriptor_sets);
         [[fallthrough]];
       case PipelineFactory_update_missing_descriptor_sets:
-        if (!m_shader_input_data.update_missing_descriptor_sets(this, m_owning_window, m_set_binding_map, m_have_lock))
+        if (!m_shader_input_data.update_missing_descriptor_sets(this, m_owning_window, m_set_index_hint_map, m_have_lock))
         {
           m_have_lock = true;   // Next time we're woken up (by signal obtained_set_layout_binding_lock) we'll have the lock.
           wait(obtained_set_layout_binding_lock);

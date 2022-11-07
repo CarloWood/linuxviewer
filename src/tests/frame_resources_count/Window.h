@@ -329,15 +329,15 @@ void main()
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
 
             // Compile the shaders.
-            m_flat_create_info->add_set_binding_map_callback(
-                [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
+            m_flat_create_info->add_set_index_hint_map_callback(
+                [=, this](vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
                 {
-                  Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
+                  Dout(dc::vulkan, "Calling set_index_hint_callback lambda with " << set_index_hint_map << " [" << this << "]");
                   ShaderCompiler compiler;
 
-                  shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_binding_map
+                  shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_index_hint_map
                       COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-                  shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_binding_map
+                  shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_index_hint_map
                       COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
                 });
           }

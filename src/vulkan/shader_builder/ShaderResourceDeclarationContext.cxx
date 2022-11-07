@@ -10,16 +10,6 @@
 
 namespace vulkan::shader_builder {
 
-#if 0
-void ShaderResourceDeclarationContext::reserve_binding(descriptor::SetKey set_key)
-{
-  descriptor::SetIndex set_index = m_owning_shader_input_data->get_set_index(set_key);
-  if (m_next_binding.iend() <= set_index)
-    m_next_binding.resize(set_index.get_value() + 1);           // New elements are initialized to 0.
-  m_next_binding[set_index] += 1;
-}
-#endif
-
 void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration const* shader_resource_declaration)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource_declaration << ") [" << this << "]");
@@ -85,8 +75,8 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
     ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
-    descriptor::SetIndex set_index = m_set_binding_map->convert(shader_resource_declaration->set_index_hint());
-    uint32_t binding = m_set_binding_map->convert(shader_resource_declaration->set_index_hint(), shader_resource_binding_pair.second);
+    descriptor::SetIndex set_index = m_set_index_hint_map->convert(shader_resource_declaration->set_index_hint());
+    uint32_t binding = shader_resource_binding_pair.second;
 
     switch (shader_resource_declaration->descriptor_type())
     {

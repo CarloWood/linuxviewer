@@ -17,7 +17,7 @@
 #include "descriptor/SetLimits.h"
 #include "descriptor/LayoutBindingCompare.h"
 #include "descriptor/SetLayout.h"
-#include "descriptor/SetBindingMap.h"
+#include "descriptor/SetIndexHintMap.h"
 #include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "pipeline/PushConstantRangeCompare.h"
 #include "pipeline/partitions/Defs.h"
@@ -191,10 +191,10 @@ class LogicalDevice
   vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
-  // and returns an updated set_binding_map_out (see explanation in LogicalDevice.cxx).
+  // and returns an updated set_index_hint_map_out (see explanation in LogicalDevice.cxx).
   vk::PipelineLayout realize_pipeline_layout(
       sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
-      descriptor::SetBindingMap& set_binding_map_out,
+      descriptor::SetIndexHintMap& set_index_hint_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
 

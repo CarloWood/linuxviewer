@@ -59,7 +59,7 @@ class PipelineFactory : public AIStatefulTask
   int m_start_of_next_loop;
   std::atomic<size_t> m_number_of_running_characteristic_tasks;
   // State PipelineFactory_top_multiloop_while_loop
-  vulkan::descriptor::SetBindingMap m_set_binding_map;
+  vulkan::descriptor::SetIndexHintMap m_set_index_hint_map;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.

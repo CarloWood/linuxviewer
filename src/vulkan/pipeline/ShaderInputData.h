@@ -226,28 +226,28 @@ class ShaderInputData
   // Called by PipelineFactory_top_multiloop_while_loop.
   bool sort_required_shader_resources_list();
   // Called by PipelineFactory_create_shader_resources.
-  bool handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map);
+  bool handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetIndexHintMap const& set_index_hint_map);
   // Called by PipelineFactory_initialize_shader_resources_per_set_index.
-  void initialize_shader_resources_per_set_index(vulkan::descriptor::SetBindingMap const& set_binding_map);
+  void initialize_shader_resources_per_set_index(vulkan::descriptor::SetIndexHintMap const& set_index_hint_map);
   // Called by PipelineFactory_update_missing_descriptor_sets.
-  bool update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetBindingMap const& set_binding_map, bool have_lock);
-  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetBindingMap const& set_binding_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
+  bool update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock);
+  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
 
   // End of MultiLoop states.
   //---------------------------------------------------------------------------
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      shader_builder::SPIRVCache& spirv_cache, descriptor::SetBindingMap const& set_binding_map
+      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const& set_index_hint_map
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      descriptor::SetBindingMap const& set_binding_map
+      descriptor::SetIndexHintMap const& set_index_hint_map
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
-    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_binding_map COMMA_CWDEBUG_ONLY(ambifix));
+    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
 
   // Called from prepare_shader_resource_declarations.
@@ -262,7 +262,7 @@ class ShaderInputData
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   void preprocess1(shader_builder::ShaderInfo const& shader_info);
-  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetBindingMap const& set_binding_map) const;
+  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const& set_index_hint_map) const;
 
   void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
@@ -308,7 +308,7 @@ class ShaderInputData
     Dout(dc::shaderresource, "Leaving ShaderInputData::realize_descriptor_set_layouts");
   }
 
-  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(descriptor::SetBindingMap const& set_binding_map) const
+  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(descriptor::SetIndexHintMap const& set_index_hint_map) const
   {
     DoutEntering(dc::vulkan, "ShaderInputData::get_vhv_descriptor_set_layouts() [" << this << "]");
     // This function is called after realize_descriptor_set_layouts which means that the `binding` values
@@ -318,7 +318,7 @@ class ShaderInputData
     utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
     for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
     {
-      descriptor::SetIndex set_index = set_binding_map.convert(descriptor_set_layout.set_index_hint());
+      descriptor::SetIndex set_index = set_index_hint_map.convert(descriptor_set_layout.set_index_hint());
       // This code assumes that m_sorted_descriptor_set_layouts contains contiguous range [0, 1, 2, ..., size-1] of
       // set index hint values - one for each.
       ASSERT(set_index < vhv_descriptor_set_layouts.iend());

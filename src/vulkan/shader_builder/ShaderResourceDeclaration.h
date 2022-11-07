@@ -4,7 +4,7 @@
 #include "ShaderResourceMember.h"
 #include "ShaderResourceVariable.h"
 #include "BasicType.h"
-#include "descriptor/SetBinding.h"
+#include "descriptor/SetIndex.h"
 #include <map>
 #ifdef CWDEBUG
 #include "vk_utils/print_pointer.h"
@@ -20,11 +20,10 @@ class ShaderResourceDeclaration
 {
  private:
   std::string m_glsl_id;
-  vk::DescriptorType m_descriptor_type;                         // The descriptor type of this shader resource.
-  // Mutable because we need to set the binding later.
-  mutable descriptor::SetBinding m_set_index_binding_hint;      // The set / binding that this resource belongs to.
-//  uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
-//  uint32_t const m_array_size;                  // Set to zero when this is not an array.
+  vk::DescriptorType m_descriptor_type;                 // The descriptor type of this shader resource.
+  descriptor::SetIndexHint m_set_index_hint;            // The set index that this resource belongs to.
+  // Mutable because we need to set it later.
+  mutable uint32_t m_binding;                           // The binding that this resource belongs to.
   using shader_resource_variables_container_t = std::vector<ShaderResourceVariable>;
   shader_resource_variables_container_t m_shader_resource_variables;
 
@@ -33,7 +32,7 @@ class ShaderResourceDeclaration
 
  public:
   ShaderResourceDeclaration(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/, shader_resource::Base const& shader_resource) :
-    m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index_binding_hint(set_index_hint),
+    m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index_hint(set_index_hint),
     /*m_offset(offset), m_array_size(array_size),*/ m_shader_resource(shader_resource)
   { }
 
@@ -58,14 +57,14 @@ class ShaderResourceDeclaration
   // Not really const, but only called once.
   void set_binding(uint32_t binding) const
   {
-    m_set_index_binding_hint.set_binding(binding);
+    m_binding = binding;
   }
 
   // Accessors.
   std::string const& glsl_id() const { return m_glsl_id; }
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
-  descriptor::SetIndexHint set_index_hint() const { return m_set_index_binding_hint.set_index_hint(); }
-  uint32_t binding() const { return m_set_index_binding_hint.binding(); }
+  descriptor::SetIndexHint set_index_hint() const { return m_set_index_hint; }
+  uint32_t binding() const { return m_binding; }
   shader_resource_variables_container_t const& shader_resource_variables() const { return m_shader_resource_variables; }
   shader_resource::Base const& shader_resource() const { return m_shader_resource; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }

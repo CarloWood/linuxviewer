@@ -1,7 +1,7 @@
 #pragma once
 
 #include "descriptor/SetLayout.h"
-#include "descriptor/SetBindingMap.h"
+#include "descriptor/SetIndexHintMap.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
@@ -24,7 +24,7 @@ class FlatCreateInfo
   std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
   sorted_descriptor_set_layouts_container_t* m_realized_descriptor_set_layouts_ptr{};
   std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
-  std::vector<std::function<void(descriptor::SetBindingMap const&)>> m_set_binding_map_callbacks;
+  std::vector<std::function<void(descriptor::SetIndexHintMap const&)>> m_set_index_hint_map_callbacks;
 
   template<typename T>
   static std::vector<T> merge(std::vector<std::vector<T> const*> input_list)
@@ -191,15 +191,15 @@ class FlatCreateInfo
     return merge(m_push_constant_ranges_list);
   }
 
-  void add_set_binding_map_callback(std::function<void(descriptor::SetBindingMap const&)> callback)
+  void add_set_index_hint_map_callback(std::function<void(descriptor::SetIndexHintMap const&)> callback)
   {
-    m_set_binding_map_callbacks.emplace_back(std::move(callback));
+    m_set_index_hint_map_callbacks.emplace_back(std::move(callback));
   }
 
-  void do_set_binding_map_callbacks(descriptor::SetBindingMap const& set_binding_map)
+  void do_set_index_hint_map_callbacks(descriptor::SetIndexHintMap const& set_index_hint_map)
   {
-    for (auto& callback : m_set_binding_map_callbacks)
-      callback(set_binding_map);
+    for (auto& callback : m_set_index_hint_map_callbacks)
+      callback(set_index_hint_map);
   }
 };
 
