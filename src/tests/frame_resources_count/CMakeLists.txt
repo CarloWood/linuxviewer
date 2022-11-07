@@ -45,7 +45,6 @@ add_executable(frame_resources_count
   HeavyRectangle.cxx
   HeavyRectangle.h
   RandomPositions.h
-  Window.cxx
   Window.h
   LogicalDevice.h
   VertexData.h
