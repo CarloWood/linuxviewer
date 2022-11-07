@@ -262,7 +262,7 @@ void main()
     HeavyRectangle m_heavy_rectangle;           // A rectangle with many vertices.
     RandomPositions m_random_positions;         // Where to put those rectangles.
 
-    void initialize() override
+    void initialize()
     {
       Dout(dc::notice, "FrameResourcesCountPipelineCharacteristic::initialize()");
 

@@ -75,9 +75,6 @@ class CharacteristicRange : public AIStatefulTask
   // the same then we don't need to reserve any hash bits for it.
   unsigned int range_width() const { return std::bit_width(static_cast<unsigned int>(m_end - m_begin - 1)); }
 
-  virtual void initialize() = 0;
-  virtual void fill() const = 0;
-
   // An pipeline::Index is constructed by setting it to zero and then calling this function
   // for each CharacteristicRange that was added to a PipelineFactory with the current
   // characteristic index. This must be done in the same order as the characteristics
@@ -113,15 +110,22 @@ class CharacteristicRange : public AIStatefulTask
   // Task specific code
  protected:
   using direct_base_type = AIStatefulTask;
+  state_type m_continue_state;                  // The state of the derived class that we should continue with when this task is done with its current state.
 
   // The different states of the task.
   enum characteristic_range_state_type {
-    CharacteristicRange_initialize = direct_base_type::state_end,
-    CharacteristicRange_fill
+    CharacteristicRange_initialized = direct_base_type::state_end,
+    CharacteristicRange_check_terminate,
+    CharacteristicRange_filled
   };
 
+  void set_continue_state(state_type continue_state)
+  {
+    m_continue_state = continue_state;
+  }
+
  public:
-  static state_type constexpr state_end = CharacteristicRange_fill + 1;
+  static state_type constexpr state_end = CharacteristicRange_filled + 1;
 
   void set_flat_create_info(FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
   void set_fill_index(index_type fill_index) { m_fill_index = fill_index; }
@@ -148,13 +152,41 @@ class Characteristic : public CharacteristicRange
   using CharacteristicRange::ibegin;
   using CharacteristicRange::iend;
 
-  // When it is not a range - do everything in initialize.
-  // Use m_flat_create_info and m_fill_index.
-  void fill() const override final { }
+ protected:
+  using direct_base_type = vulkan::pipeline::CharacteristicRange;
+
+  // The different states of this task.
+  enum Characteristic_state_type {
+    Characteristic_fill = direct_base_type::state_end,
+  };
 
  public:
+  static constexpr state_type state_end = Characteristic_fill + 1;
+
   Characteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
     CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug)) { }
+
+ protected:
+  char const* state_str_impl(state_type run_state) const override
+  {
+    switch(run_state)
+    {
+      AI_CASE_RETURN(Characteristic_fill);
+    }
+    return direct_base_type::state_str_impl(run_state);
+  }
+
+  void multiplex_impl(state_type run_state) override
+  {
+    switch (run_state)
+    {
+      case Characteristic_fill:
+        // Nothing to fill; this is not a range.
+        run_state = CharacteristicRange_filled;
+        break;
+    }
+    direct_base_type::multiplex_impl(run_state);
+  }
 };
 
 } // namespace vulkan::pipeline

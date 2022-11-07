@@ -240,7 +240,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           m_range_shift[i] = range_shift;
           range_shift += m_characteristics[i]->range_width();
           m_characteristics[i]->set_flat_create_info(&m_flat_create_info);
-          m_characteristics[i]->run(this, characteristics_initialized);
+          m_characteristics[i]->run(vulkan::Application::instance().medium_priority_queue(), this, characteristics_initialized);
         }
         set_state(PipelineFactory_characteristics_initialized);
         wait(characteristics_initialized);

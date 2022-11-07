@@ -239,7 +239,7 @@ void main()
     shader_input_data.add_texture(m_sample_texture, { top_set_key_preference });
   }
 
-  class UniformBuffersTestPipelineCharacteristicBase : public vulkan::pipeline::Characteristic
+  class UniformBuffersTestPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -247,103 +247,134 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
+    int m_pipeline;
 
    protected:
-    using vulkan::pipeline::Characteristic::Characteristic;
+    using direct_base_type = vulkan::pipeline::Characteristic;
 
-    void initializeX(int pipeline)
+    // The different states of this task.
+    enum UniformBuffersTestPipelineCharacteristic_state_type {
+      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end
+    };
+
+    ~UniformBuffersTestPipelineCharacteristic() override
     {
-      DoutEntering(dc::vulkan, "initializeX(" << pipeline << ")");
+      DoutEntering(dc::vulkan, "UniformBuffersTestPipelineCharacteristic::~UniformBuffersTestPipelineCharacteristic() [" << this << "]");
+    }
 
-      Window const* window = static_cast<Window const*>(m_owning_window);
+   public:
+    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
 
-      // Register the vectors that we will fill.
-      m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
-      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-      m_flat_create_info->add(&m_dynamic_states);
-      m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
+    UniformBuffersTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
 
-      window->add_shader_resources_to(shader_input_data(), pipeline);
-
-      // Add default color blend.
-      m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
-
-      // Compile the shaders.
+   protected:
+    char const* condition_str_impl(condition_type condition) const override
+    {
+      switch (condition)
       {
-        using namespace vulkan::shader_builder;
-
-        ShaderIndex shader_vert_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
-        ShaderIndex shader_frag_index = (pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
-
-        // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
-        shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
-
-        // Compile the shaders.
-        m_flat_create_info->add_set_binding_map_callback(
-            [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
-            {
-              Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
-              ShaderCompiler compiler;
-
-              shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-              shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_binding_map
-                  COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-            });
       }
+      return direct_base_type::condition_str_impl(condition);
+    }
 
-      m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+    char const* state_str_impl(state_type run_state) const override
+    {
+      switch(run_state)
+      {
+        AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_initialize);
+      }
+      return direct_base_type::state_str_impl(run_state);
+    }
 
-      // Realize the descriptor set layouts: if a layout already exists then use the existing
-      // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
-      // Otherwise, if it does not already exist, create a new descriptor set layout using the
-      // provided binding values as-is.
-      shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
+    void initialize_impl() override
+    {
+      set_state(UniformBuffersTestPipelineCharacteristic_initialize);
+    }
+
+    void multiplex_impl(state_type run_state) override
+    {
+      switch (run_state)
+      {
+        case UniformBuffersTestPipelineCharacteristic_initialize:
+        {
+          Window const* window = static_cast<Window const*>(m_owning_window);
+
+          // Register the vectors that we will fill.
+          m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
+          m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
+          m_flat_create_info->add(&m_dynamic_states);
+          m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
+
+          window->add_shader_resources_to(shader_input_data(), m_pipeline);
+
+          // Add default color blend.
+          m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
+
+          // Compile the shaders.
+          {
+            using namespace vulkan::shader_builder;
+
+            ShaderIndex shader_vert_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+            ShaderIndex shader_frag_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
+
+            // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
+            shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
+            shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
+
+            // Compile the shaders.
+            m_flat_create_info->add_set_binding_map_callback(
+                [=, this](vulkan::descriptor::SetBindingMap const& set_binding_map)
+                {
+                  Dout(dc::vulkan, "Calling set_binding_callback lambda with " << set_binding_map << " [" << this << "]");
+                  ShaderCompiler compiler;
+
+                  shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_binding_map
+                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+                  shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_binding_map
+                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+                });
+          }
+
+          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+
+          // Realize the descriptor set layouts: if a layout already exists then use the existing
+          // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
+          // Otherwise, if it does not already exist, create a new descriptor set layout using the
+          // provided binding values as-is.
+          shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
+
+          set_continue_state(Characteristic_fill);
+          run_state = CharacteristicRange_initialized;
+          break;
+        }
+      }
+      direct_base_type::multiplex_impl(run_state);
     }
 
    public:
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
-      os << "{ (UniformBuffersTestPipelineCharacteristicBase*)" << this << " }";
+      os << "{ (UniformBuffersTestPipelineCharacteristic*)" << this << " }";
     }
 #endif
   };
 
-  class UniformBuffersTestPipelineCharacteristic0 : public UniformBuffersTestPipelineCharacteristicBase
-  {
-    using UniformBuffersTestPipelineCharacteristicBase::UniformBuffersTestPipelineCharacteristicBase;
-    void initialize() override
-    {
-      initializeX(0);
-    }
-  };
-
-  class UniformBuffersTestPipelineCharacteristic1 : public UniformBuffersTestPipelineCharacteristicBase
-  {
-    using UniformBuffersTestPipelineCharacteristicBase::UniformBuffersTestPipelineCharacteristicBase;
-    void initialize() override
-    {
-      initializeX(1);
-    }
-  };
-
   vulkan::pipeline::FactoryHandle m_pipeline_factory0;  // This will become PipelineFactoryIndex #0, because it is created first.
   vulkan::pipeline::FactoryHandle m_pipeline_factory1;  // This will become PipelineFactoryIndex #1.
-  boost::intrusive_ptr<task::PipelineFactory> m_pipeline_factory0_keep_alive;   // Keep alive so we can access m_pipeline_factory0 later.
+//  boost::intrusive_ptr<task::PipelineFactory> m_pipeline_factory0_keep_alive;   // Keep alive so we can access m_pipeline_factory0 later.
 
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
     m_pipeline_factory0 = create_pipeline_factory(m_graphics_pipeline0, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    m_pipeline_factory0_keep_alive = pipeline_factory(m_pipeline_factory0.factory_index());
-    m_pipeline_factory0.add_characteristic<UniformBuffersTestPipelineCharacteristic0>(this COMMA_CWDEBUG_ONLY(true));
+//    m_pipeline_factory0_keep_alive = pipeline_factory(m_pipeline_factory0.factory_index());
+    m_pipeline_factory0.add_characteristic<UniformBuffersTestPipelineCharacteristic>(this, 0 COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory0.generate(this);
 
     m_pipeline_factory1 = create_pipeline_factory(m_graphics_pipeline1, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-    m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic1>(this COMMA_CWDEBUG_ONLY(true));
+    m_pipeline_factory1.add_characteristic<UniformBuffersTestPipelineCharacteristic>(this, 1 COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory1.generate(this);
   }
 
