@@ -233,7 +233,7 @@ void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
   }
 }
 
-std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const& set_index_hint_map) const
+std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::preprocess2(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
 
@@ -250,7 +250,7 @@ std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& 
       dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
     if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
       continue;
-    shader_resource_declaration_context->set_set_index_hint_map(&set_index_hint_map);
+    shader_resource_declaration_context->set_set_index_hint_map(set_index_hint_map);
   }
 
   // Generate the declarations.
@@ -1091,7 +1091,7 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
 }
 
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const& set_index_hint_map
+    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");

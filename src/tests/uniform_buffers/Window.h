@@ -254,7 +254,8 @@ void main()
 
     // The different states of this task.
     enum UniformBuffersTestPipelineCharacteristic_state_type {
-      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end
+      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end,
+      UniformBuffersTestPipelineCharacteristic_compile
     };
 
     ~UniformBuffersTestPipelineCharacteristic() override
@@ -263,7 +264,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
+    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_compile + 1;
 
     UniformBuffersTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
@@ -282,6 +283,7 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_initialize);
+        AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -320,19 +322,6 @@ void main()
             // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
-
-            // Compile the shaders.
-            m_flat_create_info->add_set_index_hint_map_callback(
-                [=, this](vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
-                {
-                  Dout(dc::vulkan, "Calling set_index_hint_callback lambda with " << set_index_hint_map << " [" << this << "]");
-                  ShaderCompiler compiler;
-
-                  shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_index_hint_map
-                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-                  shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_index_hint_map
-                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-                });
           }
 
           m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
@@ -343,8 +332,26 @@ void main()
           // provided binding values as-is.
           shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
 
-          set_continue_state(Characteristic_fill);
-          run_state = CharacteristicRange_initialized;
+          set_continue_state(UniformBuffersTestPipelineCharacteristic_compile);
+          run_state = Characteristic_initialized;
+          break;
+        }
+        case UniformBuffersTestPipelineCharacteristic_compile:
+        {
+          using namespace vulkan::shader_builder;
+          Window const* window = static_cast<Window const*>(m_owning_window);
+
+          ShaderIndex shader_vert_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+          ShaderIndex shader_frag_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
+
+          // Compile the shaders.
+          ShaderCompiler compiler;
+          shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+          shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+
+          run_state = Characteristic_compiled;
           break;
         }
       }

@@ -24,22 +24,27 @@ class CharacteristicRange : public AIStatefulTask
 {
  public:
   static constexpr condition_type do_fill = 1;
-  static constexpr condition_type do_terminate = 2;
+  static constexpr condition_type do_compile = 2;
+  static constexpr condition_type do_terminate = 4;
 
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
   using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
  protected:
+  task::PipelineFactory* m_owning_factory;
   task::SynchronousWindow const* m_owning_window;
   FlatCreateInfo* m_flat_create_info{};
+  descriptor::SetIndexHintMap const* m_set_index_hint_map{};
   bool m_terminate{false};                      // Set to true when the task must terminate.
+  CharacteristicRangeIndex m_characteristic_range_index;
 
  private:
   index_type const m_begin;
   index_type const m_end;
-  task::PipelineFactory* m_owning_factory;
   index_type m_fill_index{-1};
-  CharacteristicRangeIndex m_characteristic_range_index;
+#ifdef CWDEBUG
+  state_type m_expected_state{direct_base_type::state_end};
+#endif
 
  public:
   // The default has a range of a single entry with index 0.
@@ -51,6 +56,7 @@ class CharacteristicRange : public AIStatefulTask
   }
 
   void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
+  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
 
   // Accessors.
   index_type ibegin() const { return m_begin; }
@@ -115,8 +121,9 @@ class CharacteristicRange : public AIStatefulTask
   // The different states of the task.
   enum characteristic_range_state_type {
     CharacteristicRange_initialized = direct_base_type::state_end,
-    CharacteristicRange_check_terminate,
-    CharacteristicRange_filled
+    CharacteristicRange_continue_or_terminate,
+    CharacteristicRange_filled,
+    CharacteristicRange_compiled
   };
 
   void set_continue_state(state_type continue_state)
@@ -125,7 +132,7 @@ class CharacteristicRange : public AIStatefulTask
   }
 
  public:
-  static state_type constexpr state_end = CharacteristicRange_filled + 1;
+  static state_type constexpr state_end = CharacteristicRange_compiled + 1;
 
   void set_flat_create_info(FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
   void set_fill_index(index_type fill_index) { m_fill_index = fill_index; }
@@ -152,41 +159,34 @@ class Characteristic : public CharacteristicRange
   using CharacteristicRange::ibegin;
   using CharacteristicRange::iend;
 
+ private:
+  // Hide CharacteristicRange_initialized.
+  enum UseCharacteristic {
+    CharacteristicRange_initialized,            // Don't use these, use Characteristic_*.
+    CharacteristicRange_check_terminate,
+    CharacteristicRange_filled
+  };
+
  protected:
   using direct_base_type = vulkan::pipeline::CharacteristicRange;
 
   // The different states of this task.
   enum Characteristic_state_type {
-    Characteristic_fill = direct_base_type::state_end,
+    Characteristic_initialized = direct_base_type::state_end,
+    Characteristic_fill,
+    Characteristic_compile_or_terminate,
+    Characteristic_compiled
   };
 
  public:
-  static constexpr state_type state_end = Characteristic_fill + 1;
+  static constexpr state_type state_end = Characteristic_compiled + 1;
 
   Characteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
     CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug)) { }
 
  protected:
-  char const* state_str_impl(state_type run_state) const override
-  {
-    switch(run_state)
-    {
-      AI_CASE_RETURN(Characteristic_fill);
-    }
-    return direct_base_type::state_str_impl(run_state);
-  }
-
-  void multiplex_impl(state_type run_state) override
-  {
-    switch (run_state)
-    {
-      case Characteristic_fill:
-        // Nothing to fill; this is not a range.
-        run_state = CharacteristicRange_filled;
-        break;
-    }
-    direct_base_type::multiplex_impl(run_state);
-  }
+  char const* state_str_impl(state_type run_state) const override;
+  void multiplex_impl(state_type run_state) override;
 };
 
 } // namespace vulkan::pipeline

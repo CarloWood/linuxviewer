@@ -133,6 +133,7 @@ char const* PipelineFactory::condition_str_impl(condition_type condition) const
     AI_CASE_RETURN(fully_initialized);
     AI_CASE_RETURN(characteristics_initialized);
     AI_CASE_RETURN(characteristics_filled);
+    AI_CASE_RETURN(characteristics_compiled);
     AI_CASE_RETURN(obtained_create_lock);
     AI_CASE_RETURN(obtained_set_layout_binding_lock);
   }
@@ -150,6 +151,7 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_top_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_top_multiloop_while_loop);
     AI_CASE_RETURN(PipelineFactory_characteristics_filled);
+    AI_CASE_RETURN(PipelineFactory_characteristics_compiled);
     AI_CASE_RETURN(PipelineFactory_create_shader_resources);
     AI_CASE_RETURN(PipelineFactory_initialize_shader_resources_per_set_index);
     AI_CASE_RETURN(PipelineFactory_update_missing_descriptor_sets);
@@ -178,6 +180,12 @@ void PipelineFactory::characteristic_range_filled(vulkan::pipeline::Characterist
   m_characteristics[characteristic_range_index]->update(pipeline_index_t::wat{m_pipeline_index}, cr_index, m_range_counters[cr_index], m_range_shift[characteristic_range_index]);
   if (m_number_of_running_characteristic_tasks-- == 1)
     signal(characteristics_filled);
+}
+
+void PipelineFactory::characteristic_range_compiled()
+{
+  if (m_number_of_running_characteristic_tasks.fetch_sub(1, std::memory_order::acq_rel) == 1)
+    signal(characteristics_compiled);
 }
 
 void PipelineFactory::multiplex_impl(state_type run_state)
@@ -240,7 +248,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           m_range_shift[i] = range_shift;
           range_shift += m_characteristics[i]->range_width();
           m_characteristics[i]->set_flat_create_info(&m_flat_create_info);
-          m_characteristics[i]->run(vulkan::Application::instance().medium_priority_queue(), this, characteristics_initialized);
+          m_characteristics[i]->run(vulkan::Application::instance().low_priority_queue(), this, characteristics_initialized);
         }
         set_state(PipelineFactory_characteristics_initialized);
         wait(characteristics_initialized);
@@ -318,9 +326,18 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               m_flat_create_info.get_realized_descriptor_set_layouts(), m_set_index_hint_map, sorted_push_constant_ranges);
         }
 
-        // Now that we have initialized m_set_index_hint_map, do the callbacks that need it.
-        m_flat_create_info.do_set_index_hint_map_callbacks(m_set_index_hint_map);
-
+        // Now that we have initialized m_set_index_hint_map, run the code that needs it.
+        m_number_of_running_characteristic_tasks = m_characteristics.size();
+        // Run over each loop variable (and hence characteristic).
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+        {
+          m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
+          m_characteristics[i]->signal(vulkan::pipeline::CharacteristicRange::do_compile);
+        }
+        set_state(PipelineFactory_characteristics_compiled);
+        wait(characteristics_compiled);
+        return;
+      case PipelineFactory_characteristics_compiled:
         if (m_shader_input_data.sort_required_shader_resources_list())
         {
           // No need to call PipelineFactory_create_shader_resources: there are no shader resources that need to be created.

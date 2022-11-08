@@ -267,7 +267,8 @@ void main()
 
     // The different states of this task.
     enum FrameResourcesCountPipelineCharacteristic_state_type {
-      FrameResourcesCountPipelineCharacteristic_initialize = direct_base_type::state_end
+      FrameResourcesCountPipelineCharacteristic_initialize = direct_base_type::state_end,
+      FrameResourcesCountPipelineCharacteristic_compile
     };
 
     ~FrameResourcesCountPipelineCharacteristic() override
@@ -276,7 +277,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_initialize + 1;
+    static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_compile + 1;
 
     FrameResourcesCountPipelineCharacteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
@@ -287,6 +288,7 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_initialize);
+        AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -327,19 +329,6 @@ void main()
 
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
-
-            // Compile the shaders.
-            m_flat_create_info->add_set_index_hint_map_callback(
-                [=, this](vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
-                {
-                  Dout(dc::vulkan, "Calling set_index_hint_callback lambda with " << set_index_hint_map << " [" << this << "]");
-                  ShaderCompiler compiler;
-
-                  shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, set_index_hint_map
-                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-                  shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, set_index_hint_map
-                      COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-                });
           }
 
           m_vertex_input_binding_descriptions = shader_input_data().vertex_binding_descriptions();
@@ -357,8 +346,26 @@ void main()
 
           shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
 
-          set_continue_state(Characteristic_fill);
-          run_state = CharacteristicRange_initialized;
+          set_continue_state(FrameResourcesCountPipelineCharacteristic_compile);
+          run_state = Characteristic_initialized;
+          break;
+        }
+        case FrameResourcesCountPipelineCharacteristic_compile:
+        {
+          using namespace vulkan::shader_builder;
+          Window const* window = static_cast<Window const*>(m_owning_window);
+
+          ShaderIndex shader_vert_index = window->m_shader_vert;
+          ShaderIndex shader_frag_index = window->m_shader_frag;
+
+          // Compile the shaders.
+          ShaderCompiler compiler;
+          shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+          shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+
+          run_state = Characteristic_compiled;
           break;
         }
       }

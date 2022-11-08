@@ -32,8 +32,9 @@ class PipelineFactory : public AIStatefulTask
   static constexpr condition_type fully_initialized = 2;
   static constexpr condition_type characteristics_initialized = 4;
   static constexpr condition_type characteristics_filled = 8;
-  static constexpr condition_type obtained_create_lock = 16;
-  static constexpr condition_type obtained_set_layout_binding_lock = 32;
+  static constexpr condition_type characteristics_compiled = 16;
+  static constexpr condition_type obtained_create_lock = 32;
+  static constexpr condition_type obtained_set_layout_binding_lock = 64;
 
  private:
   // Constructor.
@@ -81,6 +82,7 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_top_multiloop_for_loop,
     PipelineFactory_top_multiloop_while_loop,
     PipelineFactory_characteristics_filled,
+    PipelineFactory_characteristics_compiled,
     PipelineFactory_create_shader_resources,
     PipelineFactory_initialize_shader_resources_per_set_index,
     PipelineFactory_update_missing_descriptor_sets,
@@ -118,6 +120,7 @@ class PipelineFactory : public AIStatefulTask
   // Called from CharacteristicRange::multiplex_impl.
   void characteristic_range_initialized();
   void characteristic_range_filled(vulkan::pipeline::CharacteristicRangeIndex index);
+  void characteristic_range_compiled();
 
   void added_creation_request(vulkan::pipeline::ShaderInputData const* shader_input_data);
   // Give pipeline::CharacteristicRange read/write access to m_shader_input_data.

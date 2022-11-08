@@ -238,12 +238,12 @@ class ShaderInputData
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const& set_index_hint_map
+      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      descriptor::SetIndexHintMap const& set_index_hint_map
+      descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
@@ -262,7 +262,7 @@ class ShaderInputData
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
   void preprocess1(shader_builder::ShaderInfo const& shader_info);
-  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const& set_index_hint_map) const;
+  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const;
 
   void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
   {
