@@ -22,6 +22,7 @@
 #include "pipeline/PushConstantRangeCompare.h"
 #include "pipeline/partitions/Defs.h"
 #include "vk_utils/print_list.h"
+#include "vk_utils/WriteLockOnly.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/TaskEvent.h"
 #include "threadsafe/AIReadWriteMutex.h"
@@ -122,8 +123,10 @@ class LogicalDevice
   QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
   boost::intrusive_ptr<task::AsyncSemaphoreWatcher> m_semaphore_watcher;// Asynchronous task that polls timeline semaphores.
 
-  using descriptor_pool_t = aithreadsafe::Wrapper<vk::UniqueDescriptorPool, aithreadsafe::policy::Primitive<std::mutex>>;
-  descriptor_pool_t m_descriptor_pool;
+  using descriptor_pool_t = vk_utils::WriteLockOnly<vk::UniqueDescriptorPool>;
+  // Using "threadsafe-"const for member functions that access this. Since the 'const' then only
+  // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
+  mutable descriptor_pool_t m_descriptor_pool;
 
   using descriptor_set_layouts_container_t = std::map<std::vector<vk::DescriptorSetLayoutBinding>, vk::UniqueDescriptorSetLayout, utils::VectorCompare<descriptor::LayoutBindingCompare>>;
   using descriptor_set_layouts_t = aithreadsafe::Wrapper<descriptor_set_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
@@ -279,8 +282,10 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<descriptor::FrameResourceCapableDescriptorSet> allocate_descriptor_sets(FrameResourceIndex number_of_frame_resources,
       std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
-      std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor_pool_t const& descriptor_pool
+      std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor_pool_t& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
+  void free_descriptor_sets(descriptor_pool_t& descriptor_pool, std::vector<vk::DescriptorSet> const& descriptors) const;
+  void reset_descriptor_pool(descriptor_pool_t& descriptor_pool) const;
   void allocate_command_buffers(vk::CommandPool vh_pool, vk::CommandBufferLevel level, uint32_t count, vk::CommandBuffer* command_buffers_out
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;
   void free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
@@ -408,7 +413,7 @@ class LogicalDevice
     DoutEntering(dc::vulkan, "LogicalDevice::get_image_memory_requirements(" << vh_image << ")");
     return m_device->getImageMemoryRequirements(vh_image);
   }
-  descriptor_pool_t const& get_descriptor_pool() const
+  descriptor_pool_t& get_descriptor_pool() /*threadsafe-*/ const
   {
     return m_descriptor_pool;
   }
