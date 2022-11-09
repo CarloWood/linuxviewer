@@ -122,8 +122,8 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
   // Note: no frame resource support is required for a descriptor set if just one texture in it.
   auto descriptor_sets = logical_device()->allocate_descriptor_sets(FrameResourceIndex{1},
       { *m_descriptor_set_layout }, { std::make_pair(descriptor::SetIndex{}, false) }, logical_device()->get_descriptor_pool()
-      COMMA_CWDEBUG_ONLY(".m_descriptor_set" + ambifix));
-  m_descriptor_set = descriptor_sets[0];        // We only have one descriptor set --^
+      COMMA_CWDEBUG_ONLY(".m_vh_descriptor_set" + ambifix));
+  m_vh_descriptor_set = descriptor_sets[0];     // We only have one descriptor set --^
 }
 
 static constexpr std::string_view imgui_vert_glsl = R"glsl(
@@ -306,7 +306,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
       COMMA_CWDEBUG_ONLY(".m_graphics_pipeline" + ambifix));
 }
 
-void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready
+void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready, GraphicsSettingsPOD const& graphics_settings
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::init(" << owning_window << ", " << MSAASamples << ", " << imgui_font_texture_ready << ")");
@@ -388,13 +388,23 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
   SamplerKind const imgui_font_sampler_kind(logical_device(), {});
   // Store a VkDescriptorSet (which is a pointer to an opague struct) as "texture ID".
   ASSERT(sizeof(ImTextureID) == sizeof(void*));
-  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_descriptor_set)));
+  io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(static_cast<VkDescriptorSet>(m_vh_descriptor_set)));
 #ifdef CWDEBUG
 //  m_font_texture.add_ambifix(ambifix);
 #endif
-  m_font_texture = owning_window->upload_texture("font_texture", std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
-      extent, 0, imgui_font_image_view_kind, imgui_font_sampler_kind, m_descriptor_set, imgui_font_texture_ready
+
+  // Create texture parameters.
+  m_font_texture = shader_builder::shader_resource::Texture("font_texture", logical_device(),
+      extent, imgui_font_image_view_kind, imgui_font_sampler_kind, graphics_settings,
+      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
       COMMA_CWDEBUG_ONLY(".m_font_texture" + ambifix));
+
+  m_font_texture.upload(extent, imgui_font_image_view_kind, owning_window,
+      std::make_unique<TexPixelsRGBA32Feeder>(std::move(io.Fonts)),
+      owning_window, imgui_font_texture_ready);
+
+  // Update descriptor set.
+  m_font_texture.update_descriptor_set(owning_window, m_vh_descriptor_set, /*binding*/ 0, false);
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));

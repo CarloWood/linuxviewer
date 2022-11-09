@@ -503,7 +503,7 @@ void SynchronousWindow::create_imgui()
   auto const only_attachment = attachment_descriptions.ibegin();        // attachment description #0
   auto const& attachment_description = attachment_descriptions[only_attachment];
 
-  m_imgui.init(this, attachment_description.samples, imgui_font_texture_ready
+  m_imgui.init(this, attachment_description.samples, imgui_font_texture_ready, graphics_settings()
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
 }
 
@@ -751,48 +751,6 @@ void SynchronousWindow::set_image_memory_barrier(
       THROW_ALERTC(res, "waitForFences");
     }
   }
-}
-
-vulkan::shader_builder::shader_resource::Texture SynchronousWindow::upload_texture(
-    char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
-    int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
-    AIStatefulTask::condition_type texture_ready
-    COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix))
-{
-  DoutEntering(dc::vulkan, "SynchronousWindow::upload_texture(" <<
-      texture_data_feeder << ", " << extent << ", " << binding << ", " << image_view_kind << ", " << sampler_kind <<
-      ", " << vh_descriptor_set << ", " << print_conditions(texture_ready) << ")");
-
-  // Create texture parameters.
-  vulkan::shader_builder::shader_resource::Texture texture(glsl_id_full_postfix, m_logical_device, extent,
-      image_view_kind, sampler_kind, m_graphics_settings,
-      { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-      COMMA_CWDEBUG_ONLY(ambifix));
-
-  size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
-
-  auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, data_size,
-            texture.m_vh_image, extent, vk_defaults::ImageSubresourceRange{},
-            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
-
-  copy_data_to_image->set_data_feeder(std::move(texture_data_feeder));
-  copy_data_to_image->run(vulkan::Application::instance().low_priority_queue(), this, texture_ready, signal_parent);
-
-  // Update descriptor set.
-  {
-    std::vector<vk::DescriptorImageInfo> image_infos = {
-      {
-        .sampler = texture.sampler(),
-        .imageView = texture.image_view(),
-        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-      }
-    };
-    m_logical_device->update_descriptor_sets(vh_descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, 0 /*array_element*/, image_infos);
-  }
-
-  return texture;
 }
 
 void SynchronousWindow::detect_if_imgui_is_used()

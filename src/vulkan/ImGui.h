@@ -90,7 +90,7 @@ class ImGui
   shader_builder::shader_resource::Texture m_font_texture{"ImGui::m_font_texture"};
   utils::Vector<ImGui_FrameResourcesData, FrameResourceIndex> m_frame_resources_list;
   vk::UniqueDescriptorSetLayout m_descriptor_set_layout;
-  vk::DescriptorSet m_descriptor_set;                   // Lifetime is determined by the pool (LogicalDevice::m_descriptor_pool).
+  vk::DescriptorSet m_vh_descriptor_set;                // Lifetime is determined by the pool (LogicalDevice::m_descriptor_pool).
   vk::UniquePipelineLayout m_pipeline_layout;
   vk::UniquePipeline m_graphics_pipeline;
   std::filesystem::path m_ini_filename;                 // Cache that io.IniFilename points to.
@@ -120,7 +120,7 @@ class ImGui
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   // Signals owning_window with imgui_font_texture_ready when uploading the font texture was finished.
-  void init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready
+  void init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready, GraphicsSettingsPOD const& graphics_settings
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   // Called at the start of the render loop.

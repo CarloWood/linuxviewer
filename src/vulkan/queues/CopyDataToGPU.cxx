@@ -91,19 +91,17 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
         record_command_buffer(command_buffer);
       });
       // Finish the rest of this "immediate submit" by passing control to the base class.
-      set_state(ImmediateSubmit_start);
+      run_state = ImmediateSubmit_start;
       break;
     }
     case CopyDataToGPU_done:
     {
       ZoneScopedN("CopyDataToGPU_done");
       finish();
-      break;
+      return;
     }
-    default:
-      direct_base_type::multiplex_impl(run_state);
-      break;
   }
+  direct_base_type::multiplex_impl(run_state);
 }
 
 } // namespace task

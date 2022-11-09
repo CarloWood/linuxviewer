@@ -3,6 +3,7 @@
 #include "Base.h"
 #include "ShaderResourceMember.h"
 #include "memory/Image.h"
+#include "memory/DataFeeder.h"
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 
@@ -135,7 +136,17 @@ struct Texture : public Base, public memory::Image
   void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const override;
   void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
 
+  void upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_view_kind,
+      task::SynchronousWindow const* resource_owner,
+      std::unique_ptr<DataFeeder> texture_data_feeder,
+      AIStatefulTask* parent, AIStatefulTask::condition_type texture_ready);
+
   // Accessors.
+  LogicalDevice const* logical_device() const
+  { // m_logical_device is only valid when m_vh_image != VK_NULL_HANDLE.
+    ASSERT(m_vh_image);
+    return m_logical_device;
+  }
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
   ShaderResourceMember const& member() const { return m_member->member(); }
   vk::ImageView image_view() const { return *m_image_view; }

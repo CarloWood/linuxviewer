@@ -29,6 +29,7 @@ class Window : public task::SynchronousWindow
 
  public:
   using task::SynchronousWindow::SynchronousWindow;
+  static constexpr condition_type sample_texture_uploaded = free_condition;
 
  private:
   // Define renderpass / attachment objects.
@@ -92,33 +93,25 @@ class Window : public task::SynchronousWindow
     // Sample texture.
     {
       vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/vort3_128x128.png", 4);
+
       // Create descriptor resources.
-      {
-        static vulkan::ImageKind const sample_image_kind({
-          .format = vk::Format::eR8G8B8A8Unorm,
-          .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-        });
+      static vulkan::ImageKind const sample_image_kind({
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+      });
 
-        static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
+      static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_sample_texture = vulkan::shader_resource::Texture("vort3", m_logical_device,
-            texture_data.extent(), sample_image_view_kind,
-            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
-              .anisotropyEnable = VK_FALSE },
-            graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_sample_texture")));
+      m_sample_texture = vulkan::shader_resource::Texture("vort3", m_logical_device,
+          texture_data.extent(), sample_image_view_kind,
+          { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+            .anisotropyEnable = VK_FALSE },
+          graphics_settings(),
+          { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_sample_texture")));
 
-        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
-            m_sample_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
-            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
-
-        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_sample_texture).
-        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
-        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
-      }
+      m_sample_texture.upload(texture_data.extent(), sample_image_view_kind, this,
+          std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, sample_texture_uploaded);
     }
   }
 

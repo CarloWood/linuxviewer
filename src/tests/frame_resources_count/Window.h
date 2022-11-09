@@ -28,6 +28,8 @@ class Window : public task::SynchronousWindow
 
  public:
   using task::SynchronousWindow::SynchronousWindow;
+  static constexpr condition_type background_texture_uploaded = free_condition;
+  static constexpr condition_type sample_texture_uploaded = free_condition << 1;
 
  private:
   // Additional image (view) kind.
@@ -109,70 +111,52 @@ class Window : public task::SynchronousWindow
     // Background texture.
     {
       vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/background.png", 4);
+
       // Create descriptor resources.
-      {
-        static vulkan::ImageKind const background_image_kind({
-          .format = vk::Format::eR8G8B8A8Unorm,
-          .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-        });
+      static vulkan::ImageKind const background_image_kind({
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+      });
 
-        static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
+      static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
-        m_background_texture =
-          vulkan::shader_resource::Texture(
-              "background",
-              m_logical_device,
-              texture_data.extent(), background_image_view_kind,
-              { .mipmapMode = vk::SamplerMipmapMode::eNearest,
-                .anisotropyEnable = VK_FALSE },
-              graphics_settings(),
-              { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-              COMMA_CWDEBUG_ONLY(debug_name_prefix(".m_background_texture")));
+      m_background_texture =
+        vulkan::shader_resource::Texture(
+            "background",
+            m_logical_device,
+            texture_data.extent(), background_image_view_kind,
+            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+              .anisotropyEnable = VK_FALSE },
+            graphics_settings(),
+            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+            COMMA_CWDEBUG_ONLY(debug_name_prefix(".m_background_texture")));
 
-        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
-            m_background_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
-            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
-
-        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_background_texture).
-        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
-        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
-      }
+      m_background_texture.upload(texture_data.extent(), background_image_view_kind, this, std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, background_texture_uploaded);
     }
 
     // Sample texture.
     {
       vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / "textures/frame_resources.png", 4);
+
       // Create descriptor resources.
-      {
-        static vulkan::ImageKind const sample_image_kind({
-          .format = vk::Format::eR8G8B8A8Unorm,
-          .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-        });
+      static vulkan::ImageKind const sample_image_kind({
+        .format = vk::Format::eR8G8B8A8Unorm,
+        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
+      });
 
-        static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
+      static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-        m_benchmark_texture = vulkan::shader_resource::Texture(
-            "benchmark",
-            m_logical_device,
-            texture_data.extent(), sample_image_view_kind,
-            { .mipmapMode = vk::SamplerMipmapMode::eNearest,
-              .anisotropyEnable = VK_FALSE },
-            graphics_settings(),
-            { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture")));
+      m_benchmark_texture = vulkan::shader_resource::Texture(
+          "benchmark",
+          m_logical_device,
+          texture_data.extent(), sample_image_view_kind,
+          { .mipmapMode = vk::SamplerMipmapMode::eNearest,
+            .anisotropyEnable = VK_FALSE },
+          graphics_settings(),
+          { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+          COMMA_CWDEBUG_ONLY(debug_name_prefix("m_benchmark_texture")));
 
-        auto copy_data_to_image = statefultask::create<task::CopyDataToImage>(m_logical_device, texture_data.size(),
-            m_benchmark_texture.m_vh_image, texture_data.extent(), vk_defaults::ImageSubresourceRange{},
-            vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
-            vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
-
-        copy_data_to_image->set_resource_owner(this);   // Wait for this task to finish before destroying this window, because this window owns the texture (m_benchmark_texture).
-        copy_data_to_image->set_data_feeder(std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)));
-        copy_data_to_image->run(vulkan::Application::instance().low_priority_queue());
-      }
+      m_benchmark_texture.upload(texture_data.extent(), sample_image_view_kind, this, std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, sample_texture_uploaded);
     }
   }
 
@@ -340,8 +324,6 @@ void main()
           // Generate vertex buffers.
           // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
           // while the current function is part of a pipeline factory...
-          static std::thread::id s_id;
-          ASSERT(aithreadid::is_single_threaded(s_id));     // Fails if more than one thread executes this line.
           window->create_vertex_buffers(this);
 
           shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());

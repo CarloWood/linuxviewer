@@ -40,6 +40,9 @@ class FrameResourceCapableDescriptorSet
   FrameResourceCapableDescriptorSet(std::vector<vk::DescriptorSet>::const_iterator begin, std::vector<vk::DescriptorSet>::const_iterator end) :
     m_descriptor_set(begin, end) { }
 
+  FrameResourceCapableDescriptorSet(vk::DescriptorSet vh_descriptor_set) :
+    m_descriptor_set(1, vh_descriptor_set) { }
+
   FrameResourceCapableDescriptorSet& operator=(FrameResourceCapableDescriptorSet const& rhs)
   {
     m_descriptor_set = rhs.m_descriptor_set;

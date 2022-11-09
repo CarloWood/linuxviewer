@@ -131,40 +131,42 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static constexpr condition_type imgui_font_texture_ready = 8;
   static constexpr condition_type parent_window_created = 16;
   static constexpr condition_type condition_pipeline_available = 32;
+ protected:
+  static constexpr condition_type free_condition = 64;                  // Used in derived class.
 
  protected:
   // Constructor
-  boost::intrusive_ptr<vulkan::Application> m_application;                // Pointer to the underlying application, which terminates when the last such reference is destructed.
-  vulkan::LogicalDevice* m_logical_device = nullptr;                      // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
-                                                                          // SynchronousWindow_logical_device_index_available.
+  boost::intrusive_ptr<vulkan::Application> m_application;              // Pointer to the underlying application, which terminates when the last such reference is destructed.
+  vulkan::LogicalDevice* m_logical_device = nullptr;                    // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
+                                                                        // SynchronousWindow_logical_device_index_available.
  private:
   // set_title
-  std::u8string m_title;                                                  // UTF8 encoded window title.
+  std::u8string m_title;                                                // UTF8 encoded window title.
   // set_offset
-  vk::Offset2D m_offset;                                                  // Initial position of the top-left corner of the window, relative to the parent window.
+  vk::Offset2D m_offset;                                                // Initial position of the top-left corner of the window, relative to the parent window.
   // set_logical_device_task
-  LogicalDevice const* m_logical_device_task = nullptr;                   // Cache valued of the task::LogicalDevice const* that was passed to
-                                                                          // Application::create_window, if any. That can be nullptr so don't use it.
+  LogicalDevice const* m_logical_device_task = nullptr;                 // Cache valued of the task::LogicalDevice const* that was passed to
+                                                                        // Application::create_window, if any. That can be nullptr so don't use it.
 
   // This must come *before* m_window_events in order to get the corect order of destruction (destroy window events first).
-  boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;     // A pointer to the parent window, or nullptr when this is a root window.
-                                                                          // It is NOT thread-safe to access the parent window without knowing what you are doing.
+  boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;   // A pointer to the parent window, or nullptr when this is a root window.
+                                                                        // It is NOT thread-safe to access the parent window without knowing what you are doing.
   // create_window_events
-  std::unique_ptr<vulkan::WindowEvents> m_window_events;                  // Pointer to the asynchronous object `WindowEvents`.
+  std::unique_ptr<vulkan::WindowEvents> m_window_events;                // Pointer to the asynchronous object `WindowEvents`.
 
   // set_xcb_connection_broker_and_key
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
   xcb::ConnectionBrokerKey const* m_broker_key;
 
   // run
-  request_cookie_type m_request_cookie = {};                              // Unique bit for the creation event of this window (as determined by the user).
-  boost::intrusive_ptr<XcbConnection const> m_xcb_connection_task;        // Initialized in SynchronousWindow_start.
-  std::atomic_int m_logical_device_index = -1;                            // Index into Application::m_logical_device_list.
-                                                                          // Initialized in LogicalDevice_create by call to Application::create_device.
-  vulkan::PresentationSurface m_presentation_surface;                     // The presentation surface information (surface-, graphics- and presentation queue handles).
-  vulkan::Swapchain m_swapchain;                                          // The swap chain used for this surface.
+  request_cookie_type m_request_cookie = {};                            // Unique bit for the creation event of this window (as determined by the user).
+  boost::intrusive_ptr<XcbConnection const> m_xcb_connection_task;      // Initialized in SynchronousWindow_start.
+  std::atomic_int m_logical_device_index = -1;                          // Index into Application::m_logical_device_list.
+                                                                        // Initialized in LogicalDevice_create by call to Application::create_device.
+  vulkan::PresentationSurface m_presentation_surface;                   // The presentation surface information (surface-, graphics- and presentation queue handles).
+  vulkan::Swapchain m_swapchain;                                        // The swap chain used for this surface.
 
-  threadpool::Timer::Interval m_frame_rate_interval;                      // The minimum time between two frames.
+  threadpool::Timer::Interval m_frame_rate_interval;                    // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
 
   boost::intrusive_ptr<task::SemaphoreWatcher<task::SynchronousTask>> m_semaphore_watcher;  // Synchronous task that polls timeline semaphores.
@@ -172,13 +174,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   bool m_use_imgui = false;
 
  private:
-  static constexpr int s_input_event_buffer_size = 32;                    // If the application is lagging more than 32 events behind then
-                                                                          // the user is having other problems then losing key strokes.
-  vulkan::InputEventBuffer m_input_event_buffer;                          // Thread-safe ringbuffer to transfer input events from EventThread to this task.
-  bool m_in_focus;                                                        // Cache value of decoded input events.
+  static constexpr int s_input_event_buffer_size = 32;                  // If the application is lagging more than 32 events behind then
+                                                                        // the user is having other problems then losing key strokes.
+  vulkan::InputEventBuffer m_input_event_buffer;                        // Thread-safe ringbuffer to transfer input events from EventThread to this task.
+  bool m_in_focus;                                                      // Cache value of decoded input events.
 #ifdef TRACY_ENABLE
  protected:
-  bool m_is_tracy_window;                                                 // Set upon entering this window with the mouse; unset when a different window is entered.
+  bool m_is_tracy_window;                                               // Set upon entering this window with the mouse; unset when a different window is entered.
   utils::Vector<TracyCZoneCtx, vulkan::SwapchainIndex> tracy_acquired_image_tracy_context;
   utils::Vector<bool, vulkan::SwapchainIndex> tracy_acquired_image_busy;
  private:
@@ -186,12 +188,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   using child_window_list_container_t = std::vector<SynchronousWindow*>;
   using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
-  mutable child_window_list_t m_child_window_list;                        // List with child windows.
+  mutable child_window_list_t m_child_window_list;                      // List with child windows.
 
-  vulkan::GraphicsSettingsPOD m_graphics_settings;                        // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
+  vulkan::GraphicsSettingsPOD m_graphics_settings;                      // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
 
 #ifdef CWDEBUG
-  bool const mVWDebug;                                                    // A copy of mSMDebug.
+  bool const mVWDebug;                                                  // A copy of mSMDebug.
 #endif
 
   // Needs access to the protected SynchronousEngine base class.
@@ -206,16 +208,16 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  public:
   // Accessed by vulkan::rendergraph::Attachment::assign_unique_index().
-  utils::UniqueIDContext<AttachmentIndex> attachment_index_context;       // Provides an unique index for registered attachments (through register_attachment).
+  utils::UniqueIDContext<AttachmentIndex> attachment_index_context;     // Provides an unique index for registered attachments (through register_attachment).
 
   // Accessed by Swapchain.
   vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
 
-  statefultask::TaskEvent m_logical_device_index_available_event;         // Triggered when m_logical_device_index is set.
+  statefultask::TaskEvent m_logical_device_index_available_event;       // Triggered when m_logical_device_index is set.
 
   // Accessed by tasks that depend on objects of this class (or derived classes).
-  statefultask::RunningTasksTracker m_dependent_tasks;                    // Tasks that should be aborted before this window is destructed.
-  statefultask::TaskCounterGate m_task_counter_gate;                      // Number of running task that we should wait for before this window is destructed.
+  statefultask::RunningTasksTracker m_dependent_tasks;                  // Tasks that should be aborted before this window is destructed.
+  statefultask::TaskCounterGate m_task_counter_gate;                    // Number of running task that we should wait for before this window is destructed.
 
   void close() { set_must_close(); }
 
@@ -226,13 +228,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
                                                                                                 // that the application has to take into account (for example,
                                                                                                 // used for static creation of Tracy GPU zone labels).
   // Render graph nodes.
-  using RenderPass = vulkan::RenderPass;                                                // Use to define render passes in derived Window class.
-  using Attachment = vulkan::rendergraph::Attachment;                                   // Use to define attachments in derived Window class.
+  using RenderPass = vulkan::RenderPass;                                // Use to define render passes in derived Window class.
+  using Attachment = vulkan::rendergraph::Attachment;                   // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
-  std::vector<RenderPass*> m_render_passes;                                             // All render pass objects.
-  utils::Vector<Attachment const*> m_attachments;                                       // All known attachments, except the swapchain attachment (if any).
-  vulkan::rendergraph::RenderGraph m_render_graph;                                      // Must be assigned in the derived Window class.
-  RenderPass imgui_pass{this, "imgui_pass"};                                            // Must be constructed AFTER m_render_passes!
+  std::vector<RenderPass*> m_render_passes;                             // All render pass objects.
+  utils::Vector<Attachment const*> m_attachments;                       // All known attachments, except the swapchain attachment (if any).
+  vulkan::rendergraph::RenderGraph m_render_graph;                      // Must be assigned in the derived Window class.
+  RenderPass imgui_pass{this, "imgui_pass"};                            // Must be constructed AFTER m_render_passes!
 
  public:
   void register_render_pass(RenderPass*);
@@ -424,12 +426,6 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vulkan::ResourceState const& destination,
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
-
-  vulkan::shader_builder::shader_resource::Texture upload_texture(
-      char const* glsl_id_full_postfix, std::unique_ptr<vulkan::DataFeeder> texture_data_feeder, vk::Extent2D extent,
-      int binding, vulkan::ImageViewKind const& image_view_kind, vulkan::SamplerKind const& sampler_kind, vk::DescriptorSet vh_descriptor_set,
-      AIStatefulTask::condition_type texture_ready
-      COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix));
 
   void detect_if_imgui_is_used();
 
