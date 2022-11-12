@@ -62,7 +62,8 @@ struct Image
   [[gnu::always_inline]] inline void* map_memory();
   [[gnu::always_inline]] inline void unmap_memory();
 
- private:
+ protected:
+  // Free GPU resources.
   inline void destroy();
 };
 
@@ -83,12 +84,16 @@ namespace vulkan::memory {
 //inline
 void* Image::map_memory()
 {
+  // Don't call map_memory() when m_vh_image is VK_NULL_HANDLE.
+  ASSERT(m_vh_image);
   return m_logical_device->map_memory(m_vh_allocation);
 }
 
 //inline
 void Image::unmap_memory()
 {
+  // Don't call unmap_memory() when m_vh_image is VK_NULL_HANDLE.
+  ASSERT(m_vh_image);
   m_logical_device->unmap_memory(m_vh_allocation);
 }
 

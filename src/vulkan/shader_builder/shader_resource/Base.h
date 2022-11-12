@@ -97,7 +97,7 @@ class Base
   // are thread-safe ;).
   mutable AIStatefulTaskMutex m_create_access_mutex;
   std::atomic_bool m_created{false};
-  descriptor::SetKey m_descriptor_set_key;
+  descriptor::SetKey const m_descriptor_set_key;
   using set_layout_bindings_to_handles_t = aithreadsafe::Wrapper<set_layout_bindings_to_handles_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   mutable set_layout_bindings_to_handles_t m_set_layout_bindings_to_handles;
 

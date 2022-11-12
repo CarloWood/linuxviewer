@@ -1,0 +1,77 @@
+
+
+                       Pipeline 0               Pipeline 1
+              .-------------------------+-------------------------.
+              |.-----------------------.|.-----------------------.|
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||      Cute Kitten      |||                       ||
+              ||       picture A       |||      picture B        ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              |'-----------------------'|'-----------------------'|
+              |.-----------------------.|.-----------------------.|
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||       picture C       |||      picture D        ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              ||                       |||                       ||
+              |'-----------------------'|'-----------------------'|
+              '-------------------------+-------------------------'
+
+
+ Vertex shader (of both pipelines):
+
+    out gl_PerVertex { vec4 gl_Position; };
+    layout(location = 0) out vec2 v_Texcoord;
+
+    void main()
+    {
+      v_Texcoord = VertexData::m_texture_coordinates;
+      vec4 position = VertexData::m_position;
+      position += InstanceData::m_position;
+      position.x += PushConstant::m_x_position;
+      gl_Position = position;
+    }
+
+ Fragment shader (of both pipelines):
+
+layout(location = 0) in vec2 v_Texcoord;
+layout(location = 0) out vec4 outColor;
+
+void main()
+{
+  vec4 image_pixel;
+  if (gl_InstanceID == 0)
+    image_pixel = texture(Texture::top, v_Texcoord);
+  else
+    image_pixel = texture(Texture::bottom, v_Texcoord);
+
+  outColor = image_pixel;
+}
+
+
+
+      index buffer .-----------.     vertex buffer .---------------.
+                  0|           |                  0|               |  
+                  1|           |                  1|               |  
+                  2|           |                  2|               |  
+                  3|           |                  3|               |  
+                  .|           |                  .|               |  
+                  .|           | vertexOffset=-12 .| {-1,1,0},{0,1}|  
+                  .|           |          /----->30|               |  
+    FirstIndex -> N|    42     |---------/         .               .  
+                N+1|    50     |                   .               .  
+                N+2|    45     |                   .               .  
+                   .           .                                                   
+                   .           .                                              
+                   .           .

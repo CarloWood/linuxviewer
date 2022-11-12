@@ -39,6 +39,7 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
       break;
     default:
       //FIXME: implement
+      // See https://www.reddit.com/r/vulkan/comments/4gvmus/comment/d2lbwsm/?utm_source=share&utm_medium=web2x&context=3
       ASSERT(false);
   }
 }

@@ -1,2 +1,3 @@
 add_subdirectory(frame_resources_count)
 add_subdirectory(uniform_buffers)
+add_subdirectory(textures)

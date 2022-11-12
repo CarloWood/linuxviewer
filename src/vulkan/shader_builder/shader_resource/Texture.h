@@ -141,6 +141,13 @@ struct Texture : public Base, public memory::Image
       std::unique_ptr<DataFeeder> texture_data_feeder,
       AIStatefulTask* parent, AIStatefulTask::condition_type texture_ready);
 
+  void release_GPU_resources()
+  {
+    m_sampler.reset();
+    m_image_view.reset();
+    destroy();
+  }
+
   // Accessors.
   LogicalDevice const* logical_device() const
   { // m_logical_device is only valid when m_vh_image != VK_NULL_HANDLE.
