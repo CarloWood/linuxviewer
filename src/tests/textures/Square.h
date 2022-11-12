@@ -40,7 +40,7 @@ class Square final : public vulkan::shader_builder::VertexShaderInputSet<VertexD
   // Internally we use integer coordinates x and y that run from 0 till SampleParameters::s_quad_tessellation.
   //
   static constexpr int iside       = square_steps;
-  static constexpr float size      = 0.25f;
+  static constexpr float size      = 0.5f;
   static constexpr float pos_scale = 2 * size / iside;
   static constexpr float uv_scale  = 1.0f / iside;
   static constexpr int batch_size  = 6;

@@ -16,8 +16,13 @@ class TopBottomPositions final : public vulkan::shader_builder::VertexShaderInpu
   TopBottomPositions() = default;
 
  private:
-  // Returns the number of instances.
   int chunk_count() const override
+  {
+    return 2;
+  }
+
+  // Returns the number of instances.
+  int next_batch() override
   {
     return 2;
   }
@@ -25,14 +30,14 @@ class TopBottomPositions final : public vulkan::shader_builder::VertexShaderInpu
   // Fill the next batch_size InstanceData objects.
   void create_entry(InstanceData* input_entry_ptr) override
   {
-    float y = -1.0f;
+    float y = -0.5f;
     for (int i = 0; i < 2; ++i)
     {
       input_entry_ptr[i].m_position << 0.0f,                // The x coordinate, overwritten with a push constant in the shader.
                                        y,
                                        0.0f,                // The z coordinate.
                                        0.0f;                // Homogeneous coordinates. This is used as an offset (a vector).
-      y = 0.0f;
+      y += 1.0f;
     }
   }
 };
