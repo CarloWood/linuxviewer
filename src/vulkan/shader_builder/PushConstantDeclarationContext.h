@@ -10,10 +10,15 @@ namespace vulkan::shader_builder {
 class PushConstantDeclarationContext final : public DeclarationContext
 {
  private:
-  std::map<vk::ShaderStageFlagBits, uint32_t> m_minimum_offset;         // The minimum offset in the push constant struct of all push constants used in the shader of the key.
-  std::map<vk::ShaderStageFlagBits, uint32_t> m_maximum_offset;         // The maximum offset in the push constant struct of all push constants used in the shader of the key.
+  struct StageData
+  {
+    uint32_t minimum_offset;            // The minimum offset in the push constant struct of all push constants used in the shader of the key.
+    uint32_t maximum_offset;            // The maximum offset in the push constant struct of all push constants used in the shader of the key.
+    std::vector<std::string> member_declarations;       // Push constant struct member declarations.
+  };
+
+  std::map<vk::ShaderStageFlagBits, StageData> m_stage_data;
   std::string m_header;
-  std::vector<std::string> m_elements;
   std::string m_footer;
 
  public:

@@ -7,7 +7,8 @@ struct PushConstant;
 LAYOUT_DECLARATION(PushConstant, push_constant_std430)
 {
   static constexpr auto struct_layout = make_struct_layout(
-    LAYOUT(Float, m_x_position)
+    LAYOUT(Float, m_x_position),
+    LAYOUT(Int, m_texture_index)
   );
 };
 
@@ -15,4 +16,5 @@ LAYOUT_DECLARATION(PushConstant, push_constant_std430)
 struct PushConstant
 {
   glsl::Float m_x_position;
+  glsl::Int m_texture_index;
 };

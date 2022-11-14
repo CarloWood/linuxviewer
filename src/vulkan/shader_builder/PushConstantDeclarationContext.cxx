@@ -21,8 +21,10 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)shader_input_data << ")");
 
-  uint32_t& minimum_offset = m_minimum_offset.try_emplace(shader_stage, uint32_t{0xffffffff}).first->second;
-  uint32_t& maximum_offset = m_maximum_offset.try_emplace(shader_stage, uint32_t{0x0}).first->second;
+  auto res = m_stage_data.try_emplace(shader_stage, 0xffffffff, 0x0);
+  uint32_t& minimum_offset = res.first->second.minimum_offset;
+  uint32_t& maximum_offset = res.first->second.maximum_offset;
+  std::vector<std::string>& member_declarations = res.first->second.member_declarations;
 
   // Update offset range of used push constants.
   minimum_offset = std::min(minimum_offset, push_constant->offset());
@@ -53,7 +55,8 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   // and push_constant_range completely overlaps them.
   shader_input_data->insert(push_constant_range);
 
-  m_elements.clear();
+  // (Re)generate member_declarations.
+  member_declarations.clear();
   bool first = true;
   for (PushConstant const* push_constant : push_constants_in_range)
   {
@@ -65,7 +68,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
     if (push_constant->elements() > 0)
       member_declaration += "[" + std::to_string(push_constant->elements()) + "]";
     member_declaration += std::string{";\t// "} + push_constant->glsl_id_full() + "\n";
-    m_elements.push_back(member_declaration);
+    member_declarations.push_back(member_declaration);
     first = false;
   }
 }
@@ -74,17 +77,17 @@ void PushConstantDeclarationContext::add_declarations_for_stage(DeclarationsStri
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate(declarations_out, " << shader_stage << ")");
 
-  // No declaration if this stage doesn't use any push constants.
-  if (!m_minimum_offset.contains(shader_stage))
+  // No declaration if this stage uses any push constants.
+  if (!m_stage_data.contains(shader_stage))
     return;
 
-  Dout(dc::vulkan, "m_minimum_offset:" << m_minimum_offset.at(shader_stage) << ", m_maximum_offset:" << m_maximum_offset.at(shader_stage));
+  Dout(dc::vulkan, "minimum_offset:" << m_stage_data.at(shader_stage).minimum_offset << ", maximum_offset:" << m_stage_data.at(shader_stage).maximum_offset);
 #ifdef CWDEBUG
   declarations_out += "// " + to_string(shader_stage) + " shader.\n";
 #endif
   declarations_out += m_header;
-  for (auto&& element : m_elements)
-    declarations_out += "  " + element;
+  for (auto&& member_declaration : m_stage_data.at(shader_stage).member_declarations)
+    declarations_out += "  " + member_declaration;
   declarations_out += m_footer;
 }
 

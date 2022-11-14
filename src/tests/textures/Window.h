@@ -20,7 +20,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 1
+#define ENABLE_IMGUI 0
 
 class Window : public task::SynchronousWindow
 {
@@ -156,6 +156,7 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
+  int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
     outColor = texture(Texture::top, v_Texcoord);
   else
@@ -509,8 +510,12 @@ else
         command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipelines[pl].layout(), 0 /* uint32_t first_set */,
             m_graphics_pipelines[pl].vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-        float x_position = pl - 0.5f;
-        command_buffer->pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex/*|vk::ShaderStageFlagBits::eFragment*/, offsetof(PushConstant, m_x_position), sizeof(float), &x_position);
+        PushConstant pc = {
+          pl - 0.5f,
+          1
+        };
+        command_buffer->pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex, offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position), &pc.m_x_position);
+        command_buffer->pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index), &pc.m_texture_index);
         command_buffer->draw(6 * square_steps * square_steps, 2, 0, 0);
       }
 

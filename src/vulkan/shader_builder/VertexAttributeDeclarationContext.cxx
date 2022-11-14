@@ -31,6 +31,8 @@ void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl
 
 void VertexAttributeDeclarationContext::add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const
 {
+  // Should only be called for the vertex shader stage.
+  ASSERT(shader_stage == vk::ShaderStageFlagBits::eVertex);
   std::ostringstream oss;
   ASSERT(m_next_location <= 999); // 3 chars max.
   for (auto&& vertex_attribute_location_pair : m_locations)
