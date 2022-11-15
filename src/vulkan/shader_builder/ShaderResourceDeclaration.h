@@ -19,11 +19,13 @@ class Base;
 class ShaderResourceDeclaration
 {
  private:
+  static constexpr uint32_t undefined_magic = 0xffffffff;     // Magic number.
+
   std::string m_glsl_id;
   vk::DescriptorType m_descriptor_type;                 // The descriptor type of this shader resource.
   descriptor::SetIndexHint m_set_index_hint;            // The set index that this resource belongs to.
   // Mutable because we need to set it later.
-  mutable uint32_t m_binding;                           // The binding that this resource belongs to.
+  mutable uint32_t m_binding{undefined_magic};          // The binding that this resource belongs to. Set to magic value while set_binding wasn't called yet for debugging purposes.
   using shader_resource_variables_container_t = std::vector<ShaderResourceVariable>;
   shader_resource_variables_container_t m_shader_resource_variables;
 
@@ -57,6 +59,7 @@ class ShaderResourceDeclaration
   // Not really const, but only called once.
   void set_binding(uint32_t binding) const
   {
+    ASSERT(m_binding == undefined_magic);
     m_binding = binding;
   }
 
@@ -64,7 +67,7 @@ class ShaderResourceDeclaration
   std::string const& glsl_id() const { return m_glsl_id; }
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
   descriptor::SetIndexHint set_index_hint() const { return m_set_index_hint; }
-  uint32_t binding() const { return m_binding; }
+  uint32_t binding() const { ASSERT(m_binding != undefined_magic); return m_binding; }
   shader_resource_variables_container_t const& shader_resource_variables() const { return m_shader_resource_variables; }
   shader_resource::Base const& shader_resource() const { return m_shader_resource; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }
