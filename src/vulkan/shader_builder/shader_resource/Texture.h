@@ -7,7 +7,8 @@
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan::descriptor {
+using namespace shader_builder;
 
 namespace detail {
 
@@ -49,16 +50,52 @@ class TextureShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-struct Texture : public Base, public memory::Image
+class Texture : public shader_resource::Base
 {
  private:
   std::unique_ptr<detail::TextureShaderResourceMember> m_member;        // A Texture only has a single "member".
+
+ public:
+  using shader_resource::Base::Base;
+
+  Texture(std::string_view glsl_id_full_postfix)
+  {
+    DoutEntering(dc::vulkan, "descriptor::Texture::Texture(\"" << glsl_id_full_postfix << "\" [" << this << "]");
+    std::string glsl_id_full("Texture::");
+    glsl_id_full.append(glsl_id_full_postfix);
+    m_member = detail::TextureShaderResourceMember::create(glsl_id_full);
+  }
+
+  Texture(Texture&& rhs) : shader_resource::Base(std::move(rhs)), m_member(std::move(rhs.m_member)) { }
+
+  Texture& operator=(Texture&& rhs)
+  {
+    this->Base::operator=(std::move(rhs));
+    m_member = std::move(rhs.m_member);
+    return *this;
+  }
+
+  char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
+  ShaderResourceMember const& member() const { return m_member->member(); }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const override;
+#endif
+};
+
+} // namespace vulkan::descriptor
+
+namespace vulkan::shader_builder::shader_resource {
+
+struct Texture : public descriptor::Texture, public memory::Image
+{
+ private:
   vk::UniqueImageView   m_image_view;
   vk::UniqueSampler     m_sampler;
 
  public:
   // Used to move-assign later.
-  Texture(char const* CWDEBUG_ONLY(debug_name)) : Base(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
+  Texture(char const* CWDEBUG_ONLY(debug_name)) : descriptor::Texture(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
   ~Texture() { DoutEntering(dc::vulkan, "shader_resource::Texture::~Texture() [" << this << "]"); }
 
   // Use sampler as-is.
@@ -70,6 +107,7 @@ struct Texture : public Base, public memory::Image
       vk::UniqueSampler&& sampler,
       MemoryCreateInfo memory_create_info
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) :
+    descriptor::Texture(glsl_id_full_postfix),
     memory::Image(logical_device, extent, image_view_kind, memory_create_info
         COMMA_CWDEBUG_ONLY(ambifix)),
     m_image_view(logical_device->create_image_view(m_vh_image, image_view_kind
@@ -78,9 +116,6 @@ struct Texture : public Base, public memory::Image
   {
     DoutEntering(dc::vulkan, "shader_resource::Texture::Texture(\"" << glsl_id_full_postfix << "\", " << logical_device << ", " << extent <<
         ", " << image_view_kind << ", @" << &sampler << ", memory_create_info) [" << this << "]");
-    std::string glsl_id_full("Texture::");
-    glsl_id_full.append(glsl_id_full_postfix);
-    m_member = detail::TextureShaderResourceMember::create(glsl_id_full);
   }
 
   // Create sampler too.
@@ -120,12 +155,11 @@ struct Texture : public Base, public memory::Image
   // Class is move-only.
   // Note: do NOT move the Ambifix and/or Base::m_descriptor_set_key!
   // Those are only initialized in-place with the constructor that takes just the Ambifix.
-  Texture(Texture&& rhs) : Base(std::move(rhs)), Image(std::move(rhs)), m_member(std::move(rhs.m_member)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)) { }
+  Texture(Texture&& rhs) : descriptor::Texture(std::move(rhs)), Image(std::move(rhs)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)) { }
   Texture& operator=(Texture&& rhs)
   {
-    this->Base::operator=(std::move(rhs));
+    this->descriptor::Texture::operator=(std::move(rhs));
     this->memory::Image::operator=(std::move(rhs));
-    m_member = std::move(rhs.m_member);
     m_image_view = std::move(rhs.m_image_view);
     m_sampler = std::move(rhs.m_sampler);
     return *this;
@@ -154,13 +188,15 @@ struct Texture : public Base, public memory::Image
     ASSERT(m_vh_image);
     return m_logical_device;
   }
-  char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
-  ShaderResourceMember const& member() const { return m_member->member(); }
   vk::ImageView image_view() const { return *m_image_view; }
   vk::Sampler sampler() const { return *m_sampler; }
 
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const override;
+  void print_on(std::ostream& os) const override
+  {
+    //FIXME: implement print_on.
+    descriptor::Texture::print_on(os);
+  }
 #endif
 };
 

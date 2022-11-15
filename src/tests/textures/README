@@ -28,6 +28,26 @@
               '-------------------------+-------------------------'
 
 
+
+ Pipeline uses a uniform sampler2D <-- descriptor that was updated with a CombinedImageSampler.
+
+.---------------------.
+|Pipeline --> shaders/|--> descriptor sets
+|             modules |
+'---------------------'    descriptor set --> descriptors
+
+                                              descriptor   --> CombinedImageSampler[] (Image handle, Sampler handle)
+
+                                                               Image[0] --> buffer on the GPU with the texture data.
+                                                               Image[1] --> buffer on the GPU with the texture data.
+                                                                .
+                                                                .
+                                                                .
+
+Texture : set: 1, binding 2, Image hx
+
+
+
  Vertex shader (of both pipelines):
 
     out gl_PerVertex { vec4 gl_Position; };

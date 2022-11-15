@@ -56,7 +56,10 @@ void Texture::prepare_shader_resource_declaration(descriptor::SetIndexHint set_i
   shader_input_data->prepare_texture_declaration(*this, set_index_hint);
 }
 
+} // namespace vulkan::shader_builder::shader_resource
+
 #ifdef CWDEBUG
+namespace vulkan::descriptor {
 namespace detail {
 using utils::has_print_on::operator<<;
 
@@ -74,11 +77,9 @@ void Texture::print_on(std::ostream& os) const
   os << '{';
   os << "(Base)";
   Base::print_on(os);
-  os << ", m_member:" << vk_utils::print_pointer(m_member) <<
-        ", m_image_view:&" << m_image_view.get() <<
-        ", m_sampler:&" << m_sampler.get();
+  os << ", m_member:" << vk_utils::print_pointer(m_member);
   os << '}';
 }
 #endif // CWDEBUG
 
-} // namespace vulkan::shader_builder::shader_resource
+} // namespace vulkan::descriptor
