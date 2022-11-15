@@ -27,6 +27,7 @@ Score Set::score(PartitionTask const& partition_task) const
   return sum;
 }
 
+#ifdef CWDEBUG
 void Set::print_on(std::ostream& os) const
 {
   os << '{';
@@ -41,5 +42,6 @@ void Set::print_on(std::ostream& os) const
   }
   os << '}';
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

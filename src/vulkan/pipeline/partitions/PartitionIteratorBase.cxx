@@ -3,6 +3,7 @@
 
 namespace vulkan::pipeline::partitions {
 
+#ifdef CWDEBUG
 void PartitionIteratorBase::print_on(std::ostream& os) const
 {
   os << '{';
@@ -12,5 +13,6 @@ void PartitionIteratorBase::print_on(std::ostream& os) const
       ", m_to_set:" << m_to_set;
   os << '}';
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

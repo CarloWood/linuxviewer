@@ -21,7 +21,9 @@ class CommandBufferFactory final : public statefultask::ResourceFactory
 #endif
 
  public:
+#ifdef CWDEBUG
   void set_ambifix(Ambifix ambifix) const { m_ambifix = std::move(ambifix); }
+#endif
 
   // Implement virtual functions of statefultask::ResourceFactory.
   void do_allocate(void* ptr_to_array_of_resources, size_t size) override;

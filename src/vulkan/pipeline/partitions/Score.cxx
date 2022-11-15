@@ -6,6 +6,7 @@
 
 namespace vulkan::pipeline::partitions {
 
+#ifdef CWDEBUG
 void Score::print_on(std::ostream& os) const
 {
   if (m_number_of_negative_inf == 1 && m_number_of_positive_inf == 0 && m_value == 0.0)
@@ -21,5 +22,6 @@ void Score::print_on(std::ostream& os) const
       os << " - inf * " << m_number_of_negative_inf;
   }
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

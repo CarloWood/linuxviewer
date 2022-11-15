@@ -7,8 +7,8 @@
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
-#include "debug/DebugSetName.h"
 #endif
+#include "debug/DebugSetName.h"
 
 namespace vulkan {
 

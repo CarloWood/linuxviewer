@@ -46,6 +46,7 @@ PartitionIterator Partition::end() const
   return {};
 }
 
+#ifdef CWDEBUG
 void Partition::print_sets() const
 {
   char const* separator = "";
@@ -75,6 +76,7 @@ void Partition::print_on(std::ostream& os) const
   }
   os << '>';
 }
+#endif
 
 SetIndex Partition::number_of_sets() const
 {

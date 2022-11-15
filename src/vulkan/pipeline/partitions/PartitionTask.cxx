@@ -183,6 +183,7 @@ Partition PartitionTask::random()
   return top;
 }
 
+#ifdef CWDEBUG
 void PartitionTask::print_on(std::ostream& os) const
 {
   os << '{';
@@ -192,5 +193,6 @@ void PartitionTask::print_on(std::ostream& os) const
       ", m_scores:" << m_scores;
   os << '}';
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

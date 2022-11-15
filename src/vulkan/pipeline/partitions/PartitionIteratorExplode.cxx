@@ -137,6 +137,7 @@ Partition PartitionIteratorExplode::get_partition(PartitionTask const& partition
   return result;
 }
 
+#ifdef CWDEBUG
 void PartitionIteratorExplode::SetIterator::print_on(std::ostream& os) const
 {
   os << '{';
@@ -153,5 +154,6 @@ void PartitionIteratorExplode::print_on(std::ostream& os) const
       ", m_pair_triplet_iterators:" << m_pair_triplet_iterators;
   os << '}';
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

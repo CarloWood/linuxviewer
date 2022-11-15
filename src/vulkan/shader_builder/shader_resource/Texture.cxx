@@ -80,6 +80,6 @@ void Texture::print_on(std::ostream& os) const
   os << ", m_member:" << vk_utils::print_pointer(m_member);
   os << '}';
 }
-#endif // CWDEBUG
 
 } // namespace vulkan::descriptor
+#endif // CWDEBUG

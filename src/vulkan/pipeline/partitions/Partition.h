@@ -37,7 +37,9 @@ class Partition
   // Only used by PartitionIteratorBruteForce.
   Partition(PartitionTask const& partition_task, utils::Array<Set, max_number_of_elements, SetIndex> const& sets);
 
+#ifdef CWDEBUG
   void print_sets() const;
+#endif
 
   Set set(SetIndex set_index) const
   {

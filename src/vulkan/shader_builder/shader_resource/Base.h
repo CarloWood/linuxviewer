@@ -6,6 +6,7 @@
 #include "descriptor/SetLayoutBinding.h"
 #include "shader_builder/ShaderResourceIndex.h"
 #include "threadsafe/aithreadsafe.h"
+#include "threadsafe/AIReadWriteMutex.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
 #include "debug/DebugSetName.h"
@@ -44,7 +45,7 @@ class SetMutexAndSetHandles
   // Construct a SetMutexAndSetHandles that contains no FrameResourceCapableDescriptorSet's.
   SetMutexAndSetHandles() = default;
   // Construct a SetMutexAndSetHandles that contains a single FrameResourceCapableDescriptorSet.
-  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet&& descriptor_set) : m_descriptor_sets(std::move(descriptor_set)) { }
+  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set) : m_descriptor_sets(1, descriptor_set) { }
 #else
   // Construct a SetMutexAndSetHandles that contains no FrameResourceCapableDescriptorSet's.
   SetMutexAndSetHandles(Base const* owner) : m_debug_owner(owner) { }

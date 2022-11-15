@@ -59,6 +59,7 @@ Score PairTripletIteratorExplode::score_difference() const
   return score - next_score;
 }
 
+#ifdef CWDEBUG
 void PairTripletIteratorExplode::print_on(std::ostream& os) const
 {
   os << '{';
@@ -68,5 +69,6 @@ void PairTripletIteratorExplode::print_on(std::ostream& os) const
   os << "  m_current_A = " << *m_current_A << '\n';
   os << '}';
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

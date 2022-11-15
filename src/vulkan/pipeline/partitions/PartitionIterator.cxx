@@ -49,6 +49,7 @@ bool operator!=(PartitionIterator const& lhs, PartitionIterator const& rhs)
   return lhs_is_end != rhs_is_end;
 }
 
+#ifdef CWDEBUG
 void PartitionIterator::print_on(std::ostream& os) const
 {
   if (m_base)
@@ -56,5 +57,6 @@ void PartitionIterator::print_on(std::ostream& os) const
   else
     os << "{m_base:nullptr}";
 }
+#endif
 
 } // namespace vulkan::pipeline::partitions

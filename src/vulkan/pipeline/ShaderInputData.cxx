@@ -1017,7 +1017,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
       m_descriptor_set_per_set_index[set_index] = existing_descriptor_set;
       // It should not be possible to get here without locking a set_layout_binding on a shader_resource.
       ASSERT(!m_shader_resources_per_set_index[set_index].empty() && locked_set_layout_binding.descriptor_set_layout());
-      (*m_shader_resources_per_set_index[set_index].begin())->unlock_set_layout_binding(locked_set_layout_binding, pipeline_factory);
+      (*m_shader_resources_per_set_index[set_index].begin())->unlock_set_layout_binding(locked_set_layout_binding COMMA_CWDEBUG_ONLY(pipeline_factory));
     }
     else
     {

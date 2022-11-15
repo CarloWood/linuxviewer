@@ -65,7 +65,9 @@ class PartitionIteratorExplode
       m_pair_triplet_iterator.reset();
     }
 
+#ifdef CWDEBUG
     void print_on(std::ostream& os) const;
+#endif
   };
 
   Partition m_orig;
