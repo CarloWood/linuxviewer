@@ -324,7 +324,9 @@ void main()
           // Generate vertex buffers.
           // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
           // while the current function is part of a pipeline factory...
-          window->create_vertex_buffers(this);
+          static std::atomic_int done = false;
+          if (done.fetch_or(true) == false)
+            window->create_vertex_buffers(this);
 
           shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
 

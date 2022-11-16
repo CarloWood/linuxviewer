@@ -92,8 +92,8 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
 
     std::array<char const*, number_of_textures> textures_names{
-      "textures/bd091e56307d60a5ded27b105fd992b6.jpg",
-      "textures/PngItem_4041469.png" //,
+      "textures/cat-tail-nature-grass-summer-whiskers-826101-wallhere.com.jpg",
+      "textures/nature-grass-sky-insect-green-Izmir-839795-wallhere.com.jpg" //,
 #if 0
       "textures/tileable10b.png",
       "textures/Tileable5.png"
@@ -305,7 +305,9 @@ void main()
           // Generate vertex buffers.
           // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
           // while the current function is part of a pipeline factory...
-          window->create_vertex_buffers(this);
+          static std::atomic_int done = false;
+          if (done.fetch_or(true) == false)
+            window->create_vertex_buffers(this);
 
           // Realize the descriptor set layouts: if a layout already exists then use the existing
           // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
