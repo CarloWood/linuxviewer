@@ -598,7 +598,7 @@ void ShaderInputData::realize_shader_resource_declaration_context(descriptor::Se
   }
 }
 
-void ShaderInputData::add_combined_image_sampler(descriptor::CombinedImageSampler const& combined_image_sampler,
+void ShaderInputData::add_combined_image_sampler(boost::intrusive_ptr<descriptor::CombinedImageSampler> const& combined_image_sampler,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -606,7 +606,7 @@ void ShaderInputData::add_combined_image_sampler(descriptor::CombinedImageSample
 
   //FIXME: is this still true/correct?
   // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
-  register_shader_resource(&combined_image_sampler, preferred_descriptor_sets, undesirable_descriptor_sets);
+  register_shader_resource(combined_image_sampler.get(), preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
@@ -621,9 +621,9 @@ void ShaderInputData::register_shader_resource(shader_builder::shader_resource::
   m_required_shader_resources_list.push_back(shader_resource);
 }
 
-void ShaderInputData::prepare_texture_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
+void ShaderInputData::prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::prepare_texture_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_combined_image_sampler_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
 
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(combined_image_sampler.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, combined_image_sampler);
   auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{combined_image_sampler.glsl_id_full(), shader_resource_tmp});

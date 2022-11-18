@@ -10,7 +10,7 @@ namespace vulkan::descriptor {
 
 void CombinedImageSampler::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
 {
-  shader_input_data->prepare_texture_declaration(*this, set_index_hint);
+  shader_input_data->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
 void CombinedImageSampler::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool CWDEBUG_ONLY(has_frame_resource)) const

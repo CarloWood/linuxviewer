@@ -57,7 +57,7 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
     m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
         .binding = binding,
         .descriptorType = shader_resource_declaration->descriptor_type(),
-        .descriptorCount = 1,
+        .descriptorCount = shader_resource_declaration->array_size(),
         .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
     });
@@ -89,11 +89,11 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
         ShaderResourceVariable const& shader_variable = *variable.begin();
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
         oss << "layout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
-#if 0
-        if (layout.m_array_size > 0)
-          oss << '[' << layout.m_array_size << ']';
-#endif
-        oss << ";\t// " << shader_variable.glsl_id_full() << "\n";
+        uint32_t array_size = shader_resource_declaration->array_size();
+        if (array_size > 1)
+          oss << "[" << array_size << "]";
+        oss << ";\t// " << shader_variable.glsl_id_full();
+        oss << "\n";
         break;
       }
       case vk::DescriptorType::eUniformBuffer:

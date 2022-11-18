@@ -205,11 +205,11 @@ class ShaderInputData
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
-  void add_combined_image_sampler(descriptor::CombinedImageSampler const& combined_image_sampler,
+  void add_combined_image_sampler(boost::intrusive_ptr<descriptor::CombinedImageSampler> const& combined_image_sampler,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void prepare_texture_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
+  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
 
   void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},

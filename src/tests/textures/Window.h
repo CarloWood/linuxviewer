@@ -38,9 +38,7 @@ class Window : public task::SynchronousWindow
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
   static constexpr int number_of_combined_image_samplers = 2;
-  std::array<vulkan::descriptor::CombinedImageSampler, number_of_combined_image_samplers> m_combined_image_samplers = {
-    "top", "bottom"
-  };
+  std::array<boost::intrusive_ptr<vulkan::descriptor::CombinedImageSampler>, number_of_combined_image_samplers> m_combined_image_samplers;
   std::array<vulkan::shader_builder::shader_resource::Texture, number_of_combined_image_samplers> m_textures;
 
   enum class LocalShaderIndex {
@@ -106,6 +104,12 @@ class Window : public task::SynchronousWindow
       "top", "bottom"
     };
 
+    for (int t = 0; t < number_of_combined_image_samplers; ++t)
+    {
+      m_combined_image_samplers[t] = new vulkan::descriptor::CombinedImageSampler(glsl_id_postfixes[t]);
+      m_combined_image_samplers[t]->set_array_size(2);
+    }
+
     std::string const name_prefix("m_textures[");
 
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -140,7 +144,7 @@ class Window : public task::SynchronousWindow
     // graphics pipeline is.
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
     {
-      auto combined_image_sampler_r = m_combined_image_samplers[t].set_layout_bindings_to_handles();
+      auto combined_image_sampler_r = m_combined_image_samplers[t]->set_layout_bindings_to_handles();
       for (Base::set_layout_bindings_to_handles_container_t::const_iterator iter = combined_image_sampler_r->begin();
           iter != combined_image_sampler_r->end(); ++iter)
       {
@@ -148,7 +152,10 @@ class Window : public task::SynchronousWindow
         uint32_t const binding = iter->first.binding();
         SetMutexAndSetHandles::descriptor_set_container_t const& descriptor_sets = iter->second.descriptor_sets();
         for (vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set : descriptor_sets)
-           m_textures[pipeline == 0 ? t : number_of_combined_image_samplers - 1 - t].update_descriptor_set_old(this, descriptor_set, binding);
+        {
+          for (int array_element = 0; array_element < 2; ++array_element)
+            m_textures[pipeline == 0 ? array_element : number_of_combined_image_samplers - 1 - array_element].update_descriptor_set_old(this, descriptor_set, binding, array_element);
+        }
       }
     }
   }
@@ -180,9 +187,9 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top, v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom, v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom[0], v_Texcoord);
 }
 )glsl";
 

@@ -48,10 +48,11 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSampler : public shader_resource::Base
+class CombinedImageSampler : public AIRefCount, public shader_resource::Base
 {
  private:
-  std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;        // A CombinedImageSampler only has a single "member".
+  std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSampler only has a single "member".
+  uint32_t m_array_size{1};                                                     // Array size or one if this is not an array.
 
  public:
   CombinedImageSampler(char const* glsl_id_full_postfix) : shader_resource::Base(SetKeyContext::instance() COMMA_CWDEBUG_ONLY(glsl_id_full_postfix))
@@ -62,7 +63,20 @@ class CombinedImageSampler : public shader_resource::Base
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
   }
 
-  CombinedImageSampler(CombinedImageSampler&& rhs) : shader_resource::Base(std::move(rhs)), m_member(std::move(rhs.m_member)) { }
+  CombinedImageSampler(CombinedImageSampler&& rhs) : shader_resource::Base(std::move(rhs)), m_member(std::move(rhs.m_member))
+  {
+    DoutEntering(dc::vulkan, "CombinedImageSampler::CombinedImageSampler(&&" << rhs << ") [" << this << "]");
+  }
+
+  void set_array_size(uint32_t array_size)
+  {
+    DoutEntering(dc::vulkan, "CombinedImageSampler::set_array_size(" << array_size << ") [" << this << "]");
+    // Don't call set_array_size twice.
+    ASSERT(m_array_size == 1);
+    // Don't call set_array_size unless it's an array :p.
+    ASSERT(array_size > 1);
+    m_array_size = array_size;
+  }
 
   CombinedImageSampler& operator=(CombinedImageSampler&& rhs)
   {
@@ -80,6 +94,7 @@ class CombinedImageSampler : public shader_resource::Base
   void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
 
   void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const override;
+  uint32_t array_size() const override { return m_array_size; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const override;

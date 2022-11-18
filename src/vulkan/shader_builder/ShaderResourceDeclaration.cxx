@@ -11,6 +11,11 @@
 
 namespace vulkan::shader_builder {
 
+uint32_t ShaderResourceDeclaration::array_size() const
+{
+  return m_shader_resource.array_size();
+}
+
 #ifdef CWDEBUG
 void ShaderResourceDeclaration::print_on(std::ostream& os) const
 {

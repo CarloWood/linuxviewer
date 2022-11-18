@@ -79,7 +79,7 @@ struct Texture : public memory::Image
     return *this;
   }
 
-  void update_descriptor_set_old(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding) const;
+  void update_descriptor_set_old(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const;
 
   void upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_view_kind,
       task::SynchronousWindow const* resource_owner,

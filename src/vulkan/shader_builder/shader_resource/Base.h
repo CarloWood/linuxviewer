@@ -212,6 +212,8 @@ class Base
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
   virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const = 0;
+  virtual uint32_t array_size() const { return 1; }     // One means it's not an array.
+
   //---------------------------------------------------------------------------
 
   // Accessors.
