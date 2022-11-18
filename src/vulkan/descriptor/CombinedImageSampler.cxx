@@ -19,6 +19,33 @@ void CombinedImageSampler::update_descriptor_set(task::SynchronousWindow const* 
   DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << std::boolalpha << has_frame_resource << ")");
 }
 
+CombinedImageSampler::~CombinedImageSampler()
+{
+  DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSampler::~CombinedImageSampler() [" << this << "]");
+}
+
+char const* CombinedImageSampler::state_str_impl(state_type run_state) const
+{
+  switch (run_state)
+  {
+    AI_CASE_RETURN(CombinedImageSampler_start);
+    AI_CASE_RETURN(CombinedImageSampler_done);
+  }
+  AI_NEVER_REACHED
+}
+
+void CombinedImageSampler::multiplex_impl(state_type run_state)
+{
+  switch (run_state)
+  {
+    case CombinedImageSampler_start:
+      break;
+    case CombinedImageSampler_done:
+      finish();
+      break;
+  }
+}
+
 #ifdef CWDEBUG
 namespace detail {
 using utils::has_print_on::operator<<;
