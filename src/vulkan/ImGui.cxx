@@ -394,7 +394,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
 #endif
 
   // Create texture parameters.
-  m_font_texture = shader_builder::shader_resource::Texture("font_texture", logical_device(),
+  m_font_texture = shader_builder::shader_resource::Texture(logical_device(),
       extent, imgui_font_image_view_kind, imgui_font_sampler_kind, graphics_settings,
       { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
       COMMA_CWDEBUG_ONLY(".m_font_texture" + ambifix));
@@ -404,7 +404,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
       owning_window, imgui_font_texture_ready);
 
   // Update descriptor set.
-  m_font_texture.update_descriptor_set(owning_window, m_vh_descriptor_set, /*binding*/ 0, false);
+  m_font_texture.update_descriptor_set_old(owning_window, m_vh_descriptor_set, /*binding*/ 0);
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));

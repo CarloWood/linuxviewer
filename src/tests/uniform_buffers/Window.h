@@ -229,7 +229,7 @@ void main()
     // This assigns bottom to set 2.
     shader_input_data.add_uniform_buffer(m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
     // The texture must go into the same set as top.
-    shader_input_data.add_texture(m_sample_texture, { top_set_key_preference });
+    shader_input_data.add_combined_image_sampler(m_sample_texture, { top_set_key_preference });
   }
 
   class UniformBuffersTestPipelineCharacteristic : public vulkan::pipeline::Characteristic

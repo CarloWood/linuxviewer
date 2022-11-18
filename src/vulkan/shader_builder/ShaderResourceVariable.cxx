@@ -20,7 +20,7 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
 
   // We use a declaration context per (shader resource) descriptor set as this context is used to enumerate the 'binding =' values.
   auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
-  // This set index should already have been inserted by ShaderInputData::add_texture, add_uniform_buffer, etc.
+  // This set index should already have been inserted by ShaderInputData::add_combined_image_sampler, add_uniform_buffer, etc.
   //
   // Those calls generates a descriptor::SetIndexHint for the shader resource (texture, uniformbuffer, ...) that is subsequently
   // used to create a ShaderResourceDeclaration with, that is added to the map ShaderInputData::m_glsl_id_to_shader_resource.

@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
+#include "descriptor/CombinedImageSampler.h"
 #include "partitions/PartitionTask.h"
 #include "partitions/ElementPair.h"
 #include "partitions/PartitionIteratorExplode.h"
@@ -597,14 +598,15 @@ void ShaderInputData::realize_shader_resource_declaration_context(descriptor::Se
   }
 }
 
-void ShaderInputData::add_texture(shader_builder::shader_resource::Texture const& texture,
+void ShaderInputData::add_combined_image_sampler(descriptor::CombinedImageSampler const& combined_image_sampler,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::add_texture(" << texture << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
-  // Remember that this texture must be bound to its descriptor set from the PipelineFactory.
-  register_shader_resource(&texture, preferred_descriptor_sets, undesirable_descriptor_sets);
+  //FIXME: is this still true/correct?
+  // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
+  register_shader_resource(&combined_image_sampler, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
@@ -619,21 +621,21 @@ void ShaderInputData::register_shader_resource(shader_builder::shader_resource::
   m_required_shader_resources_list.push_back(shader_resource);
 }
 
-void ShaderInputData::prepare_texture_declaration(shader_builder::shader_resource::Texture const& texture, descriptor::SetIndexHint set_index_hint)
+void ShaderInputData::prepare_texture_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::prepare_texture_declaration(" << texture << ", " << set_index_hint << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_texture_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
 
-  shader_builder::ShaderResourceDeclaration shader_resource_tmp(texture.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, texture);
-  auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{texture.glsl_id_full(), shader_resource_tmp});
-  // The m_glsl_id_full of each Texture must be unique. And of course, don't register the same texture twice.
+  shader_builder::ShaderResourceDeclaration shader_resource_tmp(combined_image_sampler.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, set_index_hint, combined_image_sampler);
+  auto res1 = m_glsl_id_to_shader_resource.insert(std::pair{combined_image_sampler.glsl_id_full(), shader_resource_tmp});
+  // The m_glsl_id_full of each CombinedImageSampler must be unique. And of course, don't register the same combined_image_sampler twice.
   ASSERT(res1.second);
 
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
-  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(texture.descriptor_set_key(), shader_resource_ptr);
+  m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(combined_image_sampler.descriptor_set_key(), shader_resource_ptr);
 
-  // Texture only has a single member.
-  shader_resource_ptr->add_member(texture.member());
+  // CombinedImageSampler only has a single member.
+  shader_resource_ptr->add_member(combined_image_sampler.member());
   // Which is treated here in a general way (but really shader_resource_variables() has just a size of one).
   for (auto& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
     m_shader_variables.push_back(&shader_resource_variable);
@@ -761,7 +763,7 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
 #endif
   for (Base* shader_resource : m_acquired_required_shader_resources_list)
   {
-    // Create the shader resource (if not already created (e.g. Texture)).
+    // Create the shader resource (if not already created (e.g. UniformBuffer)).
     shader_resource->instantiate(owning_window COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix(shader_resource->debug_name())));
 
     // Let other pipeline factories know that this shader resource was already created.
@@ -984,7 +986,7 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
           Dout(dc::shaderresource, "Found SetMutexAndSetHandles for " << set_layout_binding);
 
         // Run over all descriptor::FrameResourceCapableDescriptorSet that this shader resource is already bound to.
-        auto const& descriptor_sets = set_layout_binding_handles_pair_iter->second.descriptor_sets(CWDEBUG_ONLY(pipeline_factory));
+        auto const& descriptor_sets = set_layout_binding_handles_pair_iter->second.descriptor_sets();
         Dout(dc::shaderresource, "Running over " << descriptor_sets.size() << " descriptor sets.");
         for (descriptor::FrameResourceCapableDescriptorSet const& descriptor_set : descriptor_sets)
         {

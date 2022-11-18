@@ -1238,7 +1238,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
         for (int i = 0; i < key.size(); ++i)
         {
           sorted_descriptor_set_layout_bindings[i].binding = key[i].binding;
-          // Now the elements much be exactly equal.
+          // Now the elements must be exactly equal.
           ASSERT(sorted_descriptor_set_layout_bindings[i] == key[i]);
         }
         Dout(dc::shaderresource, "Found in cache (vk::DescriptorSetLayout " << *iter->second << "). Using: " << sorted_descriptor_set_layout_bindings << ".");

@@ -369,6 +369,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           return;
         }
 
+        //FIXME: is this the right place?
+        m_shader_input_data.m_callback();
+
         // End pipeline layout creation
         //-----------------------------------------------------------------
 

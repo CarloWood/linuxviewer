@@ -217,8 +217,8 @@ void main()
 
   void add_shader_resources_to(vulkan::pipeline::ShaderInputData& shader_input_data) const
   {
-    shader_input_data.add_texture(m_background_texture);
-    shader_input_data.add_texture(m_benchmark_texture);
+    shader_input_data.add_combined_image_sampler(m_background_texture);
+    shader_input_data.add_combined_image_sampler(m_benchmark_texture);
   }
 
   class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic

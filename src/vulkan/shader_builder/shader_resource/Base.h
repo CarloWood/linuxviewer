@@ -29,10 +29,12 @@ class Base;
 // Access to this class is protected by the read/write mutex on Base::m_set_layout_bindings_to_handles.
 class SetMutexAndSetHandles
 {
+ public:
+  using descriptor_set_container_t = std::vector<descriptor::FrameResourceCapableDescriptorSet>;
+
  private:
   AIStatefulTaskMutex m_mutex;                  // Mutex that is locked for the first shader resource of a given set a shader resources that we need a descriptor for.
 
-  using descriptor_set_container_t = std::vector<descriptor::FrameResourceCapableDescriptorSet>;
   descriptor_set_container_t m_descriptor_sets; // Vector containing all descriptor sets that the shader resource owning this SetLayoutBinding (stored in shader_resource::Base::m_set_layout_bindings) is bound to.
 
 #ifdef CWDEBUG
@@ -67,17 +69,15 @@ class SetMutexAndSetHandles
 #endif
 
   // Accessor.
-  descriptor_set_container_t const& descriptor_sets(CWDEBUG_ONLY(AIStatefulTask const* task)) const
-  {
-    DoutEntering(dc::notice, "SetMutexAndSetHandles::descriptor_sets(" << task << ") [" << this << "]");
-    return m_descriptor_sets;
-  }
+  descriptor_set_container_t const& descriptor_sets() const { return m_descriptor_sets; }
 
 #ifdef CWDEBUG
   void unlock_descriptor_sets(AIStatefulTask const* task);
 #else
   void unlock_descriptor_sets() { m_mutex.unlock(); }
 #endif
+
+  void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -91,7 +91,7 @@ class Base
   using set_layout_bindings_to_handles_container_t = std::map<descriptor::SetLayoutBinding, SetMutexAndSetHandles>;
 
  private:
-  // 'mutable' because shader resource instances added with add_* (add_texture, add_uniform_buffer, etc)
+  // 'mutable' because shader resource instances added with add_* (add_combined_image_sampler, add_uniform_buffer, etc)
   // will only be created ONCE - synchronizing PipelineFactory by m_create_access_mutex, so that only a single
   // PipelineFactory will create the shader resources while all other PipelineFactory's will be waiting for
   // that to be finished. The thread-safe functions that use this mutex aren't really 'const', but they
@@ -144,8 +144,8 @@ class Base
   {
     DoutEntering(dc::notice, "lock_set_layout_binding(" << set_layout_binding << ", " << task << ", " << task->print_conditions(condition) << ")");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
-    auto pib = set_layout_bindings_to_handles_w->try_emplace(set_layout_binding COMMA_CWDEBUG_ONLY(this));  // Get existing or default construct SetMutexAndSetHandles.
-    return pib.first->second.lock_descriptor_sets(task, condition);
+    auto ibp = set_layout_bindings_to_handles_w->try_emplace(set_layout_binding COMMA_CWDEBUG_ONLY(this));  // Get existing or default constructed SetMutexAndSetHandles.
+    return ibp.first->second.lock_descriptor_sets(task, condition);
   }
 
 #ifdef CWDEBUG
@@ -168,9 +168,7 @@ class Base
     if (iter == set_layout_bindings_to_handles_w->end())
     {
       Dout(dc::notice, "The key was not found, adding it...");
-      CWDEBUG_ONLY(auto pib =) set_layout_bindings_to_handles_w->try_emplace(set_layout_binding, descriptor_set COMMA_CWDEBUG_ONLY(this));
-      // We just couldn't find this key?!
-      ASSERT(pib.second);
+      set_layout_bindings_to_handles_w->try_emplace(set_layout_binding, descriptor_set COMMA_CWDEBUG_ONLY(this));
     }
     else
     {
