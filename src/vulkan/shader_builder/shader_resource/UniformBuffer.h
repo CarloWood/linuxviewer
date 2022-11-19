@@ -40,7 +40,7 @@ class UniformBufferBase : public Base
   void instantiate(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override;
   bool is_frame_resource() const override { return true; }
-  void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool UNUSED_ARG(has_frame_resource)) const override;
+  void update_descriptor_set(descriptor::NeedsUpdate descriptor_to_update) override;
   void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
 
   // Accessors.

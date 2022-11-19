@@ -6,6 +6,7 @@
 #include "partitions/ElementPair.h"
 #include "partitions/PartitionIteratorExplode.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
+#include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "shader_builder/DeclarationsString.h"
 #include "utils/malloc_size.h"
@@ -598,15 +599,15 @@ void ShaderInputData::realize_shader_resource_declaration_context(descriptor::Se
   }
 }
 
-void ShaderInputData::add_combined_image_sampler(boost::intrusive_ptr<descriptor::CombinedImageSampler> const& combined_image_sampler,
+void ShaderInputData::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
-  //FIXME: is this still true/correct?
   // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
-  register_shader_resource(combined_image_sampler.get(), preferred_descriptor_sets, undesirable_descriptor_sets);
+  descriptor::CombinedImageSampler const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
+  register_shader_resource(combined_image_sampler_task, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
@@ -1078,7 +1079,10 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
       {
         Dout(dc::shaderresource, "The set_index was found in set_index_has_frame_resource_pairs.");
         // Bind it to a descriptor set.
-        shader_resource->update_descriptor_set(owning_window, m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second);
+        // Note: only one PipelineFactory does the update_descriptor_set calls for any shader resource.
+        // Therefore it is thread-safe to store the information in the task and then continue it which
+        // translates into it being ok that that function is non-const.
+        const_cast<Base*>(shader_resource)->update_descriptor_set({owning_window, m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second});
 
         // Find the corresponding SetLayout.
         auto sorted_descriptor_set_layout =

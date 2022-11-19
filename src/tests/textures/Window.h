@@ -12,6 +12,7 @@
 #include "descriptor/CombinedImageSampler.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
+#include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "descriptor/SetKeyPreference.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -38,7 +39,9 @@ class Window : public task::SynchronousWindow
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
   static constexpr int number_of_combined_image_samplers = 2;
-  std::array<boost::intrusive_ptr<vulkan::descriptor::CombinedImageSampler>, number_of_combined_image_samplers> m_combined_image_samplers;
+  static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom" };
+  using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, number_of_combined_image_samplers>;
+  combined_image_samplers_t m_combined_image_samplers;
   std::array<vulkan::shader_builder::shader_resource::Texture, number_of_combined_image_samplers> m_textures;
 
   enum class LocalShaderIndex {
@@ -100,14 +103,10 @@ class Window : public task::SynchronousWindow
 #endif
     };
 
-    std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{
-      "top", "bottom"
-    };
-
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
     {
-      m_combined_image_samplers[t] = new vulkan::descriptor::CombinedImageSampler(glsl_id_postfixes[t]);
-      m_combined_image_samplers[t]->set_array_size(2);
+      m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
+      m_combined_image_samplers[t].set_array_size(2);
     }
 
     std::string const name_prefix("m_textures[");
@@ -137,6 +136,7 @@ class Window : public task::SynchronousWindow
     }
   }
 
+#if 0
   void update_combined_image_sampler_descriptors(int pipeline) const
   {
     using namespace vulkan::shader_builder::shader_resource;
@@ -159,6 +159,7 @@ class Window : public task::SynchronousWindow
       }
     }
   }
+#endif
 
  private:
   static constexpr std::string_view squares_vert_glsl = R"glsl(
@@ -219,13 +220,8 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  void add_shader_resources_to(vulkan::pipeline::ShaderInputData& shader_input_data, int pipeline) const
-  {
-    // Define the pipeline.
-    shader_input_data.add_combined_image_sampler(m_combined_image_samplers[0]);
-    shader_input_data.add_combined_image_sampler(m_combined_image_samplers[1]);
-    shader_input_data.add_callback([this, pipeline](){ update_combined_image_sampler_descriptors(pipeline); });
-  }
+  // Accessor.
+  combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
 
   class TextureTestPipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
@@ -309,7 +305,8 @@ void main()
           shader_input_data().add_vertex_input_binding(m_square);
           shader_input_data().add_vertex_input_binding(m_top_bottom_positions);
           shader_input_data().add_push_constant<PushConstant>();
-          window->add_shader_resources_to(shader_input_data(), m_pipeline);
+          for (int t = 0; t < number_of_combined_image_samplers; ++t)
+            shader_input_data().add_combined_image_sampler(window->combined_image_samplers()[t]);
 
           // Add default color blend.
           m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

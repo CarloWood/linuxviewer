@@ -3,6 +3,9 @@
 #include "FrameResourceIndex.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
+#ifdef CWDEBUG
+#include "debug/vulkan_print_on.h"
+#endif
 #include "debug.h"
 
 namespace vulkan::descriptor {

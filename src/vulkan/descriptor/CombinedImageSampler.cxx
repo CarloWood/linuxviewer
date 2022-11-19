@@ -13,10 +13,12 @@ void CombinedImageSampler::prepare_shader_resource_declaration(descriptor::SetIn
   shader_input_data->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
-void CombinedImageSampler::update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool CWDEBUG_ONLY(has_frame_resource)) const
+void CombinedImageSampler::update_descriptor_set(NeedsUpdate descriptor_to_update)
 {
-  //FIXME: do not ignore this call.
-  DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << std::boolalpha << has_frame_resource << ")");
+  DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << descriptor_to_update << ")");
+
+  // Pass new descriptors that need to be updated to this task (this is called from a PipelineFactory).
+  have_new_datum(std::move(descriptor_to_update));
 }
 
 CombinedImageSampler::~CombinedImageSampler()
@@ -28,7 +30,7 @@ char const* CombinedImageSampler::state_str_impl(state_type run_state) const
 {
   switch (run_state)
   {
-    AI_CASE_RETURN(CombinedImageSampler_start);
+    AI_CASE_RETURN(CombinedImageSampler_need_action);
     AI_CASE_RETURN(CombinedImageSampler_done);
   }
   AI_NEVER_REACHED
@@ -38,8 +40,14 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
 {
   switch (run_state)
   {
-    case CombinedImageSampler_start:
-      break;
+    case CombinedImageSampler_need_action:
+      flush_new_data([this](Datum&& datum){
+          Dout(dc::always, "Received: " << datum);
+        });
+      if (producer_not_finished())
+        break;
+      set_state(CombinedImageSampler_done);
+      [[fallthrough]];
     case CombinedImageSampler_done:
       finish();
       break;

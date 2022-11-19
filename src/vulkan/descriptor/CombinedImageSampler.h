@@ -1,8 +1,10 @@
 #pragma once
 
-#include "shader_resource/Base.h"
 #include "ShaderResourceMember.h"
-#include "descriptor/SetKeyContext.h"
+#include "NeedsUpdate.h"
+#include "SetKeyContext.h"
+#include "shader_resource/Base.h"
+#include "vk_utils/TaskToTaskDeque.h"
 #include "cwds/debug_ostream_operators.h"
 
 namespace vulkan::descriptor {
@@ -49,13 +51,13 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSampler : public AIStatefulTask, public shader_resource::Base
+class CombinedImageSampler final : public vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>, public shader_resource::Base
 {
  protected:
   using direct_base_type = AIStatefulTask;
 
   enum combined_image_sampler_state_type {
-    CombinedImageSampler_start = direct_base_type::state_end,
+    CombinedImageSampler_need_action = direct_base_type::state_end,
     CombinedImageSampler_done
   };
 
@@ -64,11 +66,11 @@ class CombinedImageSampler : public AIStatefulTask, public shader_resource::Base
 
  private:
   std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSampler only has a single "member".
-  uint32_t m_array_size{1};                                                     // Array size or one if this is not an array.
+  std::atomic<uint32_t> m_array_size{1};                                        // Array size or one if this is not an array.
 
  public:
   CombinedImageSampler(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
-    AIStatefulTask(CWDEBUG_ONLY(debug)), shader_resource::Base(descriptor::SetKeyContext::instance(), glsl_id_full_postfix)
+    vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>(CWDEBUG_ONLY(debug)), shader_resource::Base(SetKeyContext::instance(), glsl_id_full_postfix)
   {
     DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSampler::CombinedImageSampler(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
@@ -76,22 +78,24 @@ class CombinedImageSampler : public AIStatefulTask, public shader_resource::Base
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
   }
 
-  inline CombinedImageSampler(CombinedImageSampler&& rhs);
+  // Probably not used.
+  CombinedImageSampler(CombinedImageSampler&&) = default;
 
   void set_array_size(uint32_t array_size)
   {
     DoutEntering(dc::vulkan, "CombinedImageSampler::set_array_size(" << array_size << ") [" << this << "]");
-    // Don't call set_array_size twice.
-    ASSERT(m_array_size == 1);
     // Don't call set_array_size unless it's an array :p.
     ASSERT(array_size > 1);
-    m_array_size = array_size;
+    [[maybe_unused]] uint32_t prev_array_size = m_array_size.exchange(array_size, std::memory_order::relaxed);
+    // Don't call set_array_size twice (with different values).
+    ASSERT(prev_array_size == 1 || prev_array_size == array_size);
   }
 
   CombinedImageSampler& operator=(CombinedImageSampler&& rhs)
   {
     this->Base::operator=(std::move(rhs));
     m_member = std::move(rhs.m_member);
+    m_array_size.store(rhs.m_array_size.load(std::memory_order::relaxed), std::memory_order::relaxed);
     return *this;
   }
 
@@ -101,9 +105,9 @@ class CombinedImageSampler : public AIStatefulTask, public shader_resource::Base
   // There is no need to instantiate anything for CombinedImageSamplers.
   void instantiate(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
 
-  void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
+  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
 
-  void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const override;
+  void update_descriptor_set(NeedsUpdate descriptor_to_update) override;
   uint32_t array_size() const override { return m_array_size; }
 
  protected:
@@ -120,10 +124,5 @@ class CombinedImageSampler : public AIStatefulTask, public shader_resource::Base
   void print_on(std::ostream& os) const override;
 #endif
 };
-
-CombinedImageSampler::CombinedImageSampler(CombinedImageSampler&& rhs) : AIStatefulTask(rhs.mSMDebug), shader_resource::Base(std::move(rhs)), m_member(std::move(rhs.m_member))
-{
-  DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSampler::CombinedImageSampler(&&" << rhs << ") [" << this << "]");
-}
 
 } // namespace vulkan::descriptor

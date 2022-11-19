@@ -55,6 +55,7 @@ class CombinedImageSampler;
 } // namespace descriptor
 
 namespace shader_builder::shader_resource {
+class CombinedImageSampler;
 class UniformBufferBase;
 } // namespace shader_builder::shader_resource
 
@@ -205,7 +206,7 @@ class ShaderInputData
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
   void add_push_constant();
 
-  void add_combined_image_sampler(boost::intrusive_ptr<descriptor::CombinedImageSampler> const& combined_image_sampler,
+  void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -222,13 +223,6 @@ class ShaderInputData
   void register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
-
-  //FIXME: think of a better name / API?
-  std::function<void()> m_callback;
-  void add_callback(std::function<void()> callback)
-  {
-    m_callback = std::move(callback);
-  }
 
   //---------------------------------------------------------------------------
   // Begin of MultiLoop states.

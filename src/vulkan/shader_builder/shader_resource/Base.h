@@ -4,6 +4,7 @@
 #include "descriptor/FrameResourceCapableDescriptorSet.h"
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetLayoutBinding.h"
+#include "descriptor/NeedsUpdate.h"
 #include "shader_builder/ShaderResourceIndex.h"
 #include "threadsafe/aithreadsafe.h"
 #include "threadsafe/AIReadWriteMutex.h"
@@ -76,8 +77,6 @@ class SetMutexAndSetHandles
 #else
   void unlock_descriptor_sets() { m_mutex.unlock(); }
 #endif
-
-  void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -210,7 +209,7 @@ class Base
   virtual void instantiate(task::SynchronousWindow const* owning_window
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) = 0;
   virtual bool is_frame_resource() const { return false; }
-  virtual void update_descriptor_set(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) const = 0;
+  virtual void update_descriptor_set(descriptor::NeedsUpdate descriptor_to_update) = 0;
   virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const = 0;
   virtual uint32_t array_size() const { return 1; }     // One means it's not an array.
 

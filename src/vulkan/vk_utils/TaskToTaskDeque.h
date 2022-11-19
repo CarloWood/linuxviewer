@@ -134,7 +134,7 @@ class TaskToTaskDeque : public BASE
     }
     return BASE::condition_str_impl(condition);
   }
-}; // MoveNewPipelines
+};
 
 template<task::TaskType BASE, typename DATUM>
 void TaskToTaskDeque<BASE, DATUM>::have_new_datum(DATUM&& datum)
