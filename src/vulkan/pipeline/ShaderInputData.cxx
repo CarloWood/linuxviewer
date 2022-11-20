@@ -20,6 +20,98 @@ namespace vulkan::pipeline {
 using NAMESPACE_DEBUG::print_string;
 #endif
 
+// Called from *UserCode*PipelineCharacteristic_initialize.
+void ShaderInputData::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+
+  // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
+  descriptor::CombinedImageSampler const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
+  register_shader_resource(combined_image_sampler_task, preferred_descriptor_sets, undesirable_descriptor_sets);
+}
+
+// Called from *UserCode*PipelineCharacteristic_initialize.
+void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+
+  // Remember that this uniform buffer must be created from the PipelineFactory.
+  register_shader_resource(&uniform_buffer, preferred_descriptor_sets, undesirable_descriptor_sets);
+}
+
+// Called from add_combined_image_sampler and add_uniform_buffer.
+void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::register_shader_resource(" << vk_utils::print_pointer(shader_resource) << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+  m_preferred_descriptor_sets.push_back(preferred_descriptor_sets);
+  m_undesirable_descriptor_sets.push_back(undesirable_descriptor_sets);
+  // Add a thread-safe pointer to the shader resource (Base) to a list of required shader resources.
+  // The shader_resource should point to a member of the Window class.
+  m_required_shader_resources_list.push_back(shader_resource);
+}
+
+// Called from *UserCode*PipelineCharacteristic_initialize.
+// Returns the declaration contexts that are used in this shader.
+void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::preprocess1(" << shader_info << ") [" << this << "]");
+
+  if (!m_called_prepare_shader_resource_declarations)
+    prepare_shader_resource_declarations();
+
+  declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()]; // All the declaration contexts that are involved.
+  std::string_view const source = shader_info.glsl_template_code();
+
+  // Assume no preprocessing is necessary if the source already starts with "#version".
+  if (!source.starts_with("#version"))
+  {
+    // m_shader_variables contains a number of strings that we need to find in the source.
+    // They may occur zero or more times.
+    for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
+    {
+      std::string match_string = shader_variable->glsl_id_full();
+      if (source.find(match_string) != std::string_view::npos)
+        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
+    }
+    for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
+    {
+      shader_builder::ShaderResourceDeclarationContext const* shader_resource_declaration_context =
+        dynamic_cast<shader_builder::ShaderResourceDeclarationContext const*>(declaration_context);
+      if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+        continue;
+      shader_resource_declaration_context->generate1(shader_info.stage());
+    }
+  }
+}
+
+// Called from preprocess1.
+void ShaderInputData::prepare_shader_resource_declarations()
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::prepare_shader_resource_declarations() [" << this << "]");
+  m_called_prepare_shader_resource_declarations = true;
+
+  utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex> set_index_hints;
+  if (m_required_shader_resources_list.size() > 1)
+    fill_set_index_hints(set_index_hints);
+  else
+    set_index_hints.emplace_back(0UL);
+
+  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
+      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+  {
+    shader_builder::shader_resource::Base const* shader_resource = m_required_shader_resources_list[shader_resource_index];
+    m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_index];
+    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
+  }
+}
+
+// Called from prepare_shader_resource_declarations.
 void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::fill_set_index_hints(" << set_index_hints_out << ") [" << this << "]");
@@ -182,126 +274,27 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
   }
 }
 
-void ShaderInputData::prepare_shader_resource_declarations()
+// Called by ShaderResourceDeclarationContext::generate1 which is
+// called from preprocess1.
+void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,
+    utils::Badge<shader_builder::ShaderResourceDeclarationContext>)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::prepare_shader_resource_declarations() [" << this << "]");
-  m_called_prepare_shader_resource_declarations = true;
-
-  utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex> set_index_hints;
-  if (m_required_shader_resources_list.size() > 1)
-    fill_set_index_hints(set_index_hints);
-  else
-    set_index_hints.emplace_back(0UL);
-
-  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
-      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+  DoutEntering(dc::vulkan, "ShaderInputData::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ") [" << this << "]");
+  Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings:");
+  // Find the SetLayout corresponding to the set_index_hint, if any.
+  auto set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::CompareHint{set_index_hint});
+  if (set_layout  == m_sorted_descriptor_set_layouts.end())
   {
-    shader_builder::shader_resource::Base const* shader_resource = m_required_shader_resources_list[shader_resource_index];
-    m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_index];
-    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
+    m_sorted_descriptor_set_layouts.emplace_back(set_index_hint);
+    set_layout = m_sorted_descriptor_set_layouts.end() - 1;
   }
+  set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding);
+  // set_layout is an element of m_sorted_descriptor_set_layouts and it was just changed.
+  // We need to re-sort m_sorted_descriptor_set_layouts to keep it sorted.
+  std::sort(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::SetLayoutCompare{});
 }
 
-// Returns the declaration contexts that are used in this shader.
-void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::preprocess1(" << shader_info << ") [" << this << "]");
-
-  if (!m_called_prepare_shader_resource_declarations)
-    prepare_shader_resource_declarations();
-
-  declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()]; // All the declaration contexts that are involved.
-  std::string_view const source = shader_info.glsl_template_code();
-
-  // Assume no preprocessing is necessary if the source already starts with "#version".
-  if (!source.starts_with("#version"))
-  {
-    // m_shader_variables contains a number of strings that we need to find in the source.
-    // They may occur zero or more times.
-    for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
-    {
-      std::string match_string = shader_variable->glsl_id_full();
-      if (source.find(match_string) != std::string_view::npos)
-        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
-    }
-    for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
-    {
-      shader_builder::ShaderResourceDeclarationContext const* shader_resource_declaration_context =
-        dynamic_cast<shader_builder::ShaderResourceDeclarationContext const*>(declaration_context);
-      if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
-        continue;
-      shader_resource_declaration_context->generate1(shader_info.stage());
-    }
-  }
-}
-
-std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::preprocess2(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
-
-  declaration_contexts_container_t const& declaration_contexts = m_per_stage_declaration_contexts.at(shader_info.stage()); // All the declaration contexts that are involved.
-  std::string_view const source = shader_info.glsl_template_code();
-
-  // Assume no preprocessing is necessary if the source already starts with "#version".
-  if (source.starts_with("#version"))
-    return source;
-
-  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
-  {
-    shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
-      dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
-    if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
-      continue;
-    shader_resource_declaration_context->set_set_index_hint_map(set_index_hint_map);
-  }
-
-  // Generate the declarations.
-  shader_builder::DeclarationsString declarations;
-  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
-    declaration_context->add_declarations_for_stage(declarations, shader_info.stage());
-  declarations.add_newline();   // For pretty printing debug output.
-
-  // Store each position where a match string occurs, together with an std::pair
-  // containing the found substring that has to be replaced (first) and the
-  // string that it has to be replaced with (second).
-  std::map<size_t, std::pair<std::string, std::string>> positions;
-
-  // m_shader_variables contains a number of strings that we need to find in the source. They may occur zero or more times.
-  int id_to_name_growth = 0;
-  for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
-  {
-    std::string match_string = shader_variable->glsl_id_full();
-    for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
-    {
-      id_to_name_growth += shader_variable->name().length() - match_string.length();
-      positions[pos] = std::make_pair(match_string, shader_variable->substitution());
-    }
-  }
-
-  static constexpr char const* version_header = "#version 450\n\n";
-  size_t final_source_code_size = std::strlen(version_header) + declarations.length() + source.length() + id_to_name_growth;
-
-  glsl_source_code_buffer.reserve(utils::malloc_size(final_source_code_size + 1) - 1);
-  glsl_source_code_buffer = version_header;
-  glsl_source_code_buffer += declarations.content();
-
-  // Next copy alternating, the characters in between the strings and the replacements of the substrings.
-  size_t start = 0;
-  for (auto&& p : positions)
-  {
-    // Copy the characters leading up to the string at position p.
-    glsl_source_code_buffer += source.substr(start, p.first - start);
-    // Advance start to just after the found string.
-    start = p.first + p.second.first.length();
-    // Append the replacement string.
-    glsl_source_code_buffer += p.second.second;
-  }
-  // Copy the remaining characters.
-  glsl_source_code_buffer += source.substr(start);
-  glsl_source_code_buffer.shrink_to_fit();
-  return glsl_source_code_buffer;
-}
-
+// Called from *UserCode*PipelineCharacteristic_initialize.
 std::vector<vk::VertexInputBindingDescription> ShaderInputData::vertex_binding_descriptions() const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_binding_descriptions() [" << this << "]");
@@ -543,6 +536,7 @@ vk::Format type2format(shader_builder::BasicType glsl_type)
 
 } // namespace
 
+// Called from *UserCode*PipelineCharacteristic_initialize.
 std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_attribute_descriptions() const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_input_attribute_descriptions() [" << this << "]");
@@ -586,42 +580,118 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
   return vertex_input_attribute_descriptions;
 }
 
-void ShaderInputData::realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint)
+// Called from *UserCode*PipelineCharacteristic_initialize.
+void ShaderInputData::realize_descriptor_set_layouts(LogicalDevice const* logical_device)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::realize_shader_resource_declaration_context(" << set_index_hint << ") [" << this << "]");
-  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
-  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
+#ifdef CWDEBUG
+  Dout(dc::debug, "m_sorted_descriptor_set_layouts =");
+  for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
+    Dout(dc::debug, "    " << descriptor_set_layout);
+#endif
+  for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
+    descriptor_set_layout.realize_handle(logical_device);
+}
+
+// Called from *UserCode*PipelineCharacteristic_compile.
+void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
+    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
+    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");
+
+  std::string glsl_source_code_buffer;
+  std::string_view glsl_source_code;
+  shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
+  glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map);
+
+  // Add a shader module to this pipeline.
+  spirv_cache.compile(glsl_source_code, compiler, shader_info);
+  m_shader_modules.push_back(spirv_cache.create_module({}, owning_window->logical_device()
+      COMMA_CWDEBUG_ONLY(".m_shader_modules[" + std::to_string(m_shader_modules.size()) + "]" + ambifix)));
+  m_shader_stage_create_infos.push_back(
+    {
+      .flags = vk::PipelineShaderStageCreateFlags(0),
+      .stage = shader_info.stage(),
+      .module = *m_shader_modules.back(),
+      .pName = "main"
+    }
+  );
+}
+
+// Called from build_shader.
+std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::preprocess2(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
+
+  declaration_contexts_container_t const& declaration_contexts = m_per_stage_declaration_contexts.at(shader_info.stage()); // All the declaration contexts that are involved.
+  std::string_view const source = shader_info.glsl_template_code();
+
+  // Assume no preprocessing is necessary if the source already starts with "#version".
+  if (source.starts_with("#version"))
+    return source;
+
+  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
   {
-    DEBUG_ONLY(auto res2 =)
-      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
-    // We just used find() and it wasn't there?!
-    ASSERT(res2.second);
+    shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
+      dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
+    if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+      continue;
+    shader_resource_declaration_context->set_set_index_hint_map(set_index_hint_map);
   }
+
+  // Generate the declarations.
+  shader_builder::DeclarationsString declarations;
+  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
+    declaration_context->add_declarations_for_stage(declarations, shader_info.stage());
+  declarations.add_newline();   // For pretty printing debug output.
+
+  // Store each position where a match string occurs, together with an std::pair
+  // containing the found substring that has to be replaced (first) and the
+  // string that it has to be replaced with (second).
+  std::map<size_t, std::pair<std::string, std::string>> positions;
+
+  // m_shader_variables contains a number of strings that we need to find in the source. They may occur zero or more times.
+  int id_to_name_growth = 0;
+  for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
+  {
+    std::string match_string = shader_variable->glsl_id_full();
+    for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
+    {
+      id_to_name_growth += shader_variable->name().length() - match_string.length();
+      positions[pos] = std::make_pair(match_string, shader_variable->substitution());
+    }
+  }
+
+  static constexpr char const* version_header = "#version 450\n\n";
+  size_t final_source_code_size = std::strlen(version_header) + declarations.length() + source.length() + id_to_name_growth;
+
+  glsl_source_code_buffer.reserve(utils::malloc_size(final_source_code_size + 1) - 1);
+  glsl_source_code_buffer = version_header;
+  glsl_source_code_buffer += declarations.content();
+
+  // Next copy alternating, the characters in between the strings and the replacements of the substrings.
+  size_t start = 0;
+  for (auto&& p : positions)
+  {
+    // Copy the characters leading up to the string at position p.
+    glsl_source_code_buffer += source.substr(start, p.first - start);
+    // Advance start to just after the found string.
+    start = p.first + p.second.first.length();
+    // Append the replacement string.
+    glsl_source_code_buffer += p.second.second;
+  }
+  // Copy the remaining characters.
+  glsl_source_code_buffer += source.substr(start);
+  glsl_source_code_buffer.shrink_to_fit();
+  return glsl_source_code_buffer;
 }
 
-void ShaderInputData::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
-    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
-    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
-
-  // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
-  descriptor::CombinedImageSampler const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
-  register_shader_resource(combined_image_sampler_task, preferred_descriptor_sets, undesirable_descriptor_sets);
-}
-
-void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
-    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
-    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::register_shader_resource(" << vk_utils::print_pointer(shader_resource) << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
-  m_preferred_descriptor_sets.push_back(preferred_descriptor_sets);
-  m_undesirable_descriptor_sets.push_back(undesirable_descriptor_sets);
-  // Add a thread-safe pointer to the shader resource (Base) to a list of required shader resources.
-  // The shader_resource should point to a member of the Window class.
-  m_required_shader_resources_list.push_back(shader_resource);
-}
-
+// Called from CombinedImageSampler::prepare_shader_resource_declaration,
+// which is the override of shader_builder::shader_resource::Base that is
+// called from prepare_shader_resource_declarations.
+//
+// This function is called once for each combined_image_sampler that was passed to a call to add_combined_image_sampler.
 void ShaderInputData::prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::prepare_combined_image_sampler_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
@@ -651,16 +721,11 @@ void ShaderInputData::prepare_combined_image_sampler_declaration(descriptor::Com
   realize_shader_resource_declaration_context(set_index_hint);
 }
 
-void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
-    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
-    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
-
-  // Remember that this uniform buffer must be created from the PipelineFactory.
-  register_shader_resource(&uniform_buffer, preferred_descriptor_sets, undesirable_descriptor_sets);
-}
-
+// Called from UniformBufferBase::prepare_shader_resource_declaration,
+// which is the override of shader_builder::shader_resource::Base that is
+// called from prepare_shader_resource_declarations.
+//
+// This function is called once for each uniform_buffer that was passed to a call to add_uniform_buffer.
 void ShaderInputData::prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::prepare_uniform_buffer_declaration(" << uniform_buffer << ", " << set_index_hint << ") [" << this << "]");
@@ -680,7 +745,22 @@ void ShaderInputData::prepare_uniform_buffer_declaration(shader_builder::shader_
   realize_shader_resource_declaration_context(set_index_hint);
 }
 
-bool ShaderInputData::sort_required_shader_resources_list()
+// Called from prepare_combined_image_sampler_declaration and prepare_uniform_buffer_declaration.
+void ShaderInputData::realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint)
+{
+  DoutEntering(dc::vulkan, "ShaderInputData::realize_shader_resource_declaration_context(" << set_index_hint << ") [" << this << "]");
+  // Add a ShaderResourceDeclarationContext with key set_index_hint, if that doesn't already exists.
+  if (m_set_index_hint_to_shader_resource_declaration_context.find(set_index_hint) == m_set_index_hint_to_shader_resource_declaration_context.end())
+  {
+    DEBUG_ONLY(auto res2 =)
+      m_set_index_hint_to_shader_resource_declaration_context.try_emplace(set_index_hint, this);
+    // We just used find() and it wasn't there?!
+    ASSERT(res2.second);
+  }
+}
+
+// Called from PipelineFactory_characteristics_compiled.
+bool ShaderInputData::sort_required_shader_resources_list(utils::Badge<task::PipelineFactory>)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::sort_required_shader_resources_list() [" << this << "]");
 
@@ -702,13 +782,15 @@ bool ShaderInputData::sort_required_shader_resources_list()
   return false;
 }
 
+// Called from PipelineFactory_create_shader_resources.
+//
 // Returns true if this PipelineFactory task succeeded in creating all shader resources needed by the current pipeline (being created),
 // and false if one or more other tasks are creating one or more of those shader resources at this moment.
 // Upon successful return m_descriptor_set_per_set_index was initialized with handles to the descriptor sets needed by the current pipeline.
 // Additionally, those descriptor sets are updated to bind to the respective shader resources. The descriptor sets are created
 // as needed: if there already exists a descriptor set that is bound to the same shader resources that we need, we just reuse
 // that descriptor set.
-bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
+bool ShaderInputData::handle_shader_resource_creation_requests(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests(" << pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << this << "]");
 
@@ -780,7 +862,8 @@ bool ShaderInputData::handle_shader_resource_creation_requests(task::PipelineFac
   return true;
 }
 
-void ShaderInputData::initialize_shader_resources_per_set_index(vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
+// Called from PipelineFactory_initialize_shader_resources_per_set_index.
+void ShaderInputData::initialize_shader_resources_per_set_index(utils::Badge<task::PipelineFactory>, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::initialize_shader_resources_per_set_index(" << set_index_hint_map << ") [" << this << "]");
   Dout(dc::shaderresource, "m_set_index_end = " << m_set_index_end);
@@ -814,14 +897,29 @@ void ShaderInputData::initialize_shader_resources_per_set_index(vulkan::descript
   m_descriptor_set_per_set_index.resize(m_set_index_end.get_value());
 }
 
-bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock)
+// Called from PipelineFactory_update_missing_descriptor_sets.
+bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window,
+    vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::update_missing_descriptor_sets(" << pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << pipeline_factory << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::update_missing_descriptor_sets(" << pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << this << "]");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
 
-  utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts = get_vhv_descriptor_set_layouts(set_index_hint_map);
+  // This function is called after realize_descriptor_set_layouts which means that the `binding` values
+  // in the elements of SetLayout::m_sorted_bindings, of each SetLayout in m_sorted_descriptor_set_layouts,
+  // is already finalized.
+  Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
+  utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
+  for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
+  {
+    descriptor::SetIndex set_index = set_index_hint_map.convert(descriptor_set_layout.set_index_hint());
+    // This code assumes that m_sorted_descriptor_set_layouts contains contiguous range [0, 1, 2, ..., size-1] of
+    // set index hint values - one for each.
+    ASSERT(set_index < vhv_descriptor_set_layouts.iend());
+    vhv_descriptor_set_layouts[set_index] = descriptor_set_layout.handle();
+  }
+
   // Isn't this ALWAYS the case? Note that it might take a complex application that is skipping
   // shader resources that are in a given descriptor set but aren't used in this pipeline; hence
   // leave this assert here for a very long time.
@@ -961,7 +1059,8 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
           // set_index that we processed this call (which is m_set_index) then continue with
           // handling the set indexes that we already processed: [m_set_index, set_index>.
           if (set_index > m_set_index)
-            allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, set_index);
+            allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window,
+                set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, set_index);
           // Next time continue with the current set_index.
           m_set_index = set_index;
           return false; // Wait until the other pipeline factory unlocked shader_resource->m_set_layout_bindings_to_handles[set_layout_binding].
@@ -1036,13 +1135,18 @@ bool ShaderInputData::update_missing_descriptor_sets(task::PipelineFactory* pipe
     have_lock = false;
   }
 
-  allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window, set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, m_set_index_end);
+  allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window,
+      set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, m_set_index_end);
   return true;
 }
 
-void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end)
+// Called from update_missing_descriptor_sets.
+void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window,
+    vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts,
+    std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " << owning_window << ", " << missing_descriptor_set_layouts << ", " << set_index_has_frame_resource_pairs << ") [" << this << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " << owning_window << ", " <<
+      missing_descriptor_set_layouts << ", " << set_index_has_frame_resource_pairs << ") [" << this << "]");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
@@ -1098,31 +1202,6 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
         Dout(dc::shaderresource, "The set_index was not found in set_index_has_frame_resource_pairs.");
     }
   }
-}
-
-void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
-{
-  DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");
-
-  std::string glsl_source_code_buffer;
-  std::string_view glsl_source_code;
-  shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
-  glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map);
-
-  // Add a shader module to this pipeline.
-  spirv_cache.compile(glsl_source_code, compiler, shader_info);
-  m_shader_modules.push_back(spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY(".m_shader_modules[" + std::to_string(m_shader_modules.size()) + "]" + ambifix)));
-  m_shader_stage_create_infos.push_back(
-    {
-      .flags = vk::PipelineShaderStageCreateFlags(0),
-      .stage = shader_info.stage(),
-      .module = *m_shader_modules.back(),
-      .pName = "main"
-    }
-  );
 }
 
 } // namespace vulkan::pipeline

@@ -44,6 +44,7 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
   }
 }
 
+// Called from ShaderInputData::preprocess1.
 void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage) const
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
@@ -60,7 +61,7 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
         .descriptorCount = shader_resource_declaration->array_size(),
         .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
-    });
+    }, {});
   }
 }
 

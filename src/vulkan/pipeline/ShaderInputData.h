@@ -168,8 +168,15 @@ class ShaderInputData
   //---------------------------------------------------------------------------
   // Push constants.
 
+ public:
+  template<typename ENTRY>
+  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
+  void add_push_constant();
+
+ private:
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a non-array push constant.
+  // Called by add_push_constant.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
   void add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
@@ -178,6 +185,7 @@ class ShaderInputData
 
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a push constant array.
+  // Called by add_push_constant.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
   void add_push_constant_member(shader_builder::MemberLayout<ContainingClass,
@@ -187,58 +195,54 @@ class ShaderInputData
   // End push constants.
   //---------------------------------------------------------------------------
 
-  //---------------------------------------------------------------------------
-  // Shader resources.
-
-  // Called near the bottom from add_combined_image_sampler and add_uniform_buffer.
-  void realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint);
-
-  // End shader resources.
-  //---------------------------------------------------------------------------
-
  public:
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
   void add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
 
-  template<typename ENTRY>
-  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-  void add_push_constant();
+  //---------------------------------------------------------------------------
+  // Shader resources.
 
   void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
-
   void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  void prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
+  // End shader resources.
+  //---------------------------------------------------------------------------
 
+ public:
   // Called by add_textures and/or add_uniform_buffer (at the end), requesting to be created
   // and storing the preferred and undesirable descriptor set vectors.
   void register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 
-  //---------------------------------------------------------------------------
-  // Begin of MultiLoop states.
+  // Called from *UserCode*PipelineCharacteristic_initialize.
+  void preprocess1(shader_builder::ShaderInfo const& shader_info);
 
-  // Called by PipelineFactory_top_multiloop_while_loop.
-  bool sort_required_shader_resources_list();
-  // Called by PipelineFactory_create_shader_resources.
-  bool handle_shader_resource_creation_requests(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetIndexHintMap const& set_index_hint_map);
-  // Called by PipelineFactory_initialize_shader_resources_per_set_index.
-  void initialize_shader_resources_per_set_index(vulkan::descriptor::SetIndexHintMap const& set_index_hint_map);
-  // Called by PipelineFactory_update_missing_descriptor_sets.
-  bool update_missing_descriptor_sets(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock);
-  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts, std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
+ private:
+  // Called from the top of the first call to preprocess1.
+  void prepare_shader_resource_declarations();
 
-  // End of MultiLoop states.
-  //---------------------------------------------------------------------------
+  // Called from prepare_shader_resource_declarations.
+  void fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out);
+
+ public:
+  // Returns information on what was added with add_vertex_input_binding.
+  // Called from *UserCode*PipelineCharacteristic_initialize.
+  std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
+
+  // Returns information on what was added with add_vertex_input_binding.
+  // Called from *UserCode*PipelineCharacteristic_initialize.
+  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions() const;
+
+  // Called from *UserCode*PipelineCharacteristic_initialize.
+  void realize_descriptor_set_layouts(LogicalDevice const* logical_device);
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
@@ -254,36 +258,50 @@ class ShaderInputData
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
 
-  // Called from prepare_shader_resource_declarations.
-  void fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out);
-  // Called from the top of the first call to preprocess1.
-  void prepare_shader_resource_declarations();
-
   // Create glsl code from template source code.
   //
   // glsl_source_code_buffer is only used when the code from shader_info needs preprocessing,
   // otherwise this function returns a string_view directly into the shader_info's source code.
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
-  void preprocess1(shader_builder::ShaderInfo const& shader_info);
   std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const;
 
-  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
-  {
-    DoutEntering(dc::vulkan, "push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ") [" << this << "]");
-    Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings:");
-    // Find the SetLayout corresponding to the set_index_hint, if any.
-    auto set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::CompareHint{set_index_hint});
-    if (set_layout  == m_sorted_descriptor_set_layouts.end())
-    {
-      m_sorted_descriptor_set_layouts.emplace_back(set_index_hint);
-      set_layout = m_sorted_descriptor_set_layouts.end() - 1;
-    }
-    set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding);
-    // set_layout is an element of m_sorted_descriptor_set_layouts and it was just changed.
-    // We need to re-sort m_sorted_descriptor_set_layouts to keep it sorted.
-    std::sort(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::SetLayoutCompare{});
-  }
+ public:
+  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
+  void prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
+
+ private:
+  // Called near the bottom from add_combined_image_sampler and add_uniform_buffer.
+  void realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint);
+
+  //---------------------------------------------------------------------------
+  // Begin of MultiLoop states.
+
+ public:
+  // Called by PipelineFactory_top_multiloop_while_loop.
+  bool sort_required_shader_resources_list(utils::Badge<task::PipelineFactory>);
+  // Called by PipelineFactory_create_shader_resources.
+  bool handle_shader_resource_creation_requests(utils::BadgeCaller<task::PipelineFactory> pipeline_factory,
+      task::SynchronousWindow const* owning_window, descriptor::SetIndexHintMap const& set_index_hint_map);
+  // Called by PipelineFactory_initialize_shader_resources_per_set_index.
+  void initialize_shader_resources_per_set_index(utils::Badge<task::PipelineFactory>, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map);
+  // Called by PipelineFactory_update_missing_descriptor_sets.
+  bool update_missing_descriptor_sets(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window,
+      descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock);
+ private:
+  // Called by update_missing_descriptor_sets.
+  void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window,
+      vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts,
+      std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
+
+  // End of MultiLoop states.
+  //---------------------------------------------------------------------------
+
+ public:
+  // Called by ShaderResourceDeclarationContext::generate1 which is
+  // called from preprocess1.
+  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,
+      utils::Badge<shader_builder::ShaderResourceDeclarationContext>);
 
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
   void insert(vk::PushConstantRange const& push_constant_range)
@@ -299,38 +317,6 @@ class ShaderInputData
     return { m_push_constant_ranges.begin(), m_push_constant_ranges.end() };
   }
 
-  void realize_descriptor_set_layouts(LogicalDevice const* logical_device)
-  {
-    DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
-#ifdef CWDEBUG
-    Dout(dc::debug, "m_sorted_descriptor_set_layouts =");
-    for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
-      Dout(dc::debug, "    " << descriptor_set_layout);
-#endif
-    for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
-      descriptor_set_layout.realize_handle(logical_device);
-    Dout(dc::shaderresource, "Leaving ShaderInputData::realize_descriptor_set_layouts");
-  }
-
-  utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> get_vhv_descriptor_set_layouts(descriptor::SetIndexHintMap const& set_index_hint_map) const
-  {
-    DoutEntering(dc::vulkan, "ShaderInputData::get_vhv_descriptor_set_layouts() [" << this << "]");
-    // This function is called after realize_descriptor_set_layouts which means that the `binding` values
-    // in the elements of SetLayout::m_sorted_bindings, of each SetLayout in m_sorted_descriptor_set_layouts,
-    // is already finalized.
-    Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
-    utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
-    for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
-    {
-      descriptor::SetIndex set_index = set_index_hint_map.convert(descriptor_set_layout.set_index_hint());
-      // This code assumes that m_sorted_descriptor_set_layouts contains contiguous range [0, 1, 2, ..., size-1] of
-      // set index hint values - one for each.
-      ASSERT(set_index < vhv_descriptor_set_layouts.iend());
-      vhv_descriptor_set_layouts[set_index] = descriptor_set_layout.handle();
-    }
-    return vhv_descriptor_set_layouts;
-  }
-
   //---------------------------------------------------------------------------
   // Accessors.
 
@@ -344,12 +330,6 @@ class ShaderInputData
 
   // Used by ShaderResourceVariable::is_used_in to look up the declaration context.
   set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceVariable>) { return m_set_index_hint_to_shader_resource_declaration_context; }
-
-  // Returns information on what was added with add_vertex_input_binding.
-  std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
-
-  // Returns information on what was added with add_vertex_input_binding.
-  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions() const;
 
   // Returns information on what was added with build_shader.
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }

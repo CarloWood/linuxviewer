@@ -338,7 +338,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         wait(characteristics_compiled);
         return;
       case PipelineFactory_characteristics_compiled:
-        if (m_shader_input_data.sort_required_shader_resources_list())
+        if (m_shader_input_data.sort_required_shader_resources_list({}))
         {
           // No need to call PipelineFactory_create_shader_resources: there are no shader resources that need to be created.
           run_state = PipelineFactory_initialize_shader_resources_per_set_index;
@@ -358,7 +358,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         [[fallthrough]];
       case PipelineFactory_initialize_shader_resources_per_set_index:
         m_have_lock = false;
-        m_shader_input_data.initialize_shader_resources_per_set_index(m_set_index_hint_map);
+        m_shader_input_data.initialize_shader_resources_per_set_index({}, m_set_index_hint_map);
         set_state(PipelineFactory_update_missing_descriptor_sets);
         [[fallthrough]];
       case PipelineFactory_update_missing_descriptor_sets:
