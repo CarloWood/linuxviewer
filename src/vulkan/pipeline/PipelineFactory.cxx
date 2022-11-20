@@ -283,7 +283,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         set_state(PipelineFactory_top_multiloop_while_loop);
         [[fallthrough]];
       case PipelineFactory_top_multiloop_while_loop: // Having multiple for loops inside eachother.
-        // We are not at the top of the while loop.
+        // We are now at the top of the while loop.
         //
         // Set m_start_of_next_loop to a random magic value to indicate that we are in the inner loop.
         m_start_of_next_loop = std::numeric_limits<int>::max();
@@ -292,7 +292,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         {
           // This is not the inner loop; set m_start_of_next_loop to the start value of the next loop.
           m_start_of_next_loop = m_characteristics[vulkan::pipeline::CharacteristicRangeIndex{*m_range_counters + 1}]->ibegin(); // Each loop, one per characteristic, runs from ibegin() till iend().
-          // Since the whole reason that we're mimicing the for() while() MultiLoop magic with task states
+          // Since the whole reason that we're mimicking the for() while() MultiLoop magic with task states
           // is because we need to be able to leave and enter those loops in the middle of the inner loop,
           // we can not have local state (on the stack); might as well use a goto therefore ;).
           goto multiloop_magic_footer;
