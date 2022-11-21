@@ -38,17 +38,18 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_combined_image_samplers = 2;
-  static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom" };
+  static constexpr int number_of_combined_image_samplers = 3;
+  static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, number_of_combined_image_samplers>;
   combined_image_samplers_t m_combined_image_samplers;
   std::array<vulkan::shader_builder::shader_resource::Texture, number_of_combined_image_samplers> m_textures;
 
   enum class LocalShaderIndex {
     vertex0,
-    frag0
+    frag0,
+    frag1
   };
-  utils::Array<vulkan::shader_builder::ShaderIndex, 2, LocalShaderIndex> m_shader_indices;
+  utils::Array<vulkan::shader_builder::ShaderIndex, 3, LocalShaderIndex> m_shader_indices;
 
   // Vertex buffers.
   using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
@@ -96,9 +97,9 @@ class Window : public task::SynchronousWindow
 
     std::array<char const*, number_of_combined_image_samplers> textures_names{
       "textures/cat-tail-nature-grass-summer-whiskers-826101-wallhere.com.jpg",
-      "textures/nature-grass-sky-insect-green-Izmir-839795-wallhere.com.jpg" //,
+      "textures/nature-grass-sky-insect-green-Izmir-839795-wallhere.com.jpg",
+      "textures/tileable10b.png" //,
 #if 0
-      "textures/tileable10b.png",
       "textures/Tileable5.png"
 #endif
     };
@@ -106,7 +107,7 @@ class Window : public task::SynchronousWindow
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
     {
       m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
-      m_combined_image_samplers[t].set_array_size(2);
+//      m_combined_image_samplers[t].set_array_size(2);
     }
 
     std::string const name_prefix("m_textures[");
@@ -179,7 +180,7 @@ void main()
 }
 )glsl";
 
-  static constexpr std::string_view squares_frag_glsl = R"glsl(
+  static constexpr std::string_view squares_frag0_glsl = R"glsl(
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) flat in int instance_index;
 layout(location = 0) out vec4 outColor;
@@ -188,9 +189,24 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
+    outColor = texture(CombinedImageSampler::top, v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom[0], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom0, v_Texcoord);
+}
+)glsl";
+
+  static constexpr std::string_view squares_frag1_glsl = R"glsl(
+layout(location = 0) in vec2 v_Texcoord;
+layout(location = 1) flat in int instance_index;
+layout(location = 0) out vec4 outColor;
+
+void main()
+{
+  int foo = PushConstant::m_texture_index;
+  if (instance_index == 0)
+    outColor = texture(CombinedImageSampler::top, v_Texcoord);
+  else
+    outColor = texture(CombinedImageSampler::bottom1, v_Texcoord);
 }
 )glsl";
 
@@ -203,10 +219,12 @@ void main()
     // Create a ShaderInfo instance for each shader, initializing it with the stage that the shader will be used in and the template code that it exists of.
     std::vector<ShaderInfo> shader_info = {
       { vk::ShaderStageFlagBits::eVertex,   "squares.vert.glsl" },
-      { vk::ShaderStageFlagBits::eFragment, "squares.frag.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "squares.frag0.glsl" },
+      { vk::ShaderStageFlagBits::eFragment, "squares.frag1.glsl" }
     };
     shader_info[0].load(squares_vert_glsl);
-    shader_info[1].load(squares_frag_glsl);
+    shader_info[1].load(squares_frag0_glsl);
+    shader_info[2].load(squares_frag1_glsl);
 
     // Inform the application about the shaders that we use.
     // This will call hash() on each ShaderInfo object (which may only called once), and then store it only when that hash doesn't exist yet.
@@ -305,8 +323,20 @@ void main()
           shader_input_data().add_vertex_input_binding(m_square);
           shader_input_data().add_vertex_input_binding(m_top_bottom_positions);
           shader_input_data().add_push_constant<PushConstant>();
+
+          std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
-            shader_input_data().add_combined_image_sampler(window->combined_image_samplers()[t]);
+            key_preference.emplace_back(window->combined_image_samplers()[t].descriptor_task()->descriptor_set_key(), 1.0);
+
+          int constexpr number_of_combined_image_samplers_per_pipeline = 2;
+          std::array<int, number_of_combined_image_samplers_per_pipeline> combined_image_sampler_indexes = {
+            0,
+            1 + m_pipeline
+          };
+          for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
+            shader_input_data().add_combined_image_sampler(
+                window->combined_image_samplers()[combined_image_sampler_indexes[i]],
+                { key_preference[combined_image_sampler_indexes[1 - i]] });
 
           // Add default color blend.
           m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -316,7 +346,7 @@ void main()
             using namespace vulkan::shader_builder;
 
             ShaderIndex shader_vert_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-            ShaderIndex shader_frag_index = window->m_shader_indices[LocalShaderIndex::frag0];
+            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
             shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
@@ -352,7 +382,7 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
 
           ShaderIndex shader_vert_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-          ShaderIndex shader_frag_index = window->m_shader_indices[LocalShaderIndex::frag0];
+          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
           // Compile the shaders.
           ShaderCompiler compiler;

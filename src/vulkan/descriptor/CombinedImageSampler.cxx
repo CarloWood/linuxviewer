@@ -41,8 +41,9 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case CombinedImageSampler_need_action:
-      flush_new_data([this](Datum&& datum){
-          Dout(dc::always, "Received: " << datum);
+      // Get all the new descriptors that need updating from the TaskToTaskDeque.
+      flush_new_data([this](NeedsUpdate&& descriptor_to_update){
+          Dout(dc::always, "Received: " << descriptor_to_update << " on " << this << " (" << debug_name() << ")");
         });
       if (producer_not_finished())
         break;

@@ -51,7 +51,7 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSampler final : public vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>, public shader_resource::Base
+class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>, public shader_resource::Base
 {
  protected:
   using direct_base_type = AIStatefulTask;
@@ -105,10 +105,10 @@ class CombinedImageSampler final : public vk_utils::TaskToTaskDeque<AIStatefulTa
   // There is no need to instantiate anything for CombinedImageSamplers.
   void instantiate(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
 
-  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
+  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override final;
 
-  void update_descriptor_set(NeedsUpdate descriptor_to_update) override;
-  uint32_t array_size() const override { return m_array_size; }
+  void update_descriptor_set(NeedsUpdate descriptor_to_update) override final;
+  uint32_t array_size() const override final { return m_array_size; }
 
  protected:
   ~CombinedImageSampler() override;
