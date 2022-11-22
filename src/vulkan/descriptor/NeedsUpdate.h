@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Update.h"
 #include "pipeline/FactoryRangeId.h"
 #include <cstdint>
 #ifdef CWDEBUG
@@ -13,11 +14,11 @@ class SynchronousWindow;
 namespace vulkan::descriptor {
 class FrameResourceCapableDescriptorSet;
 
-class NeedsUpdate
+class NeedsUpdate : public Update
 {
  private:
   task::SynchronousWindow const* m_owning_window;
-  pipeline::FactoryRangeId m_factory_range_id;                            // The pipeline factory / characteristic range pair that created this descriptor.
+  pipeline::FactoryRangeId m_factory_range_id;                  // The pipeline factory / characteristic range pair that created this descriptor.
   int m_fill_index;                                             // A range value with which this descriptor is used.
   uint32_t m_array_size;                                        // 1 if this is not an array; 0 if no size is known.
   FrameResourceCapableDescriptorSet const* m_descriptor_set;    // The descriptor set that needs updating.
@@ -58,6 +59,11 @@ class NeedsUpdate
     m_binding = rhs.m_binding;
     m_has_frame_resource = rhs.m_has_frame_resource;
     return *this;
+  }
+
+  bool is_needs_update() const override final
+  {
+    return true;
   }
 
 #ifdef CWDEBUG

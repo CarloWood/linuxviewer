@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ShaderResourceMember.h"
-#include "NeedsUpdate.h"
+#include "Update.h"
 #include "SetKeyContext.h"
 #include "shader_resource/Base.h"
 #include "vk_utils/TaskToTaskDeque.h"
@@ -51,7 +51,7 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>, public shader_resource::Base
+class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_resource::Base
 {
  protected:
   using direct_base_type = AIStatefulTask;
@@ -70,7 +70,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, Ne
 
  public:
   CombinedImageSampler(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
-    vk_utils::TaskToTaskDeque<AIStatefulTask, NeedsUpdate>(CWDEBUG_ONLY(debug)), shader_resource::Base(SetKeyContext::instance(), glsl_id_full_postfix)
+    vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), shader_resource::Base(SetKeyContext::instance(), glsl_id_full_postfix)
   {
     DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSampler::CombinedImageSampler(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
@@ -107,7 +107,16 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, Ne
 
   void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override final;
 
-  void update_descriptor_set(NeedsUpdate descriptor_to_update) override final;
+  void update_descriptor_set(NeedsUpdate descriptor_to_update) override final
+  {
+    DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << descriptor_to_update << ")");
+
+    boost::intrusive_ptr<Update> update = new NeedsUpdate(std::move(descriptor_to_update));
+
+    // Pass new descriptors that need to be updated to this task (this is called from a PipelineFactory).
+    have_new_datum(std::move(update));
+  }
+
   uint32_t array_size() const override final { return m_array_size; }
 
  protected:

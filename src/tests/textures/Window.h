@@ -6,14 +6,15 @@
 #include "InstanceData.h"
 #include "SynchronousWindow.h"
 #include "PushConstant.h"
+#include "Pipeline.h"
 #include "queues/CopyDataToImage.h"
 #include "queues/CopyDataToBuffer.h"
-#include "Pipeline.h"
 #include "descriptor/CombinedImageSampler.h"
+#include "descriptor/SetKeyPreference.h"
+#include "descriptor/ProvidesUpdate.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
-#include "descriptor/SetKeyPreference.h"
 #include "pipeline/FactoryRangeId.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
@@ -135,6 +136,11 @@ class Window : public task::SynchronousWindow
 
       m_textures[t].upload(texture_data.extent(), sample_image_view_kind, this,
           std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, texture_uploaded);
+    }
+
+    for (int t = 0; t < number_of_combined_image_samplers; ++t)
+    {
+      m_combined_image_samplers[t].update_image_sampler({42});
     }
   }
 

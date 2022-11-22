@@ -13,14 +13,6 @@ void CombinedImageSampler::prepare_shader_resource_declaration(descriptor::SetIn
   shader_input_data->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
-void CombinedImageSampler::update_descriptor_set(NeedsUpdate descriptor_to_update)
-{
-  DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << descriptor_to_update << ")");
-
-  // Pass new descriptors that need to be updated to this task (this is called from a PipelineFactory).
-  have_new_datum(std::move(descriptor_to_update));
-}
-
 CombinedImageSampler::~CombinedImageSampler()
 {
   DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSampler::~CombinedImageSampler() [" << this << "]");
@@ -42,8 +34,8 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
   {
     case CombinedImageSampler_need_action:
       // Get all the new descriptors that need updating from the TaskToTaskDeque.
-      flush_new_data([this](NeedsUpdate&& descriptor_to_update){
-          Dout(dc::always, "Received: " << descriptor_to_update << " on " << this << " (" << debug_name() << ")");
+      flush_new_data([this](boost::intrusive_ptr<Update>&& update){
+          Dout(dc::always, "Received: " << *update << " on " << this << " (" << debug_name() << ")");
         });
       if (producer_not_finished())
         break;
