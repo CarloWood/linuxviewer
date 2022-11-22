@@ -65,9 +65,6 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
   }
 }
 
-ShaderInputData& CharacteristicRange::shader_input_data() { return m_owning_factory->shader_input_data({}); }
-ShaderInputData const& CharacteristicRange::shader_input_data() const { return m_owning_factory->shader_input_data({}); }
-
 char const* Characteristic::state_str_impl(state_type run_state) const
 {
   switch(run_state)

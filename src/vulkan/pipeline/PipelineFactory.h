@@ -1,7 +1,8 @@
 #ifndef PIPELINE_PIPELINE_FACTORY_H
 #define PIPELINE_PIPELINE_FACTORY_H
 
-#include "CharacteristicRange.h"
+#include "FlatCreateInfo.h"
+#include "ShaderInputData.h"
 #include "Pipeline.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
@@ -30,7 +31,8 @@ class PipelineFactory : public AIStatefulTask
  public:
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
   using characteristics_container_t = utils::Vector<boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange>, vulkan::pipeline::CharacteristicRangeIndex>;
-  using pipeline_index_t = vulkan::pipeline::CharacteristicRange::pipeline_index_t;
+  // The same as CharacteristicRange::pipeline_index_t.
+  using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
   static constexpr condition_type pipeline_cache_set_up = 1;
   static constexpr condition_type fully_initialized = 2;

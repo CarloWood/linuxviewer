@@ -23,6 +23,7 @@ using NAMESPACE_DEBUG::print_string;
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
 void ShaderInputData::add_combined_image_sampler(
+    utils::Badge<CharacteristicRange>,
     shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
     CharacteristicRange const* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
@@ -37,7 +38,9 @@ void ShaderInputData::add_combined_image_sampler(
 }
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
-void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+void ShaderInputData::add_uniform_buffer(
+    utils::Badge<CharacteristicRange>,
+    shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
     CharacteristicRange const* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
@@ -66,7 +69,7 @@ void ShaderInputData::register_shader_resource(
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
 // Returns the declaration contexts that are used in this shader.
-void ShaderInputData::preprocess1(shader_builder::ShaderInfo const& shader_info)
+void ShaderInputData::preprocess1(utils::Badge<CharacteristicRange, ImGui>, shader_builder::ShaderInfo const& shader_info)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::preprocess1(" << shader_info << ") [" << this << "]");
 
@@ -303,7 +306,7 @@ void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetInd
 }
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
-std::vector<vk::VertexInputBindingDescription> ShaderInputData::vertex_binding_descriptions() const
+std::vector<vk::VertexInputBindingDescription> ShaderInputData::vertex_binding_descriptions(utils::Badge<CharacteristicRange, ImGui>) const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_binding_descriptions() [" << this << "]");
   std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions;
@@ -545,7 +548,7 @@ vk::Format type2format(shader_builder::BasicType glsl_type)
 } // namespace
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
-std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_attribute_descriptions() const
+std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_attribute_descriptions(utils::Badge<CharacteristicRange, ImGui>) const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::vertex_input_attribute_descriptions() [" << this << "]");
 
@@ -589,7 +592,7 @@ std::vector<vk::VertexInputAttributeDescription> ShaderInputData::vertex_input_a
 }
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
-void ShaderInputData::realize_descriptor_set_layouts(LogicalDevice const* logical_device)
+void ShaderInputData::realize_descriptor_set_layouts(utils::Badge<CharacteristicRange>, LogicalDevice const* logical_device)
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
 #ifdef CWDEBUG
@@ -602,7 +605,7 @@ void ShaderInputData::realize_descriptor_set_layouts(LogicalDevice const* logica
 }
 
 // Called from *UserCode*PipelineCharacteristic_compile.
-void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
+void ShaderInputData::build_shader(utils::Badge<CharacteristicRange, ImGui>, task::SynchronousWindow const* owning_window,
     shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
     shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))

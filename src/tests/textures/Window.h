@@ -17,6 +17,9 @@
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "pipeline/FactoryRangeId.h"
 #include "vk_utils/ImageData.h"
+
+#include "pipeline/ShaderInputData.inl.h"
+
 #include <imgui.h>
 #include "debug.h"
 #include "tracy/CwTracy.h"
@@ -106,12 +109,6 @@ class Window : public task::SynchronousWindow
 #endif
     };
 
-    for (int t = 0; t < number_of_combined_image_samplers; ++t)
-    {
-      m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
-//      m_combined_image_samplers[t].set_array_size(2);
-    }
-
     std::string const name_prefix("m_textures[");
 
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -138,9 +135,16 @@ class Window : public task::SynchronousWindow
           std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, texture_uploaded);
     }
 
-    for (int t = 0; t < number_of_combined_image_samplers; ++t)
+    for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
     {
-      m_combined_image_samplers[t].update_image_sampler({42});
+      vulkan::pipeline::FactoryRangeId factory_range_id = m_pipeline_factory_characteristic_range_ids[pipeline];
+      for (int t = 0; t < number_of_combined_image_samplers; ++t)
+      {
+        if (t > 0 && t != pipeline + 1)
+          continue;
+        //ProvidesUpdate
+        m_combined_image_samplers[t].update_image_sampler({ m_textures[t], factory_range_id });
+      }
     }
   }
 
@@ -320,16 +324,16 @@ void main()
           // Register the vectors that we will fill.
           m_flat_create_info->add(&m_vertex_input_binding_descriptions);
           m_flat_create_info->add(&m_vertex_input_attribute_descriptions);
-          m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
+          m_flat_create_info->add(&shader_stage_create_infos());
           m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
           m_flat_create_info->add(&m_dynamic_states);
-          m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
+          m_flat_create_info->add_descriptor_set_layouts(&sorted_descriptor_set_layouts());
           m_flat_create_info->add(&m_push_constant_ranges);
 
           // Define the pipeline.
-          shader_input_data().add_vertex_input_binding(m_square);
-          shader_input_data().add_vertex_input_binding(m_top_bottom_positions);
-          shader_input_data().add_push_constant<PushConstant>();
+          add_vertex_input_binding(m_square);
+          add_vertex_input_binding(m_top_bottom_positions);
+          add_push_constant<PushConstant>();
 
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -341,8 +345,8 @@ void main()
             1 + m_pipeline
           };
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
-            shader_input_data().add_combined_image_sampler(
-                window->combined_image_samplers()[combined_image_sampler_indexes[i]], this,
+            add_combined_image_sampler(
+                window->combined_image_samplers()[combined_image_sampler_indexes[i]],
                 { key_preference[combined_image_sampler_indexes[1 - i]] });
 
           // Add default color blend.
@@ -356,13 +360,13 @@ void main()
             ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-            shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
-            shader_input_data().preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
+            preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
+            preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
           }
 
-          m_vertex_input_binding_descriptions = shader_input_data().vertex_binding_descriptions();
-          m_vertex_input_attribute_descriptions = shader_input_data().vertex_input_attribute_descriptions();
-          m_push_constant_ranges = shader_input_data().push_constant_ranges();
+          m_vertex_input_binding_descriptions = vertex_binding_descriptions();
+          m_vertex_input_attribute_descriptions = vertex_input_attribute_descriptions();
+          m_push_constant_ranges = push_constant_ranges();
 
           m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
@@ -377,7 +381,7 @@ void main()
           // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
           // Otherwise, if it does not already exist, create a new descriptor set layout using the
           // provided binding values as-is.
-          shader_input_data().realize_descriptor_set_layouts(m_owning_window->logical_device());
+          realize_descriptor_set_layouts(m_owning_window->logical_device());
 
           set_continue_state(TextureTestPipelineCharacteristic_compile);
           run_state = Characteristic_initialized;
@@ -393,9 +397,9 @@ void main()
 
           // Compile the shaders.
           ShaderCompiler compiler;
-          shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
+          build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
-          shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
+          build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
 
           run_state = Characteristic_compiled;
@@ -421,6 +425,12 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
 
+    for (int t = 0; t < number_of_combined_image_samplers; ++t)
+    {
+      m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
+//      m_combined_image_samplers[t].set_array_size(2);
+    }
+
     for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
     {
       m_pipeline_factory[pipeline] = create_pipeline_factory(m_graphics_pipelines[pipeline], main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
@@ -438,7 +448,7 @@ void main()
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
 
-    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->shader_input_data().vertex_shader_input_sets())
+    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->vertex_shader_input_sets())
     {
       size_t entry_size = vertex_shader_input_set->chunk_size();
       int count = vertex_shader_input_set->chunk_count();
