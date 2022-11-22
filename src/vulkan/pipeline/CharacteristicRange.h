@@ -106,6 +106,8 @@ class CharacteristicRange : public AIStatefulTask
 
   // Accessor.
   task::PipelineFactory* owning_factory(utils::Badge<ShaderInputData>) const { return m_owning_factory; }
+  CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
+  index_type fill_index() const { return m_fill_index; }
 
  protected:
   ShaderInputData& shader_input_data();
@@ -146,6 +148,7 @@ class CharacteristicRange : public AIStatefulTask
   void multiplex_impl(state_type run_state) override;
 
 #ifdef CWDEBUG
+ public:
   virtual void print_on(std::ostream& os) const = 0;
 #endif
 };

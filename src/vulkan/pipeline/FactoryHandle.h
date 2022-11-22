@@ -2,6 +2,7 @@
 #define VULKAN_PIPELINE_FACTORY_HANDLE_H
 
 #include "Concepts.h"
+#include "FactoryRangeId.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 
@@ -25,7 +26,7 @@ class FactoryHandle
   FactoryHandle(PipelineFactoryIndex factory_index) : m_factory_index(factory_index) { }
 
   template<ConceptPipelineCharacteristic CHARACTERISTIC, typename... ARGS>
-  void add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args);
+  FactoryRangeId add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args);
 
   void generate(task::SynchronousWindow const* owning_window);
 
@@ -56,13 +57,15 @@ class FactoryHandle
 namespace vulkan::pipeline {
 
 template<ConceptPipelineCharacteristic CHARACTERISTIC, typename... ARGS>
-void FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args)
+FactoryRangeId FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args)
 {
   DoutEntering(dc::vulkan, "vulkan::pipeline::FactoryHandle::add_characteristic<" <<
       ::NAMESPACE_DEBUG::type_name_of<CHARACTERISTIC>() <<
       ((LibcwDoutStream << ... << (std::string(", ") + ::NAMESPACE_DEBUG::type_name_of<ARGS>())), ">(") <<
       owning_window << ", " << join(", ", args...) << ")");
-  owning_window->pipeline_factory(m_factory_index)->add_characteristic(new CHARACTERISTIC(owning_window, std::forward<ARGS>(args)...));
+  CHARACTERISTIC* ptr = new CHARACTERISTIC(owning_window, std::forward<ARGS>(args)...);
+  task::PipelineFactory* pipeline_factory = owning_window->pipeline_factory(m_factory_index);
+  return pipeline_factory->add_characteristic(ptr);
 }
 
 } // namespace vulkan::pipeline

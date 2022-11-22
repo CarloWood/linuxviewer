@@ -119,10 +119,14 @@ PipelineFactory::~PipelineFactory()
   vulkan::Application::instance().m_dependent_tasks.remove(m_index);
 }
 
-void PipelineFactory::add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
+vulkan::pipeline::FactoryRangeId PipelineFactory::add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
   characteristic_range->set_owner(this);
+  vulkan::pipeline::CharacteristicRangeIndex characteristic_range_index{m_characteristics.iend()};
+  characteristic_range->set_characteristic_range_index(characteristic_range_index);
+  int end = characteristic_range->iend();
   m_characteristics.push_back(std::move(characteristic_range));
+  return vulkan::pipeline::FactoryRangeId{ m_pipeline_factory_index, characteristic_range_index, end };
 }
 
 char const* PipelineFactory::condition_str_impl(condition_type condition) const
@@ -308,7 +312,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           // Do not accidently delete the parent task while still running a child task.
           // Call fill with its current range index.
           m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
-          m_characteristics[i]->set_characteristic_range_index(i);
           m_characteristics[i]->signal(vulkan::pipeline::CharacteristicRange::do_fill);
         }
         set_state(PipelineFactory_characteristics_filled);

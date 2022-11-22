@@ -16,7 +16,8 @@
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "shader_builder/ShaderResourceVariable.h"
 #include "shader_builder/shader_resource/Base.h"
-#include "shader_builder/ShaderResourceIndex.h"
+#include "shader_builder/ShaderResourcePlusCharacteristicIndex.h"
+#include "shader_builder/ShaderResourcePlusCharacteristic.h"
 #include "utils/Vector.h"
 #include "utils/log2.h"
 #include "utils/TemplateStringLiteral.h"
@@ -112,18 +113,18 @@ class ShaderInputData
   per_stage_declaration_contexts_container_t m_per_stage_declaration_contexts;
   descriptor::SetKeyToShaderResourceDeclaration m_shader_resource_set_key_to_shader_resource_declaration;       // Maps descriptor::SetKey's to shader resource declaration object used for the current pipeline.
 
-  // List of shader resources that were added by the owning CharacteristicRange from the add_* functions like add_uniform_buffer.
-  utils::Vector<shader_builder::shader_resource::Base const*, shader_builder::ShaderResourceIndex> m_required_shader_resources_list;
+  // List of shader resource / Characteristic pairs (range plus range value), where the latter added the former from the add_* functions like add_uniform_buffer.
+  utils::Vector<shader_builder::ShaderResourcePlusCharacteristic, shader_builder::ShaderResourcePlusCharacteristicIndex> m_required_shader_resource_plus_characteristic_list;
   // Corresponding preferred and undesirable descriptor sets.
-  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourceIndex> m_preferred_descriptor_sets;
-  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourceIndex> m_undesirable_descriptor_sets;
+  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourcePlusCharacteristicIndex> m_preferred_descriptor_sets;
+  utils::Vector<std::vector<descriptor::SetKeyPreference>, shader_builder::ShaderResourcePlusCharacteristicIndex> m_undesirable_descriptor_sets;
 
   // Initialized in handle_shader_resource_creation_requests:
   // The list of shader resources that we managed to get the lock on and weren't already created before.
   std::vector<shader_builder::shader_resource::Base*> m_acquired_required_shader_resources_list;
   // Initialized in initialize_shader_resources_per_set_index.
-  utils::Vector<std::vector<shader_builder::shader_resource::Base const*>, descriptor::SetIndex> m_shader_resources_per_set_index;
-  // The largest set_index used in m_required_shader_resources_list, plus one.
+  utils::Vector<std::vector<shader_builder::ShaderResourcePlusCharacteristic>, descriptor::SetIndex> m_shader_resource_plus_characteristics_per_set_index;
+  // The largest set_index used in m_required_shader_resource_plus_characteristic_list, plus one.
   descriptor::SetIndex m_set_index_end;
   // The current descriptor set index that we're processing in update_missing_descriptor_sets.
   descriptor::SetIndex m_set_index;
@@ -205,10 +206,12 @@ class ShaderInputData
   // Shader resources.
 
   void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
+      CharacteristicRange const* adding_characteristic_range,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
   void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+      CharacteristicRange const* adding_characteristic_range,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -219,6 +222,7 @@ class ShaderInputData
   // Called by add_textures and/or add_uniform_buffer (at the end), requesting to be created
   // and storing the preferred and undesirable descriptor set vectors.
   void register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
+      CharacteristicRange const* adding_characteristic_range,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 
@@ -230,7 +234,7 @@ class ShaderInputData
   void prepare_shader_resource_declarations();
 
   // Called from prepare_shader_resource_declarations.
-  void fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out);
+  void fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourcePlusCharacteristicIndex>& set_index_hints_out);
 
  public:
   // Returns information on what was added with add_vertex_input_binding.
@@ -365,9 +369,6 @@ class ShaderInputData
 #endif
 #ifndef VULKAN_SHADERBUILDER_VERTEX_ATTRIBUTE_ENTRY_H
 #include "shader_builder/VertexAttribute.h"
-#endif
-#ifndef VULKAN_APPLICATION_H
-//#include "Application.h"
 #endif
 
 #ifndef VULKAN_PIPELINE_PIPELINE_H_definitions

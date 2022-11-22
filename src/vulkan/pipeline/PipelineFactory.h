@@ -14,6 +14,10 @@ namespace vulkan {
 class LogicalDevice;
 } // namespace vulkan
 
+namespace vulkan::pipeline {
+class FactoryRangeId;
+} // namespace vulkan::pipeline
+
 namespace task {
 class PipelineCache;
 
@@ -111,11 +115,12 @@ class PipelineFactory : public AIStatefulTask
   // Accessor.
   SynchronousWindow* owning_window() const { return m_owning_window; }
 
-  void add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
+  vulkan::pipeline::FactoryRangeId add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
   void set_pipeline(vulkan::Pipeline&& pipeline) { m_pipeline_out = std::move(pipeline); }
   characteristics_container_t const& characteristics() const { return m_characteristics; }
+  PipelineFactoryIndex pipeline_factory_index() const { return m_pipeline_factory_index; }
 
   // Called from CharacteristicRange::multiplex_impl.
   void characteristic_range_initialized();

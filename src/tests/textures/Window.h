@@ -14,6 +14,7 @@
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "descriptor/SetKeyPreference.h"
+#include "pipeline/FactoryRangeId.h"
 #include "vk_utils/ImageData.h"
 #include <imgui.h>
 #include "debug.h"
@@ -335,7 +336,7 @@ void main()
           };
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
             shader_input_data().add_combined_image_sampler(
-                window->combined_image_samplers()[combined_image_sampler_indexes[i]],
+                window->combined_image_samplers()[combined_image_sampler_indexes[i]], this,
                 { key_preference[combined_image_sampler_indexes[1 - i]] });
 
           // Add default color blend.
@@ -408,6 +409,7 @@ void main()
   };
 
   std::array<vulkan::pipeline::FactoryHandle, number_of_pipelines> m_pipeline_factory;
+  std::array<vulkan::pipeline::FactoryRangeId, number_of_pipelines> m_pipeline_factory_characteristic_range_ids;
 
   void create_graphics_pipelines() override
   {
@@ -416,7 +418,10 @@ void main()
     for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
     {
       m_pipeline_factory[pipeline] = create_pipeline_factory(m_graphics_pipelines[pipeline], main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-      m_pipeline_factory[pipeline].add_characteristic<TextureTestPipelineCharacteristic>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+      // We have one factory/range pair per pipeline here.
+      m_pipeline_factory_characteristic_range_ids[pipeline] =
+        m_pipeline_factory[pipeline].add_characteristic<TextureTestPipelineCharacteristic>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+
       m_pipeline_factory[pipeline].generate(this);
     }
   }

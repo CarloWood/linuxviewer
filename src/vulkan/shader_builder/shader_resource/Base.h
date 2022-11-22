@@ -5,7 +5,7 @@
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetLayoutBinding.h"
 #include "descriptor/NeedsUpdate.h"
-#include "shader_builder/ShaderResourceIndex.h"
+#include "shader_builder/ShaderResourcePlusCharacteristicIndex.h"
 #include "threadsafe/aithreadsafe.h"
 #include "threadsafe/AIReadWriteMutex.h"
 #include <vulkan/vulkan.hpp>

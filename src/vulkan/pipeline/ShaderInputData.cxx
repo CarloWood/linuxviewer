@@ -9,6 +9,7 @@
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "shader_builder/DeclarationsString.h"
+#include "shader_builder/ShaderResourcePlusCharacteristic.h"
 #include "utils/malloc_size.h"
 #include "utils/almost_equal.h"
 #include "debug.h"
@@ -21,39 +22,46 @@ using NAMESPACE_DEBUG::print_string;
 #endif
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
-void ShaderInputData::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
+void ShaderInputData::add_combined_image_sampler(
+    shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
+    CharacteristicRange const* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::add_combined_image_sampler(" << combined_image_sampler << ", " << adding_characteristic_range << ", " <<
+      preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
   // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
   descriptor::CombinedImageSampler const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
-  register_shader_resource(combined_image_sampler_task, preferred_descriptor_sets, undesirable_descriptor_sets);
+  register_shader_resource(combined_image_sampler_task, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
 void ShaderInputData::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+    CharacteristicRange const* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::add_uniform_buffer(" << uniform_buffer << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
   // Remember that this uniform buffer must be created from the PipelineFactory.
-  register_shader_resource(&uniform_buffer, preferred_descriptor_sets, undesirable_descriptor_sets);
+  register_shader_resource(&uniform_buffer, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 // Called from add_combined_image_sampler and add_uniform_buffer.
-void ShaderInputData::register_shader_resource(shader_builder::shader_resource::Base const* shader_resource,
+void ShaderInputData::register_shader_resource(
+    shader_builder::shader_resource::Base const* shader_resource,
+    CharacteristicRange const* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::register_shader_resource(" << vk_utils::print_pointer(shader_resource) << ", " << preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::register_shader_resource(" << vk_utils::print_pointer(shader_resource) << ", " << preferred_descriptor_sets << ", " <<
+      undesirable_descriptor_sets << ") [" << this << "]");
   m_preferred_descriptor_sets.push_back(preferred_descriptor_sets);
   m_undesirable_descriptor_sets.push_back(undesirable_descriptor_sets);
   // Add a thread-safe pointer to the shader resource (Base) to a list of required shader resources.
   // The shader_resource should point to a member of the Window class.
-  m_required_shader_resources_list.push_back(shader_resource);
+  m_required_shader_resource_plus_characteristic_list.push_back({shader_resource, adding_characteristic_range, adding_characteristic_range->fill_index()});
 }
 
 // Called from *UserCode*PipelineCharacteristic_initialize.
@@ -96,48 +104,48 @@ void ShaderInputData::prepare_shader_resource_declarations()
   DoutEntering(dc::vulkan, "ShaderInputData::prepare_shader_resource_declarations() [" << this << "]");
   m_called_prepare_shader_resource_declarations = true;
 
-  utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex> set_index_hints;
-  if (m_required_shader_resources_list.size() > 1)
+  utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourcePlusCharacteristicIndex> set_index_hints;
+  if (m_required_shader_resource_plus_characteristic_list.size() > 1)
     fill_set_index_hints(set_index_hints);
   else
     set_index_hints.emplace_back(0UL);
 
-  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
-      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+  for (shader_builder::ShaderResourcePlusCharacteristicIndex shader_resource_plus_characteristic_index = m_required_shader_resource_plus_characteristic_list.ibegin();
+      shader_resource_plus_characteristic_index != m_required_shader_resource_plus_characteristic_list.iend(); ++shader_resource_plus_characteristic_index)
   {
-    shader_builder::shader_resource::Base const* shader_resource = m_required_shader_resources_list[shader_resource_index];
-    m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_index];
-    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_index], this);
+    shader_builder::shader_resource::Base const* shader_resource = m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index].shader_resource();
+    m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_plus_characteristic_index];
+    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_plus_characteristic_index], this);
   }
 }
 
 // Called from prepare_shader_resource_declarations.
-void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourceIndex>& set_index_hints_out)
+void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHint, shader_builder::ShaderResourcePlusCharacteristicIndex>& set_index_hints_out)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::fill_set_index_hints(" << set_index_hints_out << ") [" << this << "]");
 
   using namespace partitions;
 
   LogicalDevice const* logical_device = m_owning_window->logical_device();
-  int const number_of_elements = m_required_shader_resources_list.size();
+  int const number_of_elements = m_required_shader_resource_plus_characteristic_list.size();
 
   PartitionTask partition_task(number_of_elements, logical_device);
 
   // Run over all required shader resources.
-  for (shader_builder::ShaderResourceIndex shader_resource_index1 = m_required_shader_resources_list.ibegin();
-      shader_resource_index1 != m_required_shader_resources_list.iend(); ++shader_resource_index1)
+  for (shader_builder::ShaderResourcePlusCharacteristicIndex shader_resource_plus_characteristic_index1 = m_required_shader_resource_plus_characteristic_list.ibegin();
+      shader_resource_plus_characteristic_index1 != m_required_shader_resource_plus_characteristic_list.iend(); ++shader_resource_plus_characteristic_index1)
   {
-    for (shader_builder::ShaderResourceIndex shader_resource_index2 = m_required_shader_resources_list.ibegin();
-        shader_resource_index2 != m_required_shader_resources_list.iend(); ++shader_resource_index2)
+    for (shader_builder::ShaderResourcePlusCharacteristicIndex shader_resource_plus_characteristic_index2 = m_required_shader_resource_plus_characteristic_list.ibegin();
+        shader_resource_plus_characteristic_index2 != m_required_shader_resource_plus_characteristic_list.iend(); ++shader_resource_plus_characteristic_index2)
     {
-      if (shader_resource_index1 == shader_resource_index2)
+      if (shader_resource_plus_characteristic_index1 == shader_resource_plus_characteristic_index2)
         continue;
 
       double preferred_preference = 0.0;
-      for (std::vector<descriptor::SetKeyPreference>::const_iterator preferred = m_preferred_descriptor_sets[shader_resource_index1].begin();
-          preferred != m_preferred_descriptor_sets[shader_resource_index1].end(); ++preferred)
+      for (std::vector<descriptor::SetKeyPreference>::const_iterator preferred = m_preferred_descriptor_sets[shader_resource_plus_characteristic_index1].begin();
+          preferred != m_preferred_descriptor_sets[shader_resource_plus_characteristic_index1].end(); ++preferred)
       {
-        if (preferred->descriptor_set_key() == m_required_shader_resources_list[shader_resource_index2]->descriptor_set_key())
+        if (preferred->descriptor_set_key() == m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index2].shader_resource()->descriptor_set_key())
         {
           preferred_preference = preferred->preference();
           break;
@@ -145,10 +153,10 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
       }
 
       double undesirable_preference = 0.0;
-      for (std::vector<descriptor::SetKeyPreference>::const_iterator undesirable = m_undesirable_descriptor_sets[shader_resource_index1].begin();
-          undesirable != m_undesirable_descriptor_sets[shader_resource_index1].end(); ++undesirable)
+      for (std::vector<descriptor::SetKeyPreference>::const_iterator undesirable = m_undesirable_descriptor_sets[shader_resource_plus_characteristic_index1].begin();
+          undesirable != m_undesirable_descriptor_sets[shader_resource_plus_characteristic_index1].end(); ++undesirable)
       {
-        if (undesirable->descriptor_set_key() == m_required_shader_resources_list[shader_resource_index2]->descriptor_set_key())
+        if (undesirable->descriptor_set_key() == m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index2].shader_resource()->descriptor_set_key())
         {
           undesirable_preference = undesirable->preference();
           break;
@@ -180,10 +188,10 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
         score = preference / (1.0 - preference * preference);
       }
 
-      // ElementIndex is equivalent to ShaderResourceIndex.
-      ASSERT(shader_resource_index2.get_value() < max_number_of_elements);
-      ElementIndex e1{ElementIndexPOD{static_cast<int8_t>(shader_resource_index1.get_value())}};
-      ElementIndex e2{ElementIndexPOD{static_cast<int8_t>(shader_resource_index2.get_value())}};
+      // ElementIndex is equivalent to ShaderResourcePlusCharacteristicIndex.
+      ASSERT(shader_resource_plus_characteristic_index2.get_value() < max_number_of_elements);
+      ElementIndex e1{ElementIndexPOD{static_cast<int8_t>(shader_resource_plus_characteristic_index1.get_value())}};
+      ElementIndex e2{ElementIndexPOD{static_cast<int8_t>(shader_resource_plus_characteristic_index2.get_value())}};
       ElementPair ep(e1, e2);
       int score_index = ep.score_index();
       Score existing_score = partition_task.score(score_index);
@@ -205,8 +213,8 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
           // Can not demand two shader resources to be in the same descriptor set and not be in the same descriptor set.
           ASSERT(score.is_positive_inf() == existing_score.is_positive_inf());
       }
-      Dout(dc::notice, "Assigned score for {" << m_required_shader_resources_list[shader_resource_index1]->debug_name() << ", " <<
-          m_required_shader_resources_list[shader_resource_index2]->debug_name() << "} = " << score);
+      Dout(dc::notice, "Assigned score for {" << m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index1].shader_resource()->debug_name() <<
+          ", " << m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index2].shader_resource()->debug_name() << "} = " << score);
       partition_task.set_score(score_index, score);
     }
   }
@@ -263,12 +271,12 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
   }
 
   // Run over all required shader resources.
-  set_index_hints_out.reserve(m_required_shader_resources_list.size());
-  for (shader_builder::ShaderResourceIndex shader_resource_index = m_required_shader_resources_list.ibegin();
-      shader_resource_index != m_required_shader_resources_list.iend(); ++shader_resource_index)
+  set_index_hints_out.reserve(m_required_shader_resource_plus_characteristic_list.size());
+  for (shader_builder::ShaderResourcePlusCharacteristicIndex shader_resource_plus_characteristic_index = m_required_shader_resource_plus_characteristic_list.ibegin();
+      shader_resource_plus_characteristic_index != m_required_shader_resource_plus_characteristic_list.iend(); ++shader_resource_plus_characteristic_index)
   {
-    // partitions::ElementIndex is equivalent to ShaderResourceIndex.
-    ElementIndex element_index{ElementIndexPOD{static_cast<int8_t>(shader_resource_index.get_value())}};
+    // partitions::ElementIndex is equivalent to ShaderResourcePlusCharacteristicIndex.
+    ElementIndex element_index{ElementIndexPOD{static_cast<int8_t>(shader_resource_plus_characteristic_index.get_value())}};
     // partitions::SetIndex is equivalent to SetIndexHint.
     set_index_hints_out.push_back(descriptor::SetIndexHint{static_cast<size_t>(best_partition.set_of(element_index))});
   }
@@ -595,7 +603,8 @@ void ShaderInputData::realize_descriptor_set_layouts(LogicalDevice const* logica
 
 // Called from *UserCode*PipelineCharacteristic_compile.
 void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler, shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
+    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+    shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
 {
   DoutEntering(dc::vulkan, "ShaderInputData::build_shader(" << owning_window << ", " << shader_index << ", ...) [" << this << "]");
@@ -620,7 +629,8 @@ void ShaderInputData::build_shader(task::SynchronousWindow const* owning_window,
 }
 
 // Called from build_shader.
-std::string_view ShaderInputData::preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
+std::string_view ShaderInputData::preprocess2(
+    shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
 {
   DoutEntering(dc::vulkan, "ShaderInputData::preprocess2(" << shader_info << ", glsl_source_code_buffer) [" << this << "]");
 
@@ -759,15 +769,23 @@ void ShaderInputData::realize_shader_resource_declaration_context(descriptor::Se
   }
 }
 
+struct CompareShaderResourcePlusCharacteristic
+{
+  bool operator()(shader_builder::ShaderResourcePlusCharacteristic const& spc1, shader_builder::ShaderResourcePlusCharacteristic const& spc2)
+  {
+    return spc1.shader_resource() < spc2.shader_resource();
+  }
+};
+
 // Called from PipelineFactory_characteristics_compiled.
 bool ShaderInputData::sort_required_shader_resources_list(utils::Badge<task::PipelineFactory>)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::sort_required_shader_resources_list() [" << this << "]");
 
   // Seems impossible that one of these is empty if the other isn't.
-  ASSERT(m_required_shader_resources_list.empty() == m_sorted_descriptor_set_layouts.empty());
+  ASSERT(m_required_shader_resource_plus_characteristic_list.empty() == m_sorted_descriptor_set_layouts.empty());
 
-  if (m_required_shader_resources_list.empty())
+  if (m_required_shader_resource_plus_characteristic_list.empty())
   {
     // Initialize m_set_index_end because we won't call handle_shader_resource_creation_requests.
     m_set_index_end.set_to_zero();
@@ -776,7 +794,7 @@ bool ShaderInputData::sort_required_shader_resources_list(utils::Badge<task::Pip
 
   // The used resources need to have some global order for the "horse race" algorithm to work.
   // Sorting them by Base::create_access_t* will do.
-  std::sort(m_required_shader_resources_list.begin(), m_required_shader_resources_list.end());
+  std::sort(m_required_shader_resource_plus_characteristic_list.begin(), m_required_shader_resource_plus_characteristic_list.end(), CompareShaderResourcePlusCharacteristic{});
 
   // Continue with calling handle_shader_resource_creation_requests.
   return false;
@@ -790,9 +808,11 @@ bool ShaderInputData::sort_required_shader_resources_list(utils::Badge<task::Pip
 // Additionally, those descriptor sets are updated to bind to the respective shader resources. The descriptor sets are created
 // as needed: if there already exists a descriptor set that is bound to the same shader resources that we need, we just reuse
 // that descriptor set.
-bool ShaderInputData::handle_shader_resource_creation_requests(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window, vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
+bool ShaderInputData::handle_shader_resource_creation_requests(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window,
+    vulkan::descriptor::SetIndexHintMap const& set_index_hint_map)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests(" << pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << this << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::handle_shader_resource_creation_requests(" << pipeline_factory << ", " << owning_window << ", " <<
+      set_index_hint_map << ") [" << this << "]");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
@@ -803,7 +823,7 @@ bool ShaderInputData::handle_shader_resource_creation_requests(utils::BadgeCalle
 
   // Try to be the first to get 'ownership' on each shader resource that has to be created.
   // This is achieved in the following way:
-  // m_required_shader_resources_list is sorted by (unique) pointer value of the shader resources
+  // m_required_shader_resource_plus_characteristic_list is sorted by (unique) pointer value of the shader resources
   // so that every pipeline factory will try to process them in the same order.
   // If, for example, pipeline factory 0 tries to create A, B, C, D; and pipeline factory 1
   // tries to create B, D, E then one that locks B first wins. And if at the same time pipeline
@@ -817,8 +837,9 @@ bool ShaderInputData::handle_shader_resource_creation_requests(utils::BadgeCalle
   //          |   |
   // 2 -------C---E-->  needs to lock C before 0 and E before 1.
   //
-  for (Base const* shader_resource : m_required_shader_resources_list)
+  for (auto&& shader_resource_plus_characteristic : m_required_shader_resource_plus_characteristic_list)
   {
+    Base const* shader_resource = shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_index_hint_map.convert(set_index_hint);
@@ -871,25 +892,30 @@ void ShaderInputData::initialize_shader_resources_per_set_index(utils::Badge<tas
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
 
-  m_shader_resources_per_set_index.resize(m_set_index_end.get_value());
-  Dout(dc::shaderresource, "Running over all m_required_shader_resources_list shader_resource's:");
-  for (Base const* shader_resource : m_required_shader_resources_list)
+  m_shader_resource_plus_characteristics_per_set_index.resize(m_set_index_end.get_value());
+  Dout(dc::shaderresource, "Running over all m_required_shader_resource_plus_characteristic_list shader_resource's:");
+  for (auto&& shader_resource_plus_characteristic : m_required_shader_resource_plus_characteristic_list)
   {
+    Base const* shader_resource = shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_index_hint_map.convert(set_index_hint);
     Dout(dc::shaderresource, "  shader_resource " << shader_resource << " (" << print_string(shader_resource->debug_name()) <<
         ") has set_index_hint = " << set_index_hint << ", set_index = " << set_index);
-    m_shader_resources_per_set_index[set_index].push_back(shader_resource);
+    m_shader_resource_plus_characteristics_per_set_index[set_index].push_back(shader_resource_plus_characteristic);
   }
-  // Sort the vectors inside m_shader_resources_per_set_index so that pipeline factories that attempt
+  // Sort the vectors inside m_shader_resource_plus_characteristics_per_set_index so that pipeline factories that attempt
   // to create the same descriptor set will process the associated shader resources in the same order.
-  for (Base const* shader_resource : m_required_shader_resources_list)
+  for (auto&& shader_resource_plus_characteristic : m_required_shader_resource_plus_characteristic_list)
   {
+    Base const* shader_resource = shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = set_index_hint_map.convert(set_index_hint);
-    std::sort(m_shader_resources_per_set_index[set_index].begin(), m_shader_resources_per_set_index[set_index].end());
+    std::sort(
+        m_shader_resource_plus_characteristics_per_set_index[set_index].begin(),
+        m_shader_resource_plus_characteristics_per_set_index[set_index].end(),
+        CompareShaderResourcePlusCharacteristic{});
   }
 
   // We're going to fill this vector now.
@@ -901,7 +927,8 @@ void ShaderInputData::initialize_shader_resources_per_set_index(utils::Badge<tas
 bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::PipelineFactory> pipeline_factory, task::SynchronousWindow const* owning_window,
     vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, bool have_lock)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::update_missing_descriptor_sets(" << pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << this << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::update_missing_descriptor_sets(" <<
+      pipeline_factory << ", " << owning_window << ", " << set_index_hint_map << ") [" << this << "]");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
@@ -976,10 +1003,10 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
     Dout(dc::shaderresource, "Loop over all shader resources with index " << set_index);
     bool first_shader_resource = true;
     bool has_frame_resource = false;
-    auto shader_resource_iter = m_shader_resources_per_set_index[set_index].begin();
-    for (; shader_resource_iter != m_shader_resources_per_set_index[set_index].end(); ++shader_resource_iter)
+    auto shader_resource_plus_characteristic_iter = m_shader_resource_plus_characteristics_per_set_index[set_index].begin();
+    for (; shader_resource_plus_characteristic_iter != m_shader_resource_plus_characteristics_per_set_index[set_index].end(); ++shader_resource_plus_characteristic_iter)
     {
-      Base const* shader_resource = *shader_resource_iter;
+      Base const* shader_resource = shader_resource_plus_characteristic_iter->shader_resource();
       Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << print_string(shader_resource->debug_name()) << ")");
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -998,7 +1025,7 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
       descriptor::SetLayoutBinding const set_layout_binding(descriptor_set_layout, binding);
       Dout(dc::shaderresource, "set_layout_binding (key) = " << set_layout_binding);
       // Assume a given set index requires four shader resources Rx.
-      // Since m_shader_resources_per_set_index[set_index] is sorted by descriptor set layout handle, all pipeline
+      // Since m_shader_resource_plus_characteristics_per_set_index[set_index] is sorted by descriptor set layout handle, all pipeline
       // factories will process the shader resources in the same order; lets say R1, R2, R3 and finally R4.
       //
       // A set then might look like:
@@ -1118,16 +1145,18 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
     {
       m_descriptor_set_per_set_index[set_index] = existing_descriptor_set;
       // It should not be possible to get here without locking a set_layout_binding on a shader_resource.
-      ASSERT(!m_shader_resources_per_set_index[set_index].empty() && locked_set_layout_binding.descriptor_set_layout());
-      (*m_shader_resources_per_set_index[set_index].begin())->unlock_set_layout_binding(locked_set_layout_binding COMMA_CWDEBUG_ONLY(pipeline_factory));
+      ASSERT(!m_shader_resource_plus_characteristics_per_set_index[set_index].empty() && locked_set_layout_binding.descriptor_set_layout());
+      m_shader_resource_plus_characteristics_per_set_index[set_index].begin()->shader_resource()->unlock_set_layout_binding(locked_set_layout_binding
+          COMMA_CWDEBUG_ONLY(pipeline_factory));
     }
     else
     {
       missing_descriptor_set_layouts.push_back(vhv_descriptor_set_layouts[set_index]);
       Dout(dc::shaderresource, "Adding set_index " << set_index << " to set_index_has_frame_resource_pairs because have_match is false.");
       // See if there is any shader resource in this set index that is a frame resource.
-      for (; !has_frame_resource && shader_resource_iter != m_shader_resources_per_set_index[set_index].end(); ++shader_resource_iter)
-        if ((*shader_resource_iter)->is_frame_resource())
+      for (; !has_frame_resource && shader_resource_plus_characteristic_iter != m_shader_resource_plus_characteristics_per_set_index[set_index].end();
+          ++shader_resource_plus_characteristic_iter)
+        if (shader_resource_plus_characteristic_iter->shader_resource()->is_frame_resource())
           has_frame_resource = true;
       set_index_has_frame_resource_pairs.emplace_back(set_index, has_frame_resource);
     }
@@ -1167,9 +1196,10 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
   {
     // Run over all shader resources in reverse, so that the first one which is the one that is locked, is processed last!
     Dout(dc::shaderresource, "Loop over all shader resources - in reverse - with index " << set_index);
-    for (int i = m_shader_resources_per_set_index[set_index].size() - 1; i >= 0; --i)
+    for (int i = m_shader_resource_plus_characteristics_per_set_index[set_index].size() - 1; i >= 0; --i)
     {
-      Base const* shader_resource = m_shader_resources_per_set_index[set_index][i];
+      ShaderResourcePlusCharacteristic const& shader_resource_plus_characteristic = m_shader_resource_plus_characteristics_per_set_index[set_index][i];
+      Base const* shader_resource = shader_resource_plus_characteristic.shader_resource();
       bool first_shader_resource = i == 0;
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1178,7 +1208,8 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
       Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << print_string(shader_resource->debug_name()) <<
           "); set_index = " << set_index << "; binding = " << binding);
 
-      auto new_descriptor_set = std::find_if(set_index_has_frame_resource_pairs.begin(), set_index_has_frame_resource_pairs.end(), [=](std::pair<SetIndex, bool> const& p) { return p.first == set_index; });
+      auto new_descriptor_set = std::find_if(set_index_has_frame_resource_pairs.begin(), set_index_has_frame_resource_pairs.end(),
+          [=](std::pair<SetIndex, bool> const& p) { return p.first == set_index; });
       if (new_descriptor_set != set_index_has_frame_resource_pairs.end())
       {
         Dout(dc::shaderresource, "The set_index was found in set_index_has_frame_resource_pairs.");
@@ -1186,7 +1217,11 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
         // Note: only one PipelineFactory does the update_descriptor_set calls for any shader resource.
         // Therefore it is thread-safe to store the information in the task and then continue it which
         // translates into it being ok that that function is non-const.
-        const_cast<Base*>(shader_resource)->update_descriptor_set({owning_window, m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second});
+//pipeline::FactoryRangeId const& factory_range_id, pipeline::ConsecutiveRange consecutive_range, uint32_t array_size,
+        CharacteristicRange const* adding_characteristic_range = shader_resource_plus_characteristic.characteristic_range();
+        const_cast<Base*>(shader_resource)->update_descriptor_set({owning_window,
+            { pipeline_factory->pipeline_factory_index(), adding_characteristic_range->characteristic_range_index(), adding_characteristic_range->iend() },
+            shader_resource_plus_characteristic.fill_index(), shader_resource->array_size(), m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second});
 
         // Find the corresponding SetLayout.
         auto sorted_descriptor_set_layout =
