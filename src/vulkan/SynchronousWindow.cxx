@@ -11,6 +11,7 @@
 #include "queues/CopyDataToImage.h"
 #include "descriptor/LayoutBindingCompare.h"
 #include "vk_utils/print_flags.h"
+#include "vk_utils/UniformColorDataFeeder.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "utils/cpu_relax.h"
 #include "utils/u8string_to_filename.h"
@@ -122,6 +123,7 @@ char const* SynchronousWindow::condition_str_impl(condition_type condition) cons
     AI_CASE_RETURN(connection_set_up);
     AI_CASE_RETURN(frame_timer);
     AI_CASE_RETURN(logical_device_index_available);
+    AI_CASE_RETURN(loading_texture_ready);
     AI_CASE_RETURN(imgui_font_texture_ready);
     AI_CASE_RETURN(parent_window_created);
     AI_CASE_RETURN(condition_pipeline_available);
@@ -140,6 +142,7 @@ char const* SynchronousWindow::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(SynchronousWindow_logical_device_index_available);
     AI_CASE_RETURN(SynchronousWindow_acquire_queues);
     AI_CASE_RETURN(SynchronousWindow_initialize_vulkan);
+    AI_CASE_RETURN(SynchronousWindow_loading_texture_ready);
     AI_CASE_RETURN(SynchronousWindow_imgui_font_texture_ready);
     AI_CASE_RETURN(SynchronousWindow_render_loop);
     AI_CASE_RETURN(SynchronousWindow_close);
@@ -288,6 +291,18 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_frame_resources();
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
       register_shader_templates();
+      // Upload the "loading texture".
+      {
+        vk::Extent2D const extent{1, 1};
+        m_loading_texture = vulkan::shader_builder::shader_resource::Texture(
+            m_logical_device, extent, {}, { 1.f }, { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_loading_texture")));
+        m_loading_texture.upload(extent, this, std::make_unique<vk_utils::UniformColorDataFeeder>(127, 127, 127), this, loading_texture_ready);
+      }
+      set_state(SynchronousWindow_loading_texture_ready);
+      wait(loading_texture_ready);
+      break;
+    case SynchronousWindow_loading_texture_ready:
       create_graphics_pipelines();
       create_textures();
       if (m_use_imgui)                  //FIXME: this was set in create_descriptor_set by the user.

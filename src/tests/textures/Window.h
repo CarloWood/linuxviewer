@@ -115,23 +115,15 @@ class Window : public task::SynchronousWindow
     {
       vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / textures_names[t], 4);
 
-      // Create descriptor resources.
-      static vulkan::ImageKind const sample_image_kind({
-        .format = vk::Format::eR8G8B8A8Unorm,
-        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled
-      });
-
-      static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
-
       m_textures[t] = vulkan::shader_resource::Texture(m_logical_device,
-          texture_data.extent(), sample_image_view_kind,
+          texture_data.extent(),
           { .mipmapMode = vk::SamplerMipmapMode::eNearest,
             .anisotropyEnable = VK_FALSE },
           graphics_settings(),
           { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
           COMMA_CWDEBUG_ONLY(debug_name_prefix(name_prefix + glsl_id_postfixes[t] + ']')));
 
-      m_textures[t].upload(texture_data.extent(), sample_image_view_kind, this,
+      m_textures[t].upload(texture_data.extent(), this,
           std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, texture_uploaded);
     }
 

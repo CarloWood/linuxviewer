@@ -5,12 +5,18 @@
 
 namespace vulkan::shader_builder::shader_resource {
 
+//static
+ImageViewKind const Texture::s_default_image_view_kind{default_image_kind, {}};
+
 void Texture::upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_view_kind,
     task::SynchronousWindow const* resource_owner,      // The window that determines the life-time of this texture.
     std::unique_ptr<vulkan::DataFeeder> texture_data_feeder,
     AIStatefulTask* parent, AIStatefulTask::condition_type texture_ready)
 {
   DoutEntering(dc::vulkan, "Texture::upload(" << extent << ", " << image_view_kind << ", " << resource_owner << ", " << texture_data_feeder << ", " << parent << ", " << texture_ready << ")");
+
+  // Use the same image_view_kind that was used to create the Texture.
+  ASSERT(image_view_kind == *debug_image_view_kind);
 
   size_t const data_size = extent.width * extent.height * vk_utils::format_component_count(image_view_kind.image_kind()->format);
 

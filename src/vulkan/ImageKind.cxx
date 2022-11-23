@@ -140,4 +140,31 @@ void ImageViewKind::print_members(std::ostream& os) const
 }
 #endif
 
+#if CW_DEBUG
+bool operator==(ImageKindPOD const& lhs, ImageKindPOD const& rhs)
+{
+  return lhs.flags == rhs.flags &&
+    lhs.image_type == rhs.image_type &&
+    lhs.format == rhs.format &&
+    lhs.mip_levels == rhs.mip_levels &&
+    lhs.array_layers == rhs.array_layers &&
+    lhs.samples == rhs.samples &&
+    lhs.tiling == rhs.tiling &&
+    lhs.usage == rhs.usage &&
+    lhs.sharing_mode == rhs.sharing_mode &&
+    lhs.m_queue_family_index_count == rhs.m_queue_family_index_count &&
+    lhs.m_queue_family_indices == rhs.m_queue_family_indices &&
+    lhs.initial_layout == rhs.initial_layout;
+}
+
+bool operator==(ImageViewKindPOD const& lhs, ImageViewKindPOD const& rhs)
+{
+  return lhs.flags == rhs.flags &&
+    lhs.view_type == rhs.view_type &&
+    lhs.format == rhs.format &&
+    lhs.components == rhs.components &&
+    lhs.subresource_range == rhs.subresource_range;
+}
+#endif // CW_DEBUG
+
 } // namespace vukan

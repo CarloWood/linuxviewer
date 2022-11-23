@@ -125,14 +125,15 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   static vulkan::ImageViewKind const s_color_image_view_kind;
 
  private:
-  static constexpr condition_type connection_set_up = 1;
-  static constexpr condition_type frame_timer = 2;
-  static constexpr condition_type logical_device_index_available = 4;
-  static constexpr condition_type imgui_font_texture_ready = 8;
-  static constexpr condition_type parent_window_created = 16;
-  static constexpr condition_type condition_pipeline_available = 32;
+  static constexpr condition_type connection_set_up              = 0x01;
+  static constexpr condition_type frame_timer                    = 0x02;
+  static constexpr condition_type logical_device_index_available = 0x04;
+  static constexpr condition_type loading_texture_ready          = 0x08;
+  static constexpr condition_type imgui_font_texture_ready       = 0x10;
+  static constexpr condition_type parent_window_created          = 0x20;
+  static constexpr condition_type condition_pipeline_available   = 0x40;
  protected:
-  static constexpr condition_type free_condition = 64;                  // Used in derived class.
+  static constexpr condition_type free_condition                 = 0x80; // Used in derived class.
 
  protected:
   // Constructor
@@ -192,6 +193,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   vulkan::GraphicsSettingsPOD m_graphics_settings;                      // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
 
+  vulkan::shader_builder::shader_resource::Texture m_loading_texture;   // A "texture" (opaque gray) that is shown while the real texture isn't available yet.
 #ifdef CWDEBUG
   bool const mVWDebug;                                                  // A copy of mSMDebug.
 #endif
@@ -267,6 +269,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     SynchronousWindow_logical_device_index_available,
     SynchronousWindow_acquire_queues,
     SynchronousWindow_initialize_vulkan,
+    SynchronousWindow_loading_texture_ready,
     SynchronousWindow_imgui_font_texture_ready,
     SynchronousWindow_render_loop,
     SynchronousWindow_close

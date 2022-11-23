@@ -39,13 +39,17 @@ struct ImageKindPOD
   vk::ImageLayout         initial_layout = vk::ImageLayout::eUndefined;         // Use eUndefined to automatically: use final_layout if presented (and keep it at undefined when discarded).
 };
 
+#if CW_DEBUG
+extern bool operator==(ImageKindPOD const& lhs, ImageKindPOD const& rhs);
+#endif
+
 class ImageKind
 {
  private:
   ImageKindPOD m_data;
 
  public:
-  ImageKind(ImageKindPOD data) : m_data(data) { }
+  constexpr ImageKind(ImageKindPOD data) : m_data(data) { }
 
   // Convert into an ImageCreateInfo.
   vk::ImageCreateInfo operator()(uint32_t extent, vk::ImageLayout initial_layout = vk::ImageLayout::eUndefined) const
@@ -78,6 +82,10 @@ class ImageKind
   vk::ImageCreateInfo get_create_info(vk::Extent3D const& extent, vk::ImageLayout initial_layout) const;
 
  public:
+#if CW_DEBUG
+  bool operator==(ImageKind const& rhs) const { return m_data == rhs.m_data; }
+#endif
+
   VULKAN_KIND_DEBUG_MEMBERS
 };
 
@@ -102,6 +110,10 @@ struct ImageViewKindPOD
   vk::ComponentMapping      components        = {};
   vk::ImageSubresourceRange subresource_range = vk_defaults::ImageSubresourceRange{};
 };
+
+#if CW_DEBUG
+extern bool operator==(ImageViewKindPOD const& lhs, ImageViewKindPOD const& rhs);
+#endif
 
 class ImageViewKind
 {
@@ -172,6 +184,10 @@ class ImageViewKind
   }
 
  public:
+#if CW_DEBUG
+  bool operator==(ImageViewKind const& rhs) const { return m_data == rhs.m_data && m_image_kind == rhs.m_image_kind; }
+#endif
+
   VULKAN_KIND_DEBUG_MEMBERS
 };
 
