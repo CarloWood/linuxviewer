@@ -1220,11 +1220,18 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
         // Note: only one PipelineFactory does the update_descriptor_set calls for any shader resource.
         // Therefore it is thread-safe to store the information in the task and then continue it which
         // translates into it being ok that that function is non-const.
-//pipeline::FactoryRangeId const& factory_range_id, pipeline::ConsecutiveRange consecutive_range, uint32_t array_size,
         CharacteristicRange const* adding_characteristic_range = shader_resource_plus_characteristic.characteristic_range();
-        const_cast<Base*>(shader_resource)->update_descriptor_set({owning_window,
-            { pipeline_factory->pipeline_factory_index(), adding_characteristic_range->characteristic_range_index(), adding_characteristic_range->iend() },
-            shader_resource_plus_characteristic.fill_index(), shader_resource->array_size(), m_descriptor_set_per_set_index[set_index], binding, new_descriptor_set->second});
+        const_cast<Base*>(shader_resource)->update_descriptor_set(
+            { owning_window,
+              { pipeline_factory->pipeline_factory_index(),
+                adding_characteristic_range->characteristic_range_index(),
+                adding_characteristic_range->iend() },
+              shader_resource_plus_characteristic.fill_index(),
+              shader_resource->array_size(),
+              m_descriptor_set_per_set_index[set_index],
+              binding,
+              new_descriptor_set->second
+            });
 
         // Find the corresponding SetLayout.
         auto sorted_descriptor_set_layout =

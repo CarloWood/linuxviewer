@@ -23,6 +23,12 @@ class FrameResourceCapableDescriptorSetAsKey
   {
     return lhs.m_key < rhs.m_key;
   }
+
+  // Also used by CombinedImageSampler to assure that all descriptor/binding pairs are in a single subrange of the CharacteristicRange.
+  friend bool operator==(FrameResourceCapableDescriptorSetAsKey lhs, FrameResourceCapableDescriptorSetAsKey rhs)
+  {
+    return lhs.m_key == rhs.m_key;
+  }
 };
 
 class FrameResourceCapableDescriptorSet

@@ -119,14 +119,14 @@ PipelineFactory::~PipelineFactory()
   vulkan::Application::instance().m_dependent_tasks.remove(m_index);
 }
 
-vulkan::pipeline::FactoryRangeId PipelineFactory::add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
+vulkan::pipeline::FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range)
 {
   characteristic_range->set_owner(this);
   vulkan::pipeline::CharacteristicRangeIndex characteristic_range_index{m_characteristics.iend()};
   characteristic_range->set_characteristic_range_index(characteristic_range_index);
   int end = characteristic_range->iend();
   m_characteristics.push_back(std::move(characteristic_range));
-  return vulkan::pipeline::FactoryRangeId{ m_pipeline_factory_index, characteristic_range_index, end };
+  return vulkan::pipeline::FactoryCharacteristicId{ m_pipeline_factory_index, characteristic_range_index, end };
 }
 
 char const* PipelineFactory::condition_str_impl(condition_type condition) const

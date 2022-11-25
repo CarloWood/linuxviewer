@@ -295,9 +295,9 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       {
         vk::Extent2D const extent{1, 1};
         m_loading_texture = vulkan::shader_builder::shader_resource::Texture(
-            m_logical_device, extent, {}, { 1.f }, { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
+            m_logical_device, extent, {}, { .maxAnisotropy = 1.f }, { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_loading_texture")));
-        m_loading_texture.upload(extent, this, std::make_unique<vk_utils::UniformColorDataFeeder>(127, 127, 127), this, loading_texture_ready);
+        m_loading_texture.upload(extent, this, std::make_unique<vk_utils::UniformColorDataFeeder>(32, 32, 32), this, loading_texture_ready);
       }
       set_state(SynchronousWindow_loading_texture_ready);
       wait(loading_texture_ready);
@@ -340,7 +340,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
             ZoneScopedNC("SynchronousWindow_render_loop / no special circumstances", 0xf5d193) // Tracy
             // Render the next frame.
             m_frame_rate_limiter.start(m_frame_rate_interval);
-            m_timer.update();   // Keep track of FPS and stuff.
+            m_imgui_timer.update();   // Keep track of FPS and stuff.
             consume_input_events();
             render_frame();
             m_delay_by_completed_draw_frames.step({});
@@ -785,7 +785,7 @@ void SynchronousWindow::start_frame()
 
   if (m_use_imgui)
   {
-    m_imgui.start_frame(m_timer.get_delta_ms() * 0.001f);
+    m_imgui.start_frame(m_imgui_timer.get_delta_ms() * 0.001f);
     draw_imgui();
   }
 }

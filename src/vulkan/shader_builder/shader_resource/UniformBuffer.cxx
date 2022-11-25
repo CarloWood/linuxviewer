@@ -17,12 +17,12 @@ void UniformBufferBase::instantiate(task::SynchronousWindow const* owning_window
   }
 }
 
-void UniformBufferBase::update_descriptor_set(descriptor::NeedsUpdate descriptor_to_update)
+void UniformBufferBase::update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info)
 {
-  DoutEntering(dc::shaderresource, "UniformBufferBase::update_descriptor_set(" << descriptor_to_update << ")");
+  DoutEntering(dc::shaderresource, "UniformBufferBase::update_descriptor_set(" << descriptor_update_info << ")");
 
-  FrameResourceIndex const max_number_of_frame_resources = descriptor_to_update.owning_window()->max_number_of_frame_resources();
-  LogicalDevice const* logical_device = descriptor_to_update.owning_window()->logical_device();
+  FrameResourceIndex const max_number_of_frame_resources = descriptor_update_info.owning_window()->max_number_of_frame_resources();
+  LogicalDevice const* logical_device = descriptor_update_info.owning_window()->logical_device();
 
   for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
   {
@@ -30,7 +30,7 @@ void UniformBufferBase::update_descriptor_set(descriptor::NeedsUpdate descriptor
     std::array<vk::DescriptorBufferInfo, 1> buffer_infos = {{
       m_uniform_buffers[frame_index].m_vh_buffer, 0, size()
     }};
-    logical_device->update_descriptor_sets(descriptor_to_update.descriptor_set()[frame_index], vk::DescriptorType::eUniformBuffer, descriptor_to_update.binding(), 0 /*array_element*/, buffer_infos);
+    logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set()[frame_index], vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos);
   }
 }
 

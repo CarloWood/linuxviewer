@@ -2,7 +2,7 @@
 #define VULKAN_PIPELINE_FACTORY_HANDLE_H
 
 #include "Concepts.h"
-#include "FactoryRangeId.h"
+#include "FactoryCharacteristicId.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 
@@ -26,7 +26,7 @@ class FactoryHandle
   FactoryHandle(PipelineFactoryIndex factory_index) : m_factory_index(factory_index) { }
 
   template<ConceptPipelineCharacteristic CHARACTERISTIC, typename... ARGS>
-  FactoryRangeId add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args);
+  FactoryCharacteristicId add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args);
 
   void generate(task::SynchronousWindow const* owning_window);
 
@@ -57,7 +57,7 @@ class FactoryHandle
 namespace vulkan::pipeline {
 
 template<ConceptPipelineCharacteristic CHARACTERISTIC, typename... ARGS>
-FactoryRangeId FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args)
+FactoryCharacteristicId FactoryHandle::add_characteristic(task::SynchronousWindow const* owning_window, ARGS&&... args)
 {
   DoutEntering(dc::vulkan, "vulkan::pipeline::FactoryHandle::add_characteristic<" <<
       ::NAMESPACE_DEBUG::type_name_of<CHARACTERISTIC>() <<

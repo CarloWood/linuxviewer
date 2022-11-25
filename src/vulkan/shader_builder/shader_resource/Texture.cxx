@@ -31,9 +31,9 @@ void Texture::upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_vie
   copy_data_to_image->run(vulkan::Application::instance().low_priority_queue(), parent, texture_ready, AIStatefulTask::signal_parent);
 }
 
-void Texture::update_descriptor_set_old(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const
+void Texture::update_descriptor_set_single(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const
 {
-  DoutEntering(dc::shaderresource, "Texture::update_descriptor_set_old(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << array_element << ")");
+  DoutEntering(dc::shaderresource, "Texture::update_descriptor_set_single(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << array_element << ")");
   // Update vh_descriptor_set binding `binding` with this texture.
   std::vector<vk::DescriptorImageInfo> image_infos = {
     {

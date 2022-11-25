@@ -1,7 +1,7 @@
 #pragma once
 
 #include "descriptor/CombinedImageSampler.h"
-#include "descriptor/ProvidesUpdate.h"
+#include "descriptor/TextureUpdateRequest.h"
 
 namespace vulkan::shader_builder::shader_resource {
 
@@ -17,11 +17,11 @@ class CombinedImageSampler
   void set_glsl_id_postfix(char const* glsl_id_full_postfix);
   void set_array_size(uint32_t array_size);
 
-  void update_image_sampler(descriptor::ProvidesUpdate image_sampler_to_update_with)
+  void update_image_sampler(descriptor::TextureUpdateRequest image_sampler_to_update_with)
   {
     DoutEntering(dc::shaderresource, "CombinedImageSampler::update_image_sampler(" << image_sampler_to_update_with << ")");
 
-    boost::intrusive_ptr<descriptor::Update> update = new descriptor::ProvidesUpdate(std::move(image_sampler_to_update_with));
+    boost::intrusive_ptr<descriptor::Update> update = new descriptor::TextureUpdateRequest(std::move(image_sampler_to_update_with));
 
     // Pass new image samplers that we need to update the descriptors with.
     m_descriptor_task->have_new_datum(std::move(update));

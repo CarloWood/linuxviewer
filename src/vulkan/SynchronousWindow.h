@@ -253,7 +253,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
 
   // Initialized by create_imgui. Deinitialized by destruction.
-  vk_utils::TimerData m_timer;
+  vk_utils::TimerData m_imgui_timer;
   vulkan::ImGui m_imgui;                // ImGui framework.
 
  protected:
@@ -431,6 +431,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
   void detect_if_imgui_is_used();
+
+  void update_descriptor_set_with_loading_texture(
+      vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const
+  {
+    m_loading_texture.update_descriptor_set_single(this, descriptor_set, binding, array_element);
+  }
 
  public:
   // The same type as the type defined in vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex,

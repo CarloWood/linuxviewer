@@ -11,12 +11,13 @@
 #include "queues/CopyDataToBuffer.h"
 #include "descriptor/CombinedImageSampler.h"
 #include "descriptor/SetKeyPreference.h"
-#include "descriptor/ProvidesUpdate.h"
+#include "descriptor/TextureUpdateRequest.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
-#include "pipeline/FactoryRangeId.h"
+#include "pipeline/FactoryCharacteristicId.h"
 #include "vk_utils/ImageData.h"
+#include "statefultask/AITimer.h"
 
 #include "pipeline/ShaderInputData.inl.h"
 
@@ -96,6 +97,10 @@ class Window : public task::SynchronousWindow
     return vulkan::SwapchainIndex{4};
   }
 
+  boost::intrusive_ptr<AITimer> m_timer;
+ public:
+  ~Window() { if (m_timer) m_timer->abort(); }
+ private:
   void create_textures() override
   {
     DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
@@ -127,43 +132,20 @@ class Window : public task::SynchronousWindow
           std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, texture_uploaded);
     }
 
-    for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
-    {
-      vulkan::pipeline::FactoryRangeId factory_range_id = m_pipeline_factory_characteristic_range_ids[pipeline];
-      for (int t = 0; t < number_of_combined_image_samplers; ++t)
+    m_timer = statefultask::create<AITimer>(CWDEBUG_ONLY(true));
+    m_timer->set_interval(threadpool::Interval<2, std::chrono::seconds>());
+    m_timer->run([this](bool success){
+      for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
       {
-        if (t > 0 && t != pipeline + 1)
-          continue;
-        //ProvidesUpdate
-        m_combined_image_samplers[t].update_image_sampler({ m_textures[t], factory_range_id });
-      }
-    }
-  }
-
-#if 0
-  void update_combined_image_sampler_descriptors(int pipeline) const
-  {
-    using namespace vulkan::shader_builder::shader_resource;
-    // This is called when m_combined_image_samplers and m_textures are both initialized, and before the
-    // graphics pipeline is.
-    for (int t = 0; t < number_of_combined_image_samplers; ++t)
-    {
-      auto combined_image_sampler_r = m_combined_image_samplers[t]->set_layout_bindings_to_handles();
-      for (Base::set_layout_bindings_to_handles_container_t::const_iterator iter = combined_image_sampler_r->begin();
-          iter != combined_image_sampler_r->end(); ++iter)
-      {
-        // iter dereferences to a std::pair<descriptor::SetLayoutBinding, SetMutexAndSetHandles>.
-        uint32_t const binding = iter->first.binding();
-        SetMutexAndSetHandles::descriptor_set_container_t const& descriptor_sets = iter->second.descriptor_sets();
-        for (vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set : descriptor_sets)
+        for (int t = 0; t < number_of_combined_image_samplers; ++t)
         {
-          for (int array_element = 0; array_element < 2; ++array_element)
-            m_textures[pipeline == 0 ? array_element : number_of_combined_image_samplers - 1 - array_element].update_descriptor_set_old(this, descriptor_set, binding, array_element);
+          if (t > 0 && t != pipeline + 1)
+            continue;
+          m_combined_image_samplers[t].update_image_sampler({ &m_textures[t], m_pipeline_factory_characteristic_range_ids[pipeline] });
         }
       }
-    }
+    });
   }
-#endif
 
  private:
   static constexpr std::string_view squares_vert_glsl = R"glsl(
@@ -411,7 +393,7 @@ void main()
   };
 
   std::array<vulkan::pipeline::FactoryHandle, number_of_pipelines> m_pipeline_factory;
-  std::array<vulkan::pipeline::FactoryRangeId, number_of_pipelines> m_pipeline_factory_characteristic_range_ids;
+  std::array<vulkan::pipeline::FactoryCharacteristicId, number_of_pipelines> m_pipeline_factory_characteristic_range_ids;
 
   void create_graphics_pipelines() override
   {
@@ -634,6 +616,6 @@ else
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    m_imgui_stats_window.draw(io, m_timer);
+    m_imgui_stats_window.draw(io, m_imgui_timer);
   }
 };

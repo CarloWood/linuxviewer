@@ -408,7 +408,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
       owning_window, imgui_font_texture_ready);
 
   // Update descriptor set.
-  m_font_texture.update_descriptor_set_old(owning_window, m_vh_descriptor_set, /*binding*/ 0, /*array_element*/ 0);
+  m_font_texture.update_descriptor_set_single(owning_window, m_vh_descriptor_set, /*binding*/ 0, /*array_element*/ 0);
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));

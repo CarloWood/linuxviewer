@@ -16,7 +16,7 @@ class LogicalDevice;
 } // namespace vulkan
 
 namespace vulkan::pipeline {
-class FactoryRangeId;
+class FactoryCharacteristicId;
 } // namespace vulkan::pipeline
 
 namespace task {
@@ -117,7 +117,7 @@ class PipelineFactory : public AIStatefulTask
   // Accessor.
   SynchronousWindow* owning_window() const { return m_owning_window; }
 
-  vulkan::pipeline::FactoryRangeId add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
+  vulkan::pipeline::FactoryCharacteristicId add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }
   void set_pipeline(vulkan::Pipeline&& pipeline) { m_pipeline_out = std::move(pipeline); }
