@@ -71,6 +71,7 @@ class ShaderResourceDeclaration
   shader_resource_variables_container_t const& shader_resource_variables() const { return m_shader_resource_variables; }
   shader_resource::Base const& shader_resource() const { return m_shader_resource; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }
+  vk::DescriptorBindingFlags binding_flags() const;
   uint32_t array_size() const;
 
 #ifdef CWDEBUG

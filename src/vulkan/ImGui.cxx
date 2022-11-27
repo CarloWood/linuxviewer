@@ -8,6 +8,7 @@
 
 #include "memory/DataFeeder.h"
 #include "pipeline/ShaderInputData.h"
+#include "descriptor/SetLayoutBindingsAndFlags.h"
 #include "vk_utils/print_flags.h"
 
 #include "Application.inl.h"
@@ -121,7 +122,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       .descriptorCount = 1
     }
   };
-  m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(layout_bindings
+  m_descriptor_set_layout = logical_device()->create_descriptor_set_layout(std::move(layout_bindings)
       COMMA_CWDEBUG_ONLY(".m_descriptor_set_layout" + ambifix));
   // Note: no frame resource support is required for a descriptor set if just one texture in it.
   auto descriptor_sets = logical_device()->allocate_descriptor_sets(FrameResourceIndex{1},

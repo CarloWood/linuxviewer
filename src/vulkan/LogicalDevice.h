@@ -19,6 +19,7 @@
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetIndexHintMap.h"
 #include "descriptor/FrameResourceCapableDescriptorSet.h"
+#include "descriptor/SetLayoutBindingsAndFlags.h"
 #include "pipeline/PushConstantRangeCompare.h"
 #include "pipeline/partitions/Defs.h"
 #include "vk_utils/print_list.h"
@@ -119,6 +120,7 @@ class LogicalDevice
   bool m_supports_separate_depth_stencil_layouts;       // Set if the physical device supports vk::PhysicalDeviceSeparateDepthStencilLayoutsFeatures.
   bool m_supports_sampler_anisotropy = {};
   bool m_supports_cache_control = {};
+  bool m_supports_sampled_image_update_after_bind = {}; // Set if the physical device supports vk::DescriptorBindingFlagBits::eUpdateAfterBind for samplers / sampled images.
   memory::Allocator m_vh_allocator;                     // Handle to VMA allocator object.
   QueueRequestKey::request_cookie_type m_transfer_request_cookie = {};  // The cookie that was used to request eTransfer queues (set in LogicalDevice::prepare).
   boost::intrusive_ptr<task::AsyncSemaphoreWatcher> m_semaphore_watcher;// Asynchronous task that polls timeline semaphores.
@@ -164,6 +166,7 @@ class LogicalDevice
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
   bool supports_sampler_anisotropy() const { return m_supports_sampler_anisotropy; }
   bool supports_cache_control() const { return m_supports_cache_control; }
+  bool supports_sampled_image_update_after_bind() const { return m_supports_sampled_image_update_after_bind; }
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
   uint32_t max_bound_descriptor_sets() const { return m_max_bound_descriptor_sets; }
@@ -191,7 +194,7 @@ class LogicalDevice
   // Called by pipeline::Characteristic derived user classes when they need a new (or existing) descriptor set layout.
   // The binding numbers in sorted_descriptor_set_layout_bindings will be updated if the layout already existed (this
   // does not influence the ordering; so it stays sorted the same way).
-  vk::DescriptorSetLayout realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
+  vk::DescriptorSetLayout realize_descriptor_set_layout(descriptor::SetLayoutBindingsAndFlags& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const;
 
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
   // and returns an updated set_index_hint_map_out (see explanation in LogicalDevice.cxx).
@@ -278,7 +281,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const;
   vk::UniqueDescriptorPool create_descriptor_pool(std::vector<vk::DescriptorPoolSize> const& pool_sizes, uint32_t max_sets
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
-  vk::UniqueDescriptorSetLayout create_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
+  vk::UniqueDescriptorSetLayout create_descriptor_set_layout(descriptor::SetLayoutBindingsAndFlags const& sorted_descriptor_set_layout_bindings_and_flags
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<descriptor::FrameResourceCapableDescriptorSet> allocate_descriptor_sets(FrameResourceIndex number_of_frame_resources,
       std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,

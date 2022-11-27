@@ -74,6 +74,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
  private:
   task::SynchronousWindow const* m_owning_window{};                             // The owning window.
   std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSampler only has a single "member".
+  std::atomic<vk::DescriptorBindingFlags> m_binding_flags{};                    // Optional binding flags to use for this descriptor.
   std::atomic<uint32_t> m_array_size{1};                                        // Array size or one if this is not an array.
   using factory_characteristic_key_to_descriptor_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, pipeline::FactoryCharacteristicData>>;
   factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSampler.
@@ -96,6 +97,16 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
 
   // Probably not used.
   CombinedImageSampler(CombinedImageSampler&&) = default;
+
+  void set_bindings_flags(vk::DescriptorBindingFlags binding_flags)
+  {
+    DoutEntering(dc::vulkan, "CombinedImageSampler::set_bindings_flags(" << binding_flags << ") [" << this << "]");
+    // Don't call set_bindings_flags unless you have something to set :p.
+    ASSERT(!!binding_flags);
+    [[maybe_unused]] vk::DescriptorBindingFlags prev_binding_flags = m_binding_flags.exchange(binding_flags, std::memory_order::relaxed);
+    // Don't call set_bindings_flags twice (with different values).
+    ASSERT(!prev_binding_flags || prev_binding_flags == binding_flags);
+  }
 
   void set_array_size(uint32_t array_size)
   {
@@ -133,6 +144,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
     have_new_datum(std::move(update));
   }
 
+  vk::DescriptorBindingFlags binding_flags() const override final { return m_binding_flags; }
   uint32_t array_size() const override final { return m_array_size; }
 
  protected:

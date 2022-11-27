@@ -309,6 +309,16 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
             }
             // Find matching descriptors and update them.
             auto matching_descriptors = find_descriptors(key);
+#if CW_DEBUG
+            if (matching_descriptors.first != matching_descriptors.second)
+            {
+              LogicalDevice const* logical_device = m_owning_window->logical_device();
+              if (!logical_device->supports_sampled_image_update_after_bind())
+                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler was called on that CombinedImageSampler while the vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler can only be done from create_textures.");
+              // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSampler that owns this task.
+              ASSERT((m_binding_flags.load(std::memory_order::relaxed) & vk::DescriptorBindingFlagBits::eUpdateAfterBind));
+            }
+#endif
             for (auto descriptor = matching_descriptors.first; descriptor != matching_descriptors.second; ++descriptor)
               texture->update_descriptor_set_single(m_owning_window, descriptor->second.descriptor_set(), descriptor->second.binding(), /*array_element*/ 0);
           }

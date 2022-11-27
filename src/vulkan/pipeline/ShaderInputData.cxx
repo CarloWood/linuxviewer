@@ -287,11 +287,11 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
 
 // Called by ShaderResourceDeclarationContext::generate1 which is
 // called from preprocess1.
-void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,
+void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags,
     utils::Badge<shader_builder::ShaderResourceDeclarationContext>)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ") [" << this << "]");
-  Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings:");
+  DoutEntering(dc::vulkan, "ShaderInputData::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ", " << binding_flags << ") [" << this << "]");
+  Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings_and_flags:");
   // Find the SetLayout corresponding to the set_index_hint, if any.
   auto set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::CompareHint{set_index_hint});
   if (set_layout  == m_sorted_descriptor_set_layouts.end())
@@ -299,7 +299,7 @@ void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetInd
     m_sorted_descriptor_set_layouts.emplace_back(set_index_hint);
     set_layout = m_sorted_descriptor_set_layouts.end() - 1;
   }
-  set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding);
+  set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding, binding_flags);
   // set_layout is an element of m_sorted_descriptor_set_layouts and it was just changed.
   // We need to re-sort m_sorted_descriptor_set_layouts to keep it sorted.
   std::sort(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::SetLayoutCompare{});
@@ -937,7 +937,7 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
   using namespace vulkan::shader_builder::shader_resource;
 
   // This function is called after realize_descriptor_set_layouts which means that the `binding` values
-  // in the elements of SetLayout::m_sorted_bindings, of each SetLayout in m_sorted_descriptor_set_layouts,
+  // in the elements of SetLayout::m_sorted_bindings_and_flags, of each SetLayout in m_sorted_descriptor_set_layouts,
   // is already finalized.
   Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
   utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());

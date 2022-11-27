@@ -11,6 +11,11 @@
 
 namespace vulkan::shader_builder {
 
+vk::DescriptorBindingFlags ShaderResourceDeclaration::binding_flags() const
+{
+  return m_shader_resource.binding_flags();
+}
+
 uint32_t ShaderResourceDeclaration::array_size() const
 {
   return m_shader_resource.array_size();

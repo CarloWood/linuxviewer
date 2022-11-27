@@ -375,7 +375,7 @@ void LogicalDevice::prepare(
         .shaderUniformTexelBufferArrayNonUniformIndexing    = false,
         .shaderStorageTexelBufferArrayNonUniformIndexing    = false,
         .descriptorBindingUniformBufferUpdateAfterBind      = false,
-        .descriptorBindingSampledImageUpdateAfterBind       = false,
+        .descriptorBindingSampledImageUpdateAfterBind       = true,     // Optional feature.
         .descriptorBindingStorageImageUpdateAfterBind       = false,
         .descriptorBindingStorageBufferUpdateAfterBind      = false,
         .descriptorBindingUniformTexelBufferUpdateAfterBind = false,
@@ -538,6 +538,7 @@ void LogicalDevice::prepare(
     m_vh_physical_device.getFeatures2(&features2);
     m_supports_sampler_anisotropy = features10.samplerAnisotropy;
     m_supports_separate_depth_stencil_layouts = features12.separateDepthStencilLayouts;
+    m_supports_sampled_image_update_after_bind = features12.descriptorBindingSampledImageUpdateAfterBind;
     m_supports_cache_control = features13.pipelineCreationCacheControl;
     Dout(dc::vulkan, features2);
   }
@@ -901,8 +902,11 @@ vk::UniqueDescriptorPool LogicalDevice::create_descriptor_pool(
     uint32_t max_sets
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
+  vk::DescriptorPoolCreateFlags flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
+  if (m_supports_sampled_image_update_after_bind)
+    flags |= vk::DescriptorPoolCreateFlagBits::eUpdateAfterBind;
   vk::DescriptorPoolCreateInfo descriptor_pool_create_info{
-    .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+    .flags = flags,
     .maxSets = max_sets,
     .poolSizeCount = static_cast<uint32_t>(pool_sizes.size()),
     .pPoolSizes = pool_sizes.data()
@@ -913,18 +917,45 @@ vk::UniqueDescriptorPool LogicalDevice::create_descriptor_pool(
 }
 
 vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
-    std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings
+    descriptor::SetLayoutBindingsAndFlags const& sorted_descriptor_set_layout_bindings_and_flags
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_descriptor_set_layout(" << layout_bindings << ", object_name:\"" << debug_name.object_name() << "\")");
-  vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{
-    .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
-    .pBindings = layout_bindings.data()
-  };
-  vk::UniqueDescriptorSetLayout set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info);
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings_and_flags << ", object_name:\"" << debug_name.object_name() << "\")");
+
+  std::vector<vk::DescriptorSetLayoutBinding> const& layout_bindings = sorted_descriptor_set_layout_bindings_and_flags.sorted_bindings();
+  std::vector<vk::DescriptorBindingFlags> const& binding_flags = sorted_descriptor_set_layout_bindings_and_flags.binding_flags();
+  vk::DescriptorSetLayoutCreateFlags descriptor_set_layout_flags = sorted_descriptor_set_layout_bindings_and_flags.descriptor_set_layout_flags();
+
+  vk::UniqueDescriptorSetLayout set_layout;
+  if (binding_flags.empty())
+  {
+    vk::DescriptorSetLayoutCreateInfo descriptor_set_layout_create_info{
+      .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
+      .pBindings = layout_bindings.data()
+    };
+    set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info);
+  }
+  else
+  {
+    // Must be the same size.
+    ASSERT(layout_bindings.size() == binding_flags.size());
+    vk::StructureChain<vk::DescriptorSetLayoutCreateInfo, vk::DescriptorSetLayoutBindingFlagsCreateInfo> descriptor_set_layout_create_info{
+      vk::DescriptorSetLayoutCreateInfo{
+        .flags = descriptor_set_layout_flags,
+        .bindingCount = static_cast<uint32_t>(layout_bindings.size()),
+        .pBindings = layout_bindings.data()
+      },
+      vk::DescriptorSetLayoutBindingFlagsCreateInfo{
+        .bindingCount = static_cast<uint32_t>(binding_flags.size()),
+        .pBindingFlags = binding_flags.data()
+      }
+    };
+    set_layout = m_device->createDescriptorSetLayoutUnique(descriptor_set_layout_create_info.get<vk::DescriptorSetLayoutCreateInfo>());
+  }
   DebugSetName(set_layout, debug_name, this);
   return set_layout;
 }
+
 
 std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::allocate_descriptor_sets(
     FrameResourceIndex number_of_frame_resources,
@@ -1205,9 +1236,10 @@ boost::uuids::uuid LogicalDevice::get_pipeline_cache_UUID() const
   return uuid;
 }
 
-vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings) /*threadsafe-*/const
+vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor::SetLayoutBindingsAndFlags& sorted_descriptor_set_layout_bindings_and_flags) /*threadsafe-*/const
 {
-  DoutEntering(dc::vulkan, "LogicalDevice::realize_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings << ")");
+  DoutEntering(dc::vulkan, "LogicalDevice::realize_descriptor_set_layout(" << sorted_descriptor_set_layout_bindings_and_flags << ")");
+  std::vector<vk::DescriptorSetLayoutBinding>& sorted_descriptor_set_layout_bindings = sorted_descriptor_set_layout_bindings_and_flags.sorted_bindings();
   // Bug in library: this vector should never be empty. If it is, it probably means it was never initalized.
   ASSERT(!sorted_descriptor_set_layout_bindings.empty());
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
@@ -1219,7 +1251,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(std::vector
       auto iter = descriptor_set_layouts_r->find(sorted_descriptor_set_layout_bindings);
       if (iter == descriptor_set_layouts_r->end())
       {
-        vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(sorted_descriptor_set_layout_bindings
+        vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(sorted_descriptor_set_layout_bindings_and_flags
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
                 boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
         descriptor_set_layouts_t::wat descriptor_set_layouts_w(descriptor_set_layouts_r);
@@ -1397,11 +1429,11 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
         while (set_layout_in != realized_descriptor_set_layouts->end())
         {
           // Same.
-          ASSERT(set_layout_in->sorted_bindings().size() == set_layout_out->sorted_bindings().size());
-          auto binding_in = set_layout_in->sorted_bindings().begin();
-          auto binding_out = set_layout_out->sorted_bindings().begin();
+          ASSERT(set_layout_in->sorted_bindings_and_flags().size() == set_layout_out->sorted_bindings_and_flags().size());
+          auto binding_in = set_layout_in->sorted_bindings_and_flags().sorted_bindings().begin();
+          auto binding_out = set_layout_out->sorted_bindings_and_flags().sorted_bindings().begin();
           set_index_hint_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
-          while (binding_in != set_layout_in->sorted_bindings().end())
+          while (binding_in != set_layout_in->sorted_bindings_and_flags().sorted_bindings().end())
           {
             descriptor::SetIndexHint set_index_hint_in = set_layout_in->set_index_hint();
             descriptor::SetIndexHint set_index_hint_out = set_layout_out->set_index_hint();

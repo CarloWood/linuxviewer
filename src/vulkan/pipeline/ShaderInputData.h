@@ -307,7 +307,7 @@ class ShaderInputData
  public:
   // Called by ShaderResourceDeclarationContext::generate1 which is
   // called from preprocess1.
-  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,
+  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags,
       utils::Badge<shader_builder::ShaderResourceDeclarationContext>);
 
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.

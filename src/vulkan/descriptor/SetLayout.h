@@ -1,14 +1,14 @@
 #pragma once
 
-#include "LayoutBindingCompare.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
+#include "descriptor/SetLayoutBindingsAndFlags.h"
 #include "utils/VectorCompare.h"
-#include "utils/sorted_vector_insert.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <algorithm>
 #ifdef CWDEBUG
 #include "debug/debug_ostream_operators.h"
+#include "vk_utils/print_flags.h"
 #endif
 #include "debug.h"
 
@@ -24,26 +24,26 @@ class SetLayout
 {
  private:
   friend struct SetLayoutCompare;
-  std::vector<vk::DescriptorSetLayoutBinding> m_sorted_bindings;        // The bindings "key" from which m_handle was created.
-  SetIndexHint m_set_index_hint;                                        // The set index (hint) that this SetLayout refers to. It is not used for sorting (not part of the 'key').
+  SetLayoutBindingsAndFlags m_sorted_bindings_and_flags;        // The bindings "key" from which m_handle was created.
+  SetIndexHint m_set_index_hint;                                // The set index (hint) that this SetLayout refers to. It is not used for sorting (not part of the 'key').
   vk::DescriptorSetLayout m_handle;
 
  public:
   SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint) { }
 
-  void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding)
+  void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags)
   {
-    DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ")");
-    utils::sorted_vector_insert(m_sorted_bindings, descriptor_set_layout_binding, LayoutBindingCompare{});
+    DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ", " << binding_flags << ")");
+    m_sorted_bindings_and_flags.insert(descriptor_set_layout_binding, binding_flags);
   }
 
-  // Look up m_sorted_bindings in cache, and create a new handle if it doesn't already exist.
-  // Otherwise use the existing handle and fix the binding numbers in m_sorted_bindings to match that layout.
+  // Look up m_sorted_bindings_and_flags in cache, and create a new handle if it doesn't already exist.
+  // Otherwise use the existing handle and fix the binding numbers in m_sorted_bindings_and_flags to match that layout.
   void realize_handle(LogicalDevice const* logical_device);
 
   // Accessors.
-  std::vector<vk::DescriptorSetLayoutBinding> const& sorted_bindings() const { return m_sorted_bindings; }
-  std::vector<vk::DescriptorSetLayoutBinding>& sorted_bindings() { return m_sorted_bindings; }
+  SetLayoutBindingsAndFlags const& sorted_bindings_and_flags() const { return m_sorted_bindings_and_flags; }
+  SetLayoutBindingsAndFlags& sorted_bindings_and_flags() { return m_sorted_bindings_and_flags; }
   SetIndexHint set_index_hint() const { return m_set_index_hint; }
   void set_set_index_hint(SetIndexHint set_index) { m_set_index_hint = set_index; }
   vk::DescriptorSetLayout handle() const { return m_handle; }
@@ -58,13 +58,13 @@ class SetLayout
   friend bool operator==(SetLayout const& sl1, SetLayout const& sl2)
   {
     // Used to test if sl1 was indeed a copy of sl2.
-    return sl1.m_handle == sl2.m_handle && sl1.m_set_index_hint == sl2.m_set_index_hint && sl1.m_sorted_bindings == sl2.m_sorted_bindings;
+    return sl1.m_handle == sl2.m_handle && sl1.m_set_index_hint == sl2.m_set_index_hint && sl1.m_sorted_bindings_and_flags == sl2.m_sorted_bindings_and_flags;
   }
 
   void print_on(std::ostream& os) const
   {
     os << '{';
-    os << "m_sorted_bindings:" << m_sorted_bindings <<
+    os << "m_sorted_bindings_and_flags:" << m_sorted_bindings_and_flags <<
         ", m_set_index_hint:" << m_set_index_hint <<
         ", m_handle:" << m_handle;
     os << '}';
@@ -77,12 +77,17 @@ struct SetLayoutCompare
   bool operator()(SetLayout const& lhs, SetLayout const& rhs) const
   {
     // Put just constructed SetLayout's at the end.
-    if (lhs.m_sorted_bindings.empty())
+    if (lhs.m_sorted_bindings_and_flags.empty())
       return false;
-    if (rhs.m_sorted_bindings.empty())
+    if (rhs.m_sorted_bindings_and_flags.empty())
       return true;
 
-    return utils::VectorCompare<LayoutBindingCompare>{}(lhs.m_sorted_bindings, rhs.m_sorted_bindings);
+    auto compare = lhs.m_sorted_bindings_and_flags.sorted_bindings() <=> rhs.m_sorted_bindings_and_flags.sorted_bindings();
+    if (compare < 0)    // lhs < rhs
+      return true;
+    if (compare > 0)    // rhs < lhs
+      return false;
+    return (lhs.m_sorted_bindings_and_flags.binding_flags() <=> rhs.m_sorted_bindings_and_flags.binding_flags()) < 0;
   }
 };
 

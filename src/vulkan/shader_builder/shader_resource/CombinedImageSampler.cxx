@@ -15,6 +15,11 @@ void CombinedImageSampler::set_glsl_id_postfix(char const* glsl_id_full_postfix)
   m_descriptor_task->run();
 }
 
+void CombinedImageSampler::set_bindings_flags(vk::DescriptorBindingFlagBits binding_flags)
+{
+  m_descriptor_task->set_bindings_flags(binding_flags);
+}
+
 void CombinedImageSampler::set_array_size(uint32_t array_size)
 {
   m_descriptor_task->set_array_size(array_size);

@@ -61,7 +61,7 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
         .descriptorCount = shader_resource_declaration->array_size(),
         .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
-    }, {});
+    }, shader_resource_declaration->binding_flags(), {});
   }
 }
 

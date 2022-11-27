@@ -98,6 +98,7 @@ class Window : public task::SynchronousWindow
   }
 
   boost::intrusive_ptr<AITimer> m_timer;
+  int m_loop_var;
  public:
   ~Window() { if (m_timer) m_timer->abort(); }
  private:
@@ -133,17 +134,24 @@ class Window : public task::SynchronousWindow
     }
 
     m_timer = statefultask::create<AITimer>(CWDEBUG_ONLY(true));
-    m_timer->set_interval(threadpool::Interval<2, std::chrono::seconds>());
+    m_loop_var = 0;
+    m_timer->set_interval(threadpool::Interval<200, std::chrono::milliseconds>());
     m_timer->run([this](bool success){
-      for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
+      for (;;)
       {
-        for (int t = 0; t < number_of_combined_image_samplers; ++t)
+        int pipeline = m_loop_var / number_of_combined_image_samplers;
+        int cis = m_loop_var % number_of_combined_image_samplers;
+        if (cis > 0 && cis != pipeline + 1)
         {
-          if (t > 0 && t != pipeline + 1)
-            continue;
-          m_combined_image_samplers[t].update_image_sampler({ &m_textures[t], m_pipeline_factory_characteristic_range_ids[pipeline] });
+          ++m_loop_var;
+          continue;
         }
+        int ti = (cis + 1) % number_of_combined_image_samplers;
+        m_combined_image_samplers[cis].update_image_sampler({ &m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline] });
+        break;
       }
+      if (++m_loop_var < 6)
+        m_timer->run();
     });
   }
 
@@ -402,6 +410,7 @@ void main()
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
     {
       m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
+      m_combined_image_samplers[t].set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind);
 //      m_combined_image_samplers[t].set_array_size(2);
     }
 

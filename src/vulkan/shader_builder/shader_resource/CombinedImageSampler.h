@@ -15,6 +15,7 @@ class CombinedImageSampler
   // but that task won't do anything until after the same thread had a chance
   // to call set_array_size (if this is an array) to finish the initialization.
   void set_glsl_id_postfix(char const* glsl_id_full_postfix);
+  void set_bindings_flags(vk::DescriptorBindingFlagBits binding_flags);
   void set_array_size(uint32_t array_size);
 
   void update_image_sampler(descriptor::TextureUpdateRequest image_sampler_to_update_with)
