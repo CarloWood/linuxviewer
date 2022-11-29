@@ -6,6 +6,12 @@
 
 namespace vulkan::shader_builder {
 
+bool ShaderResourcePlusCharacteristic::has_unbounded_descriptor_array_size() const
+{
+  //FIXME: Shouldn't we pass m_fill_index here and make it so that array sizes (and unbounded-ness) can be a function of that?
+  return m_shader_resource->descriptor_array_size() < 0;
+}
+
 #ifdef CWDEBUG
 void ShaderResourcePlusCharacteristic::print_on(std::ostream& os) const
 {

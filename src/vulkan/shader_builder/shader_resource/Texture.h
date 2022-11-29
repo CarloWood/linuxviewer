@@ -3,6 +3,7 @@
 #include "memory/Image.h"
 #include "memory/DataFeeder.h"
 #include "descriptor/SetKeyContext.h"
+#include "descriptor/ArrayElementRange.h"
 
 namespace vulkan::shader_builder::shader_resource {
 
@@ -137,7 +138,7 @@ struct Texture : public memory::Image
     return *this;
   }
 
-  void update_descriptor_set_single(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const;
+  void update_descriptor_array(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, descriptor::ArrayElementRange array_elements) const;
 
   void upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_view_kind,
       task::SynchronousWindow const* resource_owner,

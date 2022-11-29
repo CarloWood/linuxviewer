@@ -8,7 +8,7 @@
 
 namespace vulkan::descriptor {
 
-void SetLayoutBindingsAndFlags::insert(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags)
+void SetLayoutBindingsAndFlags::insert(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size)
 {
   // Case
   // 1. m_sorted_bindings = {}
@@ -55,6 +55,12 @@ void SetLayoutBindingsAndFlags::insert(vk::DescriptorSetLayoutBinding const& des
     }
     m_binding_flags[inserted_index] = binding_flags;
   }
+  if (descriptor_array_size < 0)
+  {
+    // Only one descriptor per descriptor set can be an unbounded array.
+    ASSERT(m_unbounded_descriptor_array_size == 0);
+    m_unbounded_descriptor_array_size = static_cast<uint32_t>(-descriptor_array_size);
+  }
 }
 
 #ifdef CWDEBUG
@@ -63,7 +69,8 @@ void SetLayoutBindingsAndFlags::print_on(std::ostream& os) const
   os << '{';
   os << "m_sorted_bindings:" << m_sorted_bindings <<
       ", m_binding_flags:" << m_binding_flags <<
-      ", m_descriptor_set_layout_flags:" << m_descriptor_set_layout_flags;
+      ", m_descriptor_set_layout_flags:" << m_descriptor_set_layout_flags <<
+      ", m_unbounded_descriptor_array_size:" << m_unbounded_descriptor_array_size;
   os << '}';
 }
 #endif

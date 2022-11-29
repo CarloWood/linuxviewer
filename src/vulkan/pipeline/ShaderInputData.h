@@ -299,6 +299,7 @@ class ShaderInputData
   // Called by update_missing_descriptor_sets.
   void allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window,
       vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts,
+      std::vector<uint32_t> const& missing_descriptor_set_unbounded_descriptor_array_size,
       std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end);
 
   // End of MultiLoop states.
@@ -307,7 +308,7 @@ class ShaderInputData
  public:
   // Called by ShaderResourceDeclarationContext::generate1 which is
   // called from preprocess1.
-  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags,
+  void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size,
       utils::Badge<shader_builder::ShaderResourceDeclarationContext>);
 
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.

@@ -285,6 +285,7 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<descriptor::FrameResourceCapableDescriptorSet> allocate_descriptor_sets(FrameResourceIndex number_of_frame_resources,
       std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+      std::vector<uint32_t> const& unbounded_descriptor_array_sizes,
       std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor_pool_t& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   void free_descriptor_sets(descriptor_pool_t& descriptor_pool, std::vector<vk::DescriptorSet> const& descriptors) const;

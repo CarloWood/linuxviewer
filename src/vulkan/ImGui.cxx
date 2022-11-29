@@ -126,7 +126,7 @@ void ImGui::create_descriptor_set(CWDEBUG_ONLY(Ambifix const& ambifix))
       COMMA_CWDEBUG_ONLY(".m_descriptor_set_layout" + ambifix));
   // Note: no frame resource support is required for a descriptor set if just one texture in it.
   auto descriptor_sets = logical_device()->allocate_descriptor_sets(FrameResourceIndex{1},
-      { *m_descriptor_set_layout }, { std::make_pair(descriptor::SetIndex{}, false) }, logical_device()->get_descriptor_pool()
+      { *m_descriptor_set_layout }, {}, { std::make_pair(descriptor::SetIndex{}, false) }, logical_device()->get_descriptor_pool()
       COMMA_CWDEBUG_ONLY(".m_vh_descriptor_set" + ambifix));
   m_vh_descriptor_set = descriptor_sets[0];     // We only have one descriptor set --^
 }
@@ -409,7 +409,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
       owning_window, imgui_font_texture_ready);
 
   // Update descriptor set.
-  m_font_texture.update_descriptor_set_single(owning_window, m_vh_descriptor_set, /*binding*/ 0, /*array_element*/ 0);
+  m_font_texture.update_descriptor_array(owning_window, m_vh_descriptor_set, /*binding*/ 0, /*array_elements*/ {0, 1});
 
   // Create imgui pipeline.
   create_graphics_pipeline(MSAASamples COMMA_CWDEBUG_ONLY(ambifix));

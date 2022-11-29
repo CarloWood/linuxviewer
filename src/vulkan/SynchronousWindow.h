@@ -15,13 +15,14 @@
 #include "InputEvent.h"
 #include "GraphicsSettings.h"
 #include "Pipeline.h"
-#include "queues/QueueReply.h"
+#include "ImGui.h"
+#include "descriptor/ArrayElementRange.h"
 #include "pipeline/Handle.h"
+#include "queues/QueueReply.h"
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shader_builder/SPIRVCache.h"
 #include "shader_builder/shader_resource/Texture.h"
-#include "ImGui.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
@@ -433,9 +434,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void detect_if_imgui_is_used();
 
   void update_descriptor_set_with_loading_texture(
-      vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const
+      vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, vulkan::descriptor::ArrayElementRange array_elements) const
   {
-    m_loading_texture.update_descriptor_set_single(this, descriptor_set, binding, array_element);
+    m_loading_texture.update_descriptor_array(this, descriptor_set, binding, array_elements);
   }
 
  public:

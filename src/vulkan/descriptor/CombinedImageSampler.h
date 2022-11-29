@@ -75,7 +75,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
   task::SynchronousWindow const* m_owning_window{};                             // The owning window.
   std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSampler only has a single "member".
   std::atomic<vk::DescriptorBindingFlags> m_binding_flags{};                    // Optional binding flags to use for this descriptor.
-  std::atomic<uint32_t> m_array_size{1};                                        // Array size or one if this is not an array.
+  std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.
   using factory_characteristic_key_to_descriptor_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, pipeline::FactoryCharacteristicData>>;
   factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSampler.
   using factory_characteristic_key_to_texture_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, shader_builder::shader_resource::Texture const*>>;
@@ -108,21 +108,23 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
     ASSERT(!prev_binding_flags || prev_binding_flags == binding_flags);
   }
 
-  void set_array_size(uint32_t array_size)
+  void set_array_size(uint32_t descriptor_array_size, bool unbounded)
   {
-    DoutEntering(dc::vulkan, "CombinedImageSampler::set_array_size(" << array_size << ") [" << this << "]");
+    DoutEntering(dc::vulkan, "CombinedImageSampler::set_array_size(" << descriptor_array_size << ", " << (unbounded ? "un" : "") << "bounded) [" << this << "]");
     // Don't call set_array_size unless it's an array :p.
-    ASSERT(array_size > 1);
-    [[maybe_unused]] uint32_t prev_array_size = m_array_size.exchange(array_size, std::memory_order::relaxed);
+    ASSERT(descriptor_array_size > 1);
+    // A negative value means unbounded.
+    int32_t size = unbounded ? -descriptor_array_size : descriptor_array_size;
+    [[maybe_unused]] int32_t prev_descriptor_array_size = m_descriptor_array_size.exchange(size, std::memory_order::relaxed);
     // Don't call set_array_size twice (with different values).
-    ASSERT(prev_array_size == 1 || prev_array_size == array_size);
+    ASSERT(prev_descriptor_array_size == 1 || prev_descriptor_array_size == size);
   }
 
   CombinedImageSampler& operator=(CombinedImageSampler&& rhs)
   {
     this->Base::operator=(std::move(rhs));
     m_member = std::move(rhs.m_member);
-    m_array_size.store(rhs.m_array_size.load(std::memory_order::relaxed), std::memory_order::relaxed);
+    m_descriptor_array_size.store(rhs.m_descriptor_array_size.load(std::memory_order::relaxed), std::memory_order::relaxed);
     return *this;
   }
 
@@ -145,7 +147,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
   }
 
   vk::DescriptorBindingFlags binding_flags() const override final { return m_binding_flags; }
-  uint32_t array_size() const override final { return m_array_size; }
+  int32_t descriptor_array_size() const override final { return m_descriptor_array_size; }
 
  protected:
   ~CombinedImageSampler() override;

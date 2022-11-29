@@ -20,9 +20,9 @@ void CombinedImageSampler::set_bindings_flags(vk::DescriptorBindingFlagBits bind
   m_descriptor_task->set_bindings_flags(binding_flags);
 }
 
-void CombinedImageSampler::set_array_size(uint32_t array_size)
+void CombinedImageSampler::set_array_size(uint32_t array_size, ArrayType array_type)
 {
-  m_descriptor_task->set_array_size(array_size);
+  m_descriptor_task->set_array_size(array_size, array_type);
 }
 
 #ifdef CWDEBUG

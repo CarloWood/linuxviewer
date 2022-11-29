@@ -960,11 +960,12 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
 std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::allocate_descriptor_sets(
     FrameResourceIndex number_of_frame_resources,
     std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    std::vector<uint32_t> const& unbounded_descriptor_array_sizes,
     std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs,
     descriptor_pool_t& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << number_of_frame_resources << ", " << vhv_descriptor_set_layout <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << number_of_frame_resources << ", " << vhv_descriptor_set_layout << ", " << unbounded_descriptor_array_sizes <<
       ", " << set_index_has_frame_resource_pairs << ", @" << (void*)&descriptor_pool << ", object_name:\"" << debug_name.object_name() << "\").");
   uint32_t descriptorSetCount = 0;
   vk::DescriptorSetLayout const* pSetLayouts = vhv_descriptor_set_layout.data();
@@ -981,13 +982,21 @@ std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::alloca
     ++n;
   }
   pSetLayouts = tmp_vhv_layouts.data();
-  descriptor_pool_t::wat descriptor_pool_w(descriptor_pool);
-  vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-    .descriptorPool = descriptor_pool_w->get(),
+  vk::DescriptorSetVariableDescriptorCountAllocateInfo descriptor_set_variable_descriptor_count_allocate_info{
     .descriptorSetCount = descriptorSetCount,
-    .pSetLayouts = pSetLayouts
+    .pDescriptorCounts = unbounded_descriptor_array_sizes.data()
   };
-  std::vector<vk::DescriptorSet> raw_descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
+  std::vector<vk::DescriptorSet> raw_descriptor_sets;
+  {
+    descriptor_pool_t::wat descriptor_pool_w(descriptor_pool);
+    vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
+      .pNext = unbounded_descriptor_array_sizes.empty() ? nullptr : &descriptor_set_variable_descriptor_count_allocate_info,
+      .descriptorPool = descriptor_pool_w->get(),
+      .descriptorSetCount = descriptorSetCount,
+      .pSetLayouts = pSetLayouts
+    };
+    raw_descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
+  }
 
   std::vector<descriptor::FrameResourceCapableDescriptorSet> descriptor_sets;
   auto raw_descriptor_set = raw_descriptor_sets.begin();

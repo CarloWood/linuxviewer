@@ -165,6 +165,14 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
           break;
         }
       }
+      // There can only be one descriptor that is an unbounded array in any descriptor set.
+      if (m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index1].has_unbounded_descriptor_array_size() &&
+          m_required_shader_resource_plus_characteristic_list[shader_resource_plus_characteristic_index2].has_unbounded_descriptor_array_size())
+      {
+        undesirable_preference = 1.0;
+        // You can't demand that two decriptors that are unbounded arrays are in the same descriptor set.
+        ASSERT(preferred_preference < 0.999);
+      }
 
       // Looking for a formula such that,
       //   f(p, 0) = p
@@ -287,10 +295,10 @@ void ShaderInputData::fill_set_index_hints(utils::Vector<descriptor::SetIndexHin
 
 // Called by ShaderResourceDeclarationContext::generate1 which is
 // called from preprocess1.
-void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags,
+void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size,
     utils::Badge<shader_builder::ShaderResourceDeclarationContext>)
 {
-  DoutEntering(dc::vulkan, "ShaderInputData::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ", " << binding_flags << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderInputData::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ") [" << this << "]");
   Dout(dc::vulkan, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings_and_flags:");
   // Find the SetLayout corresponding to the set_index_hint, if any.
   auto set_layout = std::find_if(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::CompareHint{set_index_hint});
@@ -299,7 +307,7 @@ void ShaderInputData::push_back_descriptor_set_layout_binding(descriptor::SetInd
     m_sorted_descriptor_set_layouts.emplace_back(set_index_hint);
     set_layout = m_sorted_descriptor_set_layouts.end() - 1;
   }
-  set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding, binding_flags);
+  set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding, binding_flags, descriptor_array_size);
   // set_layout is an element of m_sorted_descriptor_set_layouts and it was just changed.
   // We need to re-sort m_sorted_descriptor_set_layouts to keep it sorted.
   std::sort(m_sorted_descriptor_set_layouts.begin(), m_sorted_descriptor_set_layouts.end(), descriptor::SetLayoutCompare{});
@@ -941,6 +949,7 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
   // is already finalized.
   Dout(dc::vulkan, "m_sorted_descriptor_set_layouts = " << m_sorted_descriptor_set_layouts);
   utils::Vector<vk::DescriptorSetLayout, SetIndex> vhv_descriptor_set_layouts(m_sorted_descriptor_set_layouts.size());
+  utils::Vector<uint32_t, SetIndex> unbounded_descriptor_array_sizes(m_sorted_descriptor_set_layouts.size());
   for (auto& descriptor_set_layout : m_sorted_descriptor_set_layouts)
   {
     descriptor::SetIndex set_index = set_index_hint_map.convert(descriptor_set_layout.set_index_hint());
@@ -948,6 +957,7 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
     // set index hint values - one for each.
     ASSERT(set_index < vhv_descriptor_set_layouts.iend());
     vhv_descriptor_set_layouts[set_index] = descriptor_set_layout.handle();
+    unbounded_descriptor_array_sizes[set_index] = descriptor_set_layout.sorted_bindings_and_flags().unbounded_descriptor_array_size();
   }
 
   // Isn't this ALWAYS the case? Note that it might take a complex application that is skipping
@@ -956,6 +966,7 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
   ASSERT(m_set_index_end == vhv_descriptor_set_layouts.iend());
 
   std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;          // The descriptor set layout handles of descriptor sets that we need to create.
+  std::vector<uint32_t> missing_descriptor_set_unbounded_descriptor_array_sizes; // Whether or not that descriptor set layout contains a descriptor that is an unbounded array.
   std::vector<std::pair<SetIndex, bool>> set_index_has_frame_resource_pairs;    // The corresponding SetIndex-es, and a flag indicating if this is a frame resource, of those descriptor sets.
 
   // Descriptor sets: { U1, T1 }, { U2, T2 }, { T1, T2 }, { T2, T1 }, { U1, U2 }, { U2, U1 }, { U1, T2 }, { U2, T1 }
@@ -1090,7 +1101,8 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
           // handling the set indexes that we already processed: [m_set_index, set_index>.
           if (set_index > m_set_index)
             allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window,
-                set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, set_index);
+                set_index_hint_map, missing_descriptor_set_layouts, missing_descriptor_set_unbounded_descriptor_array_sizes,
+                set_index_has_frame_resource_pairs, m_set_index, set_index);
           // Next time continue with the current set_index.
           m_set_index = set_index;
           return false; // Wait until the other pipeline factory unlocked shader_resource->m_set_layout_bindings_to_handles[set_layout_binding].
@@ -1154,6 +1166,13 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
     }
     else
     {
+      uint32_t unbounded_descriptor_array_size = unbounded_descriptor_array_sizes[set_index];
+      if (!missing_descriptor_set_unbounded_descriptor_array_sizes.empty() || unbounded_descriptor_array_size != 0)
+      {
+        if (missing_descriptor_set_unbounded_descriptor_array_sizes.empty() && !missing_descriptor_set_layouts.empty())
+          missing_descriptor_set_unbounded_descriptor_array_sizes.resize(missing_descriptor_set_layouts.size());
+        missing_descriptor_set_unbounded_descriptor_array_sizes.push_back(unbounded_descriptor_array_size);
+      }
       missing_descriptor_set_layouts.push_back(vhv_descriptor_set_layouts[set_index]);
       Dout(dc::shaderresource, "Adding set_index " << set_index << " to set_index_has_frame_resource_pairs because have_match is false.");
       // See if there is any shader resource in this set index that is a frame resource.
@@ -1168,17 +1187,20 @@ bool ShaderInputData::update_missing_descriptor_sets(utils::BadgeCaller<task::Pi
   }
 
   allocate_update_add_handles_and_unlocking(pipeline_factory, owning_window,
-      set_index_hint_map, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, m_set_index, m_set_index_end);
+      set_index_hint_map, missing_descriptor_set_layouts, missing_descriptor_set_unbounded_descriptor_array_sizes,
+      set_index_has_frame_resource_pairs, m_set_index, m_set_index_end);
   return true;
 }
 
 // Called from update_missing_descriptor_sets.
 void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFactory* pipeline_factory, task::SynchronousWindow const* owning_window,
     vulkan::descriptor::SetIndexHintMap const& set_index_hint_map, std::vector<vk::DescriptorSetLayout> const& missing_descriptor_set_layouts,
+    std::vector<uint32_t> const& missing_descriptor_set_unbounded_descriptor_array_sizes,
     std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor::SetIndex set_index_begin, descriptor::SetIndex set_index_end)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " << owning_window << ", " <<
-      missing_descriptor_set_layouts << ", " << set_index_has_frame_resource_pairs << ") [" << this << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "ShaderInputData::allocate_update_add_handles_and_unlocking(" << pipeline_factory << ", " <<
+      owning_window << ", " << missing_descriptor_set_layouts << ", " << missing_descriptor_set_unbounded_descriptor_array_sizes << ", " <<
+      set_index_has_frame_resource_pairs << ") [" << this << "]");
 
   using namespace vulkan::descriptor;
   using namespace vulkan::shader_builder::shader_resource;
@@ -1188,7 +1210,8 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
   if (!missing_descriptor_set_layouts.empty())
     missing_descriptor_sets = logical_device->allocate_descriptor_sets(
         owning_window->max_number_of_frame_resources(),
-        missing_descriptor_set_layouts, set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
+        missing_descriptor_set_layouts, missing_descriptor_set_unbounded_descriptor_array_sizes,
+        set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
         COMMA_CWDEBUG_ONLY(Ambifix{"ShaderInputData::m_descriptor_set_per_set_index", as_postfix(this)}));
            // Note: the debug name is changed when copying this vector to the Pipeline it will be used with.
   for (int i = 0; i < missing_descriptor_set_layouts.size(); ++i)
@@ -1227,7 +1250,7 @@ void ShaderInputData::allocate_update_add_handles_and_unlocking(task::PipelineFa
                 adding_characteristic_range->characteristic_range_index(),
                 adding_characteristic_range->iend() },
               shader_resource_plus_characteristic.fill_index(),
-              shader_resource->array_size(),
+              shader_resource->descriptor_array_size(),
               m_descriptor_set_per_set_index[set_index],
               binding,
               new_descriptor_set->second

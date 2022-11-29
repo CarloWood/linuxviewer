@@ -16,9 +16,9 @@ vk::DescriptorBindingFlags ShaderResourceDeclaration::binding_flags() const
   return m_shader_resource.binding_flags();
 }
 
-uint32_t ShaderResourceDeclaration::array_size() const
+int32_t ShaderResourceDeclaration::descriptor_array_size() const
 {
-  return m_shader_resource.array_size();
+  return m_shader_resource.descriptor_array_size();
 }
 
 #ifdef CWDEBUG

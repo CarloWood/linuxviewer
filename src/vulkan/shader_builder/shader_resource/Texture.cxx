@@ -31,18 +31,19 @@ void Texture::upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_vie
   copy_data_to_image->run(vulkan::Application::instance().low_priority_queue(), parent, texture_ready, AIStatefulTask::signal_parent);
 }
 
-void Texture::update_descriptor_set_single(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, int array_element) const
+void Texture::update_descriptor_array(task::SynchronousWindow const* owning_window, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, descriptor::ArrayElementRange array_elements) const
 {
-  DoutEntering(dc::shaderresource, "Texture::update_descriptor_set_single(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << array_element << ")");
+  DoutEntering(dc::shaderresource, "Texture::update_descriptor_array(" << owning_window << ", " << descriptor_set << ", " << binding << ", " << array_elements << ")");
   // Update vh_descriptor_set binding `binding` with this texture.
-  std::vector<vk::DescriptorImageInfo> image_infos = {
+  std::vector<vk::DescriptorImageInfo> image_infos(
+    array_elements.size(),
     {
       .sampler = *m_sampler,
       .imageView = *m_image_view,
       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
     }
-  };
-  owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_element, image_infos);
+  );
+  owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_elements.ibegin(), image_infos);
 }
 
 #ifdef CWDEBUG

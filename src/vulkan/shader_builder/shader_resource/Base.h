@@ -212,7 +212,7 @@ class Base
   virtual void update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info) = 0;
   virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const = 0;
   virtual vk::DescriptorBindingFlags binding_flags() const { return {}; }
-  virtual uint32_t array_size() const { return 1; }     // One means it's not an array.
+  virtual int32_t descriptor_array_size() const { return 1; }      // One means it's not an array. Negative means unbounded.
 
   //---------------------------------------------------------------------------
 

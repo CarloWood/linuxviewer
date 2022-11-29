@@ -12,7 +12,7 @@ void DescriptorUpdateInfo::print_on(std::ostream& os) const
   os << "m_owning_window:" << m_owning_window <<
       ", m_factory_characteristic_id:" << m_factory_characteristic_id <<
       ", m_fill_index:" << m_fill_index <<
-      ", m_array_size:" << m_array_size <<
+      ", m_descriptor_array_size:" << m_descriptor_array_size <<
       ", m_descriptor_set:" << m_descriptor_set <<
       ", m_binding:" << m_binding <<
       ", m_has_frame_resource:" << m_has_frame_resource;

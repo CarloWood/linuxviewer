@@ -27,6 +27,7 @@ class ShaderResourcePlusCharacteristic
   shader_resource::Base const* shader_resource() const { return m_shader_resource; }
   pipeline::CharacteristicRange const* characteristic_range() const { return m_characteristic_range; }
   int fill_index() const { return m_fill_index; }
+  bool has_unbounded_descriptor_array_size() const;
 
 #ifdef CWDEBUG
  public:

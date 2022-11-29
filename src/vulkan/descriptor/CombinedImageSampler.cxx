@@ -110,7 +110,7 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
             // Finally if we wanted to insert a 9, we'd loop until iter == end.
 
             // Note: 'factory_characteristic' stands for "PipelineFactory/CharacteristicRange (index) pair";
-            // while 'range' stands for a consecutive (sub)range of that CharacteristicRange.
+            // while 'subrange' stands for a consecutive (sub)range of that CharacteristicRange.
             factory_characteristic_key_to_descriptor_t::iterator iter = m_factory_characteristic_key_to_descriptor.begin();
             while (iter != m_factory_characteristic_key_to_descriptor.end())
             {
@@ -156,12 +156,12 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
               factory_characteristic_key_to_descriptor_t::iterator curr = prev;
               for (int n = 0; n < 3; ++n)
               {
-                // We first test prev (n=0), then iter (n=1) and finally insert a new range if neither prev nor iter matched.
+                // We first test prev (n==0), then iter (n==1) and finally (n==2) insert a new subrange if neither prev nor iter matched.
                 if (n != 0 || prev_valid)
                 {
                   if (n == 2)
                   {
-                    // Insert the new 'range' in between prev and iter (aka, before iter).
+                    // Insert the new 'subrange' in between prev and iter (aka, before iter).
                     curr = m_factory_characteristic_key_to_descriptor.insert(iter,
                         {descriptor_update_info->key(), { descriptor_update_info->descriptor_set(), descriptor_update_info->binding() }});
 #if CW_DEBUG
@@ -194,9 +194,9 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
             }
             auto texture = find_texture(key);
             if (texture != m_factory_characteristic_key_to_texture.end())
-              texture->second->update_descriptor_set_single(m_owning_window, descriptor_update_info->descriptor_set(), descriptor_update_info->binding(), /*array_element*/ 0);
+              texture->second->update_descriptor_array(m_owning_window, descriptor_update_info->descriptor_set(), descriptor_update_info->binding(), { 0, 1 }); // FIXME: use real values for range
             else
-              m_owning_window->update_descriptor_set_with_loading_texture(descriptor_update_info->descriptor_set(), descriptor_update_info->binding(), /*array_element*/ 0);
+              m_owning_window->update_descriptor_set_with_loading_texture(descriptor_update_info->descriptor_set(), descriptor_update_info->binding(), { 0, descriptor_update_info->descriptor_array_size() });
 
             Dout(dc::always, "m_factory_characteristic_key_to_descriptor is now: " << m_factory_characteristic_key_to_descriptor);
           }
@@ -239,10 +239,10 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
                 // E) [13, 15>                                           ^
                 //                                                        \__ we'll leave the while loop with iter pointing to.
                 //
-                // If our range overlaps with any existing element (it may not overlap with more than one element)
+                // If our subrange overlaps with any existing element (it may not overlap with more than one element)
                 // then we have to extend the subrange of that element and the texture must be REPLACED.
                 //
-                // If our range does NOT overlap then either it should be inserted as a new element if the texture
+                // If our subrange does NOT overlap then either it should be inserted as a new element if the texture
                 // is different from the element before and after it, or if it is equal to one of those (it can not
                 // be equal to both(?)) then it must be merged with that one.
                 //
@@ -273,7 +273,7 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
                 }
                 else
                 {
-                  // New texture and non-overlapping range. Insert a new element.
+                  // New texture and non-overlapping subrange. Insert a new element.
                   m_factory_characteristic_key_to_texture.insert(iter,
                       factory_characteristic_key_to_texture_t::value_type{key, texture});
 #if CW_DEBUG
@@ -290,7 +290,7 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
               }
               else
               {
-                // Overlapping range (case B and D) - merge and update(?) texture.
+                // Overlapping subrange (case B and D) - merge and update(?) texture.
                 iter->first.extend_subrange(texture_update_request->subrange());
 #if CW_DEBUG
                 auto iter2 = iter;
@@ -314,13 +314,17 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
             {
               LogicalDevice const* logical_device = m_owning_window->logical_device();
               if (!logical_device->supports_sampled_image_update_after_bind())
-                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler was called on that CombinedImageSampler while the vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler can only be done from create_textures.");
+              {
+                // In principle this is a bug in the program: it should call LogicalDevice::supports_sampled_image_update_after_bind()
+                // to test if it is allowed to change textures on descriptors that are bound to a pipeline.
+                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler was called on that CombinedImageSampler while your vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler can only be done from create_textures.");
+              }
               // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSampler that owns this task.
               ASSERT((m_binding_flags.load(std::memory_order::relaxed) & vk::DescriptorBindingFlagBits::eUpdateAfterBind));
             }
 #endif
             for (auto descriptor = matching_descriptors.first; descriptor != matching_descriptors.second; ++descriptor)
-              texture->update_descriptor_set_single(m_owning_window, descriptor->second.descriptor_set(), descriptor->second.binding(), /*array_element*/ 0);
+              texture->update_descriptor_array(m_owning_window, descriptor->second.descriptor_set(), descriptor->second.binding(), /*array_elements*/ {0, 1});  //FIXME: use the real array element values.
           }
         });
       if (producer_not_finished())

@@ -55,13 +55,14 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
     uint32_t binding = shader_resource_binding_pair.second;
+    int32_t descriptor_array_size = shader_resource_declaration->descriptor_array_size();
     m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
         .binding = binding,
         .descriptorType = shader_resource_declaration->descriptor_type(),
-        .descriptorCount = shader_resource_declaration->array_size(),
+        .descriptorCount = (uint32_t)std::abs(descriptor_array_size),
         .stageFlags = shader_resource_declaration->stage_flags(),
         .pImmutableSamplers = nullptr
-    }, shader_resource_declaration->binding_flags(), {});
+    }, shader_resource_declaration->binding_flags(), descriptor_array_size, {});
   }
 }
 
@@ -90,9 +91,11 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
         ShaderResourceVariable const& shader_variable = *variable.begin();
         // layout(set = 0, binding = 0) uniform sampler2D u_Texture_background;
         oss << "layout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform sampler2D " << shader_variable.name();
-        uint32_t array_size = shader_resource_declaration->array_size();
-        if (array_size > 1)
-          oss << "[" << array_size << "]";
+        int32_t descriptor_array_size = shader_resource_declaration->descriptor_array_size();
+        if (descriptor_array_size > 1)
+          oss << "[" << descriptor_array_size << "]";
+        else if (descriptor_array_size < 0)
+          oss << "[]";
         oss << ";\t// " << shader_variable.glsl_id_full();
         oss << "\n";
         break;

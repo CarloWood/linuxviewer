@@ -31,10 +31,10 @@ class SetLayout
  public:
   SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint) { }
 
-  void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags)
+  void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size)
   {
-    DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ", " << binding_flags << ")");
-    m_sorted_bindings_and_flags.insert(descriptor_set_layout_binding, binding_flags);
+    DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ")");
+    m_sorted_bindings_and_flags.insert(descriptor_set_layout_binding, binding_flags, descriptor_array_size);
   }
 
   // Look up m_sorted_bindings_and_flags in cache, and create a new handle if it doesn't already exist.

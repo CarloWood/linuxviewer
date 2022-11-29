@@ -28,7 +28,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 1
+#define ENABLE_IMGUI 0
 
 class Window : public task::SynchronousWindow
 {
@@ -182,9 +182,9 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top, v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[0], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom0, v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom0[0], v_Texcoord);
 }
 )glsl";
 
@@ -197,9 +197,9 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top, v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[0], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom1, v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom1[0], v_Texcoord);
 }
 )glsl";
 
@@ -319,7 +319,7 @@ void main()
 
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
-            key_preference.emplace_back(window->combined_image_samplers()[t].descriptor_task()->descriptor_set_key(), 1.0);
+            key_preference.emplace_back(window->combined_image_samplers()[t].descriptor_task()->descriptor_set_key(), 0.1);
 
           int constexpr number_of_combined_image_samplers_per_pipeline = 2;
           std::array<int, number_of_combined_image_samplers_per_pipeline> combined_image_sampler_indexes = {
@@ -328,8 +328,12 @@ void main()
           };
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
             add_combined_image_sampler(
-                window->combined_image_samplers()[combined_image_sampler_indexes[i]],
-                { key_preference[combined_image_sampler_indexes[1 - i]] });
+                window->combined_image_samplers()[combined_image_sampler_indexes[i]]
+#if 0
+                , {}
+#endif
+                , { key_preference[combined_image_sampler_indexes[1 - i]] }
+                );
 
           // Add default color blend.
           m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -411,7 +415,7 @@ void main()
     {
       m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
       m_combined_image_samplers[t].set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind);
-//      m_combined_image_samplers[t].set_array_size(2);
+      m_combined_image_samplers[t].set_array_size(2, vulkan::shader_builder::shader_resource::CombinedImageSampler::unbounded_array);
     }
 
     for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
