@@ -25,14 +25,29 @@ class CombinedImageSampler
   void set_bindings_flags(vk::DescriptorBindingFlagBits binding_flags);
   void set_array_size(uint32_t array_size, ArrayType array_type = bounded_array);
 
-  void update_image_sampler(descriptor::TextureUpdateRequest image_sampler_to_update_with)
+  void update_image_sampler_array(shader_builder::shader_resource::Texture const* texture, pipeline::FactoryCharacteristicId const& factory_characteristic_id, pipeline::ConsecutiveRange subrange, descriptor::ArrayElementRange array_element_range)
   {
-    DoutEntering(dc::shaderresource, "CombinedImageSampler::update_image_sampler(" << image_sampler_to_update_with << ")");
+    DoutEntering(dc::shaderresource, "CombinedImageSampler::update_image_sampler(" << texture << ", " << factory_characteristic_id << ", " << subrange << ", " << array_element_range << ")");
 
-    boost::intrusive_ptr<descriptor::Update> update = new descriptor::TextureUpdateRequest(std::move(image_sampler_to_update_with));
+    boost::intrusive_ptr<descriptor::Update> update = new descriptor::TextureUpdateRequest(texture, factory_characteristic_id, subrange, array_element_range);
 
     // Pass new image samplers that we need to update the descriptors with.
     m_descriptor_task->have_new_datum(std::move(update));
+  }
+
+  void update_image_sampler_array(shader_builder::shader_resource::Texture const* texture, pipeline::FactoryCharacteristicId const& factory_characteristic_id, descriptor::ArrayElementRange array_element_range)
+  {
+    update_image_sampler_array(texture, factory_characteristic_id, factory_characteristic_id.full_range(), array_element_range);
+  }
+
+  void update_image_sampler(shader_builder::shader_resource::Texture const* texture, pipeline::FactoryCharacteristicId const& factory_characteristic_id, pipeline::ConsecutiveRange subrange)
+  {
+    update_image_sampler_array(texture, factory_characteristic_id, subrange, 0);
+  }
+
+  void update_image_sampler(shader_builder::shader_resource::Texture const* texture, pipeline::FactoryCharacteristicId const& factory_characteristic_id)
+  {
+    update_image_sampler_array(texture, factory_characteristic_id, factory_characteristic_id.full_range(), 0);
   }
 
   // Accessor.

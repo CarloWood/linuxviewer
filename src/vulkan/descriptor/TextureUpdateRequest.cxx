@@ -8,8 +8,10 @@ namespace vulkan::descriptor {
 void TextureUpdateRequest::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "m_factory_characteristic_id:" << m_factory_characteristic_id <<
-      ", m_texture:" << m_texture;
+  os << "m_texture:" << m_texture <<
+      ", m_factory_characteristic_id:" << m_factory_characteristic_id <<
+      ", m_subrange:" << m_subrange <<
+      ", m_array_element_range:" << m_array_element_range;
   os << '}';
 }
 #endif

@@ -16,6 +16,9 @@ class ArrayElementRange
   // Construct an uninitialized ArrayElementRange.
   ArrayElementRange() = default;
 
+  // Construct an ArrayElementRange of size 1.
+  ArrayElementRange(uint32_t ibegin) : m_ibegin(ibegin), m_iend(ibegin + 1) { }
+
   // Construct an ArrayElementRange from ibegin till iend.
   ArrayElementRange(uint32_t ibegin, int32_t iend) : m_ibegin(ibegin), m_iend(iend)
   {

@@ -206,6 +206,7 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
             TextureUpdateRequest const* texture_update_request = static_cast<TextureUpdateRequest const*>(update.get());
             pipeline::FactoryCharacteristicKey const key = texture_update_request->key();
             shader_builder::shader_resource::Texture const* texture = texture_update_request->texture();
+            descriptor::ArrayElementRange const array_element_range = texture_update_request->array_element_range();
 
             // The following code works the same as for descriptors; see above for comments.
             factory_characteristic_key_to_texture_t::iterator iter = m_factory_characteristic_key_to_texture.begin();
@@ -317,7 +318,7 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
               {
                 // In principle this is a bug in the program: it should call LogicalDevice::supports_sampled_image_update_after_bind()
                 // to test if it is allowed to change textures on descriptors that are bound to a pipeline.
-                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler was called on that CombinedImageSampler while your vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler can only be done from create_textures.");
+                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler[_array] was called on that CombinedImageSampler while your vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler[_array] can only be done from create_textures.");
               }
               // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSampler that owns this task.
               ASSERT((m_binding_flags.load(std::memory_order::relaxed) & vk::DescriptorBindingFlagBits::eUpdateAfterBind));

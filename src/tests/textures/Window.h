@@ -147,7 +147,8 @@ class Window : public task::SynchronousWindow
           continue;
         }
         int ti = (cis + 1) % number_of_combined_image_samplers;
-        m_combined_image_samplers[cis].update_image_sampler({ &m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline] });
+        // Change (update) image sampler descriptor 'cis', used by pipeline 'pipeline', with the (new) texture 'ti'.
+        m_combined_image_samplers[cis].update_image_sampler_array(&m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline], 1);
         break;
       }
       if (++m_loop_var < 6)
@@ -327,6 +328,7 @@ void main()
             1 + m_pipeline
           };
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
+          {
             add_combined_image_sampler(
                 window->combined_image_samplers()[combined_image_sampler_indexes[i]]
 #if 0
@@ -334,6 +336,7 @@ void main()
 #endif
                 , { key_preference[combined_image_sampler_indexes[1 - i]] }
                 );
+          }
 
           // Add default color blend.
           m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
@@ -410,12 +413,16 @@ void main()
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+    auto const unbounded_array = vulkan::shader_builder::shader_resource::CombinedImageSampler::unbounded_array;
 
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
     {
+      // This is what the descriptor is recognized by in the shader code.
       m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
+      // This is needed if you want to change the texture again after using it.
       m_combined_image_samplers[t].set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind);
-      m_combined_image_samplers[t].set_array_size(2, vulkan::shader_builder::shader_resource::CombinedImageSampler::unbounded_array);
+      // Turn this descriptor into an array with size 2, using [] for its declaration in the shader.
+      m_combined_image_samplers[t].set_array_size(2, unbounded_array);
     }
 
     for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
