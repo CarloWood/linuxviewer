@@ -1,5 +1,5 @@
 #include "sys.h"
-#include "CombinedImageSampler.h"
+#include "CombinedImageSamplerUpdater.h"
 #include "SynchronousWindow.h"
 #include "pipeline/ShaderInputData.h"
 #include "descriptor/TextureUpdateRequest.h"
@@ -10,28 +10,28 @@
 
 namespace vulkan::descriptor {
 
-void CombinedImageSampler::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
+void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
 {
   shader_input_data->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
-CombinedImageSampler::~CombinedImageSampler()
+CombinedImageSamplerUpdater::~CombinedImageSamplerUpdater()
 {
-  DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSampler::~CombinedImageSampler() [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSamplerUpdater::~CombinedImageSamplerUpdater() [" << this << "]");
 }
 
-char const* CombinedImageSampler::state_str_impl(state_type run_state) const
+char const* CombinedImageSamplerUpdater::state_str_impl(state_type run_state) const
 {
   switch (run_state)
   {
-    AI_CASE_RETURN(CombinedImageSampler_need_action);
-    AI_CASE_RETURN(CombinedImageSampler_done);
+    AI_CASE_RETURN(CombinedImageSamplerUpdater_need_action);
+    AI_CASE_RETURN(CombinedImageSamplerUpdater_done);
   }
   AI_NEVER_REACHED
 }
 
-std::pair<CombinedImageSampler::factory_characteristic_key_to_descriptor_t::const_iterator, CombinedImageSampler::factory_characteristic_key_to_descriptor_t::const_iterator>
-CombinedImageSampler::find_descriptors(pipeline::FactoryCharacteristicKey const& key) const
+std::pair<CombinedImageSamplerUpdater::factory_characteristic_key_to_descriptor_t::const_iterator, CombinedImageSamplerUpdater::factory_characteristic_key_to_descriptor_t::const_iterator>
+CombinedImageSamplerUpdater::find_descriptors(pipeline::FactoryCharacteristicKey const& key) const
 {
   auto begin = m_factory_characteristic_key_to_descriptor.begin();
   auto end = m_factory_characteristic_key_to_descriptor.end();
@@ -53,7 +53,7 @@ CombinedImageSampler::find_descriptors(pipeline::FactoryCharacteristicKey const&
   return {begin, end};
 }
 
-CombinedImageSampler::factory_characteristic_key_to_texture_t::const_iterator CombinedImageSampler::find_texture(pipeline::FactoryCharacteristicKey const& key) const
+CombinedImageSamplerUpdater::factory_characteristic_key_to_texture_t::const_iterator CombinedImageSamplerUpdater::find_texture(pipeline::FactoryCharacteristicKey const& key) const
 {
   factory_characteristic_key_to_texture_t::const_iterator result = m_factory_characteristic_key_to_texture.begin();
   while (result != m_factory_characteristic_key_to_texture.end())
@@ -73,18 +73,18 @@ CombinedImageSampler::factory_characteristic_key_to_texture_t::const_iterator Co
   return result;
 }
 
-void CombinedImageSampler::multiplex_impl(state_type run_state)
+void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
 {
   switch (run_state)
   {
-    case CombinedImageSampler_need_action:
+    case CombinedImageSamplerUpdater_need_action:
       // Get all the new descriptors that need updating from the TaskToTaskDeque.
       flush_new_data([this](boost::intrusive_ptr<Update>&& update){
           Dout(dc::always, "Received: " << *update << " on " << this << " (" << debug_name() << ")");
           if (update->is_descriptor_update_info())
           {
             DescriptorUpdateInfo const* descriptor_update_info = static_cast<DescriptorUpdateInfo const*>(update.get());
-            // All DescriptorUpdateInfo's must refer to the window that owns this CombinedImageSampler.
+            // All DescriptorUpdateInfo's must refer to the window that owns this CombinedImageSamplerUpdater.
             ASSERT(!m_owning_window || m_owning_window == descriptor_update_info->owning_window());
             m_owning_window = descriptor_update_info->owning_window();
             pipeline::FactoryCharacteristicKey key = descriptor_update_info->key();
@@ -318,9 +318,9 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
               {
                 // In principle this is a bug in the program: it should call LogicalDevice::supports_sampled_image_update_after_bind()
                 // to test if it is allowed to change textures on descriptors that are bound to a pipeline.
-                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSampler \"" << debug_name() << "\" was run before update_image_sampler[_array] was called on that CombinedImageSampler while your vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler[_array] can only be done from create_textures.");
+                DoutFatal(dc::core, "The PipelineFactory using the CombinedImageSamplerUpdater \"" << debug_name() << "\" was run before update_image_sampler[_array] was called on that CombinedImageSamplerUpdater while your vulkan device is not supporting descriptorBindingSampledImageUpdateAfterBind! In that case calls to update_image_sampler[_array] can only be done from create_textures.");
               }
-              // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSampler that owns this task.
+              // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSamplerUpdater that owns this task.
               ASSERT((m_binding_flags.load(std::memory_order::relaxed) & vk::DescriptorBindingFlagBits::eUpdateAfterBind));
             }
 #endif
@@ -330,9 +330,9 @@ void CombinedImageSampler::multiplex_impl(state_type run_state)
         });
       if (producer_not_finished())
         break;
-      set_state(CombinedImageSampler_done);
+      set_state(CombinedImageSamplerUpdater_done);
       [[fallthrough]];
-    case CombinedImageSampler_done:
+    case CombinedImageSamplerUpdater_done:
       finish();
       break;
   }
@@ -351,7 +351,7 @@ void CombinedImageSamplerShaderResourceMember::print_on(std::ostream& os) const
 
 } // namespace detail
 
-void CombinedImageSampler::print_on(std::ostream& os) const
+void CombinedImageSamplerUpdater::print_on(std::ostream& os) const
 {
   os << '{';
   os << "(Base)";

@@ -53,7 +53,7 @@ struct VertexAttribute;
 } // namespace shader_builder
 
 namespace descriptor {
-class CombinedImageSampler;
+class CombinedImageSamplerUpdater;
 } // namespace descriptor
 
 namespace shader_builder::shader_resource {
@@ -274,7 +274,7 @@ class ShaderInputData
   std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const;
 
  public:
-  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
+  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
   void prepare_uniform_buffer_declaration(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
 
  private:

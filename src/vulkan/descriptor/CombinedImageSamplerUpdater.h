@@ -58,26 +58,26 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_resource::Base
+class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_resource::Base
 {
  protected:
   using direct_base_type = AIStatefulTask;
 
   enum combined_image_sampler_state_type {
-    CombinedImageSampler_need_action = direct_base_type::state_end,
-    CombinedImageSampler_done
+    CombinedImageSamplerUpdater_need_action = direct_base_type::state_end,
+    CombinedImageSamplerUpdater_done
   };
 
  public:
-  static state_type constexpr state_end = CombinedImageSampler_done + 1;
+  static state_type constexpr state_end = CombinedImageSamplerUpdater_done + 1;
 
  private:
   task::SynchronousWindow const* m_owning_window{};                             // The owning window.
-  std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSampler only has a single "member".
+  std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSamplerUpdater only has a single "member".
   std::atomic<vk::DescriptorBindingFlags> m_binding_flags{};                    // Optional binding flags to use for this descriptor.
   std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.
   using factory_characteristic_key_to_descriptor_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, pipeline::FactoryCharacteristicData>>;
-  factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSampler.
+  factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSamplerUpdater.
   using factory_characteristic_key_to_texture_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, shader_builder::shader_resource::Texture const*>>;
   factory_characteristic_key_to_texture_t m_factory_characteristic_key_to_texture;
 
@@ -86,21 +86,21 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
   factory_characteristic_key_to_texture_t::const_iterator find_texture(pipeline::FactoryCharacteristicKey const& key) const;
 
  public:
-  CombinedImageSampler(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
+  CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
     vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), shader_resource::Base(SetKeyContext::instance(), glsl_id_full_postfix)
   {
-    DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSampler::CombinedImageSampler(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
+    DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
     glsl_id_full.append(glsl_id_full_postfix);
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
   }
 
   // Probably not used.
-  CombinedImageSampler(CombinedImageSampler&&) = default;
+  CombinedImageSamplerUpdater(CombinedImageSamplerUpdater&&) = default;
 
   void set_bindings_flags(vk::DescriptorBindingFlags binding_flags)
   {
-    DoutEntering(dc::vulkan, "CombinedImageSampler::set_bindings_flags(" << binding_flags << ") [" << this << "]");
+    DoutEntering(dc::vulkan, "CombinedImageSamplerUpdater::set_bindings_flags(" << binding_flags << ") [" << this << "]");
     // Don't call set_bindings_flags unless you have something to set :p.
     ASSERT(!!binding_flags);
     [[maybe_unused]] vk::DescriptorBindingFlags prev_binding_flags = m_binding_flags.exchange(binding_flags, std::memory_order::relaxed);
@@ -110,7 +110,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
 
   void set_array_size(uint32_t descriptor_array_size, bool unbounded)
   {
-    DoutEntering(dc::vulkan, "CombinedImageSampler::set_array_size(" << descriptor_array_size << ", " << (unbounded ? "un" : "") << "bounded) [" << this << "]");
+    DoutEntering(dc::vulkan, "CombinedImageSamplerUpdater::set_array_size(" << descriptor_array_size << ", " << (unbounded ? "un" : "") << "bounded) [" << this << "]");
     // Don't call set_array_size unless it's an array :p.
     ASSERT(descriptor_array_size > 1);
     // A negative value means unbounded.
@@ -120,7 +120,7 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
     ASSERT(prev_descriptor_array_size == 1 || prev_descriptor_array_size == size);
   }
 
-  CombinedImageSampler& operator=(CombinedImageSampler&& rhs)
+  CombinedImageSamplerUpdater& operator=(CombinedImageSamplerUpdater&& rhs)
   {
     this->Base::operator=(std::move(rhs));
     m_member = std::move(rhs.m_member);
@@ -131,14 +131,14 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
   ShaderResourceMember const& member() const { return m_member->member(); }
 
-  // There is no need to instantiate anything for CombinedImageSamplers.
+  // There is no need to instantiate anything for CombinedImageSamplerUpdaters.
   void instantiate(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
 
   void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override final;
 
   void update_descriptor_set(DescriptorUpdateInfo descriptor_update_info) override final
   {
-    DoutEntering(dc::shaderresource, "CombinedImageSampler::update_descriptor_set(" << descriptor_update_info << ")");
+    DoutEntering(dc::shaderresource, "CombinedImageSamplerUpdater::update_descriptor_set(" << descriptor_update_info << ")");
 
     boost::intrusive_ptr<Update> update = new DescriptorUpdateInfo(std::move(descriptor_update_info));
 
@@ -150,8 +150,8 @@ class CombinedImageSampler : public vk_utils::TaskToTaskDeque<AIStatefulTask, bo
   int32_t descriptor_array_size() const override final { return m_descriptor_array_size; }
 
  protected:
-  ~CombinedImageSampler() override;
-  char const* task_name_impl() const override { return "CombinedImageSampler"; }
+  ~CombinedImageSamplerUpdater() override;
+  char const* task_name_impl() const override { return "CombinedImageSamplerUpdater"; }
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
 //  void initialize_impl() override;

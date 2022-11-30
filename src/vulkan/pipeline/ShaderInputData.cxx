@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "ShaderInputData.h"
 #include "SynchronousWindow.h"
-#include "descriptor/CombinedImageSampler.h"
+#include "descriptor/CombinedImageSamplerUpdater.h"
 #include "partitions/PartitionTask.h"
 #include "partitions/ElementPair.h"
 #include "partitions/PartitionIteratorExplode.h"
@@ -33,7 +33,7 @@ void ShaderInputData::add_combined_image_sampler(
       preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
   // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
-  descriptor::CombinedImageSampler const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
+  descriptor::CombinedImageSamplerUpdater const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
   register_shader_resource(combined_image_sampler_task, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
@@ -713,7 +713,7 @@ std::string_view ShaderInputData::preprocess2(
 // called from prepare_shader_resource_declarations.
 //
 // This function is called once for each combined_image_sampler that was passed to a call to add_combined_image_sampler.
-void ShaderInputData::prepare_combined_image_sampler_declaration(descriptor::CombinedImageSampler const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
+void ShaderInputData::prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan, "ShaderInputData::prepare_combined_image_sampler_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
 
