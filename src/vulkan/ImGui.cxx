@@ -399,7 +399,7 @@ void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits
 #endif
 
   // Create texture parameters.
-  m_font_texture = shader_builder::shader_resource::Texture(logical_device(),
+  m_font_texture = Texture(logical_device(),
       extent, imgui_font_image_view_kind, imgui_font_sampler_kind, graphics_settings,
       { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
       COMMA_CWDEBUG_ONLY(".m_font_texture" + ambifix));

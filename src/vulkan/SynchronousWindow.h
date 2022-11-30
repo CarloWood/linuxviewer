@@ -22,7 +22,7 @@
 #include "rendergraph/RenderGraph.h"
 #include "rendergraph/Attachment.h"
 #include "shader_builder/SPIRVCache.h"
-#include "shader_builder/shader_resource/Texture.h"
+#include "Texture.h"
 #include "vk_utils/TimerData.h"
 #include "statefultask/Broker.h"
 #include "statefultask/TaskEvent.h"
@@ -194,7 +194,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   vulkan::GraphicsSettingsPOD m_graphics_settings;                      // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
 
-  vulkan::shader_builder::shader_resource::Texture m_loading_texture;   // A "texture" (opaque gray) that is shown while the real texture isn't available yet.
+  vulkan::Texture m_loading_texture;                                    // A "texture" (opaque gray) that is shown while the real texture isn't available yet.
 #ifdef CWDEBUG
   bool const mVWDebug;                                                  // A copy of mSMDebug.
 #endif

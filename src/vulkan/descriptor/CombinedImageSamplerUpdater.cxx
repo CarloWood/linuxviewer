@@ -205,7 +205,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             // We received a TextureUpdateRequest.
             TextureUpdateRequest const* texture_update_request = static_cast<TextureUpdateRequest const*>(update.get());
             pipeline::FactoryCharacteristicKey const key = texture_update_request->key();
-            shader_builder::shader_resource::Texture const* texture = texture_update_request->texture();
+            Texture const* texture = texture_update_request->texture();
             descriptor::ArrayElementRange const array_element_range = texture_update_request->array_element_range();
 
             // The following code works the same as for descriptors; see above for comments.
@@ -354,8 +354,8 @@ void CombinedImageSamplerShaderResourceMember::print_on(std::ostream& os) const
 void CombinedImageSamplerUpdater::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "(Base)";
-  Base::print_on(os);
+  os << "(ShaderResourceBase)";
+  ShaderResourceBase::print_on(os);
   os << ", m_member:" << vk_utils::print_pointer(m_member);
   os << '}';
 }

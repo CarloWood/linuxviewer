@@ -36,7 +36,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  vulkan::shader_resource::Texture m_sample_texture{"m_sample_texture"};
+  vulkan::Texture m_sample_texture{"m_sample_texture"};
 
   enum class LocalShaderIndex {
     vertex0,
@@ -102,7 +102,7 @@ class Window : public task::SynchronousWindow
 
       static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-      m_sample_texture = vulkan::shader_resource::Texture("vort3", m_logical_device,
+      m_sample_texture = vulkan::Texture("vort3", m_logical_device,
           texture_data.extent(), sample_image_view_kind,
           { .mipmapMode = vk::SamplerMipmapMode::eNearest,
             .anisotropyEnable = VK_FALSE },

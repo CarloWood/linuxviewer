@@ -4,7 +4,7 @@
 #include "vk_utils/print_pointer.h"
 #include "debug.h"
 
-namespace vulkan::shader_builder {
+namespace vulkan::pipeline {
 
 bool ShaderResourcePlusCharacteristic::has_unbounded_descriptor_array_size() const
 {
@@ -24,4 +24,4 @@ void ShaderResourcePlusCharacteristic::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_builder
+} // namespace vulkan::pipeline

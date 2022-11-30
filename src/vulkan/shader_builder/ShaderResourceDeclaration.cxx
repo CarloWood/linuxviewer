@@ -1,7 +1,7 @@
 #include "sys.h"
 #ifdef CWDEBUG
 #include "ShaderResourceDeclaration.h"
-#include "shader_resource/Base.h"
+#include "ShaderResourceBase.h"
 #include "pipeline/ShaderInputData.h"
 #include "debug/vulkan_print_on.h"
 #include "vk_utils/print_flags.h"

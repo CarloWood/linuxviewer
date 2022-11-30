@@ -3,7 +3,7 @@
 #include "SynchronousWindow.h"
 #include "queues/CopyDataToImage.h"
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan {
 
 //static
 ImageViewKind const Texture::s_default_image_view_kind{default_image_kind, {}};
@@ -57,4 +57,4 @@ void Texture::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_builder::shader_resource
+} // namespace vulkan

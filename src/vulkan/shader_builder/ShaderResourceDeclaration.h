@@ -12,9 +12,7 @@
 #include "debug.h"
 
 namespace vulkan::shader_builder {
-namespace shader_resource {
-class Base;
-} // namespace shader_resource
+class ShaderResourceBase;
 
 class ShaderResourceDeclaration
 {
@@ -29,18 +27,18 @@ class ShaderResourceDeclaration
   using shader_resource_variables_container_t = std::vector<ShaderResourceVariable>;
   shader_resource_variables_container_t m_shader_resource_variables;
 
-  shader_resource::Base const& m_shader_resource;
+  ShaderResourceBase const& m_shader_resource;
   vk::ShaderStageFlags m_stage_flags{};
 
  public:
-  ShaderResourceDeclaration(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/, shader_resource::Base const& shader_resource) :
+  ShaderResourceDeclaration(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/, ShaderResourceBase const& shader_resource) :
     m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index_hint(set_index_hint),
     /*m_offset(offset), m_array_size(array_size),*/ m_shader_resource(shader_resource)
   { }
 
   void add_member(ShaderResourceMember const& member)
   {
-    // Only use this to add a single "fake" member (currently only used by shader_resource::Texture).
+    // Only use this to add a single "fake" member (currently only used by Texture).
     ASSERT(m_shader_resource_variables.empty());
     m_shader_resource_variables.emplace_back(member.glsl_id_full(), this);
   }
@@ -69,7 +67,7 @@ class ShaderResourceDeclaration
   descriptor::SetIndexHint set_index_hint() const { return m_set_index_hint; }
   uint32_t binding() const { ASSERT(m_binding != undefined_magic); return m_binding; }
   shader_resource_variables_container_t const& shader_resource_variables() const { return m_shader_resource_variables; }
-  shader_resource::Base const& shader_resource() const { return m_shader_resource; }
+  ShaderResourceBase const& shader_resource() const { return m_shader_resource; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }
   vk::DescriptorBindingFlags binding_flags() const;
   int32_t descriptor_array_size() const;

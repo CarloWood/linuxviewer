@@ -123,7 +123,7 @@ class CharacteristicRange : public AIStatefulTask
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  inline void add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+  inline void add_uniform_buffer(shader_builder::UniformBufferBase const& uniform_buffer,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -276,7 +276,7 @@ void CharacteristicRange::add_combined_image_sampler(shader_builder::shader_reso
       combined_image_sampler, this, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
-void CharacteristicRange::add_uniform_buffer(shader_builder::shader_resource::UniformBufferBase const& uniform_buffer,
+void CharacteristicRange::add_uniform_buffer(shader_builder::UniformBufferBase const& uniform_buffer,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {

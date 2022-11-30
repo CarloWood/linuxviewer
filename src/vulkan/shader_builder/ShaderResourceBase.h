@@ -5,7 +5,7 @@
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetLayoutBinding.h"
 #include "descriptor/DescriptorUpdateInfo.h"
-#include "shader_builder/ShaderResourcePlusCharacteristicIndex.h"
+#include "pipeline/ShaderResourcePlusCharacteristicIndex.h"
 #include "threadsafe/aithreadsafe.h"
 #include "threadsafe/AIReadWriteMutex.h"
 #include <vulkan/vulkan.hpp>
@@ -20,14 +20,12 @@ class SynchronousWindow;
 
 namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;
-
-namespace shader_resource {
-class Base;
+class ShaderResourceBase;
 
 // Helper class that stores the descriptor set allocation mutex and a vector with FrameResourceCapableDescriptorSet handles bound to
 // the associated shader resource (m_debug_owner).
 //
-// Access to this class is protected by the read/write mutex on Base::m_set_layout_bindings_to_handles.
+// Access to this class is protected by the read/write mutex on ShaderResourceBase::m_set_layout_bindings_to_handles.
 class SetMutexAndSetHandles
 {
  public:
@@ -36,11 +34,11 @@ class SetMutexAndSetHandles
  private:
   AIStatefulTaskMutex m_mutex;                  // Mutex that is locked for the first shader resource of a given set a shader resources that we need a descriptor for.
 
-  descriptor_set_container_t m_descriptor_sets; // Vector containing all descriptor sets that the shader resource owning this SetLayoutBinding (stored in shader_resource::Base::m_set_layout_bindings) is bound to.
+  descriptor_set_container_t m_descriptor_sets; // Vector containing all descriptor sets that the shader resource owning this SetLayoutBinding (stored in ShaderResourceBase::m_set_layout_bindings) is bound to.
 
 #ifdef CWDEBUG
   AIStatefulTask const* m_debug_have_lock{};    // Pointer to the task that successfully locked m_mutex, or nullptr when unlocked.
-  Base const* m_debug_owner;                    // The shader resource that has a map that contains this object.
+  ShaderResourceBase const* m_debug_owner;      // The shader resource that has a map that contains this object.
 #endif
 
  public:
@@ -51,9 +49,9 @@ class SetMutexAndSetHandles
   SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set) : m_descriptor_sets(1, descriptor_set) { }
 #else
   // Construct a SetMutexAndSetHandles that contains no FrameResourceCapableDescriptorSet's.
-  SetMutexAndSetHandles(Base const* owner) : m_debug_owner(owner) { }
+  SetMutexAndSetHandles(ShaderResourceBase const* owner) : m_debug_owner(owner) { }
   // Construct a SetMutexAndSetHandles that contains a single FrameResourceCapableDescriptorSet.
-  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, Base const* owner) :
+  SetMutexAndSetHandles(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, ShaderResourceBase const* owner) :
     m_descriptor_sets(1, descriptor_set), m_debug_owner(owner) { }
 #endif
 
@@ -83,8 +81,8 @@ class SetMutexAndSetHandles
 #endif
 };
 
-// Base class for shader resources.
-class Base
+// ShaderResourceBase class for shader resources.
+class ShaderResourceBase
 {
  public:
   using set_layout_bindings_to_handles_container_t = std::map<descriptor::SetLayoutBinding, SetMutexAndSetHandles>;
@@ -110,24 +108,24 @@ class Base
 #endif
 
  public:
-  Base(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
+  ShaderResourceBase(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
     m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_debug_name(debug_name))
   {
-    DoutEntering(dc::notice, "Base::Base(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ") [" << this << "]");
+    DoutEntering(dc::notice, "ShaderResourceBase::ShaderResourceBase(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ") [" << this << "]");
   }
-  Base() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
+  ShaderResourceBase() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
 
   // Ignore m_descriptor_set_key when move- assigning and/or copying; the target should already have the right key.
-  Base(Base&& rhs)
+  ShaderResourceBase(ShaderResourceBase&& rhs)
   {
   }
-  Base& operator=(Base&& rhs)
+  ShaderResourceBase& operator=(ShaderResourceBase&& rhs)
   {
     return *this;
   }
 
   // Disallow copy and move constructing.
-  Base(Base const& rhs) = delete;
+  ShaderResourceBase(ShaderResourceBase const& rhs) = delete;
 
   //---------------------------------------------------------------------------
   // The call to create and update_descriptor_set must happen after acquire_lock returned true,
@@ -135,7 +133,7 @@ class Base
 
   bool acquire_create_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
   {
-    DoutEntering(dc::notice, "Base::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << "]");
+    DoutEntering(dc::notice, "ShaderResourceBase::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << "]");
     return m_create_access_mutex.lock(task, condition);
   }
 
@@ -197,7 +195,7 @@ class Base
 
   void release_create_lock() /*thread-safe*/ const
   {
-    DoutEntering(dc::notice, "Base::release_create_lock() [" << this << "]");
+    DoutEntering(dc::notice, "ShaderResourceBase::release_create_lock() [" << this << "]");
     m_create_access_mutex.unlock();
   }
 
@@ -226,5 +224,4 @@ class Base
 #endif
 };
 
-} // namespace shader_resource
 } // namespace vulkan::shader_builder

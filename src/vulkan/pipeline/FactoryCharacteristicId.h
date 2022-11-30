@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ConsecutiveRange.h"
+#include "vk_utils/ConsecutiveRange.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
@@ -40,7 +40,7 @@ class FactoryCharacteristicId
   PipelineFactoryIndex factory_index() const { return m_factory_index; }
   CharacteristicRangeIndex range_index() const { return m_range_index; }
   int characteristic_range_size() const { return m_characteristic_range_size; }
-  ConsecutiveRange full_range() const { return {0, m_characteristic_range_size}; }
+  vk_utils::ConsecutiveRange full_range() const { return {0, m_characteristic_range_size}; }
 
   friend bool operator<(FactoryCharacteristicId const& lhs, FactoryCharacteristicId const& rhs)
   {

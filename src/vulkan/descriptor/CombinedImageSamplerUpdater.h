@@ -3,18 +3,17 @@
 #include "ShaderResourceMember.h"
 #include "Update.h"
 #include "SetKeyContext.h"
-#include "shader_resource/Base.h"
+#include "shader_builder/ShaderResourceBase.h"
 #include "pipeline/FactoryCharacteristicKey.h"
 #include "pipeline/FactoryCharacteristicData.h"
 #include "vk_utils/TaskToTaskDeque.h"
 #include "cwds/debug_ostream_operators.h"
 #include <boost/container/flat_map.hpp>
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan {
 class Texture;
-} // namespace vulkan::shader_builder::shader_resource
 
-namespace vulkan::descriptor {
+namespace descriptor {
 using utils::has_print_on::operator<<;
 using namespace shader_builder;
 
@@ -58,7 +57,7 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_resource::Base
+class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public ShaderResourceBase
 {
  protected:
   using direct_base_type = AIStatefulTask;
@@ -78,7 +77,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.
   using factory_characteristic_key_to_descriptor_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, pipeline::FactoryCharacteristicData>>;
   factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSamplerUpdater.
-  using factory_characteristic_key_to_texture_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, shader_builder::shader_resource::Texture const*>>;
+  using factory_characteristic_key_to_texture_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, Texture const*>>;
   factory_characteristic_key_to_texture_t m_factory_characteristic_key_to_texture;
 
  private:
@@ -87,7 +86,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
  public:
   CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
-    vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), shader_resource::Base(SetKeyContext::instance(), glsl_id_full_postfix)
+    vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), ShaderResourceBase(SetKeyContext::instance(), glsl_id_full_postfix)
   {
     DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
@@ -122,7 +121,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
   CombinedImageSamplerUpdater& operator=(CombinedImageSamplerUpdater&& rhs)
   {
-    this->Base::operator=(std::move(rhs));
+    this->ShaderResourceBase::operator=(std::move(rhs));
     m_member = std::move(rhs.m_member);
     m_descriptor_array_size.store(rhs.m_descriptor_array_size.load(std::memory_order::relaxed), std::memory_order::relaxed);
     return *this;
@@ -164,4 +163,5 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 #endif
 };
 
-} // namespace vulkan::descriptor
+} // namespace descriptor
+} // namespace vulkan

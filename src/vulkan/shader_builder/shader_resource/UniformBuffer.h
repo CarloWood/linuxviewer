@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Base.h"
 #include "FrameResourceIndex.h"
 #include "descriptor/SetKey.h"
 #include "descriptor/SetKeyContext.h"
+#include "shader_builder/ShaderResourceBase.h"
 #include "shader_builder/ShaderVariableLayouts.h"
 #include "shader_builder/ShaderResourceMember.h"
 #include "shader_resource/UniformBuffer.h"
@@ -20,9 +20,9 @@ namespace task {
 class SynchronousWindow;
 } // namespace vulkan
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan::shader_builder {
 
-class UniformBufferBase : public Base
+class UniformBufferBase : public ShaderResourceBase
 {
  protected:
   using members_container_t = ShaderResourceMember::container_t;
@@ -34,7 +34,7 @@ class UniformBufferBase : public Base
 
  public:
   UniformBufferBase(int number_of_members COMMA_CWDEBUG_ONLY(char const* debug_name)) :
-    Base(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
+    ShaderResourceBase(descriptor::SetKeyContext::instance() COMMA_CWDEBUG_ONLY(debug_name)) { }
 
   // Create the memory::UniformBuffer's of m_uniform_buffers.
   void instantiate(task::SynchronousWindow const* owning_window
@@ -52,11 +52,7 @@ class UniformBufferBase : public Base
 #endif
 };
 
-template<typename ENTRY>
-struct UniformBufferInstance : public memory::UniformBuffer
-{
-  // This class may not define any members!
-};
+namespace shader_resource {
 
 // Represents the descriptor set of a uniform buffer.
 template<typename ENTRY>
@@ -70,12 +66,17 @@ class UniformBuffer : public UniformBufferBase
     return sizeof(ENTRY);
   }
 
+  struct Instance : public memory::UniformBuffer
+  {
+    // This class may not define any members!
+  };
+
  public:
   // Use create to initialize m_uniform_buffers.
   UniformBuffer(char const* debug_name);
 
-  UniformBufferInstance<ENTRY>& operator[](FrameResourceIndex frame_resource_index) { return static_cast<UniformBufferInstance<ENTRY>&>(m_uniform_buffers[frame_resource_index]); }
-  UniformBufferInstance<ENTRY> const& operator[](FrameResourceIndex frame_resource_index) const { return static_cast<UniformBufferInstance<ENTRY> const&>(m_uniform_buffers[frame_resource_index]); }
+  Instance& operator[](FrameResourceIndex frame_resource_index) { return static_cast<Instance&>(m_uniform_buffers[frame_resource_index]); }
+  Instance const& operator[](FrameResourceIndex frame_resource_index) const { return static_cast<Instance const&>(m_uniform_buffers[frame_resource_index]); }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const override;
@@ -208,4 +209,5 @@ void UniformBuffer<ENTRY>::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_builder::shader_resource
+} // namespace shader_resource
+} // namespace vulkan::shader_builder

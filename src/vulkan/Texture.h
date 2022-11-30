@@ -5,9 +5,9 @@
 #include "descriptor/SetKeyContext.h"
 #include "descriptor/ArrayElementRange.h"
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan {
 
-struct Texture : public memory::Image
+class Texture : public memory::Image
 {
  public:
   static constexpr ImageKind default_image_kind{{
@@ -27,7 +27,7 @@ struct Texture : public memory::Image
  public:
   // Used to move-assign later.
   Texture() { }
-  ~Texture() { DoutEntering(dc::vulkan, "shader_resource::Texture::~Texture() [" << this << "]"); }
+  ~Texture() { DoutEntering(dc::vulkan, "Texture::~Texture() [" << this << "]"); }
 
   // Use sampler as-is.
   Texture(
@@ -44,7 +44,7 @@ struct Texture : public memory::Image
     m_sampler(std::move(sampler))
     COMMA_DEBUG_ONLY(debug_image_view_kind(&image_view_kind))
   {
-    DoutEntering(dc::vulkan, "shader_resource::Texture::Texture(" << logical_device << ", " << extent <<
+    DoutEntering(dc::vulkan, "Texture::Texture(" << logical_device << ", " << extent <<
         ", " << image_view_kind << ", @" << &sampler << ", memory_create_info) [" << this << "]");
   }
 
@@ -124,8 +124,8 @@ struct Texture : public memory::Image
   }
 
   // Class is move-only.
-  // Note: do NOT move the Ambifix and/or Base::m_descriptor_set_key!
-  // Those are only initialized in-place with the constructor that takes just the Ambifix.
+  // Note: do NOT move the Ambifix!
+  // That is only initialized in-place with the constructor that takes just the Ambifix.
   Texture(Texture&& rhs) : Image(std::move(rhs)), m_image_view(std::move(rhs.m_image_view)), m_sampler(std::move(rhs.m_sampler)), debug_image_view_kind(rhs.debug_image_view_kind) { }
   Texture& operator=(Texture&& rhs)
   {
@@ -175,4 +175,4 @@ struct Texture : public memory::Image
 #endif
 };
 
-} // namespace vulkan::shader_builder::shader_resource
+} // namespace vulkan

@@ -116,8 +116,8 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
           "u_s" << set_index.get_value() << "b" << binding << " {\n";
 
         std::string const& prefix = shader_resource_declaration->glsl_id();
-        shader_resource::Base const& base = shader_resource_declaration->shader_resource();
-        shader_resource::UniformBufferBase const& uniform_buffer = static_cast<shader_resource::UniformBufferBase const&>(base);
+        ShaderResourceBase const& base = shader_resource_declaration->shader_resource();
+        shader_builder::UniformBufferBase const& uniform_buffer = static_cast<shader_builder::UniformBufferBase const&>(base);
         auto const& members = uniform_buffer.members();
         declarations_out.write_members_to(oss, members);
         oss << "} " << prefix << ";\n";

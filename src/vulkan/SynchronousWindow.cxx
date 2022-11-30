@@ -293,7 +293,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       // Upload the "loading texture".
       {
         vk::Extent2D const extent{1, 1};
-        m_loading_texture = vulkan::shader_builder::shader_resource::Texture(
+        m_loading_texture = vulkan::Texture(
             m_logical_device, extent, {}, { .maxAnisotropy = 1.f }, { .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_loading_texture")));
         m_loading_texture.upload(extent, this, std::make_unique<vk_utils::UniformColorDataFeeder>(32, 32, 32), this, loading_texture_ready);

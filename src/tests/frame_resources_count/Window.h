@@ -52,8 +52,8 @@ class Window : public task::SynchronousWindow
   mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
  private:
-  vulkan::shader_resource::Texture m_background_texture{"m_background_texture"};
-  vulkan::shader_resource::Texture m_benchmark_texture{"m_benchmark_texture"};
+  vulkan::Texture m_background_texture{"m_background_texture"};
+  vulkan::Texture m_benchmark_texture{"m_benchmark_texture"};
   vulkan::Pipeline m_graphics_pipeline;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -121,7 +121,7 @@ class Window : public task::SynchronousWindow
       static vulkan::ImageViewKind const background_image_view_kind(background_image_kind, {});
 
       m_background_texture =
-        vulkan::shader_resource::Texture(
+        vulkan::Texture(
             "background",
             m_logical_device,
             texture_data.extent(), background_image_view_kind,
@@ -146,7 +146,7 @@ class Window : public task::SynchronousWindow
 
       static vulkan::ImageViewKind const sample_image_view_kind(sample_image_kind, {});
 
-      m_benchmark_texture = vulkan::shader_resource::Texture(
+      m_benchmark_texture = vulkan::Texture(
           "benchmark",
           m_logical_device,
           texture_data.extent(), sample_image_view_kind,

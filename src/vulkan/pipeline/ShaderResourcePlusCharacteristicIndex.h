@@ -2,9 +2,9 @@
 
 #include "utils/Vector.h"
 
-namespace vulkan::shader_builder {
+namespace vulkan::pipeline {
 
 struct ShaderResourcePlusCharacteristicIndexCategory;
 using ShaderResourcePlusCharacteristicIndex = utils::VectorIndex<ShaderResourcePlusCharacteristicIndexCategory>;
 
-} // namespace vulkan::shader_builder
+} // namespace vulkan::pipeline

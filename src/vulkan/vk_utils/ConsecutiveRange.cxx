@@ -4,7 +4,7 @@
 #include <iostream>
 #endif
 
-namespace vulkan::pipeline {
+namespace vk_utils {
 
 #ifdef CWDEBUG
 void ConsecutiveRange::print_on(std::ostream& os) const
@@ -13,4 +13,4 @@ void ConsecutiveRange::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::pipeline
+} // namespace vk_utils

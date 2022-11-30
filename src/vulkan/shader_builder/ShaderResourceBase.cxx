@@ -1,11 +1,11 @@
 #include "sys.h"
-#include "Base.h"
+#include "ShaderResourceBase.h"
 #ifdef CWDEBUG
 #include <iomanip>
 #endif
 #include "debug.h"
 
-namespace vulkan::shader_builder::shader_resource {
+namespace vulkan::shader_builder {
 
 #ifdef CWDEBUG
 using NAMESPACE_DEBUG::print_string;
@@ -50,7 +50,7 @@ void SetMutexAndSetHandles::print_on(std::ostream& os) const
   os << '}';
 }
 
-void Base::print_on(std::ostream& os) const
+void ShaderResourceBase::print_on(std::ostream& os) const
 {
   os << '{';
   os << "m_created:" << std::boolalpha << m_created.load(std::memory_order::relaxed) <<
@@ -61,4 +61,4 @@ void Base::print_on(std::ostream& os) const
 }
 #endif
 
-} // namespace vulkan::shader_builder::shader_resource
+} // namespace vulkan::shader_builder

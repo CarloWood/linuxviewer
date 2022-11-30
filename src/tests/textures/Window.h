@@ -47,7 +47,7 @@ class Window : public task::SynchronousWindow
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, number_of_combined_image_samplers>;
   combined_image_samplers_t m_combined_image_samplers;
-  std::array<vulkan::shader_builder::shader_resource::Texture, number_of_combined_image_samplers> m_textures;
+  std::array<vulkan::Texture, number_of_combined_image_samplers> m_textures;
 
   enum class LocalShaderIndex {
     vertex0,
@@ -120,7 +120,7 @@ class Window : public task::SynchronousWindow
     {
       vk_utils::stbi::ImageData texture_data(m_application->path_of(Directory::resources) / textures_names[t], 4);
 
-      m_textures[t] = vulkan::shader_resource::Texture(m_logical_device,
+      m_textures[t] = vulkan::Texture(m_logical_device,
           texture_data.extent(),
           { .mipmapMode = vk::SamplerMipmapMode::eNearest,
             .anisotropyEnable = VK_FALSE },

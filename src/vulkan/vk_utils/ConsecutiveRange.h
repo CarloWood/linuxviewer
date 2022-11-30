@@ -2,7 +2,7 @@
 
 #include "debug.h"
 
-namespace vulkan::pipeline {
+namespace vk_utils {
 
 class ConsecutiveRange
 {
@@ -51,4 +51,4 @@ class ConsecutiveRange
 #endif
 };
 
-} // namespace vulkan::pipeline
+} // namespace vk_utils
