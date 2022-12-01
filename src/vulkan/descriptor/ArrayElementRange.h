@@ -32,6 +32,11 @@ class ArrayElementRange
   bool refers_to_unbounded_array() const { return m_iend < 0; }
   uint32_t size() const { return static_cast<uint32_t>(std::abs(m_iend)) - m_ibegin; }
 
+  friend bool operator==(ArrayElementRange const& lhs, ArrayElementRange const& rhs)
+  {
+    return lhs.m_ibegin == rhs.m_ibegin && lhs.m_iend == rhs.m_iend;
+  }
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif

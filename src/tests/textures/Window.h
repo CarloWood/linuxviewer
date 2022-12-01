@@ -182,9 +182,9 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top[0], v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom0[0], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom0[1], v_Texcoord);
 }
 )glsl";
 
@@ -197,9 +197,9 @@ void main()
 {
   int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top[0], v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom1[0], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom1[1], v_Texcoord);
 }
 )glsl";
 

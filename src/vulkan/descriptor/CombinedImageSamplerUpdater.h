@@ -3,6 +3,7 @@
 #include "ShaderResourceMember.h"
 #include "Update.h"
 #include "SetKeyContext.h"
+#include "TextureArrayRange.h"
 #include "shader_builder/ShaderResourceBase.h"
 #include "pipeline/FactoryCharacteristicKey.h"
 #include "pipeline/FactoryCharacteristicData.h"
@@ -77,12 +78,12 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.
   using factory_characteristic_key_to_descriptor_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, pipeline::FactoryCharacteristicData>>;
   factory_characteristic_key_to_descriptor_t m_factory_characteristic_key_to_descriptor;        // The descriptor set / bindings associated with this CombinedImageSamplerUpdater.
-  using factory_characteristic_key_to_texture_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, Texture const*>>;
-  factory_characteristic_key_to_texture_t m_factory_characteristic_key_to_texture;
+  using factory_characteristic_key_to_texture_array_range_t = std::vector<std::pair<pipeline::FactoryCharacteristicKey, TextureArrayRange>>;
+  factory_characteristic_key_to_texture_array_range_t m_factory_characteristic_key_to_texture_array_range;
 
  private:
   std::pair<factory_characteristic_key_to_descriptor_t::const_iterator, factory_characteristic_key_to_descriptor_t::const_iterator> find_descriptors(pipeline::FactoryCharacteristicKey const& key) const;
-  factory_characteristic_key_to_texture_t::const_iterator find_texture(pipeline::FactoryCharacteristicKey const& key) const;
+  factory_characteristic_key_to_texture_array_range_t::const_iterator find_texture_array_range(pipeline::FactoryCharacteristicKey const& key) const;
 
  public:
   CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
