@@ -28,7 +28,7 @@ class FactoryCharacteristicId
   int m_characteristic_range_size;
 
  public:
-  // Construct an undefined FactoryCharacteristicId.
+  // Construct an uninitialized FactoryCharacteristicId.
   FactoryCharacteristicId() = default;
 
   FactoryCharacteristicId(PipelineFactoryIndex factory_index, CharacteristicRangeIndex range_index, int characteristic_range_size) :

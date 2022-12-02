@@ -1,0 +1,54 @@
+The GlslId "full" strings,
+
+  "CombinedImageSampler::top"                                                    ...CombinedImageSampler::top...CombinedImageSampler::bottom0...
+  "CombinedImageSampler::bottom0"            <--n:m-->      GLSL template code   ...CombinedImageSampler::top...CombinedImageSampler::bottom1...
+  "CombinedImageSampler::bottom1"
+                                                                                  ^
+   ^                                                                              |
+   |                                                                             1:n
+  1:1                                                                             |
+   |                                                                              v
+   v
+                                                                                 pipeline
+  shader_resource::CombinedImageSampler
+                                                                                  ^
+                                                                                  |
+                                                                                  v
+
+                                                                                 pipeline factory
+                                                                                 {characteristic range0, characteristic range1, ...}
+                                                                                  [0................100> [0................100> ...
+                                                                                  [0..5>[5..90>[90..100> [0..9>[9..23>[23..100> ...
+                                                                                  =======      ========= ======       =========
+                                                                                     /              /      \                 /
+                                                                                    /              /        \               /
+                                                                              CombinedImageSampler::top    CombinedImageSampler::bottom0
+                                                                                                 /                        /
+                                                                                                /               CombinedImageSampler::top
+                                                                                      CombinedImageSampler::bottom1
+                      
+                            Factory 0        |     Factory 1
+                       <------char0--------->|<------char0-------->
+                         0    1    2    3    |  0    1    2    3
+                         -----------    -    |  ------    ------
+                  0 1 .--------------------------------------------.
+             ^        |       .                                    |
+             |  0 | | |       .                                    |
+          char1   |   |       .                                    |
+             |    |   |       .                                    |
+             |  1 | | |       .                                    |
+                    | |       .                                    |
+                    | |      .---.                                 |
+                2 | | |......| | |                                 |
+                  | | |      | | |                                 |
+                  | | |      `---'                                 |
+                3 | | |                                            |
+                      |                                            |
+
+          FSA     F = 0, 1                                                           
+                  S = 0: F=0,[0,3>; F=1,[0,2>
+                      1: F=0,[3,4>; F=1,[2,4>
+                      2: F=0,[0,2>; F=1,[0,1>
+                      3: F=0,[2,4>; F=1,[1,4>
+                  A = 0, 1, 2, 3                                
+

@@ -2,9 +2,7 @@
 
 #include "LayoutBindingCompare.h"
 #include "utils/sorted_vector_insert.h"
-#ifdef CWDEBUG
-#include <iosfwd>
-#endif
+#include "debug.h"
 
 namespace vulkan::descriptor {
 

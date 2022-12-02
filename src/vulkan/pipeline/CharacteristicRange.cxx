@@ -33,6 +33,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
   // Must alternate between CharacteristicRange_filled and CharacteristicRange_compiled.
   // The current value of m_continue_state is the state that should have ended with 'run_state = m_expected_state;',
   // where m_expected_state must be replaced with the literal state of the value that it has.
+  // Or m_continue_state forgot to call set_continue_state with the correct value.
   ASSERT(run_state == m_expected_state || run_state == CharacteristicRange_continue_or_terminate);
   switch (run_state)
   {

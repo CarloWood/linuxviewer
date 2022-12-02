@@ -61,7 +61,7 @@ class Window : public task::SynchronousWindow
   using vertex_buffers_type = aithreadsafe::Wrapper<vertex_buffers_container_type, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
   mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
 
-  static constexpr int number_of_pipelines = 2;
+  static constexpr int number_of_pipelines = 1;
   std::array<vulkan::Pipeline, number_of_pipelines> m_graphics_pipelines;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -106,10 +106,13 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
 
     std::array<char const*, number_of_combined_image_samplers> textures_names{
+      "textures/digit13.png",
+      "textures/digitg22.png",
+      "textures/digit01.png"
+#if 0
       "textures/cat-tail-nature-grass-summer-whiskers-826101-wallhere.com.jpg",
       "textures/nature-grass-sky-insect-green-Izmir-839795-wallhere.com.jpg",
-      "textures/tileable10b.png" //,
-#if 0
+      "textures/tileable10b.png",
       "textures/Tileable5.png"
 #endif
     };
@@ -142,7 +145,8 @@ class Window : public task::SynchronousWindow
         int cis = m_loop_var % number_of_combined_image_samplers;
         if (cis > 0 && cis != pipeline + 1)
         {
-          ++m_loop_var;
+          if (++m_loop_var == number_of_pipelines * number_of_combined_image_samplers)
+            break;
           continue;
         }
         int ti = (cis + 1) % number_of_combined_image_samplers;
@@ -150,7 +154,7 @@ class Window : public task::SynchronousWindow
         m_combined_image_samplers[cis].update_image_sampler_array(&m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline], 1);
         break;
       }
-      if (++m_loop_var < 6)
+      if (++m_loop_var < number_of_pipelines * number_of_combined_image_samplers)
         m_timer->run();
     });
   }
@@ -174,32 +178,34 @@ void main()
 )glsl";
 
   static constexpr std::string_view squares_frag0_glsl = R"glsl(
+#extension GL_EXT_nonuniform_qualifier : require
+
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) flat in int instance_index;
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom0[1], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom0[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
   static constexpr std::string_view squares_frag1_glsl = R"glsl(
+#extension GL_EXT_nonuniform_qualifier : require
+
 layout(location = 0) in vec2 v_Texcoord;
 layout(location = 1) flat in int instance_index;
 layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  int foo = PushConstant::m_texture_index;
   if (instance_index == 0)
-    outColor = texture(CombinedImageSampler::top[1], v_Texcoord);
+    outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom1[1], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom1[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
@@ -234,7 +240,7 @@ void main()
   // Accessor.
   combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
 
-  class TextureTestPipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class TextureTestPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange
   {
    private:
     std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
@@ -252,24 +258,25 @@ void main()
     TopBottomPositions m_top_bottom_positions;
 
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::pipeline::CharacteristicRange;
 
     // The different states of this task.
-    enum TextureTestPipelineCharacteristic_state_type {
-      TextureTestPipelineCharacteristic_initialize = direct_base_type::state_end,
-      TextureTestPipelineCharacteristic_compile
+    enum TextureTestPipelineCharacteristicRange_state_type {
+      TextureTestPipelineCharacteristicRange_initialize = direct_base_type::state_end,
+      TextureTestPipelineCharacteristicRange_fill,
+      TextureTestPipelineCharacteristicRange_compile
     };
 
-    ~TextureTestPipelineCharacteristic() override
+    ~TextureTestPipelineCharacteristicRange() override
     {
-      DoutEntering(dc::vulkan, "TextureTestPipelineCharacteristic::~TextureTestPipelineCharacteristic() [" << this << "]");
+      DoutEntering(dc::vulkan, "TextureTestPipelineCharacteristicRange::~TextureTestPipelineCharacteristicRange() [" << this << "]");
     }
 
    public:
-    static constexpr state_type state_end = TextureTestPipelineCharacteristic_compile + 1;
+    static constexpr state_type state_end = TextureTestPipelineCharacteristicRange_compile + 1;
 
-    TextureTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+    TextureTestPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
+      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
@@ -284,22 +291,23 @@ void main()
     {
       switch(run_state)
       {
-        AI_CASE_RETURN(TextureTestPipelineCharacteristic_initialize);
-        AI_CASE_RETURN(TextureTestPipelineCharacteristic_compile);
+        AI_CASE_RETURN(TextureTestPipelineCharacteristicRange_initialize);
+        AI_CASE_RETURN(TextureTestPipelineCharacteristicRange_fill);
+        AI_CASE_RETURN(TextureTestPipelineCharacteristicRange_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
 
     void initialize_impl() override
     {
-      set_state(TextureTestPipelineCharacteristic_initialize);
+      set_state(TextureTestPipelineCharacteristicRange_initialize);
     }
 
     void multiplex_impl(state_type run_state) override
     {
       switch (run_state)
       {
-        case TextureTestPipelineCharacteristic_initialize:
+        case TextureTestPipelineCharacteristicRange_initialize:
         {
           Window const* window = static_cast<Window const*>(m_owning_window);
 
@@ -317,9 +325,25 @@ void main()
           add_vertex_input_binding(m_top_bottom_positions);
           add_push_constant<PushConstant>();
 
+          // Add default color blend.
+          m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
+
+          m_vertex_input_binding_descriptions = vertex_binding_descriptions();
+          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
+
+          set_continue_state(TextureTestPipelineCharacteristicRange_fill);
+          run_state = CharacteristicRange_initialized;
+          break;
+        }
+        case TextureTestPipelineCharacteristicRange_fill:
+        {
+          Window const* window = static_cast<Window const*>(m_owning_window);
+#if 1
+#if 0
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
             key_preference.emplace_back(window->combined_image_samplers()[t].descriptor_task()->descriptor_set_key(), 0.1);
+#endif
 
           int constexpr number_of_combined_image_samplers_per_pipeline = 2;
           std::array<int, number_of_combined_image_samplers_per_pipeline> combined_image_sampler_indexes = {
@@ -332,13 +356,13 @@ void main()
                 window->combined_image_samplers()[combined_image_sampler_indexes[i]]
 #if 0
                 , {}
-#endif
                 , { key_preference[combined_image_sampler_indexes[1 - i]] }
+#endif
                 );
           }
-
-          // Add default color blend.
-          m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
+#else
+          add_combined_image_sampler(window->combined_image_samplers()[0]);
+#endif
 
           // Compile the shaders.
           {
@@ -352,11 +376,8 @@ void main()
             preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
           }
 
-          m_vertex_input_binding_descriptions = vertex_binding_descriptions();
           m_vertex_input_attribute_descriptions = vertex_input_attribute_descriptions();
           m_push_constant_ranges = push_constant_ranges();
-
-          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
           // Generate vertex buffers.
           // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
@@ -370,12 +391,12 @@ void main()
           // Otherwise, if it does not already exist, create a new descriptor set layout using the
           // provided binding values as-is.
           realize_descriptor_set_layouts(m_owning_window->logical_device());
-
-          set_continue_state(TextureTestPipelineCharacteristic_compile);
-          run_state = Characteristic_initialized;
+          //
+          set_continue_state(TextureTestPipelineCharacteristicRange_compile);
+          run_state = CharacteristicRange_filled;
           break;
         }
-        case TextureTestPipelineCharacteristic_compile:
+        case TextureTestPipelineCharacteristicRange_compile:
         {
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
@@ -390,7 +411,8 @@ void main()
           build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
 
-          run_state = Characteristic_compiled;
+          set_continue_state(TextureTestPipelineCharacteristicRange_fill);
+          run_state = CharacteristicRange_compiled;
           break;
         }
       }
@@ -401,7 +423,7 @@ void main()
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const override
     {
-      os << "{ (TextureTestPipelineCharacteristic*)" << this << " }";
+      os << "{ (TextureTestPipelineCharacteristicRange*)" << this << " }";
     }
 #endif
   };
@@ -429,7 +451,7 @@ void main()
       m_pipeline_factory[pipeline] = create_pipeline_factory(m_graphics_pipelines[pipeline], main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
       // We have one factory/range pair per pipeline here.
       m_pipeline_factory_characteristic_range_ids[pipeline] =
-        m_pipeline_factory[pipeline].add_characteristic<TextureTestPipelineCharacteristic>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+        m_pipeline_factory[pipeline].add_characteristic<TextureTestPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
 
       m_pipeline_factory[pipeline].generate(this);
     }
