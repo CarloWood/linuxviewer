@@ -43,8 +43,8 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_combined_image_samplers = 3;
-  static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
+  static constexpr int number_of_combined_image_samplers = 1;
+  static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", /*"bottom0", "bottom1"*/ };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, number_of_combined_image_samplers>;
   combined_image_samplers_t m_combined_image_samplers;
   std::array<vulkan::Texture, number_of_combined_image_samplers> m_textures;
@@ -106,10 +106,10 @@ class Window : public task::SynchronousWindow
     DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
 
     std::array<char const*, number_of_combined_image_samplers> textures_names{
-      "textures/digit13.png",
+      "textures/digit13.png" //,
+#if 0
       "textures/digitg22.png",
       "textures/digit01.png"
-#if 0
       "textures/cat-tail-nature-grass-summer-whiskers-826101-wallhere.com.jpg",
       "textures/nature-grass-sky-insect-green-Izmir-839795-wallhere.com.jpg",
       "textures/tileable10b.png",
@@ -186,10 +186,10 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  if (instance_index == 0)
+//  if (instance_index == 0)
     outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
-  else
-    outColor = texture(CombinedImageSampler::bottom0[PushConstant::m_texture_index], v_Texcoord);
+//  else
+//    outColor = texture(CombinedImageSampler::bottom0[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
@@ -202,10 +202,10 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-  if (instance_index == 0)
+//  if (instance_index == 0)
     outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
-  else
-    outColor = texture(CombinedImageSampler::bottom1[PushConstant::m_texture_index], v_Texcoord);
+//  else
+//    outColor = texture(CombinedImageSampler::bottom1[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
@@ -276,7 +276,7 @@ void main()
     static constexpr state_type state_end = TextureTestPipelineCharacteristicRange_compile + 1;
 
     TextureTestPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+      vulkan::pipeline::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
@@ -337,8 +337,12 @@ void main()
         }
         case TextureTestPipelineCharacteristicRange_fill:
         {
+          Dout(dc::notice, "fill_index = " << fill_index());
           Window const* window = static_cast<Window const*>(m_owning_window);
-#if 1
+
+#if 0
+          // Below we use 1 + m_pipeline as index into the array of combined image samplers.
+          ASSERT(number_of_combined_image_samplers >= number_of_pipelines);
 #if 0
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -364,7 +368,7 @@ void main()
           add_combined_image_sampler(window->combined_image_samplers()[0]);
 #endif
 
-          // Compile the shaders.
+          // Preprocess the shaders.
           {
             using namespace vulkan::shader_builder;
 
@@ -375,7 +379,6 @@ void main()
             preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
             preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
           }
-
           m_vertex_input_attribute_descriptions = vertex_input_attribute_descriptions();
           m_push_constant_ranges = push_constant_ranges();
 

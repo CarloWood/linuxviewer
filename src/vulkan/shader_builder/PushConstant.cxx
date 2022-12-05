@@ -15,6 +15,7 @@ std::string PushConstant::name() const
   return oss.str();
 }
 
+// Called from ShaderInputData::preprocess1.
 DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
 {
   DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");

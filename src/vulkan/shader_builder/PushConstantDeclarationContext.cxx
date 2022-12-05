@@ -17,6 +17,7 @@ PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefi
   m_footer = "} v" + std::to_string(hash) + ";\n";
 }
 
+// Called from PushConstant::is_used_in.
 void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data)
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)shader_input_data << ")");

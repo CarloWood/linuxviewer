@@ -2,6 +2,7 @@
 
 #include "descriptor/SetLayout.h"
 #include "descriptor/SetIndexHintMap.h"
+#include "threadsafe/aithreadsafe.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
@@ -17,27 +18,40 @@ class FlatCreateInfo
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
 
  private:
-  std::vector<std::vector<vk::PipelineShaderStageCreateInfo> const*> m_pipeline_shader_stage_create_infos_list;
-  std::vector<std::vector<vk::VertexInputBindingDescription> const*> m_vertex_input_binding_descriptions_list;
-  std::vector<std::vector<vk::VertexInputAttributeDescription> const*> m_vertex_input_attribute_descriptions_list;
-  std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*> m_pipeline_color_blend_attachment_states_list;
-  std::vector<std::vector<vk::DynamicState> const*> m_dynamic_states_list;
+  using pipeline_shader_stage_create_infos_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::PipelineShaderStageCreateInfo> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  pipeline_shader_stage_create_infos_list_t m_pipeline_shader_stage_create_infos_list;
+
+  using vertex_input_binding_descriptions_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::VertexInputBindingDescription> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  vertex_input_binding_descriptions_list_t m_vertex_input_binding_descriptions_list;
+
+  using vertex_input_attribute_descriptions_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::VertexInputAttributeDescription> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  vertex_input_attribute_descriptions_list_t m_vertex_input_attribute_descriptions_list;
+
+  using pipeline_color_blend_attachment_states_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::PipelineColorBlendAttachmentState> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  pipeline_color_blend_attachment_states_list_t m_pipeline_color_blend_attachment_states_list;
+
+  using dynamic_states_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::DynamicState> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  dynamic_states_list_t m_dynamic_states_list;
+
+  using push_constant_ranges_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::PushConstantRange> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
+  push_constant_ranges_list_t m_push_constant_ranges_list;
+
   sorted_descriptor_set_layouts_container_t* m_realized_descriptor_set_layouts_ptr{};
-  std::vector<std::vector<vk::PushConstantRange> const*> m_push_constant_ranges_list;
 
   template<typename T>
-  static std::vector<T> merge(std::vector<std::vector<T> const*> input_list)
+  static std::vector<T> merge(aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>> const& input_list)
   {
     std::vector<T> result;
+    typename aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>>::crat input_list_r(input_list);
     size_t s = 0;
-    for (std::vector<T> const* v : input_list)
+    for (std::vector<T> const* v : *input_list_r)
     {
       // You called add(std::vector<T> const&) but never filled the passed vector with data.
       ASSERT(v->size() != 0);
       s += v->size();
     }
     result.reserve(s);
-    for (std::vector<T> const* v : input_list)
+    for (std::vector<T> const* v : *input_list_r)
       result.insert(result.end(), v->begin(), v->end());
     return result;
   }
@@ -96,8 +110,9 @@ class FlatCreateInfo
  public:
   int add(std::vector<vk::PipelineShaderStageCreateInfo> const* pipeline_shader_stage_create_infos)
   {
-    m_pipeline_shader_stage_create_infos_list.push_back(pipeline_shader_stage_create_infos);
-    return m_pipeline_shader_stage_create_infos_list.size() - 1;
+    pipeline_shader_stage_create_infos_list_t::wat pipeline_shader_stage_create_infos_list_w(m_pipeline_shader_stage_create_infos_list);
+    pipeline_shader_stage_create_infos_list_w->push_back(pipeline_shader_stage_create_infos);
+    return pipeline_shader_stage_create_infos_list_w->size() - 1;
   }
 
   std::vector<vk::PipelineShaderStageCreateInfo> get_pipeline_shader_stage_create_infos() const
@@ -107,8 +122,9 @@ class FlatCreateInfo
 
   int add(std::vector<vk::VertexInputBindingDescription> const* vertex_input_binding_descriptions)
   {
-    m_vertex_input_binding_descriptions_list.push_back(vertex_input_binding_descriptions);
-    return m_vertex_input_binding_descriptions_list.size() - 1;
+    vertex_input_binding_descriptions_list_t::wat vertex_input_binding_descriptions_list_w(m_vertex_input_binding_descriptions_list);
+    vertex_input_binding_descriptions_list_w->push_back(vertex_input_binding_descriptions);
+    return vertex_input_binding_descriptions_list_w->size() - 1;
   }
 
   std::vector<vk::VertexInputBindingDescription> get_vertex_input_binding_descriptions() const
@@ -118,8 +134,9 @@ class FlatCreateInfo
 
   int add(std::vector<vk::VertexInputAttributeDescription> const* vertex_input_attribute_descriptions)
   {
-    m_vertex_input_attribute_descriptions_list.push_back(vertex_input_attribute_descriptions);
-    return m_vertex_input_attribute_descriptions_list.size() - 1;
+    vertex_input_attribute_descriptions_list_t::wat vertex_input_attribute_descriptions_list_w(m_vertex_input_attribute_descriptions_list);
+    vertex_input_attribute_descriptions_list_w->push_back(vertex_input_attribute_descriptions);
+    return vertex_input_attribute_descriptions_list_w->size() - 1;
   }
 
   std::vector<vk::VertexInputAttributeDescription> get_vertex_input_attribute_descriptions() const
@@ -129,8 +146,9 @@ class FlatCreateInfo
 
   int add(std::vector<vk::PipelineColorBlendAttachmentState> const* pipeline_color_blend_attachment_states)
   {
-    m_pipeline_color_blend_attachment_states_list.push_back(pipeline_color_blend_attachment_states);
-    return m_pipeline_color_blend_attachment_states_list.size() - 1;
+    pipeline_color_blend_attachment_states_list_t::wat pipeline_color_blend_attachment_states_list_w(m_pipeline_color_blend_attachment_states_list);
+    pipeline_color_blend_attachment_states_list_w->push_back(pipeline_color_blend_attachment_states);
+    return pipeline_color_blend_attachment_states_list_w->size() - 1;
   }
 
   std::vector<vk::PipelineColorBlendAttachmentState> get_pipeline_color_blend_attachment_states() const
@@ -145,8 +163,9 @@ class FlatCreateInfo
 
   int add(std::vector<vk::DynamicState> const* dynamic_states)
   {
-    m_dynamic_states_list.push_back(dynamic_states);
-    return m_dynamic_states_list.size() - 1;
+    dynamic_states_list_t::wat dynamic_states_list_w(m_dynamic_states_list);
+    dynamic_states_list_w->push_back(dynamic_states);
+    return dynamic_states_list_w->size() - 1;
   }
 
   std::vector<vk::DynamicState> get_dynamic_states() const
@@ -177,16 +196,17 @@ class FlatCreateInfo
 
   int add(std::vector<vk::PushConstantRange> const* push_constant_ranges)
   {
-    m_push_constant_ranges_list.push_back(push_constant_ranges);
-    return m_push_constant_ranges_list.size() - 1;
+    push_constant_ranges_list_t::wat push_constant_ranges_list_w(m_push_constant_ranges_list);
+    push_constant_ranges_list_w->push_back(push_constant_ranges);
+    return push_constant_ranges_list_w->size() - 1;
   }
 
   std::vector<vk::PushConstantRange> get_sorted_push_constant_ranges() const
   {
     // Merging push constant ranges doesn't seem to make sense; at least it is not supported right now.
     // Only add a std::vector<vk::PushConstantRange> once, from the initialize of a single PipelineCharacteristic.
-    ASSERT(m_push_constant_ranges_list.size() <= 1);
-    // This is only returning the vector that was added (if any), which was already sorted (see ShaderInputData::push_constant_ranges()).
+    ASSERT(push_constant_ranges_list_t::crat(m_push_constant_ranges_list)->size() <= 1);
+    // This is returning the only vector that was added (if any), which was already sorted (see ShaderInputData::push_constant_ranges()).
     return merge(m_push_constant_ranges_list);
   }
 };

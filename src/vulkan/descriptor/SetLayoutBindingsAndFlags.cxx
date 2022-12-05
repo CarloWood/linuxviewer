@@ -10,6 +10,7 @@ namespace vulkan::descriptor {
 
 void SetLayoutBindingsAndFlags::insert(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size)
 {
+  DoutEntering(dc::vulkan, "SetLayoutBindingsAndFlags::insert(" << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ") [" << this << "]");
   // Case
   // 1. m_sorted_bindings = {}
   // 2. m_sorted_bindings = { a, b, c }
