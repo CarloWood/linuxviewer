@@ -54,7 +54,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   };
   // This possibly replaces ranges that were added before, if they have the same stageFlags
   // and push_constant_range completely overlaps them.
-  shader_input_data->insert(push_constant_range);
+  shader_input_data->insert_push_constant_range(push_constant_range);
 
   // (Re)generate member_declarations.
   member_declarations.clear();

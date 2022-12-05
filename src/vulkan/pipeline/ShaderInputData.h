@@ -314,7 +314,7 @@ class ShaderInputData
       utils::Badge<shader_builder::ShaderResourceDeclarationContext>);
 
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
-  void insert(vk::PushConstantRange const& push_constant_range)
+  void insert_push_constant_range(vk::PushConstantRange const& push_constant_range)
   {
     auto range = m_push_constant_ranges.equal_range(push_constant_range);
     m_push_constant_ranges.erase(range.first, range.second);
