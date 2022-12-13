@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHADER_RESOURCE_UNIFORM_BUFFER_H
+#define SHADER_RESOURCE_UNIFORM_BUFFER_H
 
 #include "FrameResourceIndex.h"
 #include "descriptor/SetKey.h"
@@ -41,7 +42,7 @@ class UniformBufferBase : public ShaderResourceBase
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override;
   bool is_frame_resource() const override { return true; }
   void update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info) override;
-  void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override;
+  void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const override;
 
   // Accessors.
   members_container_t const& members() const { return m_members; }
@@ -211,3 +212,5 @@ void UniformBuffer<ENTRY>::print_on(std::ostream& os) const
 
 } // namespace shader_resource
 } // namespace vulkan::shader_builder
+
+#endif // SHADER_RESOURCE_UNIFORM_BUFFER_H

@@ -19,7 +19,6 @@ namespace vulkan {
 class Pipeline
 {
  public:
-  // Same type as in ShaderInputData.
   using descriptor_set_per_set_index_t = utils::Vector<descriptor::FrameResourceCapableDescriptorSet, descriptor::SetIndex>;
   using raw_descriptor_set_per_set_index_t = utils::Vector<vk::DescriptorSet, descriptor::SetIndex>;
   using descriptor_set_per_set_index_per_frame_resource_t = utils::Vector<raw_descriptor_set_per_set_index_t, FrameResourceIndex>;

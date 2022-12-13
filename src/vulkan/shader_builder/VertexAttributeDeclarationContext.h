@@ -4,10 +4,6 @@
 #include <map>
 #include <cstdint>
 
-namespace vulkan::pipeline {
-class ShaderInputData;
-} // namespace vulkan::pipeline
-
 namespace vulkan::shader_builder {
 struct VertexAttribute;
 
@@ -25,9 +21,13 @@ struct VertexAttributeDeclarationContext final : DeclarationContext
   uint32_t location(VertexAttribute const* vertex_attribute) const { return m_locations.at(vertex_attribute); }
   locations_container_t const& locations() const { return m_locations; }
 
-  void glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data);
+  void glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, VertexAttribute const* vertex_attribute);
 
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 } // namespace vulkan::shader_builder

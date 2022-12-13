@@ -291,7 +291,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
 
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Result:");
-  debug::Mark mark;
+  NAMESPACE_DEBUG::Mark mark;
   for (QueueRequestIndex qri(0); qri < QueueRequestIndex(number_of_requests); ++qri)
   {
     Dout(dc::vulkan, "Request: " << device_create_info.get_queue_requests()[qri] << " ---> Reply: " << queue_replies[qri]);
@@ -318,7 +318,7 @@ QueueFamilies::QueueFamilies(vk::PhysicalDevice vh_physical_device, vk::SurfaceK
 
   Dout(dc::vulkan, "getQueueFamilyProperties() returned " << queueFamilies.size() << " families:");
 #ifdef CWDEBUG
-  debug::Mark mark;
+  NAMESPACE_DEBUG::Mark mark;
 #endif
 
   QueueFamilyPropertiesIndex queue_family(0);
@@ -484,7 +484,7 @@ void LogicalDevice::prepare(
   Dout(dc::vulkan, "Physical Device Properties:");
   {
 #ifdef CWDEBUG
-    debug::Mark mark;
+    NAMESPACE_DEBUG::Mark mark;
 #endif
     vk::StructureChain<vk::PhysicalDeviceProperties2, vk::PhysicalDeviceInlineUniformBlockProperties> properties_chain;
     auto& properties2                     = properties_chain.get<vk::PhysicalDeviceProperties2>();
@@ -523,7 +523,7 @@ void LogicalDevice::prepare(
   Dout(dc::vulkan, "Physical Device Memory Properties:");
   {
 #ifdef CWDEBUG
-    debug::Mark mark;
+    NAMESPACE_DEBUG::Mark mark;
 #endif
     auto memory_properties = m_vh_physical_device.getMemoryProperties();
     Dout(dc::vulkan, memory_properties);
@@ -533,7 +533,7 @@ void LogicalDevice::prepare(
   Dout(dc::vulkan, "Physical Device Features:");
   {
 #ifdef CWDEBUG
-    debug::Mark mark;
+    NAMESPACE_DEBUG::Mark mark;
 #endif
     m_vh_physical_device.getFeatures2(&features2);
     m_supports_sampler_anisotropy = features10.samplerAnisotropy;
@@ -545,7 +545,7 @@ void LogicalDevice::prepare(
 #ifdef CWDEBUG
   Dout(dc::vulkan, "Physical Device Extension Properties:");
   {
-    debug::Mark mark;
+    NAMESPACE_DEBUG::Mark mark;
     auto extension_properties_list = m_vh_physical_device.enumerateDeviceExtensionProperties();
     for (auto&& extension_properties : extension_properties_list)
       Dout(dc::vulkan, extension_properties);
@@ -596,7 +596,7 @@ void LogicalDevice::prepare(
     .objectHandle = (uint64_t)static_cast<VkDevice>(*m_device),
     .pObjectName = debug_name().c_str()
   };
-  Dout(dc::vulkan, "Setting debug name of device " << *m_device << " to " << debug::print_string(device_create_info.debug_name()));
+  Dout(dc::vulkan, "Setting debug name of device " << *m_device << " to " << NAMESPACE_DEBUG::print_string(device_create_info.debug_name()));
   m_device->setDebugUtilsObjectNameEXT(name_info);
 #endif
 

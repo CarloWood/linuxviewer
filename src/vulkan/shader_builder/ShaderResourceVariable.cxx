@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "ShaderResourceDeclaration.h"
-#include "pipeline/ShaderInputData.h"
+#include "pipeline/AddShaderStage.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/print_pointer.h"
 #include "vk_utils/snake_case.h"
@@ -9,9 +9,11 @@
 
 namespace vulkan::shader_builder {
 
-DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
+DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const
 {
-  DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << add_shader_variable_declaration << ") [" << this << "]");
+
+  pipeline::AddShaderStage* add_shader_stage = static_cast<pipeline::AddShaderStage*>(add_shader_variable_declaration);
 
   descriptor::SetIndexHint set_index_hint = m_shader_resource_declaration_ptr->set_index_hint();
 
@@ -19,24 +21,24 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
   m_shader_resource_declaration_ptr->used_in(shader_stage);
 
   // We use a declaration context per (shader resource) descriptor set as this context is used to enumerate the 'binding =' values.
-  auto shader_resource_declaration_context_iter = shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
-  // This set index should already have been inserted by ShaderInputData::add_combined_image_sampler, add_uniform_buffer, etc.
+  auto shader_resource_declaration_context_iter = add_shader_stage->set_index_hint_to_shader_resource_declaration_context({}).find(set_index_hint);
+  // This set index should already have been inserted by PipelineFactory::add_combined_image_sampler, add_uniform_buffer, etc.
   //
   // Those calls generates a descriptor::SetIndexHint for the shader resource (texture, uniformbuffer, ...) that is subsequently
-  // used to create a ShaderResourceDeclaration with, that is added to the map ShaderInputData::m_glsl_id_to_shader_resource.
-  // Additionally those functions add the SetIndexHint to ShaderInputData::m_set_index_hint_to_shader_resource_declaration_context.
+  // used to create a ShaderResourceDeclaration with, that is added to the map PipelineFactory::m_glsl_id_to_shader_resource.
+  // Additionally those functions add the SetIndexHint to AddShaderStage::m_set_index_hint_to_shader_resource_declaration_context.
   // Then, when the glsl_id of the shader resource is found in shader template code, in preprocess1, then this
   // function is called on the associated ShaderResourceVariable. Hence it is impossible to get here and fail to find
   // the set_index_hint in this map.
   //
   // Paranoia check:
-  ASSERT(shader_resource_declaration_context_iter != shader_input_data->set_index_hint_to_shader_resource_declaration_context({}).end());
+  ASSERT(shader_resource_declaration_context_iter != add_shader_stage->set_index_hint_to_shader_resource_declaration_context({}).end());
   ShaderResourceDeclarationContext* shader_resource_declaration_context = &shader_resource_declaration_context_iter->second;
 
   Dout(dc::shaderresource, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
 
   // Register that this shader resource is being used in this set.
-  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr, shader_input_data);
+  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr);
 
   // Return the declaration context.
   return shader_resource_declaration_context;

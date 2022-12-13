@@ -14,7 +14,7 @@ namespace vulkan::pipeline {
 class FlatCreateInfo
 {
  public:
-  // The same type as ShaderInputData::sorted_descriptor_set_layouts_container_t.
+  // The same type as PipelineFactory::sorted_descriptor_set_layouts_container_t.
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
 
  private:
@@ -206,7 +206,7 @@ class FlatCreateInfo
     // Merging push constant ranges doesn't seem to make sense; at least it is not supported right now.
     // Only add a std::vector<vk::PushConstantRange> once, from the initialize of a single PipelineCharacteristic.
     ASSERT(push_constant_ranges_list_t::crat(m_push_constant_ranges_list)->size() <= 1);
-    // This is returning the only vector that was added (if any), which was already sorted (see ShaderInputData::push_constant_ranges()).
+    // This is returning the only vector that was added (if any), which was already sorted (see AddPushConstant::push_constant_ranges()).
     return merge(m_push_constant_ranges_list);
   }
 };

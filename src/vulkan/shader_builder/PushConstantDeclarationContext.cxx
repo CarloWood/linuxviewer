@@ -2,7 +2,7 @@
 #include "DeclarationContext.h"
 #include "ShaderVariable.h"
 #include "PushConstant.h"
-#include "pipeline/ShaderInputData.h"
+#include "pipeline/AddPushConstant.h"
 #include "shader_builder/DeclarationsString.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_flags.h"
@@ -18,9 +18,9 @@ PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefi
 }
 
 // Called from PushConstant::is_used_in.
-void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::ShaderInputData* shader_input_data)
+void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::AddPushConstant* add_push_constant)
 {
-  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)shader_input_data << ")");
+  DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)add_push_constant << ")");
 
   auto res = m_stage_data.try_emplace(shader_stage, 0xffffffff, 0x0);
   uint32_t& minimum_offset = res.first->second.minimum_offset;
@@ -34,7 +34,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   // Make a list of all push constants in this range.
   uint32_t offset_end;
   std::vector<PushConstant const*> push_constants_in_range;
-  auto const& push_constants = shader_input_data->glsl_id_full_to_push_constant();
+  auto const& push_constants = add_push_constant->glsl_id_full_to_push_constant();
   for (auto&& glsl_id_full_push_constant_pair : push_constants)
   {
     PushConstant const* push_constant = &glsl_id_full_push_constant_pair.second;
@@ -54,7 +54,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   };
   // This possibly replaces ranges that were added before, if they have the same stageFlags
   // and push_constant_range completely overlaps them.
-  shader_input_data->insert_push_constant_range(push_constant_range);
+  add_push_constant->insert_push_constant_range(push_constant_range);
 
   // (Re)generate member_declarations.
   member_declarations.clear();

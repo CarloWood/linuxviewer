@@ -2,7 +2,6 @@
 #include "SPIRVCache.h"
 #include "LogicalDevice.h"
 #include "SynchronousWindow.h"
-#include "pipeline/ShaderInputData.h"
 #include "utils/AIAlert.h"
 #include "utils/at_scope_end.h"
 #include <shaderc/shaderc.hpp>
@@ -75,7 +74,7 @@ void SPIRVCache::compile(std::string_view glsl_source_code, ShaderCompiler const
   m_spirv_code = compiler.compile({}, shader_info, glsl_source_code);
 }
 
-vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::ShaderInputData>, vulkan::LogicalDevice const* logical_device
+vk::UniqueShaderModule SPIRVCache::create_module(utils::Badge<vulkan::pipeline::AddShaderStage>, vulkan::LogicalDevice const* logical_device
     COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& debug_name)) const
 {
   DoutEntering(dc::vulkan, "SPIRVCache::create({}, " << logical_device << ")");

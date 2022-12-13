@@ -54,7 +54,7 @@ std::string Application::default_display_name() const
 //virtual
 void Application::parse_command_line_parameters(int argc, char* argv[])
 {
-  DoutEntering(dc::vulkan, "vulkan::Application::parse_command_line_parameters(" << argc << ", " << debug::print_argv(argv) << ")");
+  DoutEntering(dc::vulkan, "vulkan::Application::parse_command_line_parameters(" << argc << ", " << NAMESPACE_DEBUG::print_argv(argv) << ")");
 }
 
 //virtual

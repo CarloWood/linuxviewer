@@ -379,7 +379,7 @@ std::ostream& operator<<(std::ostream& os, VmaAllocationInfo const& vma_allocati
       ", size:" << vma_allocation_info.size <<
       ", pMappedData:" << vma_allocation_info.pMappedData <<
       ", pUserData:" << vma_allocation_info.pUserData <<
-      ", pName:" << debug::print_string(vma_allocation_info.pName);
+      ", pName:" << NAMESPACE_DEBUG::print_string(vma_allocation_info.pName);
   os << '}';
   return os;
 }

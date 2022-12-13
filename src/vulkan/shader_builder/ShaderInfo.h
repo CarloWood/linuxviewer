@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHADER_BUILDER_SHADER_INFO_H
+#define SHADER_BUILDER_SHADER_INFO_H
 
 #include "ShaderCompiler.h"
 #include <vulkan/vulkan.hpp>
@@ -103,3 +104,5 @@ class ShaderInfo
 };
 
 } // namespace vulkan::shader_builder
+
+#endif // SHADER_BUILDER_SHADER_INFO_H

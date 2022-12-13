@@ -176,7 +176,7 @@ void SynchronousWindow::initialize_impl()
 #ifdef CWDEBUG
 struct RenderLoopEntered
 {
-  debug::Mark m_mark;
+  NAMESPACE_DEBUG::Mark m_mark;
   RenderLoopEntered(char8_t const* utf8_m) : m_mark(utf8_m)
   {
     Dout(dc::renderloop, "ENTERING RENDERLOOP");

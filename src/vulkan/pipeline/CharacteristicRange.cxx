@@ -1,6 +1,8 @@
 #include "sys.h"
 #include "CharacteristicRange.h"
 #include "PipelineFactory.h"
+#include "shader_builder/ShaderResourceDeclaration.h"
+#include "descriptor/CombinedImageSamplerUpdater.h"
 
 namespace vulkan::pipeline {
 
@@ -12,6 +14,7 @@ char const* CharacteristicRange::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(CharacteristicRange_initialized);
     AI_CASE_RETURN(CharacteristicRange_continue_or_terminate);
     AI_CASE_RETURN(CharacteristicRange_filled);
+    AI_CASE_RETURN(CharacteristicRange_preprocessed);
     AI_CASE_RETURN(CharacteristicRange_compiled);
   }
   AI_NEVER_REACHED
@@ -22,6 +25,7 @@ char const* CharacteristicRange::condition_str_impl(condition_type condition) co
   switch (condition)
   {
     AI_CASE_RETURN(do_fill);
+    AI_CASE_RETURN(do_preprocess);
     AI_CASE_RETURN(do_compile);
     AI_CASE_RETURN(do_terminate);
   }
@@ -54,8 +58,14 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
     case CharacteristicRange_filled:
       m_owning_factory->characteristic_range_filled(m_characteristic_range_index);
       set_state(CharacteristicRange_continue_or_terminate);
+      Debug(m_expected_state = CharacteristicRange_preprocessed);
+      wait(do_preprocess|do_terminate);          // Wait until we're ready to start compiling.
+      break;
+    case CharacteristicRange_preprocessed:
+      m_owning_factory->characteristic_range_preprocessed();
+      set_state(CharacteristicRange_continue_or_terminate);
       Debug(m_expected_state = CharacteristicRange_compiled);
-      wait(do_compile|do_terminate);          // Wait until we're ready to start compiling.
+      wait(do_compile|do_terminate);
       break;
     case CharacteristicRange_compiled:
       m_owning_factory->characteristic_range_compiled();
@@ -93,7 +103,7 @@ void Characteristic::multiplex_impl(state_type run_state)
         finish();
         break;
       }
-      // This not a range; nothing to fill (do that in initialize).
+      // This is not a range; nothing to fill (do that in initialize).
       m_owning_factory->characteristic_range_filled(m_characteristic_range_index);
       set_state(Characteristic_compile_or_terminate);
       wait(do_compile|do_terminate);          // Wait until we're ready to start compiling.

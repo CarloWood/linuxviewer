@@ -1,7 +1,8 @@
 #include "sys.h"
 #include "PushConstant.h"
 #include "DeclarationContext.h"
-#include "pipeline/ShaderInputData.h"
+#include "pipeline/AddPushConstant.h"
+#include "vk_utils/print_flags.h"
 #include <sstream>
 #include <functional>
 #include <cstring>
@@ -15,22 +16,23 @@ std::string PushConstant::name() const
   return oss.str();
 }
 
-// Called from ShaderInputData::preprocess1.
-DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const
+// Called from AddShaderStage::preprocess1.
+DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const
 {
-  DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << shader_input_data << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << add_shader_variable_declaration << ") [" << this << "]");
+  pipeline::AddPushConstant* add_push_constant = static_cast<pipeline::AddPushConstant*>(add_shader_variable_declaration);
 
-  auto push_constant_declaration_context_iter = shader_input_data->glsl_id_full_to_push_constant_declaration_context({}).find(prefix());
-  // This prefix should already have been inserted by ShaderInputData::add_push_constant.
+  auto push_constant_declaration_context_iter = add_push_constant->glsl_id_full_to_push_constant_declaration_context({}).find(prefix());
+  // This prefix should already have been inserted by AddPushConstant::add_push_constant.
   //
-  // Call m_shader_input_data.add_push_constant<MyPushConstant>(), where MyPushConstant is `prefix()`
+  // Call add_push_constant<MyPushConstant>(), where MyPushConstant is `prefix()`
   // in the initialize() virtual function of your FooPipelineCharacteristic (derived from
-  // vulkan::pipeline::Characteristic[Range]) that uses this push constant.
-  ASSERT(push_constant_declaration_context_iter != shader_input_data->glsl_id_full_to_push_constant_declaration_context({}).end());
+  // vulkan::pipeline::Characteristic[Range] and pipeline::AddPushConstant) that uses this push constant.
+  ASSERT(push_constant_declaration_context_iter != add_push_constant->glsl_id_full_to_push_constant_declaration_context({}).end());
   PushConstantDeclarationContext* push_constant_declaration_context = push_constant_declaration_context_iter->second.get();
 
   // Register that this push constant is being used.
-  push_constant_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, shader_input_data);
+  push_constant_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, add_push_constant);
 
   // Return the declaration context.
   return push_constant_declaration_context;

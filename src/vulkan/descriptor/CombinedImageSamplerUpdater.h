@@ -58,7 +58,7 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public ShaderResourceBase
+class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_builder::ShaderResourceBase
 {
  protected:
   using direct_base_type = AIStatefulTask;
@@ -89,7 +89,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
     vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), ShaderResourceBase(SetKeyContext::instance(), glsl_id_full_postfix)
   {
-    DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << debug::print_string(glsl_id_full_postfix) << " [" << this << "]");
+    DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << NAMESPACE_DEBUG::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
     glsl_id_full.append(glsl_id_full_postfix);
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
@@ -134,7 +134,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   // There is no need to instantiate anything for CombinedImageSamplerUpdaters.
   void instantiate(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
 
-  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const override final;
+  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const override final;
 
   void update_descriptor_set(DescriptorUpdateInfo descriptor_update_info) override final
   {

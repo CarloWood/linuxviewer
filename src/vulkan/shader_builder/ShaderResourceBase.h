@@ -18,6 +18,10 @@ namespace task {
 class SynchronousWindow;
 } // namespace task
 
+namespace vulkan::pipeline {
+class AddShaderStage;
+} // namespace vulkan::pipeline
+
 namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;
 class ShaderResourceBase;
@@ -111,7 +115,7 @@ class ShaderResourceBase
   ShaderResourceBase(descriptor::SetKey descriptor_set_key COMMA_CWDEBUG_ONLY(char const* debug_name)) :
     m_descriptor_set_key(descriptor_set_key) COMMA_CWDEBUG_ONLY(m_debug_name(debug_name))
   {
-    DoutEntering(dc::notice, "ShaderResourceBase::ShaderResourceBase(" << descriptor_set_key << ", " << debug::print_string(debug_name) << ") [" << this << "]");
+    DoutEntering(dc::notice, "ShaderResourceBase::ShaderResourceBase(" << descriptor_set_key << ", " << NAMESPACE_DEBUG::print_string(debug_name) << ") [" << this << "]");
   }
   ShaderResourceBase() = default;     // Constructs a non-sensical m_descriptor_set_key that must be ignored when moving the object (in place).
 
@@ -208,7 +212,7 @@ class ShaderResourceBase
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) = 0;
   virtual bool is_frame_resource() const { return false; }
   virtual void update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info) = 0;
-  virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const = 0;
+  virtual void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const = 0;
   virtual vk::DescriptorBindingFlags binding_flags() const { return {}; }
   virtual int32_t descriptor_array_size() const { return 1; }      // One means it's not an array. Negative means unbounded.
 

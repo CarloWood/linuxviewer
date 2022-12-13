@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHADER_BUILDER_SHADER_COMPILER_H
+#define SHADER_BUILDER_SHADER_COMPILER_H
 
 #include "utils/AIAlert.h"
 #include "utils/Badge.h"
@@ -290,3 +291,5 @@ class ShaderCompiler
 };
 
 } // namespace vulkan::shader_builder
+
+#endif // SHADER_BUILDER_SHADER_COMPILER_H

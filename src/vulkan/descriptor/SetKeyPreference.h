@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DESCRIPTOR_SET_KEY_PREFERENCE_H
+#define DESCRIPTOR_SET_KEY_PREFERENCE_H
 
 #include "SetKey.h"
 
@@ -23,3 +24,5 @@ class SetKeyPreference
 };
 
 } // namespace vulkan::descriptor
+
+#endif // DESCRIPTOR_SET_KEY_PREFERENCE_H

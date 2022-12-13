@@ -1,7 +1,6 @@
 #include "sys.h"
 #include "VertexAttributeDeclarationContext.h"
 #include "VertexAttribute.h"
-#include "pipeline/ShaderInputData.h"
 #include "shader_builder/DeclarationsString.h"
 #include <sstream>
 #include "debug.h"
@@ -22,7 +21,7 @@ void VertexAttributeDeclarationContext::update_location(VertexAttribute const* v
   m_next_location += number_of_attribute_indices;
 }
 
-void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), VertexAttribute const* vertex_attribute, pipeline::ShaderInputData* shader_input_data)
+void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), VertexAttribute const* vertex_attribute)
 {
   // Vertex attributes should only be used in the vertex shader.
   ASSERT(shader_stage == vk::ShaderStageFlagBits::eVertex);
@@ -48,5 +47,15 @@ void VertexAttributeDeclarationContext::add_declarations_for_stage(DeclarationsS
   }
   declarations_out += oss.str();
 }
+
+#ifdef CWDEBUG
+void VertexAttributeDeclarationContext::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "m_next_location:" << m_next_location <<
+      ", m_locations:" << m_locations;
+  os << '}';
+}
+#endif
 
 } // namespace vulkan::shader_builder

@@ -7,12 +7,10 @@
 #include "InputEvent.h"
 
 #include "memory/DataFeeder.h"
-#include "pipeline/ShaderInputData.h"
 #include "descriptor/SetLayoutBindingsAndFlags.h"
 #include "vk_utils/print_flags.h"
 
 #include "Application.inl.h"
-#include "pipeline/ShaderInputData.inl.h"
 
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -181,6 +179,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(".m_pipeline_layout" + ambifix));
 
+#if 0 // FIXME: make this work again...
   pipeline::ShaderInputData shader_input_data(m_owning_window);
 
   // Define the vertex shader input.
@@ -309,6 +308,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
 
   m_graphics_pipeline = logical_device()->create_graphics_pipeline(vk::PipelineCache{}, pipeline_create_info
       COMMA_CWDEBUG_ONLY(".m_graphics_pipeline" + ambifix));
+#endif
 }
 
 void ImGui::init(task::SynchronousWindow* owning_window, vk::SampleCountFlagBits MSAASamples, AIStatefulTask::condition_type imgui_font_texture_ready, GraphicsSettingsPOD const& graphics_settings

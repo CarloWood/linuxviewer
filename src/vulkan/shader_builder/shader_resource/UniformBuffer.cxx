@@ -1,6 +1,7 @@
 #include "sys.h"
 #include "UniformBuffer.h"
 #include "SynchronousWindow.h"
+#include "pipeline/AddShaderStage.h"
 
 namespace vulkan::shader_builder {
 
@@ -42,9 +43,9 @@ std::string UniformBufferBase::glsl_id() const
   return member.prefix();
 }
 
-void UniformBufferBase::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
+void UniformBufferBase::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
-  shader_input_data->prepare_uniform_buffer_declaration(*this, set_index_hint);
+  add_shader_stage->prepare_uniform_buffer_declaration(*this, set_index_hint);
 }
 
 #ifdef CWDEBUG

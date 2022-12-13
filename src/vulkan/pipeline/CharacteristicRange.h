@@ -2,7 +2,8 @@
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
 #include "FlatCreateInfo.h"
-#include "ShaderInputData.h"
+#include "CharacteristicRangeBridge.h"
+#include "shader_builder/ShaderIndex.h"
 #include "utils/AIRefCount.h"
 #include "utils/Vector.h"
 #include "statefultask/AIStatefulTask.h"
@@ -15,17 +16,39 @@ class SynchronousWindow;
 class PipelineFactory;
 } // namespace task
 
+//FIXME: Are these still needed after deleting the proxy calls that needed them?
+namespace vulkan {
+class AmbifixOwner;
+namespace shader_builder {
+class ShaderInfo;
+class ShaderCompiler;
+class SPIRVCache;
+class UniformBufferBase;
+class ShaderResourceBase;
+namespace shader_resource {
+class CombinedImageSampler;
+} // namespace shader_resource
+} // namespace shader_builder
+} // namespace vulkan
+namespace vulkan::descriptor {
+class SetKeyPreference;
+} // namespace vulkan::descriptor
+
 namespace vulkan::pipeline {
+class CharacteristicRange;
+using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
+class AddVertexShader;
 
 struct IndexCategory;
 using Index = utils::VectorIndex<IndexCategory>;
 
-class CharacteristicRange : public AIStatefulTask
+class CharacteristicRange : public AIStatefulTask, public virtual CharacteristicRangeBridge
 {
  public:
   static constexpr condition_type do_fill = 1;
-  static constexpr condition_type do_compile = 2;
-  static constexpr condition_type do_terminate = 4;
+  static constexpr condition_type do_preprocess = 2;
+  static constexpr condition_type do_compile = 4;
+  static constexpr condition_type do_terminate = 8;
 
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
   using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
@@ -105,20 +128,10 @@ class CharacteristicRange : public AIStatefulTask
   }
 
   // Accessor.
-  task::PipelineFactory* owning_factory(utils::Badge<ShaderInputData>) const { return m_owning_factory; }
   CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
   index_type fill_index() const { return m_fill_index; }
 
  protected:
-  inline auto const& shader_stage_create_infos() const;
-  inline auto const& sorted_descriptor_set_layouts() const;
-  inline auto& sorted_descriptor_set_layouts();
-
-  template<typename ENTRY>
-  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
-            std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-  inline void add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
-
   inline void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
@@ -127,29 +140,7 @@ class CharacteristicRange : public AIStatefulTask
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  template<typename ENTRY>
-  requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-  inline void add_push_constant();
-
-  inline void preprocess1(shader_builder::ShaderInfo const& shader_info);
-  inline auto vertex_binding_descriptions() const;
-  inline auto vertex_input_attribute_descriptions() const;
   inline void realize_descriptor_set_layouts(LogicalDevice const* logical_device);
-
-  inline void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
-
-  inline void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      descriptor::SetIndexHintMap const* set_index_hint_map
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
-
-  inline auto push_constant_ranges() const;
-
- public:
-  inline auto const& vertex_shader_input_sets() const;
 
   //---------------------------------------------------------------------------
   // Task specific code
@@ -162,6 +153,7 @@ class CharacteristicRange : public AIStatefulTask
     CharacteristicRange_initialized = direct_base_type::state_end,
     CharacteristicRange_continue_or_terminate,
     CharacteristicRange_filled,
+    CharacteristicRange_preprocessed,
     CharacteristicRange_compiled
   };
 
@@ -184,6 +176,12 @@ class CharacteristicRange : public AIStatefulTask
   char const* condition_str_impl(condition_type condition) const override;
   void multiplex_impl(state_type run_state) override;
 
+ private:
+  // Override of CharacteristicRangeBridge.
+  inline shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) final;
+
+  task::PipelineFactory* get_owning_factory() const final { return m_owning_factory; }
+
 #ifdef CWDEBUG
  public:
   virtual void print_on(std::ostream& os) const = 0;
@@ -200,11 +198,13 @@ class Characteristic : public CharacteristicRange
   using CharacteristicRange::iend;
 
  private:
-  // Hide CharacteristicRange_initialized.
+  // Hide CharacteristicRange_* states.
   enum UseCharacteristic {
     CharacteristicRange_initialized,            // Don't use these, use Characteristic_*.
     CharacteristicRange_check_terminate,
-    CharacteristicRange_filled
+    CharacteristicRange_filled,
+    CharacteristicRange_preprocessed,
+    CharacteristicRange_compiled
   };
 
  protected:
@@ -242,37 +242,11 @@ class Characteristic : public CharacteristicRange
 
 namespace vulkan::pipeline {
 
-// Inline proxy to ShaderInputData interface.
-auto const& CharacteristicRange::vertex_shader_input_sets() const
-{
-  return m_owning_factory->shader_input_data({}).vertex_shader_input_sets({});
-}
-
-auto const& CharacteristicRange::shader_stage_create_infos() const {
-  return m_owning_factory->shader_input_data({}).shader_stage_create_infos({});
-}
-
-auto const& CharacteristicRange::sorted_descriptor_set_layouts() const {
-  return m_owning_factory->shader_input_data({}).sorted_descriptor_set_layouts({});
-}
-
-auto& CharacteristicRange::sorted_descriptor_set_layouts() {
-  return m_owning_factory->shader_input_data({}).sorted_descriptor_set_layouts({});
-}
-
-template<typename ENTRY>
-requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
-          std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
-void CharacteristicRange::add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
-{
-  m_owning_factory->shader_input_data({}).add_vertex_input_binding({}, vertex_shader_input_set);
-}
-
 void CharacteristicRange::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  m_owning_factory->shader_input_data({}).add_combined_image_sampler({},
+  m_owning_factory->add_combined_image_sampler({},
       combined_image_sampler, this, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
@@ -280,60 +254,18 @@ void CharacteristicRange::add_uniform_buffer(shader_builder::UniformBufferBase c
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
-  m_owning_factory->shader_input_data({}).add_uniform_buffer({},
+  m_owning_factory->add_uniform_buffer({},
       uniform_buffer, this, preferred_descriptor_sets, undesirable_descriptor_sets);
-}
-
-template<typename ENTRY>
-requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-void CharacteristicRange::add_push_constant()
-{
-  m_owning_factory->shader_input_data({}).add_push_constant<ENTRY>({});
-}
-
-void CharacteristicRange::preprocess1(shader_builder::ShaderInfo const& shader_info)
-{
-  m_owning_factory->shader_input_data({}).preprocess1({}, shader_info);
-}
-
-auto CharacteristicRange::vertex_binding_descriptions() const
-{
-  return m_owning_factory->shader_input_data({}).vertex_binding_descriptions({});
-}
-
-auto CharacteristicRange::vertex_input_attribute_descriptions() const
-{
-  return m_owning_factory->shader_input_data({}).vertex_input_attribute_descriptions({});
 }
 
 void CharacteristicRange::realize_descriptor_set_layouts(LogicalDevice const* logical_device)
 {
-  m_owning_factory->shader_input_data({}).realize_descriptor_set_layouts({}, logical_device);
+  m_owning_factory->realize_descriptor_set_layouts({}, logical_device);
 }
 
-void CharacteristicRange::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-    shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+shader_builder::ShaderResourceDeclaration* CharacteristicRange::realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
 {
-  m_owning_factory->shader_input_data({}).build_shader({},
-      owning_window, shader_index, compiler, spirv_cache, set_index_hint_map
-      COMMA_CWDEBUG_ONLY(ambifix));
-}
-
-void CharacteristicRange::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-    descriptor::SetIndexHintMap const* set_index_hint_map
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
-{
-  m_owning_factory->shader_input_data({}).build_shader({},
-      owning_window, shader_index, compiler, set_index_hint_map
-      COMMA_CWDEBUG_ONLY(ambifix));
-}
-
-auto CharacteristicRange::push_constant_ranges() const
-{
-  return m_owning_factory->shader_input_data({}).push_constant_ranges({});
+  return m_owning_factory->realize_shader_resource_declaration({}, glsl_id_full, descriptor_type, shader_resource, set_index_hint);
 }
 
 } // namespace vulkan::pipeline

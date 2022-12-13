@@ -12,7 +12,7 @@ class SetKeyContext;
 // SetKey
 //
 // Each key is a unique identifier that gives access to a descriptor set,
-// in the context of a given ShaderInputData, where two different keys
+// in the context of a given PipelineFactory, where two different keys
 // can refer to the same descriptor set even though they are different.
 //
 class SetKey
@@ -38,7 +38,7 @@ class SetKey
     return m_id;
   }
 
-  // SetKey is used as a key in a std::map (ShaderInputData::m_set_key_to_set_index_hint).
+  // SetKey is used as a key in a std::map (PipelineFactory::m_set_key_to_set_index_hint and SetKeyToSetIndexHint::m_set_key_to_set_index_hint).
   // Add an ordering.
   friend bool operator<(SetKey const& lhs, SetKey const& rhs)
   {

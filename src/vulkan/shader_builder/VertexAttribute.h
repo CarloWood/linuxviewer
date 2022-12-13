@@ -8,10 +8,6 @@
 #include <cstdint>
 #include "debug.h"
 
-namespace vulkan::pipeline {
-class ShaderInputData;
-} // namespace vulkan::pipeline
-
 namespace vulkan::shader_builder {
 
 class VertexShaderInputSetBase;
@@ -67,7 +63,7 @@ struct VertexAttribute final : public ShaderVariable
 
  private:
   // Implement base class interface.
-  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::ShaderInputData* shader_input_data) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const override;
 
 #ifdef CWDEBUG
  public:

@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "CombinedImageSamplerUpdater.h"
 #include "SynchronousWindow.h"
-#include "pipeline/ShaderInputData.h"
+#include "pipeline/AddShaderStage.h"
 #include "descriptor/TextureUpdateRequest.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_pointer.h"
@@ -10,9 +10,9 @@
 
 namespace vulkan::descriptor {
 
-void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::ShaderInputData* shader_input_data) const
+void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
-  shader_input_data->prepare_combined_image_sampler_declaration(*this, set_index_hint);
+  add_shader_stage->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
 CombinedImageSamplerUpdater::~CombinedImageSamplerUpdater()

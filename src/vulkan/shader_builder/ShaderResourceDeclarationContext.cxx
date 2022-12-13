@@ -1,9 +1,9 @@
 #include "sys.h"
 #include "ShaderResourceDeclarationContext.h"
 #include "ShaderResourceDeclaration.h"
-#include "shader_builder/DeclarationsString.h"
+#include "DeclarationsString.h"
+#include "pipeline/PipelineFactory.h"
 #include "shader_resource/UniformBuffer.h"
-#include "pipeline/ShaderInputData.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/snake_case.h"
 #include "debug.h"
@@ -21,10 +21,10 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration 
   ++m_next_binding[set_index_hint];
 }
 
-void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration, pipeline::ShaderInputData* shader_input_data)
+void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in with shader_resource_declaration(\"" <<
-      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource_declaration << ", " << shader_input_data << ")");
+      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource_declaration << ")");
 
   // Only register one binding per shader resource per set.
   if (m_bindings.find(shader_resource_declaration) != m_bindings.end())
@@ -44,7 +44,7 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
   }
 }
 
-// Called from ShaderInputData::preprocess1.
+// Called from AddShaderStage::preprocess1.
 void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage) const
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
@@ -56,7 +56,7 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
       continue;
     uint32_t binding = shader_resource_binding_pair.second;
     int32_t descriptor_array_size = shader_resource_declaration->descriptor_array_size();
-    m_owning_shader_input_data->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
+    m_owning_factory->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
         .binding = binding,
         .descriptorType = shader_resource_declaration->descriptor_type(),
         .descriptorCount = (uint32_t)std::abs(descriptor_array_size),
@@ -137,7 +137,7 @@ void ShaderResourceDeclarationContext::print_on(std::ostream& os) const
   os << '{';
   os << "m_next_binding:" << m_next_binding <<
       ", m_bindings:" << m_bindings <<
-      ", m_owning_shader_input_data:" << m_owning_shader_input_data;
+      ", m_owning_factory:" << m_owning_factory;
   os << '}';
 }
 #endif
