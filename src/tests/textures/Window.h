@@ -30,6 +30,7 @@
 #endif
 
 #define ENABLE_IMGUI 0
+#define SEPARATE_FRAGMENT_SHADER 0
 
 class Window : public task::SynchronousWindow
 {
@@ -153,7 +154,11 @@ class Window : public task::SynchronousWindow
         }
         int ti = (cis + 1) % number_of_combined_image_samplers;
         // Change (update) image sampler descriptor 'cis', used by pipeline 'pipeline', with the (new) texture 'ti'.
+#if SEPARATE_FRAGMENT_SHADER
         int const characteristic = 2; // FragmentPipelineCharacteristicRange.
+#else
+        int const characteristic = 1; // VertexPipelineCharacteristicRange which now also do the fragment shader.
+#endif
         m_combined_image_samplers[cis].update_image_sampler_array(&m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline * number_of_characteristics + characteristic], 1);
         break;
       }
@@ -321,7 +326,12 @@ void main()
 #endif
   };
 
-  class VertexPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange, public vulkan::pipeline::AddVertexShader, public vulkan::pipeline::AddPushConstant
+  class VertexPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
+      public vulkan::pipeline::AddVertexShader,
+#if !SEPARATE_FRAGMENT_SHADER
+      public vulkan::pipeline::AddFragmentShader,
+#endif
+      public vulkan::pipeline::AddPushConstant
   {
    private:
     int m_pipeline;
@@ -467,7 +477,10 @@ void main()
 #endif
   };
 
-  class FragmentPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange, vulkan::pipeline::AddFragmentShader, public vulkan::pipeline::AddPushConstant
+#if SEPARATE_FRAGMENT_SHADER
+  class FragmentPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
+      public vulkan::pipeline::AddFragmentShader,
+      public vulkan::pipeline::AddPushConstant
   {
    private:
     int m_pipeline;
@@ -631,6 +644,10 @@ void main()
   };
 
   static constexpr int number_of_characteristics = 3;
+#else
+  static constexpr int number_of_characteristics = 2;
+#endif
+
   std::array<vulkan::pipeline::FactoryCharacteristicId, number_of_pipelines * number_of_characteristics> m_pipeline_factory_characteristic_range_ids;
   std::array<vulkan::pipeline::FactoryHandle, number_of_pipelines> m_pipeline_factory;
 
@@ -666,10 +683,12 @@ void main()
             factory_characteristic_id =
               m_pipeline_factory[pipeline].add_characteristic<VertexPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
             break;
+#if SEPARATE_FRAGMENT_SHADER
           case 2:
             factory_characteristic_id =
               m_pipeline_factory[pipeline].add_characteristic<FragmentPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
             break;
+#endif
         }
         m_pipeline_factory_characteristic_range_ids[pipeline * number_of_characteristics + c] = factory_characteristic_id;
       }

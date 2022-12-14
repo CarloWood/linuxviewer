@@ -2,6 +2,7 @@
 
 #include "PushConstantRangeCompare.h"
 #include "AddShaderVariableDeclaration.h"
+#include "AddShaderStageBridge.h"
 #include "shader_builder/PushConstant.h"
 #include "shader_builder/ShaderVariableLayouts.h"
 #include "shader_builder/PushConstantDeclarationContext.h"
@@ -16,7 +17,7 @@
 
 namespace vulkan::pipeline {
 
-class AddPushConstant : public AddShaderVariableDeclaration
+class AddPushConstant : public AddShaderVariableDeclaration, public virtual AddShaderStageBridge
 {
  private:
    //FIXME: is this not used?

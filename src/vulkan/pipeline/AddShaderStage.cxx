@@ -13,8 +13,6 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
 {
   DoutEntering(dc::vulkan, "AddShaderStage::preprocess1(" << shader_info << ") [" << this << "]");
 
-  //FIXME: call this after preprocess is called after all Characteristics finished adding new shader resources.
-#if 0
   std::string_view const source = shader_info.glsl_template_code();
 
   // Assume no preprocessing is necessary if the source already starts with "#version".
@@ -37,7 +35,6 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
       shader_resource_declaration_context->generate1(shader_info.stage());
     }
   }
-#endif
 }
 
 // Called from build_shader.

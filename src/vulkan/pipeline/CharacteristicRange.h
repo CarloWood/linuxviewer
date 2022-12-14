@@ -227,6 +227,7 @@ class Characteristic : public CharacteristicRange
  protected:
   char const* state_str_impl(state_type run_state) const override;
   void multiplex_impl(state_type run_state) override;
+  void initialize_impl() override;
 };
 
 } // namespace vulkan::pipeline

@@ -124,4 +124,9 @@ void Characteristic::multiplex_impl(state_type run_state)
   }
 }
 
+void Characteristic::initialize_impl()
+{
+  set_state(Characteristic_initialized);
+}
+
 } // namespace vulkan::pipeline

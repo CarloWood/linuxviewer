@@ -2,6 +2,7 @@
 
 #include "AddShaderVariableDeclaration.h"
 #include "CharacteristicRangeBridge.h"
+#include "AddShaderStageBridge.h"
 #include "shader_builder/ShaderVariable.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/SPIRVCache.h"
@@ -32,7 +33,7 @@ class CombinedImageSamplerUpdater;
 namespace vulkan::pipeline {
 class CharacteristicRange;
 
-class AddShaderStage : public AddShaderVariableDeclaration, public virtual CharacteristicRangeBridge
+class AddShaderStage : public AddShaderVariableDeclaration, public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
@@ -70,6 +71,12 @@ class AddShaderStage : public AddShaderVariableDeclaration, public virtual Chara
  private:
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();
+
+  // Override of AddShaderStageBridge.
+  void add_shader_variable(shader_builder::ShaderVariable const* shader_variable) override
+  {
+    m_shader_variables.push_back(shader_variable);
+  }
 
  protected:
   // Called from *UserCode*PipelineCharacteristic_initialize.

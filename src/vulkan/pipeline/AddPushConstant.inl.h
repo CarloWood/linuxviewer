@@ -30,8 +30,9 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
-  //FIXME: get this from the virtual AddShaderStage base class
-//  m_shader_variables.push_back(&res1.first->second);
+
+  // Call AddShaderStageBridge function to add this 'shader variable'.
+  add_shader_variable(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
   if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
@@ -57,8 +58,9 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(res1.second);
-  //FIXME: get this from the virtual AddShaderStage base class
-//  m_shader_variables.push_back(&res1.first->second);
+
+  // Call AddShaderStageBridge function to add this 'shader variable'.
+  add_shader_variable(&res1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
   if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
