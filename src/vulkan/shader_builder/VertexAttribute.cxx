@@ -24,11 +24,9 @@ std::string VertexAttribute::name() const
 
 // This is the implementation of the virtual function of ShaderVariable.
 // Called from AddShaderStage::preprocess1.
-DeclarationContext* VertexAttribute::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const
+DeclarationContext* VertexAttribute::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const
 {
-  DoutEntering(dc::notice, "VertexAttribute::is_used_in(" << shader_stage << ", " << add_shader_variable_declaration << ") [" << this << "]");
-
-  pipeline::AddShaderStage* add_shader_stage = static_cast<pipeline::AddShaderStage*>(add_shader_variable_declaration);
+  DoutEntering(dc::notice, "VertexAttribute::is_used_in(" << shader_stage << ", " << add_shader_stage << ") [" << this << "]");
 
   // We must use a single context for all vertex attributes, as the context is used to enumerate the 'location' at which the attributes are stored.
   VertexAttributeDeclarationContext* vertex_attribute_declaration_context = add_shader_stage->vertex_shader_location_context({});

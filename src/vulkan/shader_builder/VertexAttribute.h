@@ -63,7 +63,7 @@ struct VertexAttribute final : public ShaderVariable
 
  private:
   // Implement base class interface.
-  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const override;
 
 #ifdef CWDEBUG
  public:

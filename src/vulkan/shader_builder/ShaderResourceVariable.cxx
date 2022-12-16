@@ -9,11 +9,9 @@
 
 namespace vulkan::shader_builder {
 
-DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const
+DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const
 {
-  DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << add_shader_variable_declaration << ") [" << this << "]");
-
-  pipeline::AddShaderStage* add_shader_stage = static_cast<pipeline::AddShaderStage*>(add_shader_variable_declaration);
+  DoutEntering(dc::vulkan, "ShaderResourceVariable::is_used_in(" << shader_stage << ", " << add_shader_stage << ") [" << this << "]");
 
   descriptor::SetIndexHint set_index_hint = m_shader_resource_declaration_ptr->set_index_hint();
 

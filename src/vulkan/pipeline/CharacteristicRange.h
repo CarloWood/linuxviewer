@@ -157,10 +157,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
     CharacteristicRange_compiled
   };
 
-  void set_continue_state(state_type continue_state)
-  {
-    m_continue_state = continue_state;
-  }
+  void set_continue_state(state_type continue_state) { m_continue_state = continue_state; }
 
  public:
   static state_type constexpr state_end = CharacteristicRange_compiled + 1;
@@ -175,6 +172,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   char const* state_str_impl(state_type run_state) const override;
   char const* condition_str_impl(condition_type condition) const override;
   void multiplex_impl(state_type run_state) override;
+  void initialize_impl() override;
 
  private:
   // Override of CharacteristicRangeBridge.
@@ -214,6 +212,7 @@ class Characteristic : public CharacteristicRange
   enum Characteristic_state_type {
     Characteristic_initialized = direct_base_type::state_end,
     Characteristic_fill,
+    Characteristic_preprocess,
     Characteristic_compile_or_terminate,
     Characteristic_compiled
   };

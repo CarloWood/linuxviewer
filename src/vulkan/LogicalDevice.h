@@ -136,8 +136,9 @@ class LogicalDevice
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
-  // The same type as PipelineFactory::sorted_descriptor_set_layouts_container_t.
+  // The same types as PipelineFactory::sorted_descriptor_set_layouts_container_t and sorted_descriptor_set_layouts_t.
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+  using sorted_descriptor_set_layouts_t = aithreadsafe::Wrapper<sorted_descriptor_set_layouts_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   using pipeline_layouts_container_key_t = std::pair<sorted_descriptor_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
         utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
@@ -199,7 +200,7 @@ class LogicalDevice
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
   // and returns an updated set_index_hint_map_out (see explanation in LogicalDevice.cxx).
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
+      sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
       descriptor::SetIndexHintMap& set_index_hint_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;

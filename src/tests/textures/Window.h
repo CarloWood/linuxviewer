@@ -347,6 +347,7 @@ void main()
     enum VertexPipelineCharacteristicRange_state_type {
       VertexPipelineCharacteristicRange_initialize = direct_base_type::state_end,
       VertexPipelineCharacteristicRange_fill,
+      VertexPipelineCharacteristicRange_preprocess,
       VertexPipelineCharacteristicRange_compile
     };
 
@@ -376,6 +377,7 @@ void main()
       {
         AI_CASE_RETURN(VertexPipelineCharacteristicRange_initialize);
         AI_CASE_RETURN(VertexPipelineCharacteristicRange_fill);
+        AI_CASE_RETURN(VertexPipelineCharacteristicRange_preprocess);
         AI_CASE_RETURN(VertexPipelineCharacteristicRange_compile);
       }
       return direct_base_type::state_str_impl(run_state);
@@ -416,6 +418,12 @@ void main()
         case VertexPipelineCharacteristicRange_fill:
         {
           Dout(dc::notice, "fill_index = " << fill_index());
+          set_continue_state(VertexPipelineCharacteristicRange_preprocess);
+          run_state = CharacteristicRange_filled;
+          break;
+        }
+        case VertexPipelineCharacteristicRange_preprocess:
+        {
           Window const* window = static_cast<Window const*>(m_owning_window);
 
           // Preprocess the shaders.
@@ -434,9 +442,11 @@ void main()
           // Generate vertex buffers.
           // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
           // while the current function is part of a pipeline factory...
+#if 0
           static std::atomic_int done = false;
           if (done.fetch_or(true) == false)
             window->create_vertex_buffers(this);
+#endif
 
           // Realize the descriptor set layouts: if a layout already exists then use the existing
           // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
@@ -445,7 +455,7 @@ void main()
           realize_descriptor_set_layouts(m_owning_window->logical_device());
           //
           set_continue_state(VertexPipelineCharacteristicRange_compile);
-          run_state = CharacteristicRange_filled;
+          run_state = CharacteristicRange_preprocessed;
           break;
         }
         case VertexPipelineCharacteristicRange_compile:
@@ -827,7 +837,14 @@ void main()
 
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
-if (!m_graphics_pipelines[0].handle() || !m_graphics_pipelines[1].handle())
+bool have_all_pipelines = true;
+for (int pl = 0; pl < number_of_pipelines; ++pl)
+  if (!m_graphics_pipelines[pl].handle())
+  {
+    have_all_pipelines = false;
+    break;
+  }
+if (!have_all_pipelines)
   Dout(dc::warning, "Pipeline not available");
 else
 {

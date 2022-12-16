@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PushConstantRangeCompare.h"
-#include "AddShaderVariableDeclaration.h"
 #include "AddShaderStageBridge.h"
 #include "shader_builder/PushConstant.h"
 #include "shader_builder/ShaderVariableLayouts.h"
@@ -17,9 +16,11 @@
 
 namespace vulkan::pipeline {
 
-class AddPushConstant : public AddShaderVariableDeclaration, public virtual AddShaderStageBridge
+class AddPushConstant : public virtual AddShaderStageBridge
 {
  private:
+  AddPushConstant* convert_to_add_push_constant() override { return this; }
+
    //FIXME: is this not used?
 //  std::vector<vk::PushConstantRange> m_push_constant_ranges;
 
@@ -67,7 +68,10 @@ class AddPushConstant : public AddShaderVariableDeclaration, public virtual AddS
   }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
-  glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_full_to_push_constant_declaration_context; }
+  glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const
+  {
+    return m_glsl_id_full_to_push_constant_declaration_context;
+  }
   glsl_id_full_to_push_constant_container_t const& glsl_id_full_to_push_constant() const { return m_glsl_id_full_to_push_constant; }
 
  protected:
