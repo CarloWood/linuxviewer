@@ -16,7 +16,7 @@
 
 namespace vulkan::pipeline {
 
-class AddPushConstant : public virtual AddShaderStageBridge
+class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
   AddPushConstant* convert_to_add_push_constant() override { return this; }
@@ -52,6 +52,9 @@ class AddPushConstant : public virtual AddShaderStageBridge
       shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
+  // Override of CharacteristicRangeBridge.
+  void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) const final;
+
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
   void insert_push_constant_range(vk::PushConstantRange const& push_constant_range)
@@ -59,12 +62,6 @@ class AddPushConstant : public virtual AddShaderStageBridge
     auto range = m_sorted_push_constant_ranges.equal_range(push_constant_range);
     m_sorted_push_constant_ranges.erase(range.first, range.second);
     m_sorted_push_constant_ranges.insert(push_constant_range);
-  }
-
-  // Access what calls to the above insert constructed. FIXME: probably needs a Badge
-  std::vector<vk::PushConstantRange> push_constant_ranges() const
-  {
-    return { m_sorted_push_constant_ranges.begin(), m_sorted_push_constant_ranges.end() };
   }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
