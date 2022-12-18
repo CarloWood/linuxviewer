@@ -396,7 +396,6 @@ void main()
 //          m_flat_create_info->add(&m_vertex_input_attribute_descriptions);
 //          m_flat_create_info->add_descriptor_set_layouts(&sorted_descriptor_set_layouts());
 //          m_flat_create_info->add(&m_push_constant_ranges);
-//          m_flat_create_info->add(&m_shader_stage_create_infos);
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
