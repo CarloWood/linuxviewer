@@ -260,6 +260,9 @@ class PipelineFactory : public AIStatefulTask
   // Accessor.
   SynchronousWindow* owning_window() const { return m_owning_window; }
 
+  template<typename T>
+  void add_to_flat_create_info(std::vector<T> const* list) { m_flat_create_info.add(list); }
+
   vulkan::pipeline::FactoryCharacteristicId add_characteristic(boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
   void set_index(PipelineFactoryIndex pipeline_factory_index) { m_pipeline_factory_index = pipeline_factory_index; }

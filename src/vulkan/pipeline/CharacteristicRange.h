@@ -50,6 +50,8 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   static constexpr condition_type do_compile = 4;
   static constexpr condition_type do_terminate = 8;
 
+  condition_type m_needs_signals{do_fill};      // The signals that are required by the derived class.
+
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
   using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
@@ -78,6 +80,9 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
     ASSERT(end > begin);
   }
 
+  // If the user Characteristic class is derived from AddShaderStage then we need to do preprocessing and compiling.
+  void set_needs_signals() { if (is_add_shader_stage()) m_needs_signals |= do_preprocess|do_compile; }
+  void register_with_the_flat_create_info() const { register_AddShaderStage_with(m_owning_factory); }
   void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
   void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
 
@@ -130,6 +135,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   // Accessor.
   CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
   index_type fill_index() const { return m_fill_index; }
+  condition_type needs_signals() const { return m_needs_signals; }
 
  protected:
   inline void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
@@ -210,18 +216,20 @@ class Characteristic : public CharacteristicRange
 
   // The different states of this task.
   enum Characteristic_state_type {
-    Characteristic_initialized = direct_base_type::state_end,
-    Characteristic_fill,
-    Characteristic_preprocess,
-    Characteristic_compile_or_terminate,
-    Characteristic_compiled
+    Characteristic_preprocessed = direct_base_type::CharacteristicRange_preprocessed,
+    Characteristic_compiled = direct_base_type::CharacteristicRange_compiled,
+    Characteristic_initialized = direct_base_type::state_end
   };
 
  public:
-  static constexpr state_type state_end = Characteristic_compiled + 1;
+  static constexpr state_type state_end = Characteristic_initialized + 1;
 
   Characteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-    CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug)) { }
+    CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug))
+  {
+    // We are not a range and therefore to not require the do_fill signal.
+    m_needs_signals = 0;
+  }
 
  protected:
   char const* state_str_impl(state_type run_state) const override;

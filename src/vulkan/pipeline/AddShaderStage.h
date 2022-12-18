@@ -2,6 +2,7 @@
 
 #include "CharacteristicRangeBridge.h"
 #include "AddShaderStageBridge.h"
+#include "PipelineFactory.h"
 #include "shader_builder/ShaderVariable.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/SPIRVCache.h"
@@ -41,7 +42,6 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
 
   vk::UniqueShaderModule m_shader_module;
-  vk::PipelineShaderStageCreateInfo m_shader_stage_create_info;
 
  protected:
   // Written to by AddVertexShader and AddFragmentShader.
@@ -75,6 +75,15 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   void add_shader_variable(shader_builder::ShaderVariable const* shader_variable) override
   {
     m_shader_variables.push_back(shader_variable);
+  }
+
+  // This is a AddShaderStage.
+  bool is_add_shader_stage() const final { return true; }
+
+  // Override of CharacteristicRangeBridge.
+  void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const final
+  {
+    pipeline_factory->add_to_flat_create_info(&m_shader_stage_create_infos);
   }
 
  protected:

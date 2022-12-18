@@ -131,6 +131,7 @@ PipelineFactory::~PipelineFactory()
 FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr<CharacteristicRange> characteristic_range)
 {
   characteristic_range->set_owner(this);
+  characteristic_range->register_with_the_flat_create_info();
   CharacteristicRangeIndex characteristic_range_index{m_characteristics.iend()};
   characteristic_range->set_characteristic_range_index(characteristic_range_index);
   int end = characteristic_range->iend();
@@ -547,6 +548,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         ASSERT(!m_characteristics.empty());
         size_t const number_of_characteristic_range_tasks = m_characteristics.size();
         m_range_shift.resize(number_of_characteristic_range_tasks);
+        // The number of characteristic tasks that we need to wait for finishing initialization.
         m_number_of_running_characteristic_tasks.store(number_of_characteristic_range_tasks, std::memory_order::relaxed);
         // Call initialize on each characteristic.
         unsigned int range_shift = 0;
@@ -555,7 +557,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           m_range_shift[i] = range_shift;
           range_shift += m_characteristics[i]->range_width();
           m_characteristics[i]->set_flat_create_info(&m_flat_create_info);
-          m_characteristics[i]->run(vulkan::Application::instance().low_priority_queue(), this, characteristics_initialized);
+          m_characteristics[i]->run(vulkan::Application::instance().low_priority_queue());
         }
         set_state(PipelineFactory_characteristics_initialized);
         wait(characteristics_initialized);
@@ -608,14 +610,22 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
         pipeline_index_t::wat{m_pipeline_index}->set_to_zero();
 
-        m_number_of_running_characteristic_tasks = m_characteristics.size();
+        // The number of characteristic tasks that we need to wait for finishing do_fill.
+        m_number_of_running_characteristic_tasks = 0;
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
+            ++m_number_of_running_characteristic_tasks;
+        ASSERT(m_number_of_running_characteristic_tasks == 1);
         // Run over each loop variable (and hence characteristic).
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
-          // Do not accidently delete the parent task while still running a child task.
-          // Call fill with its current range index.
-          m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
-          m_characteristics[i]->signal(CharacteristicRange::do_fill);
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
+          {
+            // Do not accidently delete the parent task while still running a child task.
+            // Call fill with its current range index.
+            m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
+            m_characteristics[i]->signal(CharacteristicRange::do_fill);
+          }
         }
         set_state(PipelineFactory_characteristics_filled);
         wait(characteristics_filled);
@@ -623,11 +633,16 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       case PipelineFactory_characteristics_filled:
         prepare_shader_resource_declarations();
         // Now that we have added all shader variables, preprocess the shader code.
-        m_number_of_running_characteristic_tasks = m_characteristics.size();
+        // The number of characteristic tasks that we need to wait for finishing do_preprocess.
+        m_number_of_running_characteristic_tasks = 0;
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess))
+            ++m_number_of_running_characteristic_tasks;
         // Run over each loop variable (and hence characteristic).
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
-          m_characteristics[i]->signal(CharacteristicRange::do_preprocess);
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess))
+            m_characteristics[i]->signal(CharacteristicRange::do_preprocess);
         }
         set_state(PipelineFactory_characteristics_preprocessed);
         wait(characteristics_preprocessed);
@@ -645,12 +660,19 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         }
 
         // Now that we have initialized m_set_index_hint_map, run the code that needs it.
-        m_number_of_running_characteristic_tasks = m_characteristics.size();
+        // The number of characteristic tasks that we need to wait for finishing do_compile.
+        m_number_of_running_characteristic_tasks = 0;
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile))
+            ++m_number_of_running_characteristic_tasks;
         // Run over each loop variable (and hence characteristic).
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
-          m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
-          m_characteristics[i]->signal(CharacteristicRange::do_compile);
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile))
+          {
+            m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
+            m_characteristics[i]->signal(CharacteristicRange::do_compile);
+          }
         }
         set_state(PipelineFactory_characteristics_compiled);
         wait(characteristics_compiled);

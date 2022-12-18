@@ -121,12 +121,12 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
   m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
       COMMA_CWDEBUG_ONLY(".m_shader_module" + ambifix));
-  m_shader_stage_create_info = {
+  m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{
     .flags = vk::PipelineShaderStageCreateFlags(0),
     .stage = shader_info.stage(),
     .module = *m_shader_module,
     .pName = "main"
-  };
+  });
 }
 
 // Called from prepare_combined_image_sampler_declaration and prepare_uniform_buffer_declaration.

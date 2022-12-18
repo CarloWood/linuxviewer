@@ -263,8 +263,7 @@ void main()
 
     // The different states of this task.
     enum BasePipelineCharacteristic_state_type {
-      BasePipelineCharacteristic_initialize = direct_base_type::state_end,
-      BasePipelineCharacteristic_done
+      BasePipelineCharacteristic_initialize = direct_base_type::state_end
     };
 
     ~BasePipelineCharacteristic() override
@@ -273,7 +272,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = BasePipelineCharacteristic_done + 1;
+    static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
     BasePipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
@@ -284,7 +283,6 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(BasePipelineCharacteristic_initialize);
-        AI_CASE_RETURN(BasePipelineCharacteristic_done);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -306,13 +304,9 @@ void main()
           // Add default topology.
           m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 
-          set_continue_state(BasePipelineCharacteristic_done);
           run_state = Characteristic_initialized;
           break;
         }
-        case BasePipelineCharacteristic_done:
-          finish();
-          break;
       }
       direct_base_type::multiplex_impl(run_state);
     }
