@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PushConstantRangeCompare.h"
+#include "CharacteristicRangeBridge.h"
 #include "AddShaderStageBridge.h"
 #include "shader_builder/PushConstant.h"
 #include "shader_builder/ShaderVariableLayouts.h"
@@ -14,6 +15,10 @@
 #include <set>
 #include <concepts>
 
+namespace task {
+class PipelineFactory;
+} // namespace task
+
 namespace vulkan::pipeline {
 
 class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
@@ -21,8 +26,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
  private:
   AddPushConstant* convert_to_add_push_constant() override { return this; }
 
-   //FIXME: is this not used?
-//  std::vector<vk::PushConstantRange> m_push_constant_ranges;
+  std::vector<vk::PushConstantRange> m_push_constant_ranges;
 
   //---------------------------------------------------------------------------
   // Push constants.

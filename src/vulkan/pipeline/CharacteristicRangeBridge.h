@@ -31,6 +31,9 @@ struct CharacteristicRangeBridge
   virtual shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) = 0;
 
   virtual task::PipelineFactory* get_owning_factory() const = 0;
+
+  // Implemented by AddPushConstant.
+  virtual void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) const { }
 };
 
 } // namespace vulkan::pipeline

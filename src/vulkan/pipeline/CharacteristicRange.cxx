@@ -78,6 +78,8 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       set_state(m_continue_state);            // The continue state is the fill, preprocess or compile state of the derived class.
       break;
     case CharacteristicRange_preprocessed:
+      // If this is a AddPushConstant then now we can copy AddPushConstant::m_sorted_push_constant_ranges to AddPushConstant::m_push_constant_ranges.
+      copy_push_constant_ranges(m_owning_factory);
       // If this asserts then this characteristic isn't derived from AddShaderStage,
       // therefore we shouldn't have just "finished preprocessing".
       ASSERT((m_needs_signals & do_preprocess));
