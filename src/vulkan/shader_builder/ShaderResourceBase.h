@@ -135,13 +135,13 @@ class ShaderResourceBase
   // The call to create and update_descriptor_set must happen after acquire_lock returned true,
   // followed by a call to set_created and before the accompanied call to release_lock.
 
-  bool acquire_create_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
+  bool acquire_create_lock(AIStatefulTask* task, AIStatefulTask::condition_type condition) /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "ShaderResourceBase::acquire_create_lock(" << task << ", " << task->print_conditions(condition) << ") [" << this << "]");
     return m_create_access_mutex.lock(task, condition);
   }
 
-  bool lock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task, AIStatefulTask::condition_type condition) /*thread-safe*/ const
+  bool lock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task, AIStatefulTask::condition_type condition) /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "lock_set_layout_binding(" << set_layout_binding << ", " << task << ", " << task->print_conditions(condition) << ")");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
@@ -150,7 +150,7 @@ class ShaderResourceBase
   }
 
 #ifdef CWDEBUG
-  void set_have_lock(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task) /*thread-safe*/ const
+  void set_have_lock(descriptor::SetLayoutBinding set_layout_binding, AIStatefulTask* task) /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "set_have_lock(" << set_layout_binding << ", " << task << ")");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
@@ -160,7 +160,7 @@ class ShaderResourceBase
   }
 #endif
 
-  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, AIStatefulTask* locked_by_task) /*thread-safe*/ const
+  void add_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding, descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, AIStatefulTask* locked_by_task) /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "add_set_layout_binding(" << set_layout_binding << ", " << descriptor_set << ", " << locked_by_task << ") for [" << this << "]");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
@@ -182,7 +182,7 @@ class ShaderResourceBase
     }
   }
 
-  void unlock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding COMMA_CWDEBUG_ONLY(AIStatefulTask* task)) /*thread-safe*/ const
+  void unlock_set_layout_binding(descriptor::SetLayoutBinding set_layout_binding COMMA_CWDEBUG_ONLY(AIStatefulTask* task)) /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "unlock_set_layout_binding(" << set_layout_binding << ", " << task << ")");
     set_layout_bindings_to_handles_t::wat set_layout_bindings_to_handles_w(m_set_layout_bindings_to_handles);
@@ -197,7 +197,7 @@ class ShaderResourceBase
     m_created.store(true, std::memory_order::release);
   }
 
-  void release_create_lock() /*thread-safe*/ const
+  void release_create_lock() /*threadsafe-*/ const
   {
     DoutEntering(dc::notice, "ShaderResourceBase::release_create_lock() [" << this << "]");
     m_create_access_mutex.unlock();

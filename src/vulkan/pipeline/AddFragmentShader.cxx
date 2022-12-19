@@ -4,6 +4,12 @@
 
 namespace vulkan::pipeline {
 
+void AddFragmentShader::register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory) const
+{
+  //FIXME implement
+  ASSERT(false);
+}
+
 #ifdef CWDEBUG
 void AddFragmentShader::print_on(std::ostream& os) const
 {

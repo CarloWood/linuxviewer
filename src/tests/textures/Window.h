@@ -30,7 +30,7 @@
 #endif
 
 #define ENABLE_IMGUI 0
-#define SEPARATE_FRAGMENT_SHADER 0
+#define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 0
 
 class Window : public task::SynchronousWindow
 {
@@ -154,7 +154,7 @@ class Window : public task::SynchronousWindow
         }
         int ti = (cis + 1) % number_of_combined_image_samplers;
         // Change (update) image sampler descriptor 'cis', used by pipeline 'pipeline', with the (new) texture 'ti'.
-#if SEPARATE_FRAGMENT_SHADER
+#if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
         int const characteristic = 2; // FragmentPipelineCharacteristicRange.
 #else
         int const characteristic = 1; // VertexPipelineCharacteristicRange which now also do the fragment shader.
@@ -322,7 +322,7 @@ void main()
 
   class VertexPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
       public vulkan::pipeline::AddVertexShader,
-#if !SEPARATE_FRAGMENT_SHADER
+#if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
       public vulkan::pipeline::AddFragmentShader,
 #endif
       public vulkan::pipeline::AddPushConstant
@@ -393,14 +393,18 @@ void main()
           //FIXME: do this in the Add* base classes
           // Register the vectors that we will fill.
 //          m_flat_create_info->add(&m_vertex_input_binding_descriptions);
-//          m_flat_create_info->add(&m_vertex_input_attribute_descriptions);
 //          m_flat_create_info->add_descriptor_set_layouts(&sorted_descriptor_set_layouts());
-//          m_flat_create_info->add(&m_push_constant_ranges);
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
           add_vertex_input_binding(m_square);
           add_vertex_input_binding(m_top_bottom_positions);
+
+          // This should be called once, after calling all add_vertex_input_binding calls.
+          // Since an *_initialize state is only executed once and this Characteristic
+          // owns all shader_builder::VertexShaderInputSet derived classes, this should be
+          // the right place.
+          window->create_vertex_buffers(this);
 
 //          m_vertex_input_binding_descriptions = vertex_binding_descriptions();
 
@@ -411,6 +415,10 @@ void main()
         case VertexPipelineCharacteristicRange_fill:
         {
           Dout(dc::notice, "fill_index = " << fill_index());
+          Window const* window = static_cast<Window const*>(m_owning_window);
+#if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
+          add_combined_image_sampler(window->combined_image_samplers()[0]);
+#endif
           set_continue_state(VertexPipelineCharacteristicRange_preprocess);
           run_state = CharacteristicRange_filled;
           break;
@@ -427,19 +435,15 @@ void main()
 
             // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
             preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
-          }
-          // FIXME: do the below from the factory after all characteristic finished.
-//          m_vertex_input_attribute_descriptions = vertex_input_attribute_descriptions();
-//          m_push_constant_ranges = push_constant_ranges();
 
-          // Generate vertex buffers.
-          // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
-          // while the current function is part of a pipeline factory...
-#if 0
-          static std::atomic_int done = false;
-          if (done.fetch_or(true) == false)
-            window->create_vertex_buffers(this);
+#if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
+            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+
+            // This call, together with the preprocess1 call for the fragment shader, fills PipelineFactory::m_sorted_descriptor_set_layouts
+            // with arbitrary binding numbers (in the order that they are found in the shader template code).
+            preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
 #endif
+          }
 
           // Realize the descriptor set layouts: if a layout already exists then use the existing
           // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
@@ -462,6 +466,11 @@ void main()
           ShaderCompiler compiler;
           build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+#if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
+          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+          build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+#endif
 
           set_continue_state(VertexPipelineCharacteristicRange_fill);
           run_state = CharacteristicRange_compiled;
@@ -480,7 +489,7 @@ void main()
 #endif
   };
 
-#if SEPARATE_FRAGMENT_SHADER
+#if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
   class FragmentPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
       public vulkan::pipeline::AddFragmentShader,
       public vulkan::pipeline::AddPushConstant
@@ -600,13 +609,6 @@ void main()
           // FIXME: do the below from the factory after all characteristics finished.
 //          m_push_constant_ranges = push_constant_ranges();
 
-          // Generate vertex buffers.
-          // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
-          // while the current function is part of a pipeline factory...
-          static std::atomic_int done = false;
-          if (done.fetch_or(true) == false)
-            window->create_vertex_buffers(this);
-
           // Realize the descriptor set layouts: if a layout already exists then use the existing
           // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
           // Otherwise, if it does not already exist, create a new descriptor set layout using the
@@ -686,7 +688,7 @@ void main()
             factory_characteristic_id =
               m_pipeline_factory[pipeline].add_characteristic<VertexPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
             break;
-#if SEPARATE_FRAGMENT_SHADER
+#if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           case 2:
             factory_characteristic_id =
               m_pipeline_factory[pipeline].add_characteristic<FragmentPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
@@ -702,6 +704,8 @@ void main()
 
   // This member function only uses m_vertex_buffers, which is aithreadsafe.
   // Therefore, the function as a whole is made threadsafe-const
+  //
+  // Called from PipelineFactory_characteristics_initialized.
   void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner) /*threadsafe-*/ const
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");

@@ -82,7 +82,13 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
 
   // If the user Characteristic class is derived from AddShaderStage then we need to do preprocessing and compiling.
   void set_needs_signals() { if (is_add_shader_stage()) m_needs_signals |= do_preprocess|do_compile; }
-  void register_with_the_flat_create_info() const { register_AddShaderStage_with(m_owning_factory); }
+  void register_with_the_flat_create_info() const
+  {
+    register_AddShaderStage_with(m_owning_factory);
+    register_AddVertexShader_with(m_owning_factory);
+    register_AddFragmentShader_with(m_owning_factory);
+    register_AddPushConstant_with(m_owning_factory);
+  }
   void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
   void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
 

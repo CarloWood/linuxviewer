@@ -30,6 +30,8 @@ class AddVertexShader : public virtual AddShaderStage
   shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;           // Location context used for vertex attributes (VertexAttribute).
   using glsl_id_full_to_vertex_attribute_container_t = std::map<std::string, shader_builder::VertexAttribute, std::less<>>;
   mutable glsl_id_full_to_vertex_attribute_container_t m_glsl_id_full_to_vertex_attribute;      // Map VertexAttribute::m_glsl_id_full to the VertexAttribute object that contains it.
+  bool m_vertex_shader_input_sets_changed{false};
+  bool m_glsl_id_full_to_vertex_attribute_changed{false};
 
  private:
   //---------------------------------------------------------------------------
@@ -54,6 +56,10 @@ class AddVertexShader : public virtual AddShaderStage
   // End vertex attribute.
   //---------------------------------------------------------------------------
 
+  void copy_vertex_input_binding_descriptions() final;
+  void copy_vertex_input_attribute_descriptions() final;
+  void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const final;
+
  public:
   AddVertexShader() = default;
 
@@ -68,12 +74,6 @@ class AddVertexShader : public virtual AddShaderStage
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
   void add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set);
-
-  // Returns information on what was added with add_vertex_input_binding.
-  std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions() const;
-
-  // Returns information on what was added with add_vertex_input_binding.
-  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions(utils::Badge<CharacteristicRange, ImGui>) const;
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -172,9 +172,11 @@ void AddVertexShader::add_vertex_input_binding(shader_builder::VertexShaderInput
       }
     }(), ...);
   }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
+  m_glsl_id_full_to_vertex_attribute_changed = true;
 
   // Keep track of all VertexShaderInputSetBase objects.
   m_vertex_shader_input_sets.push_back(&vertex_shader_input_set);
+  m_vertex_shader_input_sets_changed = true;
 }
 
 } // namespace vulkan::pipeline

@@ -6,64 +6,76 @@
 
 namespace vulkan::pipeline {
 
-// Called from *UserCode*PipelineCharacteristic_initialize.
-std::vector<vk::VertexInputBindingDescription> AddVertexShader::vertex_binding_descriptions() const
+void AddVertexShader::copy_vertex_input_binding_descriptions()
 {
-  DoutEntering(dc::vulkan, "AddVertexShader::vertex_binding_descriptions() [" << this << "]");
-  std::vector<vk::VertexInputBindingDescription> vertex_binding_descriptions;
-  uint32_t binding = 0;
-  for (auto const* vextex_input_set : m_vertex_shader_input_sets)
+  if (m_vertex_shader_input_sets_changed)
   {
-    vertex_binding_descriptions.push_back({
-        .binding = binding,
-        .stride = vextex_input_set->chunk_size(),
-        .inputRate = vextex_input_set->input_rate()});
-    ++binding;
+    DoutEntering(dc::vulkan, "AddVertexShader::copy_vertex_input_binding_descriptions() [" << this << "]");
+
+    m_vertex_input_binding_descriptions.clear();
+    uint32_t binding = 0;
+    for (auto const* vextex_input_set : m_vertex_shader_input_sets)
+    {
+      m_vertex_input_binding_descriptions.push_back({
+          .binding = binding,
+          .stride = vextex_input_set->chunk_size(),
+          .inputRate = vextex_input_set->input_rate()});
+      ++binding;
+    }
+    m_vertex_shader_input_sets_changed = false;
   }
-  return vertex_binding_descriptions;
 }
 
-std::vector<vk::VertexInputAttributeDescription> AddVertexShader::vertex_input_attribute_descriptions(utils::Badge<CharacteristicRange, ImGui>) const
+void AddVertexShader::copy_vertex_input_attribute_descriptions()
 {
-  DoutEntering(dc::vulkan, "AddVertexShader::vertex_input_attribute_descriptions() [" << this << "]");
-
-  std::vector<vk::VertexInputAttributeDescription> vertex_input_attribute_descriptions;
-  for (auto vertex_attribute_iter = m_glsl_id_full_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_full_to_vertex_attribute.end(); ++vertex_attribute_iter)
+  if (m_glsl_id_full_to_vertex_attribute_changed)
   {
-    shader_builder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
-    auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
-    if (iter == m_vertex_shader_location_context.locations().end())
-    {
-      Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_full() <<
-          ") in m_vertex_shader_location_context.locations(), which contains only {");
-      for (auto&& e : m_vertex_shader_location_context.locations())
-        Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_full() << "), location:" << e.second << "}");
-      Dout(dc::finish, "}");
-      continue;
-    }
-    // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_full_is_used_in()
-    // in turn called by AddShaderStage::preprocess1.
-    ASSERT(iter != m_vertex_shader_location_context.locations().end());
-    uint32_t location = iter->second;
+    DoutEntering(dc::vulkan, "AddVertexShader::copy_vertex_input_attribute_descriptions() [" << this << "]");
 
-    uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
-    vk::Format const format = vk_utils::type2format(vertex_attribute.basic_type());
-    uint32_t offset = vertex_attribute.offset();
-    int count = vertex_attribute.array_size();          // Zero if this is not an array.
-    do
+    m_vertex_input_attribute_descriptions.clear();
+    for (auto vertex_attribute_iter = m_glsl_id_full_to_vertex_attribute.begin(); vertex_attribute_iter != m_glsl_id_full_to_vertex_attribute.end(); ++vertex_attribute_iter)
     {
-      vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
-          .location = location,
-          .binding = binding,
-          .format = format,
-          .offset = offset});
-      // update location and offset in case this is an array.
-      location += vertex_attribute.basic_type().consumed_locations();
-      offset += vertex_attribute.basic_type().array_stride();
+      shader_builder::VertexAttribute const& vertex_attribute = vertex_attribute_iter->second;
+      auto iter = m_vertex_shader_location_context.locations().find(&vertex_attribute);
+      if (iter == m_vertex_shader_location_context.locations().end())
+      {
+        Dout(dc::warning|continued_cf, "Could not find " << (void*)&vertex_attribute << " (" << vertex_attribute.glsl_id_full() <<
+            ") in m_vertex_shader_location_context.locations(), which contains only {");
+        for (auto&& e : m_vertex_shader_location_context.locations())
+          Dout(dc::continued, "{" << e.first << " (" << e.first->glsl_id_full() << "), location:" << e.second << "}");
+        Dout(dc::finish, "}");
+        continue;
+      }
+      // Should have been added by the call to context.update_location(this) in VertexAttributeDeclarationContext::glsl_id_full_is_used_in()
+      // in turn called by AddShaderStage::preprocess1.
+      ASSERT(iter != m_vertex_shader_location_context.locations().end());
+      uint32_t location = iter->second;
+
+      uint32_t const binding = static_cast<uint32_t>(vertex_attribute.binding().get_value());
+      vk::Format const format = vk_utils::type2format(vertex_attribute.basic_type());
+      uint32_t offset = vertex_attribute.offset();
+      int count = vertex_attribute.array_size();          // Zero if this is not an array.
+      do
+      {
+        m_vertex_input_attribute_descriptions.push_back(vk::VertexInputAttributeDescription{
+            .location = location,
+            .binding = binding,
+            .format = format,
+            .offset = offset});
+        // update location and offset in case this is an array.
+        location += vertex_attribute.basic_type().consumed_locations();
+        offset += vertex_attribute.basic_type().array_stride();
+      }
+      while(--count > 0);
     }
-    while(--count > 0);
+    m_glsl_id_full_to_vertex_attribute_changed = false;
   }
-  return vertex_input_attribute_descriptions;
+}
+
+void AddVertexShader::register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const
+{
+  pipeline_factory->add_to_flat_create_info(&m_vertex_input_binding_descriptions);
+  pipeline_factory->add_to_flat_create_info(&m_vertex_input_attribute_descriptions);
 }
 
 #ifdef CWDEBUG

@@ -27,13 +27,22 @@ struct CharacteristicRangeBridge
   virtual bool is_add_shader_stage() const { return false; }
   virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const { }
 
+  // Implemented by AddVertexShader.
+  virtual void copy_vertex_input_binding_descriptions() { }
+  virtual void copy_vertex_input_attribute_descriptions() { }
+  virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const { }
+
+  // Implemented by AddFragmentShader.
+  virtual void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory) const { }
+
   // Implemented by CharacteristicRange.
   virtual shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) = 0;
 
   virtual task::PipelineFactory* get_owning_factory() const = 0;
 
   // Implemented by AddPushConstant.
-  virtual void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) const { }
+  virtual void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) { }
+  virtual void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const { }
 };
 
 } // namespace vulkan::pipeline

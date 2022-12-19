@@ -37,6 +37,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
   glsl_id_full_to_push_constant_container_t m_glsl_id_full_to_push_constant;                    // Map PushConstant::m_glsl_id_full to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_sorted_push_constant_ranges;
+  bool m_sorted_push_constant_ranges_changed{false};
 
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a non-array push constant.
@@ -57,7 +58,8 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
   // Override of CharacteristicRangeBridge.
-  void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) const final;
+  void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) final;
+  void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const final;
 
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
@@ -66,6 +68,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
     auto range = m_sorted_push_constant_ranges.equal_range(push_constant_range);
     m_sorted_push_constant_ranges.erase(range.first, range.second);
     m_sorted_push_constant_ranges.insert(push_constant_range);
+    m_sorted_push_constant_ranges_changed = true;
   }
 
   // Used by PushConstant::is_used_in to look up the declaration context.

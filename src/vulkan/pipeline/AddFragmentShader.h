@@ -8,6 +8,7 @@ namespace vulkan::pipeline {
 class AddFragmentShader : public virtual AddShaderStage
 {
  private:
+  void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory) const final;
 
  public:
   AddFragmentShader() = default;
