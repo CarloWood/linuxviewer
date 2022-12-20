@@ -18,15 +18,16 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
   // Assume no preprocessing is necessary if the source already starts with "#version".
   if (!source.starts_with("#version"))
   {
+    declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()];
     // m_shader_variables contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
     for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
     {
       std::string match_string = shader_variable->glsl_id_full();
       if (source.find(match_string) != std::string_view::npos)
-        m_declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
+        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
     }
-    for (shader_builder::DeclarationContext const* declaration_context : m_declaration_contexts)
+    for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
     {
       shader_builder::ShaderResourceDeclarationContext const* shader_resource_declaration_context =
         dynamic_cast<shader_builder::ShaderResourceDeclarationContext const*>(declaration_context);
@@ -49,7 +50,10 @@ std::string_view AddShaderStage::preprocess2(
   if (source.starts_with("#version"))
     return source;
 
-  for (shader_builder::DeclarationContext* declaration_context : m_declaration_contexts)
+  auto declaration_contexts = m_per_stage_declaration_contexts.find(shader_info.stage());
+  ASSERT(declaration_contexts != m_per_stage_declaration_contexts.end());
+
+  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts->second)
   {
     shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
       dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
@@ -60,7 +64,7 @@ std::string_view AddShaderStage::preprocess2(
 
   // Generate the declarations.
   shader_builder::DeclarationsString declarations;
-  for (shader_builder::DeclarationContext const* declaration_context : m_declaration_contexts)
+  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts->second)
     declaration_context->add_declarations_for_stage(declarations, shader_info.stage());
   declarations.add_newline();   // For pretty printing debug output.
 

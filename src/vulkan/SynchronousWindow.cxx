@@ -126,6 +126,7 @@ char const* SynchronousWindow::condition_str_impl(condition_type condition) cons
     AI_CASE_RETURN(imgui_font_texture_ready);
     AI_CASE_RETURN(parent_window_created);
     AI_CASE_RETURN(condition_pipeline_available);
+    AI_CASE_RETURN(free_condition);
   }
   return direct_base_type::condition_str_impl(condition);
 }

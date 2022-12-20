@@ -37,7 +37,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 {
  private:
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
-  declaration_contexts_container_t m_declaration_contexts;
+  std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t> m_per_stage_declaration_contexts;
 
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
 
