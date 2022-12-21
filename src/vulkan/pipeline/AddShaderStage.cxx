@@ -18,7 +18,7 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
   // Assume no preprocessing is necessary if the source already starts with "#version".
   if (!source.starts_with("#version"))
   {
-    declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[shader_info.stage()];
+    declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
     // m_shader_variables contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
     for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
@@ -50,10 +50,9 @@ std::string_view AddShaderStage::preprocess2(
   if (source.starts_with("#version"))
     return source;
 
-  auto declaration_contexts = m_per_stage_declaration_contexts.find(shader_info.stage());
-  ASSERT(declaration_contexts != m_per_stage_declaration_contexts.end());
+  declaration_contexts_container_t const& declaration_contexts = m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
 
-  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts->second)
+  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
   {
     shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
       dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
@@ -64,7 +63,7 @@ std::string_view AddShaderStage::preprocess2(
 
   // Generate the declarations.
   shader_builder::DeclarationsString declarations;
-  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts->second)
+  for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
     declaration_context->add_declarations_for_stage(declarations, shader_info.stage());
   declarations.add_newline();   // For pretty printing debug output.
 
@@ -123,12 +122,17 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
 
   // Add a shader module to this pipeline.
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
-  m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY(".m_shader_module" + ambifix));
+
+  vk::UniqueShaderModule& shader_module_ptr = m_per_stage_shader_module[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
+  // Paranoia check. If the AddShaderStage virtual base class is used more than once then
+  // the m_shader_module handle should be moved to a safe place before overwriting it!
+  ASSERT(!shader_module_ptr);
+  shader_module_ptr = spirv_cache.create_module({}, owning_window->logical_device()
+      COMMA_CWDEBUG_ONLY(".m_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
   m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{
     .flags = vk::PipelineShaderStageCreateFlags(0),
     .stage = shader_info.stage(),
-    .module = *m_shader_module,
+    .module = *shader_module_ptr,
     .pName = "main"
   });
 }

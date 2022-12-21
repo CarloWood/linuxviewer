@@ -9,8 +9,8 @@ using utils::has_print_on::operator<<;
 class FactoryCharacteristicKey
 {
  private:
-  FactoryCharacteristicId m_id;                 // A pipeline factory / characteristic-range pair.
-  vk_utils::ConsecutiveRange m_subrange;                  // The (sub)range of m_id that this key refers to.
+  FactoryCharacteristicId m_id;                         // A pipeline factory / characteristic-range pair.
+  vk_utils::ConsecutiveRange m_subrange;                // The (sub)range of m_id that this key refers to.
 
  public:
   FactoryCharacteristicKey() = default;

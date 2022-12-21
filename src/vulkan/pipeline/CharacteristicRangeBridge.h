@@ -20,6 +20,9 @@ namespace vulkan::pipeline {
 // This bridges the CharacteristicRange to other base classes that are used for a Characteristic user class.
 struct CharacteristicRangeBridge
 {
+  // Make the destructor virtual even though we never delete by CharacteristicRangeBridge*.
+  virtual ~CharacteristicRangeBridge() = default;
+
   // Implemented by AddVertexShader.
   virtual utils::Vector<shader_builder::VertexShaderInputSetBase*> const& vertex_shader_input_sets() const { ASSERT(false); AI_NEVER_REACHED }
 

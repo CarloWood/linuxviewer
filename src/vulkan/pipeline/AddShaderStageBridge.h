@@ -12,6 +12,9 @@ class AddPushConstant;
 // This bridges the AddShaderStage to other base classes that are used for a Characteristic user class.
 struct AddShaderStageBridge
 {
+  // Make the destructor virtual even though we never delete by AddShaderStageBridge*.
+  virtual ~AddShaderStageBridge() = default;
+
   // Implemented by AddShaderStage.
   virtual void add_shader_variable(shader_builder::ShaderVariable const* shader_variable) { ASSERT(false); AI_NEVER_REACHED }
 

@@ -9,6 +9,8 @@
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "descriptor/SetIndex.h"
 #include "utils/Badge.h"
+#include "utils/Array.h"
+#include "utils/is_power_of_two.h"
 #include <map>
 #include <vector>
 #include <set>
@@ -37,11 +39,40 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 {
  private:
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
-  std::map<vk::ShaderStageFlagBits, declaration_contexts_container_t> m_per_stage_declaration_contexts;
+  using ShaderStageIndex = utils::ArrayIndex<declaration_contexts_container_t>;
 
+  static constexpr ShaderStageIndex eVertex_index{0};
+  static constexpr ShaderStageIndex eFragment_index{1};
+  static constexpr size_t number_of_shader_stage_indexes{2};
+  static constexpr vk::ShaderStageFlagBits largest_shader_stage_flag = vk::ShaderStageFlagBits::eFragment;
+
+  // Convert a vk::ShaderStageFlagBits single-bit mask to the index of s_log2ShaderStageFlagBits_to_ShaderStageIndex.
+  static constexpr int get_lookup_index(vk::ShaderStageFlagBits shader_stage_flag_bit) { return utils::log2(static_cast<VkShaderStageFlags>(shader_stage_flag_bit)); }
+
+  static constexpr ShaderStageIndex undefined_shader_stage_index{};
+  // Lookup table that converts the result of get_lookup_index to a ShaderStageIndex.
+  // Using log2 etc here because we're not allowed to use the "incomplete" get_lookup_index yet :(
+  static constexpr std::array<ShaderStageIndex, utils::log2(static_cast<VkShaderStageFlags>(largest_shader_stage_flag)) + 1> const s_log2ShaderStageFlagBits_to_ShaderStageIndex = {
+    eVertex_index,
+    undefined_shader_stage_index,
+    undefined_shader_stage_index,
+    undefined_shader_stage_index,
+    eFragment_index
+  };
+
+  static constexpr ShaderStageIndex ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits shader_stage_flag)
+  {
+    ASSERT(utils::is_power_of_two(static_cast<VkShaderStageFlags>(shader_stage_flag)));
+    return s_log2ShaderStageFlagBits_to_ShaderStageIndex[get_lookup_index(shader_stage_flag)];
+  }
+
+#ifdef CWDEBUG
+  friend struct StaticCheckLookUpTable;
+#endif
+
+  utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
+  utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
-
-  vk::UniqueShaderModule m_shader_module;
 
  protected:
   // Written to by AddVertexShader and AddFragmentShader.
@@ -112,5 +143,15 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
 };
+
+#ifdef CWDEBUG
+struct StaticCheckLookUpTable : AddShaderStage
+{
+  // The above initialization must be in the same order as the vk::ShaderStageFlagBits enum (assuming those
+  // are defined with values of 1 << n, where n runs from 0 and up with increments of 1.
+  static_assert(ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits::eVertex) == eVertex_index);
+  static_assert(ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits::eFragment) == eFragment_index);
+};
+#endif
 
 } // namespace vulkan::pipeline
