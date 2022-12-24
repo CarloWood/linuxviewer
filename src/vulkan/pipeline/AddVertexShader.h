@@ -104,12 +104,12 @@ void AddVertexShader::add_vertex_attribute(shader_builder::BindingIndex binding,
     binding
   );
   Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
-  auto res1 = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
+  auto ibp = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
-  ASSERT(res1.second);
+  ASSERT(ibp.second);
 
   // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
-  m_shader_variables.push_back(&res1.first->second);
+  m_shader_variables.push_back(&ibp.first->second);
 }
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
@@ -136,12 +136,12 @@ void AddVertexShader::add_vertex_attribute(shader_builder::BindingIndex binding,
     binding
   );
   Dout(dc::vulkan, "Registering \"" << glsl_id_sv << "\" with vertex attribute " << vertex_attribute_tmp);
-  auto res1 = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
+  auto ibp = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
-  ASSERT(res1.second);
+  ASSERT(ibp.second);
 
   // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
-  m_shader_variables.push_back(&res1.first->second);
+  m_shader_variables.push_back(&ibp.first->second);
 }
 
 template<typename ENTRY>

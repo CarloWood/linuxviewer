@@ -4,5 +4,5 @@ gitache_config(
   GIT_TAG
     "master"
   CMAKE_ARGS
-  "-DEnableLibcwdAlloc:BOOL=OFF -DEnableLibcwdLocation:BOOL=ON"
+    "-DEnableLibcwdAlloc:BOOL=OFF -DEnableLibcwdLocation:BOOL=ON"
 )

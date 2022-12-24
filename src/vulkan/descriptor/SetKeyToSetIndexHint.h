@@ -17,21 +17,21 @@ class SetKeyToSetIndexHint
   void try_emplace_set_index_hint(SetKey set_key, SetIndexHint set_index_hint)
   {
     DoutEntering(dc::vulkan, "SetKeyToSetIndexHint::try_emplace(" << set_key << ", " << set_index_hint << ") [" << this << "]");
-    auto res = m_set_key_to_set_index_hint.try_emplace(set_key, set_index_hint);
+    auto ibp = m_set_key_to_set_index_hint.try_emplace(set_key, set_index_hint);
     // Do not add the same set_key twice.
-    ASSERT(res.second);
+    ASSERT(ibp.second);
   }
 
   // Generate a new set index hint.
   SetIndexHint try_emplace_set_index_hint(SetKey set_key)
   {
     DoutEntering(dc::vulkan, "SetKeyToSetIndexHint::try_emplace(" << set_key << ") [" << this << "]");
-    auto res = m_set_key_to_set_index_hint.try_emplace(set_key, m_next_set_index_hint);
+    auto ibp = m_set_key_to_set_index_hint.try_emplace(set_key, m_next_set_index_hint);
     // Do not add the same set_key twice.
-    ASSERT(res.second);
+    ASSERT(ibp.second);
     ++m_next_set_index_hint;
-    Dout(dc::vulkan, "Returning SetIndex " << res.first->second);
-    return res.first->second;
+    Dout(dc::vulkan, "Returning SetIndex " << ibp.first->second);
+    return ibp.first->second;
   }
 
   SetIndexHint get_set_index_hint(SetKey set_key) const

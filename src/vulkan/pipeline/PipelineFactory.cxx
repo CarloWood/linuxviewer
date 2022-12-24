@@ -186,11 +186,11 @@ shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resou
 
   glsl_id_to_shader_resource_t::wat glsl_id_to_shader_resource_w(m_glsl_id_to_shader_resource);
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(glsl_id_full, descriptor_type, set_index_hint, shader_resource);
-  auto res1 = glsl_id_to_shader_resource_w->insert(std::pair{glsl_id_full, shader_resource_tmp});
+  auto ibp = glsl_id_to_shader_resource_w->insert(std::pair{glsl_id_full, shader_resource_tmp});
   // The m_glsl_id_full of each CombinedImageSampler must be unique. And of course, don't register the same shader_resource twice.
-  ASSERT(res1.second);
+  ASSERT(ibp.second2());
 
-  shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &res1.first->second;
+  shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &ibp.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
   m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(shader_resource.descriptor_set_key(), shader_resource_ptr);
 

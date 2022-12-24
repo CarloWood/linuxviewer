@@ -348,10 +348,10 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
     ShaderIndex next_index = first_new_index;
     for (size_t i = 0; i < number_of_new_shaders; ++i)
     {
-      auto res = shader_infos_r->hash_to_index.insert({ hashes[i], next_index });
+      auto ibp = shader_infos_r->hash_to_index.insert({ hashes[i], next_index });
       // Fill new_indices with a new index or the one that belongs to this hash.
-      new_indices[i] = res.second ? next_index++ : res.first->second;
-      duplicates += res.second;
+      new_indices[i] = ibp.second ? next_index++ : ibp.first->second;
+      duplicates += ibp.second;
     }
   }
   {

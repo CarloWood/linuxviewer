@@ -27,21 +27,21 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
   shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset);
-  auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
+  auto ibp1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
-  ASSERT(res1.second);
+  ASSERT(ibp1.second);
 
   // Call AddShaderStageBridge function to add this 'shader variable'.
-  add_shader_variable(&res1.first->second);
+  add_shader_variable(&ibp1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
   if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
-    DEBUG_ONLY(auto res2 =)
+    DEBUG_ONLY(auto ibp2 =)
       m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
-    ASSERT(res2.second);
+    ASSERT(ibp2.second);
   }
 }
 
@@ -55,21 +55,21 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
   shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset, Elements);
-  auto res1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
+  auto ibp1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
-  ASSERT(res1.second);
+  ASSERT(ibp1.second);
 
   // Call AddShaderStageBridge function to add this 'shader variable'.
-  add_shader_variable(&res1.first->second);
+  add_shader_variable(&ibp1.first->second);
 
   // Add a PushConstantDeclarationContext with key push_constant.prefix(), if that doesn't already exists.
   if (m_glsl_id_full_to_push_constant_declaration_context.find(push_constant.prefix()) == m_glsl_id_full_to_push_constant_declaration_context.end())
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
-    DEBUG_ONLY(auto res2 =)
+    DEBUG_ONLY(auto ibp2 =)
       m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::DeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
-    ASSERT(res2.second);
+    ASSERT(ibp2.second);
   }
 }
 

@@ -1264,10 +1264,10 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
                 boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
         descriptor_set_layouts_t::wat descriptor_set_layouts_w(descriptor_set_layouts_r);
-        auto res = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
+        auto ibp = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
         // We just used find and couldn't find it?!
-        ASSERT(res.second);
-        iter = res.first;
+        ASSERT(ibp.second);
+        iter = ibp.first;
         Dout(dc::shaderresource, "Created handle " << *iter->second << " with key: " << sorted_descriptor_set_layout_bindings << ".");
       }
       else
@@ -1422,10 +1422,10 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layouts[" + std::to_string(pipeline_layouts_r->size()) + "]")));
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
-        auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
+        auto ibp = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!
-        ASSERT(res.second);
-        iter = res.first;
+        ASSERT(ibp.second);
+        iter = ibp.first;
         Dout(dc::shaderresource, "Created vk::PipelineLayout " << *iter->second << " with key: " << key << ".");
       }
       else

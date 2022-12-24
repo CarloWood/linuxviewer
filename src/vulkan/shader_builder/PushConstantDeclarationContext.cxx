@@ -22,10 +22,10 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)add_push_constant << ")");
 
-  auto res = m_stage_data.try_emplace(shader_stage, 0xffffffff, 0x0);
-  uint32_t& minimum_offset = res.first->second.minimum_offset;
-  uint32_t& maximum_offset = res.first->second.maximum_offset;
-  std::vector<std::string>& member_declarations = res.first->second.member_declarations;
+  auto ibp = m_stage_data.try_emplace(shader_stage, 0xffffffff, 0x0);
+  uint32_t& minimum_offset = ibp.first->second.minimum_offset;
+  uint32_t& maximum_offset = ibp.first->second.maximum_offset;
+  std::vector<std::string>& member_declarations = ibp.first->second.member_declarations;
 
   // Update offset range of used push constants.
   minimum_offset = std::min(minimum_offset, push_constant->offset());
