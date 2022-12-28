@@ -21,10 +21,10 @@ void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration 
   ++m_next_binding[set_index_hint];
 }
 
-void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration)
+void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource_declaration, int context_changed_generation)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in with shader_resource_declaration(\"" <<
-      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource_declaration << ")");
+      glsl_id_prefix << "\", " << shader_stage << ", " << shader_resource_declaration << ", " << context_changed_generation << ")");
 
   // Only register one binding per shader resource per set.
   if (m_bindings.find(shader_resource_declaration) != m_bindings.end())
@@ -42,10 +42,13 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
       // See https://www.reddit.com/r/vulkan/comments/4gvmus/comment/d2lbwsm/?utm_source=share&utm_medium=web2x&context=3
       ASSERT(false);
   }
+
+  // Mark that it must be updated.
+  m_changed_generation = context_changed_generation;
 }
 
 // Called from AddShaderStage::preprocess1.
-void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage) const
+void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage)
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
 

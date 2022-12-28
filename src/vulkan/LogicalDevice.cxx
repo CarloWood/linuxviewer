@@ -1398,7 +1398,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
     prev_set_layout = &set_layout;
   }
-  // What do you think you are doing?
+  // This is an output variable and it should be empty at the beginning of this function.
   ASSERT(set_index_hint_map_out.empty());
 #endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.

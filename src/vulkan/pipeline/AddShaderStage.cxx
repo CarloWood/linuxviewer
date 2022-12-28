@@ -18,6 +18,9 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
   // Assume no preprocessing is necessary if the source already starts with "#version".
   if (!source.starts_with("#version"))
   {
+    // Increment the context generation.
+    ++m_context_changed_generation;
+
     declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
     // m_shader_variables contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
@@ -27,11 +30,14 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
       if (source.find(match_string) != std::string_view::npos)
         declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
     }
-    for (shader_builder::DeclarationContext const* declaration_context : declaration_contexts)
+    for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
     {
-      shader_builder::ShaderResourceDeclarationContext const* shader_resource_declaration_context =
-        dynamic_cast<shader_builder::ShaderResourceDeclarationContext const*>(declaration_context);
+      shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
+        dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
       if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+        continue;
+      // Don't call generate1 if the context wasn't changed.
+      if (shader_resource_declaration_context->changed_generation() != m_context_changed_generation)
         continue;
       shader_resource_declaration_context->generate1(shader_info.stage());
     }

@@ -492,7 +492,8 @@ void PipelineFactory::prepare_shader_resource_declarations()
   {
     shader_builder::ShaderResourceBase const* shader_resource = (*required_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.shader_resource();
     m_set_key_to_set_index_hint[shader_resource->descriptor_set_key()] = set_index_hints[shader_resource_plus_characteristic_index];
-    shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_plus_characteristic_index], m_add_shader_stage);
+    if (!shader_resource->is_prepared())
+      shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_plus_characteristic_index], m_add_shader_stage);
   }
 }
 
@@ -654,6 +655,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         {
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
 
+          // Clear the m_set_index_hint_map of a previous fill.
+          m_set_index_hint_map.clear();
           // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
               sorted_descriptor_set_layouts_t::wat(m_sorted_descriptor_set_layouts), m_set_index_hint_map, sorted_push_constant_ranges);

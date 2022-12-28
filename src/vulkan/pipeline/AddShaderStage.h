@@ -98,6 +98,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
   void prepare_uniform_buffer_declaration(shader_builder::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
 
+  // Accessor.
+  int context_changed_generation() const { return m_context_changed_generation; }
+
  private:
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();

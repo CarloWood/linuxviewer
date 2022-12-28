@@ -36,7 +36,7 @@ DeclarationContext* ShaderResourceVariable::is_used_in(vk::ShaderStageFlagBits s
   Dout(dc::shaderresource, "shader_resource_declaration_context found: " << shader_resource_declaration_context);
 
   // Register that this shader resource is being used in this set.
-  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr);
+  shader_resource_declaration_context->glsl_id_prefix_is_used_in(prefix(), shader_stage, m_shader_resource_declaration_ptr, add_shader_stage->context_changed_generation());
 
   // Return the declaration context.
   return shader_resource_declaration_context;

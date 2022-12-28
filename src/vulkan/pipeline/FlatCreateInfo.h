@@ -40,7 +40,7 @@ class FlatCreateInfo
   static std::vector<T> merge(aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>> const& input_list)
   {
     std::vector<T> result;
-    typename aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>>::crat input_list_r(input_list);
+    typename std::remove_reference_t<decltype(input_list)>::crat input_list_r(input_list);
     size_t s = 0;
     for (std::vector<T> const* v : *input_list_r)
     {

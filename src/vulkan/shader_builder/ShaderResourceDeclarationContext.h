@@ -23,6 +23,8 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   task::PipelineFactory* const m_owning_factory;
   descriptor::SetIndexHintMap const* m_set_index_hint_map;
 
+  int m_changed_generation{0};                                          // The last AddShaderStage::m_context_changed_generation as passed to generate1.
+
  public:
   ShaderResourceDeclarationContext(task::PipelineFactory* owning_factory) : m_owning_factory(owning_factory) { }
 
@@ -34,11 +36,13 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   void reserve_binding(descriptor::SetKey descriptor_set_key);
   void update_binding(ShaderResourceDeclaration const* shader_resource);
 
-  void glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource);
+  void glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource, int context_changed_generation);
 
-  void generate1(vk::ShaderStageFlagBits shader_stage) const;
+  void generate1(vk::ShaderStageFlagBits shader_stage);
   void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
+
+  int changed_generation() const { return m_changed_generation; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
