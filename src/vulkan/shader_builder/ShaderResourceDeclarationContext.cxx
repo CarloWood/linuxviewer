@@ -52,9 +52,11 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
 {
   DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
 
+  Dout(dc::vulkan, "m_bindings contains:");
   for (auto&& shader_resource_binding_pair : m_bindings)
   {
     ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
+    Dout(dc::vulkan, "--> " << *shader_resource_declaration);
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
     uint32_t binding = shader_resource_binding_pair.second;

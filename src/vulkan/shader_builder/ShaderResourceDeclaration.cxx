@@ -26,7 +26,7 @@ void ShaderResourceDeclaration::print_on(std::ostream& os) const
   os << '{';
   os << "m_glsl_id:\"" << m_glsl_id <<
     "\", m_descriptor_type:" << m_descriptor_type <<
-      ", m_set_index_hint:" << m_set_index_hint;
+      ", m_set_index_hint:" << m_set_index_hint <<
       ", m_binding:";
   if (m_binding == undefined_magic)
     os << "<undefined>";

@@ -188,7 +188,7 @@ shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resou
   shader_builder::ShaderResourceDeclaration shader_resource_tmp(glsl_id_full, descriptor_type, set_index_hint, shader_resource);
   auto ibp = glsl_id_to_shader_resource_w->insert(std::pair{glsl_id_full, shader_resource_tmp});
   // The m_glsl_id_full of each CombinedImageSampler must be unique. And of course, don't register the same shader_resource twice.
-  ASSERT(ibp.second2());
+  ASSERT(ibp.second);
 
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &ibp.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
@@ -220,6 +220,8 @@ void PipelineFactory::register_shader_resource(
 {
   DoutEntering(dc::vulkan, "PipelineFactory::register_shader_resource(" << vk_utils::print_pointer(shader_resource) << ", " << preferred_descriptor_sets << ", " <<
       undesirable_descriptor_sets << ") [" << this << "]");
+  // Shader resource should only be added once, from the initialization state of a CharacteristicRange (not the fill state).
+  ASSERT(!m_debug_reached_characteristics_initialized);
   required_shader_resource_plus_characteristic_list_t::wat required_shader_resource_plus_characteristic_list_w(m_required_shader_resource_plus_characteristic_list);
   // Add a thread-safe pointer to the shader resource (ShaderResourceBase) to a list of required shader resources.
   // The shader_resource should point to a member of the Window class.
@@ -537,6 +539,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       }
       case PipelineFactory_initialize:
         // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
+        Debug(m_debug_reached_characteristics_initialized = false);
         m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
         m_move_new_pipelines_synchronously->run();
         // Wait until the user is done adding CharacteristicRange objects and called generate().
@@ -566,6 +569,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       }
       case PipelineFactory_characteristics_initialized:
       {
+        Debug(m_debug_reached_characteristics_initialized = true);
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
         // Enter the multi-loop.
@@ -610,6 +614,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // MultiLoop inner loop body.
 
         pipeline_index_t::wat{m_pipeline_index}->set_to_zero();
+        // Clear the m_acquired_required_shader_resources_list vector of a previous fill.
+        m_acquired_required_shader_resources_list.clear();
 
         // The number of characteristic tasks that we need to wait for finishing do_fill.
         m_number_of_running_characteristic_tasks = 0;
@@ -775,6 +781,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
+#if 0
+          // It is possible to destroy the shader modules here (after creating the pipeline).
+          // But, lets not do that. They are currently destroyed when the pipeline factory is destroyed.
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+            m_characteristics[i]->destroy_shader_module_handles();
+#endif
+
           // Inform the SynchronousWindow.
           m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_descriptor_set_per_set_index, m_owning_window->max_number_of_frame_resources()
               COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(pipeline)});
@@ -912,7 +925,7 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
   // m_required_shader_resource_plus_characteristic_list is sorted by (unique) pointer value of the shader resources
   // so that every pipeline factory will try to process them in the same order.
   // If, for example, pipeline factory 0 tries to create A, B, C, D; and pipeline factory 1
-  // tries to create B, D, E then one that locks B first wins. And if at the same time pipeline
+  // tries to create B, D, E then the one that locks B first wins. And if at the same time pipeline
   // factory 2 tries to create C, E, then the winner of B competes with 2 in a race for
   // C or E respectively. I dubbed this the "race horse" algorithm because each shader resource
   // plays the role of a finish line:
@@ -929,7 +942,15 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
     ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
-    SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
+    SetIndex set_index;
+    try
+    {
+      set_index = m_set_index_hint_map.convert(set_index_hint);
+    }
+    catch (AIAlert::Error const& error)
+    {
+      THROW_ALERT(error, " While processing \"[SHADER_RESOURCE]\".", AIArgs("[SHADER_RESOURCE]", shader_resource->debug_name()));
+    }
 
     if (set_index >= m_set_index_end)
       m_set_index_end = set_index + 1;
@@ -1007,8 +1028,11 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
   }
 
   // We're going to fill this vector now.
-  ASSERT(m_descriptor_set_per_set_index.empty());
+  // Erase data added by a previous fill, if any.
+  m_descriptor_set_per_set_index.clear();
   m_descriptor_set_per_set_index.resize(m_set_index_end.get_value());
+
+  Dout(dc::notice, "Leaving PipelineFactory::initialize_shader_resources_per_set_index");
 }
 
 // Called from PipelineFactory_update_missing_descriptor_sets.

@@ -73,6 +73,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
   utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
+  int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
 
  protected:
   // Written to by AddVertexShader and AddFragmentShader.
@@ -145,6 +146,16 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
     shader_builder::SPIRVCache tmp_spirv_cache;
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
+
+#if 0
+  // Not used at the moment: we destruct them when AddShaderStage::m_per_stage_shader_module is destructed, which are vk::UniqueShaderModule.
+  void destroy_shader_module_handles() override
+  {
+    DoutEntering(dc::always, "destroy_shader_module_handles() [" << this << "]");
+    for (ShaderStageIndex i = m_per_stage_shader_module.ibegin(); i != m_per_stage_shader_module.iend(); ++i)
+      m_per_stage_shader_module[i].reset();
+  }
+#endif
 };
 
 #ifdef CWDEBUG

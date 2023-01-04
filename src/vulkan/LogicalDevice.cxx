@@ -1413,9 +1413,12 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
       if (iter == pipeline_layouts_r->end())
       {
         std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts_w->size());
-        for (auto&& layout : *realized_descriptor_set_layouts_w)
+        for (vulkan::descriptor::SetLayout const& layout : *realized_descriptor_set_layouts_w)
         {
-          vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
+          size_t set_index_hint = layout.set_index_hint().get_value();
+          // Paranoia check.
+          ASSERT(set_index_hint < vhv_realized_descriptor_set_layouts.size());
+          vhv_realized_descriptor_set_layouts[set_index_hint] = layout.handle();
           // Create an identity set index hint map.
           set_index_hint_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
         }
