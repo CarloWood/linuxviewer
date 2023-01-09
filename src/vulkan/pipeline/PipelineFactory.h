@@ -88,6 +88,8 @@ class PipelineFactory : public AIStatefulTask
   std::atomic<size_t> m_number_of_running_characteristic_tasks;
   // State PipelineFactory_top_multiloop_while_loop
   vulkan::descriptor::SetIndexHintMap m_set_index_hint_map;
+  // PipelineFactory_characteristics_preprocessed.
+  vulkan::descriptor::SetIndexHint m_largest_set_index_hint;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   vulkan::Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.
@@ -104,10 +106,14 @@ class PipelineFactory : public AIStatefulTask
     // Corresponding preferred and undesirable descriptor sets.
     std::vector<vulkan::descriptor::SetKeyPreference> m_preferred_descriptor_sets;
     std::vector<vulkan::descriptor::SetKeyPreference> m_undesirable_descriptor_sets;
+
+#ifdef CWDEBUG
+    void print_on(std::ostream& os) const;
+#endif
   };
-  using required_shader_resource_plus_characteristic_list_container_t = utils::Vector<ShaderResourcePlusCharacteristicPlusPreferredAndUndesirableSetKeyPreferences, vulkan::pipeline::ShaderResourcePlusCharacteristicIndex>;
-  using required_shader_resource_plus_characteristic_list_t = aithreadsafe::Wrapper<required_shader_resource_plus_characteristic_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
-  required_shader_resource_plus_characteristic_list_t m_required_shader_resource_plus_characteristic_list;
+  using added_shader_resource_plus_characteristic_list_container_t = utils::Vector<ShaderResourcePlusCharacteristicPlusPreferredAndUndesirableSetKeyPreferences, vulkan::pipeline::ShaderResourcePlusCharacteristicIndex>;
+  using added_shader_resource_plus_characteristic_list_t = aithreadsafe::Wrapper<added_shader_resource_plus_characteristic_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  added_shader_resource_plus_characteristic_list_t m_added_shader_resource_plus_characteristic_list;
 
   //---------------------------------------------------------------------------
   // Shader resources.
@@ -134,8 +140,8 @@ class PipelineFactory : public AIStatefulTask
   // The list of shader resources that we managed to get the lock on and weren't already created before.
   std::vector<vulkan::shader_builder::ShaderResourceBase*> m_acquired_required_shader_resources_list;
   // Initialized in initialize_shader_resources_per_set_index.
-  utils::Vector<std::vector<vulkan::pipeline::ShaderResourcePlusCharacteristic>, vulkan::descriptor::SetIndex> m_shader_resource_plus_characteristics_per_set_index;
-  // The largest set_index used in m_required_shader_resource_plus_characteristic_list, plus one.
+  utils::Vector<std::vector<vulkan::pipeline::ShaderResourcePlusCharacteristic>, vulkan::descriptor::SetIndex> m_added_shader_resource_plus_characteristics_per_used_set_index;
+  // The largest set_index used in m_added_shader_resource_plus_characteristic_list, plus one.
   vulkan::descriptor::SetIndex m_set_index_end;
   // The current descriptor set index that we're processing in update_missing_descriptor_sets.
   vulkan::descriptor::SetIndex m_set_index;
@@ -147,16 +153,19 @@ class PipelineFactory : public AIStatefulTask
 
  private:
   // Called from prepare_shader_resource_declarations.
-  void fill_set_index_hints(required_shader_resource_plus_characteristic_list_t::rat const& required_shader_resource_plus_characteristic_list_r, utils::Vector<vulkan::descriptor::SetIndexHint, vulkan::pipeline::ShaderResourcePlusCharacteristicIndex>& set_index_hints_out);
+  void fill_set_index_hints(added_shader_resource_plus_characteristic_list_t::rat const& added_shader_resource_plus_characteristic_list_r, utils::Vector<vulkan::descriptor::SetIndexHint, vulkan::pipeline::ShaderResourcePlusCharacteristicIndex>& set_index_hints_out);
   void prepare_shader_resource_declarations();
 
   // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
   vulkan::descriptor::SetIndexHint get_set_index_hint(vulkan::descriptor::SetKey set_key) const
   {
+    DoutEntering(dc::setindexhint|continued_cf, "PipelineFactory::get_set_index_hint(" << set_key << ") = ");
     auto set_index_hint = m_set_key_to_set_index_hint.find(set_key);
     // Don't call get_set_index_hint for a key that wasn't added yet.
     ASSERT(set_index_hint != m_set_key_to_set_index_hint.end());
-    return set_index_hint->second;
+    vulkan::descriptor::SetIndexHint result = set_index_hint->second;
+    Dout(dc::finish, result << " [" << this << "]");
+    return result;
   }
 
   vulkan::shader_builder::ShaderResourceDeclaration const* get_declaration(vulkan::descriptor::SetKey set_key) const
@@ -192,7 +201,7 @@ class PipelineFactory : public AIStatefulTask
  private:
   // Called by add_combined_image_sampler and/or add_uniform_buffer (at the end), requesting to be created
   // and storing the preferred and undesirable descriptor set vectors.
-  void register_shader_resource(vulkan::shader_builder::ShaderResourceBase const* shader_resource,
+  void add_shader_resource(vulkan::shader_builder::ShaderResourceBase const* shader_resource,
       vulkan::pipeline::CharacteristicRange const* adding_characteristic_range,
       std::vector<vulkan::descriptor::SetKeyPreference> const& preferred_descriptor_sets,
       std::vector<vulkan::descriptor::SetKeyPreference> const& undesirable_descriptor_sets);

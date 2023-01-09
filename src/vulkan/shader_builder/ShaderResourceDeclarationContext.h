@@ -45,6 +45,8 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   int changed_generation() const { return m_changed_generation; }
 
 #ifdef CWDEBUG
+  std::map<ShaderResourceDeclaration const*, uint32_t> const& bindings() const { return m_bindings; }
+
   void print_on(std::ostream& os) const;
 #endif
 };

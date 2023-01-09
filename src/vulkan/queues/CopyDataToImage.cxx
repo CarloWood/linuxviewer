@@ -5,7 +5,7 @@ namespace task {
 
 void CopyDataToImage::record_command_buffer(vulkan::handle::CommandBuffer command_buffer)
 {
-  DoutEntering(dc::vulkan, "CopyDataToImage::record_command_buffer(" << command_buffer << ")");
+  DoutEntering(dc::vulkan(mSMDebug), "CopyDataToImage::record_command_buffer(" << command_buffer << ")");
 
   command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 

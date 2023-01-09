@@ -58,6 +58,11 @@ class FrameResourceCapableDescriptorSet
     return *this;
   }
 
+  bool is_used() const
+  {
+    return !m_descriptor_set.empty();
+  }
+
   bool is_frame_resource() const
   {
     return m_descriptor_set.size() > 1;

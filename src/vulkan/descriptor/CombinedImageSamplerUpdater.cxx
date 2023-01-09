@@ -12,6 +12,7 @@ namespace vulkan::descriptor {
 
 void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
+  DoutEntering(dc::setindexhint, "CombinedImageSamplerUpdater::prepare_shader_resource_declaration(" << set_index_hint << ", (AddShaderStage*)" << add_shader_stage);
   add_shader_stage->prepare_combined_image_sampler_declaration(*this, set_index_hint);
   m_prepared = true;
 }

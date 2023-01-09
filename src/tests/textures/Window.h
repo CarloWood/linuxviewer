@@ -49,8 +49,7 @@ class Window : public task::SynchronousWindow
   static constexpr int number_of_pipelines = 2;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
-  using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler,
-        /*number_of_pipelines == 2 ? number_of_combined_image_samplers : std::min(2, number_of_combined_image_samplers)*/ 3>;
+  using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
   combined_image_samplers_t m_combined_image_samplers;
   std::array<vulkan::Texture, number_of_combined_image_samplers> m_textures;
 

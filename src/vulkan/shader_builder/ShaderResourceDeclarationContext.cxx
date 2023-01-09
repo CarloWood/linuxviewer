@@ -12,11 +12,12 @@ namespace vulkan::shader_builder {
 
 void ShaderResourceDeclarationContext::update_binding(ShaderResourceDeclaration const* shader_resource_declaration)
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource_declaration << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "ShaderResourceDeclarationContext::update_binding(@" << *shader_resource_declaration << ") [" << this << "]");
   descriptor::SetIndexHint set_index_hint = shader_resource_declaration->set_index_hint();
   if (m_next_binding.iend() <= set_index_hint)
     m_next_binding.resize(set_index_hint.get_value() + 1);      // New elements are initialized to 0.
   m_bindings[shader_resource_declaration] = m_next_binding[set_index_hint];
+  Dout(dc::setindexhint, "Assigned m_bindings[ShaderResourceDeclaration \"" << shader_resource_declaration->glsl_id() << "\"] = " << m_bindings[shader_resource_declaration] << " (m_next_binding[" << set_index_hint << "])");
   shader_resource_declaration->set_binding(m_next_binding[set_index_hint]);
   ++m_next_binding[set_index_hint];
 }
@@ -50,7 +51,7 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
 // Called from AddShaderStage::preprocess1.
 void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage)
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
 
   Dout(dc::vulkan, "m_bindings contains:");
   for (auto&& shader_resource_binding_pair : m_bindings)
@@ -73,7 +74,7 @@ void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_
 
 void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const
 {
-  DoutEntering(dc::vulkan, "ShaderResourceDeclarationContext::generate(declarations_out, " << shader_stage << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "ShaderResourceDeclarationContext::generate(declarations_out, " << shader_stage << ") [" << this << "]");
 
   std::ostringstream oss;
   Dout(dc::vulkan, "Generating declaration; running over m_bindings that has the contents: " << m_bindings);

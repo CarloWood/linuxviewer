@@ -823,6 +823,7 @@ void SynchronousWindow::finish_frame()
 
   vk::Result res;
   {
+    Dout(dc::vkframe, "Calling presentKHR with .pWaitSemaphores = " << present_info.pWaitSemaphores[0]);
     CwZoneScopedN("presentKHR", max_number_of_swapchain_images(), m_swapchain.current_index());
     res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
   }
@@ -930,9 +931,17 @@ void SynchronousWindow::finish_impl()
   // Run the synchronous tasks, to give them a chance to abort.
   if (have_synchronous_task(atomic_flags()))
     handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
+  else
+    Dout(dc::notice, "Not calling handle_synchronous_tasks because have_synchronous_task(atomic_flags()) returned false.");
 
   // Wait for (certain) tasks to be finished.
   m_task_counter_gate.wait();
+
+  // Wait for semaphores to be finished (before destructing them).
+  if (m_logical_device)
+  {
+    m_logical_device->wait_idle();
+  }
 }
 
 //virtual

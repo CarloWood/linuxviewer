@@ -29,7 +29,10 @@ class SetLayout
   vk::DescriptorSetLayout m_handle;
 
  public:
-  SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint) { }
+  SetLayout(SetIndexHint set_index_hint) : m_set_index_hint(set_index_hint)
+  {
+    DoutEntering(dc::setindexhint, "SetLayout::SetLayout(" << set_index_hint << ") [" << this << "]");
+  }
 
   void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size)
   {
@@ -45,7 +48,11 @@ class SetLayout
   SetLayoutBindingsAndFlags const& sorted_bindings_and_flags() const { return m_sorted_bindings_and_flags; }
   SetLayoutBindingsAndFlags& sorted_bindings_and_flags() { return m_sorted_bindings_and_flags; }
   SetIndexHint set_index_hint() const { return m_set_index_hint; }
-  void set_set_index_hint(SetIndexHint set_index) { m_set_index_hint = set_index; }
+  void set_set_index_hint(SetIndexHint set_index)
+  {
+    DoutEntering(dc::setindexhint, "SetLayout::set_set_index_hint(" << set_index << ") [" << this << "]");
+    m_set_index_hint = set_index;
+  }
   vk::DescriptorSetLayout handle() const { return m_handle; }
 
   // Called from LogicalDevice::realize_pipeline_layout.

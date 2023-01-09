@@ -7,7 +7,7 @@ namespace task {
 
 CopyDataToGPU::~CopyDataToGPU()
 {
-  DoutEntering(dc::vulkan, "CopyDataToGPU::~CopyDataToGPU() [" << this << "]");
+  DoutEntering(dc::vulkan(mSMDebug), "CopyDataToGPU::~CopyDataToGPU() [" << this << "]");
 }
 
 char const* CopyDataToGPU::state_str_impl(state_type run_state) const

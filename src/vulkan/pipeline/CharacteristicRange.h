@@ -90,7 +90,11 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
     register_AddPushConstant_with(m_owning_factory);
   }
   void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
-  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
+  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
+  {
+    DoutEntering(dc::setindexhint, "CharacteristicRange::set_set_index_hint_map(" << vk_utils::print_pointer(set_index_hint_map) << ")");
+    m_set_index_hint_map = set_index_hint_map;
+  }
 
   // Accessors.
   index_type ibegin() const { return m_begin; }
@@ -279,6 +283,7 @@ void CharacteristicRange::realize_descriptor_set_layouts(LogicalDevice const* lo
 
 shader_builder::ShaderResourceDeclaration* CharacteristicRange::realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
 {
+  DoutEntering(dc::setindexhint, "CharacteristicRange::realize_shader_resource_declaration(\"" << glsl_id_full << "\", " << descriptor_type << ", " << shader_resource << ", " << set_index_hint << ")");
   return m_owning_factory->realize_shader_resource_declaration({}, glsl_id_full, descriptor_type, shader_resource, set_index_hint);
 }
 

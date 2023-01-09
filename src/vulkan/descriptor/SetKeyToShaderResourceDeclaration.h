@@ -24,7 +24,7 @@ class SetKeyToShaderResourceDeclaration
   shader_builder::ShaderResourceDeclaration const* get_shader_resource_declaration(SetKey set_key) const
   {
     auto shader_resource_declaration = m_set_key_to_shader_resource_declaration.find(set_key);
-    // Don't call get_shader_resource_declaration for a key that wasn't first passed to try_emplace.
+    // Don't call get_shader_resource_declaration for a key that wasn't first passed to try_emplace_declaration.
     ASSERT(shader_resource_declaration != m_set_key_to_shader_resource_declaration.end());
     return shader_resource_declaration->second;
   }

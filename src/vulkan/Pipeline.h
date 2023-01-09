@@ -36,14 +36,16 @@ class Pipeline
     m_vh_layout(vh_layout), m_handle(handle)
   {
     size_t const number_of_frame_resources = max_number_of_frame_resources.get_value();
-    descriptor::SetIndex const number_of_set_indexes{descriptor_sets.size()};
+    descriptor::SetIndex const set_index_end{descriptor_sets.size()};
     // Reorder the descriptor sets in memory for fast binding.
     m_descriptor_set_per_set_index_per_frame_resource.resize(number_of_frame_resources);
     for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
     {
-      m_descriptor_set_per_set_index_per_frame_resource[frame_index].resize(number_of_set_indexes.get_value());
-      for (descriptor::SetIndex set_index{0}; set_index < number_of_set_indexes; ++set_index)
+      m_descriptor_set_per_set_index_per_frame_resource[frame_index].resize(set_index_end.get_value());
+      for (descriptor::SetIndex set_index{0}; set_index != set_index_end; ++set_index)
       {
+        // All of descriptor_sets must be initialized, even for set indexes that aren't used (skipped).
+        ASSERT(descriptor_sets[set_index].is_used());
         if (descriptor_sets[set_index].is_frame_resource())
         {
           vk::DescriptorSet vh_descriptor_set = descriptor_sets[set_index][frame_index];
