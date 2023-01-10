@@ -42,6 +42,8 @@ class CopyDataToGPU : public ImmediateSubmit
 
   void set_resource_owner(SynchronousWindow const* resource_owner)
   {
+    // Setting the resource owner to nullptr can potentially cause a hang, see CopyDataToGPU::finish_impl.
+    ASSERT(resource_owner);
     m_resource_owner = resource_owner;
   }
 

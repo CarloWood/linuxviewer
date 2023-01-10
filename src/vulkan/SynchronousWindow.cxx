@@ -58,8 +58,7 @@ SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDE
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
   m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug)))
   COMMA_TRACY_ONLY(tracy_acquired_image_tracy_context(8), tracy_acquired_image_busy(8)),
-  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}),
-  m_dependent_tasks(utils::max_malloc_size(4096))
+  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}), m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
@@ -931,8 +930,6 @@ void SynchronousWindow::finish_impl()
   // Run the synchronous tasks, to give them a chance to abort.
   if (have_synchronous_task(atomic_flags()))
     handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
-  else
-    Dout(dc::notice, "Not calling handle_synchronous_tasks because have_synchronous_task(atomic_flags()) returned false.");
 
   // Wait for (certain) tasks to be finished.
   m_task_counter_gate.wait();
