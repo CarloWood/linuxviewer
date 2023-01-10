@@ -931,8 +931,10 @@ void SynchronousWindow::finish_impl()
   if (have_synchronous_task(atomic_flags()))
     handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
 
-  // Wait for (certain) tasks to be finished.
-  m_task_counter_gate.wait();
+  // Wait for (certain) tasks to be finished, while giving CPU to possibly still running synchronous tasks.
+  while (!m_task_counter_gate.wait_for(100))
+    while (mainloop().is_true())
+      ;
 
   // Wait for semaphores to be finished (before destructing them).
   if (m_logical_device)
