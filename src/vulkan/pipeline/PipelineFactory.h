@@ -106,6 +106,10 @@ class PipelineFactory : public AIStatefulTask
     // Corresponding preferred and undesirable descriptor sets.
     std::vector<vulkan::descriptor::SetKeyPreference> m_preferred_descriptor_sets;
     std::vector<vulkan::descriptor::SetKeyPreference> m_undesirable_descriptor_sets;
+    // Mutable because I prefer to only keep the read-lock on this object when preparing.
+    // Writing to this boolean is thread-safe because it is down "single-threaded":
+    // by PipelineFactory_characteristics_filled.
+    mutable bool m_prepared{false};
 
 #ifdef CWDEBUG
     void print_on(std::ostream& os) const;
@@ -115,12 +119,20 @@ class PipelineFactory : public AIStatefulTask
   using added_shader_resource_plus_characteristic_list_t = aithreadsafe::Wrapper<added_shader_resource_plus_characteristic_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   added_shader_resource_plus_characteristic_list_t m_added_shader_resource_plus_characteristic_list;
 
+  bool test_and_set_prepared(vulkan::pipeline::ShaderResourcePlusCharacteristicIndex index, added_shader_resource_plus_characteristic_list_t::rat const& added_shader_resource_plus_characteristic_list_r)
+  {
+    bool is_prepared = added_shader_resource_plus_characteristic_list_r->operator[](index).m_prepared;
+    if (!is_prepared)
+      added_shader_resource_plus_characteristic_list_r->operator[](index).m_prepared = true;
+    return is_prepared;
+  }
+
   //---------------------------------------------------------------------------
   // Shader resources.
 
   // Set index hints.
   using set_key_to_set_index_hint_container_t = std::map<vulkan::descriptor::SetKey, vulkan::descriptor::SetIndexHint>;
-  set_key_to_set_index_hint_container_t m_set_key_to_set_index_hint;                            // Maps descriptor::SetKey's to descriptor::SetIndexHint's.
+  set_key_to_set_index_hint_container_t m_set_key_to_set_index_hint;     // Maps descriptor::SetKey's to descriptor::SetIndexHint's.
   using glsl_id_to_shader_resource_container_t = std::map<std::string, vulkan::shader_builder::ShaderResourceDeclaration, std::less<>>;
   using glsl_id_to_shader_resource_t = aithreadsafe::Wrapper<glsl_id_to_shader_resource_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   glsl_id_to_shader_resource_t m_glsl_id_to_shader_resource;  // Set index hint needs to be updated afterwards.
@@ -132,7 +144,7 @@ class PipelineFactory : public AIStatefulTask
 
   using sorted_descriptor_set_layouts_container_t = std::vector<vulkan::descriptor::SetLayout>;
   using sorted_descriptor_set_layouts_t = aithreadsafe::Wrapper<sorted_descriptor_set_layouts_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
-  sorted_descriptor_set_layouts_t m_sorted_descriptor_set_layouts;      // A Vector of SetLayout object, containing vk::DescriptorSetLayout
+  sorted_descriptor_set_layouts_t m_sorted_descriptor_set_layouts;      // A Vector of SetLayout objects, containing vk::DescriptorSetLayout
                                                                         // handles and the vk::DescriptorSetLayoutBinding objects, stored in
                                                                         // a sorted vector, that they were created from.
 

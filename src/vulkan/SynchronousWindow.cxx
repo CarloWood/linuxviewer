@@ -289,6 +289,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_swapchain_images();
       create_frame_resources();
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
+      create_vertex_buffers();
       register_shader_templates();
       // Upload the "loading texture".
       {

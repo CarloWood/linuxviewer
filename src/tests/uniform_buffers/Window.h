@@ -115,6 +115,11 @@ class Window : public task::SynchronousWindow
     }
   }
 
+  void create_vertex_buffers() override
+  {
+    implement
+  }
+
  private:
   static constexpr std::string_view uniform_buffer_controlled_triangle0_vert_glsl = R"glsl(
 layout(location = 0) out vec2 v_Texcoord;

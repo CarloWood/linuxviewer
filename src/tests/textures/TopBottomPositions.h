@@ -7,7 +7,7 @@
 //
 // Each InstanceData object exist of a single vec4 representing the position
 // to put a Square. This class generates the two position vectors
-// where x should be -1 or 0 and y is -1 or 0 (z equals 0).
+// where x should be 0 and y is -0.5 or 0.5 (z and w equal 0).
 //
 class TopBottomPositions final : public vulkan::shader_builder::VertexShaderInputSet<InstanceData>
 {

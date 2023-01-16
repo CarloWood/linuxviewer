@@ -9,7 +9,6 @@
 #include "Pipeline.h"
 #include "queues/CopyDataToImage.h"
 #include "queues/CopyDataToBuffer.h"
-#include "descriptor/CombinedImageSamplerUpdater.h"
 #include "descriptor/SetKeyPreference.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
@@ -61,9 +60,11 @@ class Window : public task::SynchronousWindow
   utils::Array<vulkan::shader_builder::ShaderIndex, 3, LocalShaderIndex> m_shader_indices;
 
   // Vertex buffers.
-  using vertex_buffers_container_type = std::vector<vulkan::memory::Buffer>;
-  using vertex_buffers_type = aithreadsafe::Wrapper<vertex_buffers_container_type, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
-  mutable vertex_buffers_type m_vertex_buffers; // threadsafe- const.
+  vulkan::VertexBuffers m_vertex_buffers;
+
+  // Vertex buffer generators.
+  Square m_square;                              // Vertex buffer.
+  TopBottomPositions m_top_bottom_positions;    // Instance buffer.
 
   std::array<vulkan::Pipeline, number_of_pipelines> m_graphics_pipelines;
 
@@ -101,8 +102,10 @@ class Window : public task::SynchronousWindow
 
   boost::intrusive_ptr<AITimer> m_timer;
   int m_loop_var;
+
  public:
   ~Window() { if (m_timer) m_timer->abort(); }
+
  private:
   void create_textures() override
   {
@@ -142,6 +145,8 @@ class Window : public task::SynchronousWindow
     m_loop_var = 0;
     m_timer->set_interval(threadpool::Interval<200, std::chrono::milliseconds>());
     m_timer->run([this](bool success){
+      if (!success)
+        return;
       for (;;)
       {
         int pipeline = m_loop_var / number_of_combined_image_samplers;
@@ -159,12 +164,21 @@ class Window : public task::SynchronousWindow
 #else
         int const characteristic = 1; // VertexPipelineCharacteristicRange which now also do the fragment shader.
 #endif
+        Dout(dc::vulkan, "Calling update_image_sampler_array with cis = " << cis << "; ti = " << ti << "; characteristic = " << characteristic);
         m_combined_image_samplers[cis].update_image_sampler_array(&m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline * number_of_characteristics + characteristic], 1);
         break;
       }
       if (++m_loop_var < number_of_pipelines * number_of_combined_image_samplers)
         m_timer->run();
     });
+  }
+
+  void create_vertex_buffers() override
+  {
+    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+
+    m_vertex_buffers.create_vertex_buffer(m_square);
+    m_vertex_buffers.create_vertex_buffer(m_top_bottom_positions);
   }
 
  private:
@@ -213,7 +227,7 @@ void main()
   if (instance_index == 0)
     outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom1[PushConstant::m_texture_index], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom0[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
@@ -247,6 +261,7 @@ void main()
 
   // Accessor.
   combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
+  vulkan::VertexBuffers const& vertex_buffers() const { return m_vertex_buffers; }
 
   class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
@@ -330,10 +345,6 @@ void main()
    private:
     int m_pipeline;
 
-    // Define pipeline objects.
-    Square m_square;
-    TopBottomPositions m_top_bottom_positions;
-
    protected:
     using direct_base_type = vulkan::pipeline::CharacteristicRange;
 
@@ -403,14 +414,6 @@ void main()
           add_combined_image_sampler(window->combined_image_samplers()[0]);
           add_combined_image_sampler(window->combined_image_samplers()[m_pipeline + 1]);
 #endif
-
-          // This should be called once, after calling all add_vertex_input_binding calls.
-          // Since an *_initialize state is only executed once and this Characteristic
-          // owns all shader_builder::VertexShaderInputSet derived classes, this should be
-          // the right place.
-          window->create_vertex_buffers(this);
-
-//          m_vertex_input_binding_descriptions = vertex_binding_descriptions();
 
           set_continue_state(VertexPipelineCharacteristicRange_fill);
           run_state = CharacteristicRange_initialized;
@@ -703,42 +706,6 @@ void main()
     }
   }
 
-  // This member function only uses m_vertex_buffers, which is aithreadsafe.
-  // Therefore, the function as a whole is made threadsafe-const
-  //
-  // Called from PipelineFactory_characteristics_initialized.
-  void create_vertex_buffers(vulkan::pipeline::CharacteristicRange const* pipeline_owner) /*threadsafe-*/ const
-  {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers(" << pipeline_owner << ") [" << this << "]");
-
-    for (vulkan::shader_builder::VertexShaderInputSetBase* vertex_shader_input_set : pipeline_owner->vertex_shader_input_sets())
-    {
-      size_t entry_size = vertex_shader_input_set->chunk_size();
-      int count = vertex_shader_input_set->chunk_count();
-      size_t buffer_size = count * entry_size;
-
-      vk::Buffer new_buffer;
-      {
-        vertex_buffers_type::wat vertex_buffers_w(m_vertex_buffers);
-
-        vertex_buffers_w->push_back(vulkan::memory::Buffer{logical_device(), buffer_size,
-            { .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
-              .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_vertex_buffers[" + std::to_string(vertex_buffers_w->size()) + "]"))});
-
-        new_buffer = vertex_buffers_w->back().m_vh_buffer;
-      }
-
-      auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(logical_device(), buffer_size, new_buffer, 0, vk::AccessFlags(0),
-          vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead, vk::PipelineStageFlagBits::eVertexInput
-          COMMA_CWDEBUG_ONLY(true));
-
-      copy_data_to_buffer->set_resource_owner(this);    // Wait for this task to finish before destroying this window, because this window owns the buffer (m_vertex_buffers.back()).
-      copy_data_to_buffer->set_data_feeder(std::make_unique<vulkan::shader_builder::VertexShaderInputSetFeeder>(vertex_shader_input_set, pipeline_owner));
-      copy_data_to_buffer->run(vulkan::Application::instance().low_priority_queue());
-    }
-  }
-
   //===========================================================================
   //
   // Called from initialize_impl.
@@ -824,7 +791,7 @@ void main()
     wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
 
-    auto command_buffer = frame_resources->m_command_buffer;
+    vulkan::handle::CommandBuffer command_buffer = frame_resources->m_command_buffer;
     Dout(dc::vkframe, "Start recording command buffer.");
     command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
@@ -848,11 +815,7 @@ else
 {
       command_buffer->setViewport(0, { viewport });
       command_buffer->setScissor(0, { scissor });
-      {
-        vertex_buffers_type::rat vertex_buffers_r(m_vertex_buffers);
-        vertex_buffers_container_type const& vertex_buffers(*vertex_buffers_r);
-        command_buffer->bindVertexBuffers(0 /* uint32_t first_binding */, { vertex_buffers[0].m_vh_buffer, vertex_buffers[1].m_vh_buffer }, { 0, 0 });
-      }
+      m_vertex_buffers.bind(command_buffer);
 
       for (int pl = 0; pl < number_of_pipelines; ++pl)
       {

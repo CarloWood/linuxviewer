@@ -173,11 +173,11 @@ void AddShaderStage::prepare_combined_image_sampler_declaration(descriptor::Comb
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::prepare_combined_image_sampler_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
 
-  shader_builder::ShaderResourceDeclaration* shader_resource_ptr = realize_shader_resource_declaration(combined_image_sampler.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, combined_image_sampler, set_index_hint);
+  shader_builder::ShaderResourceDeclaration* shader_resource_declaration_ptr = realize_shader_resource_declaration(combined_image_sampler.glsl_id_full(), vk::DescriptorType::eCombinedImageSampler, combined_image_sampler, set_index_hint);
   // CombinedImageSampler only has a single member.
-  shader_resource_ptr->add_member(combined_image_sampler.member());
+  shader_resource_declaration_ptr->add_member(combined_image_sampler.member());
   // Which is treated here in a general way (but really shader_resource_variables() has just a size of one).
-  for (auto& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
+  for (auto& shader_resource_variable : shader_resource_declaration_ptr->shader_resource_variables())
     m_shader_variables.push_back(&shader_resource_variable);
 
 #if 1

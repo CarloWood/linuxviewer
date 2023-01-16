@@ -35,6 +35,7 @@ class SingleButtonWindow : public task::SynchronousWindow
   }
 
   void create_textures() override { }
+  void create_vertex_buffers() override { }
   void create_graphics_pipelines() override { }
 
   //===========================================================================

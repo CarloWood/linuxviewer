@@ -104,9 +104,6 @@ class ShaderResourceBase
   mutable set_layout_bindings_to_handles_t m_set_layout_bindings_to_handles;
 
  protected:
-  // Set by derived prepare_shader_resource_declaration.
-  mutable bool m_prepared{false};
-
 #ifdef CWDEBUG
  private:
   char const* m_debug_name;
@@ -205,11 +202,6 @@ class ShaderResourceBase
   {
     DoutEntering(dc::notice, "ShaderResourceBase::release_create_lock() [" << this << "]");
     m_create_access_mutex.unlock();
-  }
-
-  bool is_prepared() const
-  {
-    return m_prepared;
   }
 
   bool is_created() const

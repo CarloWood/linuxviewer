@@ -109,6 +109,7 @@ std::ostream& operator<<(std::ostream& os, DescriptorPoolSize const& descriptor_
 std::ostream& operator<<(std::ostream& os, DescriptorImageInfo const& descriptor_image_info);
 std::ostream& operator<<(std::ostream& os, DescriptorBufferInfo const& descriptor_buffer_info);
 std::ostream& operator<<(std::ostream& os, PushConstantRange const& push_constant_range);
+std::ostream& operator<<(std::ostream& os, BufferCopy const& buffer_copy);
 
 } // namespace vk
 

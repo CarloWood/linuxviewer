@@ -46,7 +46,6 @@ std::string UniformBufferBase::glsl_id() const
 void UniformBufferBase::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
   add_shader_stage->prepare_uniform_buffer_declaration(*this, set_index_hint);
-  m_prepared = true;
 }
 
 #ifdef CWDEBUG
