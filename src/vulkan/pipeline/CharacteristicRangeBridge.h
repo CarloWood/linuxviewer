@@ -1,5 +1,6 @@
 #pragma once
 
+#include "VertexBufferBindingIndex.h"
 #include "descriptor/SetIndex.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
@@ -24,7 +25,11 @@ struct CharacteristicRangeBridge
   virtual ~CharacteristicRangeBridge() = default;
 
   // Implemented by AddVertexShader.
-  virtual utils::Vector<shader_builder::VertexShaderInputSetBase*> const& vertex_shader_input_sets() const { ASSERT(false); AI_NEVER_REACHED }
+  virtual utils::Vector<shader_builder::VertexShaderInputSetBase*, VertexBufferBindingIndex> const& vertex_shader_input_sets() const
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
 
   // Implemented by AddShaderStage.
   virtual bool is_add_shader_stage() const { return false; }

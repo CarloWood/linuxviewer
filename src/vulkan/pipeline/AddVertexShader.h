@@ -29,10 +29,13 @@ class AddVertexShader : public virtual AddShaderStage
 
   //---------------------------------------------------------------------------
   // Vertex attributes.
-  utils::Vector<shader_builder::VertexShaderInputSetBase*> m_vertex_shader_input_sets;          // Existing vertex shader input sets (a 'binding' slot).
-  shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;           // Location context used for vertex attributes (VertexAttribute).
+  utils::Vector<shader_builder::VertexShaderInputSetBase*, VertexBufferBindingIndex> m_vertex_shader_input_sets;
+                                                                                        // Existing vertex shader input sets (a 'binding' slot).
+  shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;   // Location context used for vertex attributes
+                                                                                        // (VertexAttribute).
   using glsl_id_full_to_vertex_attribute_container_t = std::map<std::string, shader_builder::VertexAttribute, std::less<>>;
-  mutable glsl_id_full_to_vertex_attribute_container_t m_glsl_id_full_to_vertex_attribute;      // Map VertexAttribute::m_glsl_id_full to the VertexAttribute object that contains it.
+  mutable glsl_id_full_to_vertex_attribute_container_t m_glsl_id_full_to_vertex_attribute;  // Map VertexAttribute::m_glsl_id_full to the
+                                                                                            // VertexAttribute object that contains it.
   bool m_vertex_shader_input_sets_changed{false};
   bool m_glsl_id_full_to_vertex_attribute_changed{false};
 
@@ -67,11 +70,17 @@ class AddVertexShader : public virtual AddShaderStage
   AddVertexShader() = default;
 
   // Called from VertexAttribute::is_used_in.
-  shader_builder::VertexAttributeDeclarationContext* vertex_shader_location_context(utils::Badge<shader_builder::VertexAttribute>) override { return &m_vertex_shader_location_context; }
+  shader_builder::VertexAttributeDeclarationContext* vertex_shader_location_context(utils::Badge<shader_builder::VertexAttribute>) override
+  {
+    return &m_vertex_shader_location_context;
+  }
 
  protected:
   // Accessors.
-  utils::Vector<shader_builder::VertexShaderInputSetBase*> const& vertex_shader_input_sets() const override { return m_vertex_shader_input_sets; }
+  utils::Vector<shader_builder::VertexShaderInputSetBase*, VertexBufferBindingIndex> const& vertex_shader_input_sets() const override
+  {
+    return m_vertex_shader_input_sets;
+  }
 
   void add_vertex_input_bindings(VertexBuffers const& vertex_buffers);
 
@@ -154,7 +163,6 @@ requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::ta
           std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
 void AddVertexShader::add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
-  //create_vertex_buffer
   DoutEntering(dc::vulkan, "AddVertexShader::add_vertex_input_binding<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shader_builder;
 
