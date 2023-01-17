@@ -2,7 +2,6 @@
 #define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
 #include "ShaderVariableLayouts.h"
-#include "shader_builder/VertexShaderInputSet.h"
 #include "memory/DataFeeder.h"
 #include <vulkan/vulkan.hpp>
 #include <boost/intrusive_ptr.hpp>

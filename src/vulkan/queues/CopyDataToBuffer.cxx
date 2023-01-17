@@ -25,6 +25,7 @@ void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer comma
     .dstOffset = m_buffer_offset,
     .size = m_data_size
   };
+  Dout(dc::always, "Preparing to transfer from " << m_staging_buffer.m_vh_buffer << " to " << m_vh_target_buffer << ": " << buffer_copy_region);
   command_buffer->copyBuffer(m_staging_buffer.m_vh_buffer, m_vh_target_buffer, { buffer_copy_region });
 
   vk::BufferMemoryBarrier post_transfer_buffer_memory_barrier{

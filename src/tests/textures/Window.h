@@ -7,6 +7,7 @@
 #include "SynchronousWindow.h"
 #include "PushConstant.h"
 #include "Pipeline.h"
+#include "VertexBuffers.h"
 #include "queues/CopyDataToImage.h"
 #include "queues/CopyDataToBuffer.h"
 #include "descriptor/SetKeyPreference.h"
@@ -177,8 +178,8 @@ class Window : public task::SynchronousWindow
   {
     DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
 
-    m_vertex_buffers.create_vertex_buffer(m_square);
-    m_vertex_buffers.create_vertex_buffer(m_top_bottom_positions);
+    m_vertex_buffers.create_vertex_buffer(this, m_square);
+    m_vertex_buffers.create_vertex_buffer(this, m_top_bottom_positions);
   }
 
  private:
@@ -262,6 +263,9 @@ void main()
   // Accessor.
   combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
   vulkan::VertexBuffers const& vertex_buffers() const { return m_vertex_buffers; }
+  // FIXME: these shouldn't be needed in the end.
+  Square const& square() const { return m_square; }
+  TopBottomPositions const& top_bottom_positions() const { return m_top_bottom_positions; }
 
   class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
@@ -408,8 +412,9 @@ void main()
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
-          add_vertex_input_binding(m_square);
-          add_vertex_input_binding(m_top_bottom_positions);
+//          add_vertex_input_binding(window->square()); // m_square
+//          add_vertex_input_binding(window->top_bottom_positions());
+          add_vertex_input_bindings(window->vertex_buffers());        // Filled in create_vertex_buffers
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           add_combined_image_sampler(window->combined_image_samplers()[0]);
           add_combined_image_sampler(window->combined_image_samplers()[m_pipeline + 1]);

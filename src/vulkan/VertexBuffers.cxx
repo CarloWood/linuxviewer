@@ -8,10 +8,10 @@
 namespace vulkan {
 
 void VertexBuffers::create_vertex_buffer(
-    SynchronousWindow const* owning_window,
-    shader_builder::VertexShaderInputSetBase const& vertex_shader_input_set)
+    task::SynchronousWindow const* owning_window,
+    shader_builder::VertexShaderInputSetBase& vertex_shader_input_set)
 {
-  DoutEntering(dc::vulkan, "VertexBuffers::create_vertex_buffer(" << owning_window << ", " << vertex_shader_input_set << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "VertexBuffers::create_vertex_buffer(" << owning_window << ", &" << &vertex_shader_input_set << ") [" << this << "]");
 
   size_t entry_size = vertex_shader_input_set.chunk_size();
   int count = vertex_shader_input_set.chunk_count();
@@ -23,7 +23,7 @@ void VertexBuffers::create_vertex_buffer(
       COMMA_CWDEBUG_ONLY(owning_window->debug_name_prefix("m_memory[" + std::to_string(m_memory.size()) + "]"))});
   vk::Buffer new_buffer = m_memory.back().m_vh_buffer;
 
-  // The memory layout of the m_pointers memory block is:
+  // The memory layout of the m_data memory block is:
   // vk::Buffer*
   //   .
   //   .
@@ -33,13 +33,13 @@ void VertexBuffers::create_vertex_buffer(
   //   .
   // vk::DeviceSize*
   // where there are m_binding_count vk::Buffer*'s as well as vk::DeviceSize*'s.
-  void* buffer_end = m_pointers + m_binding_count;
   ++m_binding_count;
-  m_pointers = std::realloc(2 * m_binding_count * sizeof(void*));
+  char* new_device_size_start = m_data + m_binding_count * sizeof(vk::Buffer);
+  m_data = (char*)std::realloc(m_data, m_binding_count * (sizeof(vk::Buffer) + sizeof(vk::DeviceSize)));
   // After the realloc we need to move the vk::DeviceSize*'s in memory one up to make place for the new vk::Buffer*.
-  std::memmove(buffer_end + 1, buffer_end, m_binding_count - 1);
-  *static_cast<vk::Buffer*>(buffer_end) = new_buffer;
-  *static_cast<vk::DeviceSize*>(buffer_end + m_binding_count) = 0;  // All offsets are zero at the moment.
+  std::memmove(new_device_size_start, new_device_size_start - sizeof(vk::Buffer), (m_binding_count - 1) * sizeof(vk::DeviceSize));
+  reinterpret_cast<vk::Buffer*>(m_data)[m_binding_count - 1] = new_buffer;
+  reinterpret_cast<vk::DeviceSize*>(new_device_size_start)[m_binding_count - 1] = 0;  // All offsets are zero at the moment.
 
   auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(owning_window->logical_device(), buffer_size, new_buffer, 0,
       vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead,
@@ -60,7 +60,7 @@ void VertexBuffers::print_on(std::ostream& os) const
   os << '{';
   os << "m_memory:" << m_memory <<
       ", m_binding_count:" << m_binding_count <<
-      ", m_pointers:" << m_pointers;
+      ", m_data:" << (void*)m_data;
   os << '}';
 }
 #endif

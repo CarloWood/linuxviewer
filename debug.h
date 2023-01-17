@@ -7,8 +7,10 @@
 #include "cwds/debug.h"
 
 #ifdef CWDEBUG
+#ifdef DEBUGTHREADPOOLCOLORS
 // We use colors for debug output.
 #include "threadpool/debug_colors.h"
+#endif
 
 // The xml submodule doesn't use utils.
 #ifdef HAVE_UTILS_CONFIG_H

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AddShaderStage.h"
 #include "shader_builder/VertexShaderInputSet.h"
+#include "AddShaderStage.h"
 #include "shader_builder/VertexAttribute.h"
 #include "shader_builder/VertexAttributeDeclarationContext.h"
 #include "utils/Vector.h"
@@ -11,9 +11,12 @@
 #include <vector>
 #include "debug.h"
 
-namespace vulkan::shader_builder {
+namespace vulkan {
+class VertexBuffers;
+namespace shader_builder {
 class VertexShaderInputSetBase;
-} // namespace vulkan::shader_builder
+} // namespace shader_builder
+} // namespace vulkan
 
 namespace vulkan::pipeline {
 class CharacteristicRange;
@@ -41,7 +44,7 @@ class AddVertexShader : public virtual AddShaderStage
   // (and a pointer to that to m_shader_variables), for a non-array vertex attribute.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-  void add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+  void add_vertex_attribute(VertexBufferBindingIndex binding, shader_builder::MemberLayout<ContainingClass,
       shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
@@ -49,7 +52,7 @@ class AddVertexShader : public virtual AddShaderStage
   // (and a pointer to that to m_shader_variables), for a vertex attribute array.
   template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
       int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-  void add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+  void add_vertex_attribute(VertexBufferBindingIndex binding, shader_builder::MemberLayout<ContainingClass,
       shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
@@ -70,6 +73,8 @@ class AddVertexShader : public virtual AddShaderStage
   // Accessors.
   utils::Vector<shader_builder::VertexShaderInputSetBase*> const& vertex_shader_input_sets() const override { return m_vertex_shader_input_sets; }
 
+  void add_vertex_input_bindings(VertexBuffers const& vertex_buffers);
+
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_vertex_data> ||
             std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
@@ -82,7 +87,7 @@ class AddVertexShader : public virtual AddShaderStage
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr>
-void AddVertexShader::add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+void AddVertexShader::add_vertex_attribute(VertexBufferBindingIndex binding, shader_builder::MemberLayout<ContainingClass,
     shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -114,7 +119,7 @@ void AddVertexShader::add_vertex_attribute(shader_builder::BindingIndex binding,
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size, size_t ArrayStride,
     int MemberIndex, size_t MaxAlignment, size_t Offset, utils::TemplateStringLiteral GlslIdStr, size_t Elements>
-void AddVertexShader::add_vertex_attribute(shader_builder::BindingIndex binding, shader_builder::MemberLayout<ContainingClass,
+void AddVertexShader::add_vertex_attribute(VertexBufferBindingIndex binding, shader_builder::MemberLayout<ContainingClass,
     shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
     MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout)
 {
@@ -149,10 +154,11 @@ requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::ta
           std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::per_instance_data>)
 void AddVertexShader::add_vertex_input_binding(shader_builder::VertexShaderInputSet<ENTRY>& vertex_shader_input_set)
 {
+  //create_vertex_buffer
   DoutEntering(dc::vulkan, "AddVertexShader::add_vertex_input_binding<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shader_builder;
 
-  BindingIndex binding = m_vertex_shader_input_sets.iend();
+  VertexBufferBindingIndex binding = m_vertex_shader_input_sets.iend();
 
   // Use the specialization of ShaderVariableLayouts to get the layout of ENTRY
   // in the form of a tuple, of the vertex attributes, `layouts`.
