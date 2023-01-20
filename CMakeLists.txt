@@ -26,6 +26,15 @@ if(NOT FARMHASH)
   list(APPEND GITACHE_PACKAGES farmhash)
 endif()
 
+# Is shaderc installed on the system?
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Shaderc IMPORTED_TARGET shaderc)
+
+if (NOT Shaderc_FOUND)
+  message(STATUS "Adding shaderc to gitache packages.")
+  list(APPEND GITACHE_PACKAGES shaderc)
+endif ()
+
 #include(gitache/gateway.cmake)
 # OR
 include(FetchContent)
