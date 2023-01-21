@@ -46,7 +46,7 @@ class Window : public task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_pipelines = 2;
+  static constexpr int number_of_pipeline_factories = 2;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
@@ -67,7 +67,7 @@ class Window : public task::SynchronousWindow
   Square m_square;                              // Vertex buffer.
   TopBottomPositions m_top_bottom_positions;    // Instance buffer.
 
-  std::array<vulkan::Pipeline, number_of_pipelines> m_graphics_pipelines;
+  std::array<vulkan::Pipeline, number_of_pipeline_factories> m_graphics_pipelines;
 
   imgui::StatsWindow m_imgui_stats_window;
   int m_frame_count = 0;
@@ -150,26 +150,27 @@ class Window : public task::SynchronousWindow
         return;
       for (;;)
       {
-        int pipeline = m_loop_var / number_of_combined_image_samplers;
+        int pipeline_factory = m_loop_var / number_of_combined_image_samplers;
         int cis = m_loop_var % number_of_combined_image_samplers;
-        if (cis > 0 && cis != pipeline + 1)
+        if (cis > 0 && cis != pipeline_factory + 1)
         {
-          if (++m_loop_var == number_of_pipelines * number_of_combined_image_samplers)
+          if (++m_loop_var == number_of_pipeline_factories * number_of_combined_image_samplers)
             break;
           continue;
         }
         int ti = (cis + 1) % number_of_combined_image_samplers;
-        // Change (update) image sampler descriptor 'cis', used by pipeline 'pipeline', with the (new) texture 'ti'.
+        // Change (update) image sampler descriptor 'cis', used by pipeline factory 'pipeline_factory', with the (new) texture 'ti'.
 #if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
         int const characteristic = 2; // FragmentPipelineCharacteristicRange.
 #else
         int const characteristic = 1; // VertexPipelineCharacteristicRange which now also do the fragment shader.
 #endif
         Dout(dc::vulkan, "Calling update_image_sampler_array with cis = " << cis << "; ti = " << ti << "; characteristic = " << characteristic);
-        m_combined_image_samplers[cis].update_image_sampler_array(&m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline * number_of_characteristics + characteristic], 1);
+        m_combined_image_samplers[cis].update_image_sampler_array(
+            &m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline_factory * number_of_characteristics + characteristic], 1);
         break;
       }
-      if (++m_loop_var < number_of_pipelines * number_of_combined_image_samplers)
+      if (++m_loop_var < number_of_pipeline_factories * number_of_combined_image_samplers)
         m_timer->run();
     });
   }
@@ -228,7 +229,7 @@ void main()
   if (instance_index == 0)
     outColor = texture(CombinedImageSampler::top[PushConstant::m_texture_index], v_Texcoord);
   else
-    outColor = texture(CombinedImageSampler::bottom0[PushConstant::m_texture_index], v_Texcoord);
+    outColor = texture(CombinedImageSampler::bottom1[PushConstant::m_texture_index], v_Texcoord);
 }
 )glsl";
 
@@ -275,7 +276,7 @@ void main()
       vk::DynamicState::eViewport,
       vk::DynamicState::eScissor
     };
-    int m_pipeline;
+    int m_pipeline_factory;
 
    protected:
     using direct_base_type = vulkan::pipeline::Characteristic;
@@ -293,8 +294,8 @@ void main()
    public:
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
-    BasePipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+    BasePipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -347,7 +348,7 @@ void main()
       public vulkan::pipeline::AddPushConstant
   {
    private:
-    int m_pipeline;
+    int m_pipeline_factory;
 
    protected:
     using direct_base_type = vulkan::pipeline::CharacteristicRange;
@@ -368,8 +369,8 @@ void main()
    public:
     static constexpr state_type state_end = VertexPipelineCharacteristicRange_compile + 1;
 
-    VertexPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+    VertexPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
@@ -412,12 +413,11 @@ void main()
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
-//          add_vertex_input_binding(window->square()); // m_square
-//          add_vertex_input_binding(window->top_bottom_positions());
+          //FIXME: is this the right place to call this?
           add_vertex_input_bindings(window->vertex_buffers());        // Filled in create_vertex_buffers
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           add_combined_image_sampler(window->combined_image_samplers()[0]);
-          add_combined_image_sampler(window->combined_image_samplers()[m_pipeline + 1]);
+          add_combined_image_sampler(window->combined_image_samplers()[m_pipeline_factory + 1]);
 #endif
 
           set_continue_state(VertexPipelineCharacteristicRange_fill);
@@ -446,7 +446,7 @@ void main()
             preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
 
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // This call, together with the preprocess1 call for the fragment shader, fills PipelineFactory::m_sorted_descriptor_set_layouts
             // with arbitrary binding numbers (in the order that they are found in the shader template code).
@@ -476,7 +476,7 @@ void main()
           build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
           build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
 #endif
@@ -504,7 +504,7 @@ void main()
       public vulkan::pipeline::AddPushConstant
   {
    private:
-    int m_pipeline;
+    int m_pipeline_factory;
 
    protected:
     using direct_base_type = vulkan::pipeline::CharacteristicRange;
@@ -525,8 +525,8 @@ void main()
    public:
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_compile + 1;
 
-    FragmentPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+    FragmentPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+      vulkan::pipeline::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -572,8 +572,8 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
 
 #if 0
-          // Below we use 1 + m_pipeline as index into the array of combined image samplers.
-          ASSERT(number_of_combined_image_samplers >= number_of_pipelines);
+          // Below we use 1 + m_pipeline_factory as index into the array of combined image samplers.
+          ASSERT(number_of_combined_image_samplers >= number_of_pipeline_factories);
 #if 0
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -610,7 +610,7 @@ void main()
           {
             using namespace vulkan::shader_builder;
 
-            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
             preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
@@ -633,7 +633,7 @@ void main()
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
 
-          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
           // Compile the shaders.
           ShaderCompiler compiler;
@@ -662,8 +662,8 @@ void main()
   static constexpr int number_of_characteristics = 2;
 #endif
 
-  std::array<vulkan::pipeline::FactoryCharacteristicId, number_of_pipelines * number_of_characteristics> m_pipeline_factory_characteristic_range_ids;
-  std::array<vulkan::pipeline::FactoryHandle, number_of_pipelines> m_pipeline_factory;
+  std::array<vulkan::pipeline::FactoryCharacteristicId, number_of_pipeline_factories * number_of_characteristics> m_pipeline_factory_characteristic_range_ids;
+  std::array<vulkan::pipeline::FactoryHandle, number_of_pipeline_factories> m_pipeline_factory;
 
   void create_graphics_pipelines() override
   {
@@ -680,10 +680,11 @@ void main()
       m_combined_image_samplers[t].set_array_size(2, unbounded_array);
     }
 
-    for (int pipeline = 0; pipeline < number_of_pipelines; ++pipeline)
+    for (int pipeline_factory = 0; pipeline_factory < number_of_pipeline_factories; ++pipeline_factory)
     {
-      m_pipeline_factory[pipeline] = create_pipeline_factory(m_graphics_pipelines[pipeline], main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
-      // We have number_of_characteristics factory/range pair per pipeline here.
+      m_pipeline_factory[pipeline_factory] =
+        create_pipeline_factory(m_graphics_pipelines[pipeline_factory], main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+      // We have number_of_characteristics factory/range pair per pipeline factory here.
       for (int c = 0; c < number_of_characteristics; ++c)
       {
         vulkan::pipeline::FactoryCharacteristicId factory_characteristic_id;
@@ -691,23 +692,23 @@ void main()
         {
           case 0:
             factory_characteristic_id =
-              m_pipeline_factory[pipeline].add_characteristic<BasePipelineCharacteristic>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+              m_pipeline_factory[pipeline_factory].add_characteristic<BasePipelineCharacteristic>(this, pipeline_factory COMMA_CWDEBUG_ONLY(true));
             break;
           case 1:
             factory_characteristic_id =
-              m_pipeline_factory[pipeline].add_characteristic<VertexPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+              m_pipeline_factory[pipeline_factory].add_characteristic<VertexPipelineCharacteristicRange>(this, pipeline_factory COMMA_CWDEBUG_ONLY(true));
             break;
 #if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           case 2:
             factory_characteristic_id =
-              m_pipeline_factory[pipeline].add_characteristic<FragmentPipelineCharacteristicRange>(this, pipeline COMMA_CWDEBUG_ONLY(true));
+              m_pipeline_factory[pipeline_factory].add_characteristic<FragmentPipelineCharacteristicRange>(this, pipeline_factory COMMA_CWDEBUG_ONLY(true));
             break;
 #endif
         }
-        m_pipeline_factory_characteristic_range_ids[pipeline * number_of_characteristics + c] = factory_characteristic_id;
+        m_pipeline_factory_characteristic_range_ids[pipeline_factory * number_of_characteristics + c] = factory_characteristic_id;
       }
 
-      m_pipeline_factory[pipeline].generate(this);
+      m_pipeline_factory[pipeline_factory].generate(this);
     }
   }
 
@@ -808,7 +809,7 @@ void main()
       command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 bool have_all_pipelines = true;
-for (int pl = 0; pl < number_of_pipelines; ++pl)
+for (int pl = 0; pl < number_of_pipeline_factories; ++pl)
   if (!m_graphics_pipelines[pl].handle())
   {
     have_all_pipelines = false;
@@ -822,7 +823,7 @@ else
       command_buffer->setScissor(0, { scissor });
       m_vertex_buffers.bind(command_buffer);
 
-      for (int pl = 0; pl < number_of_pipelines; ++pl)
+      for (int pl = 0; pl < number_of_pipeline_factories; ++pl)
       {
         command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipelines[pl].handle()));
         command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipelines[pl].layout(), 0 /* uint32_t first_set */,

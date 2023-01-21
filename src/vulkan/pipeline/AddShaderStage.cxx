@@ -30,8 +30,8 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
       Dout(dc::notice|continued_cf, "Looking for \"" << match_string << "\"... ");
       if (source.find(match_string) != std::string_view::npos)
       {
-        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
         Dout(dc::finish, "(found)");
+        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
       }
       else
         Dout(dc::finish, "(not found)");
@@ -86,15 +86,19 @@ std::string_view AddShaderStage::preprocess2(
 
   // m_shader_variables contains a number of strings that we need to find in the source. They may occur zero or more times.
   int id_to_name_growth = 0;
+  Dout(dc::vulkan, "Finding substitutions:");
   for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
   {
     std::string match_string = shader_variable->glsl_id_full();
+    Dout(dc::vulkan, "  Trying \"" << match_string << "\".");
     for (size_t pos = 0; (pos = source.find(match_string, pos)) != std::string_view::npos; pos += match_string.length())
     {
       id_to_name_growth += shader_variable->name().length() - match_string.length();
+      Dout(dc::vulkan, "Found! Adding substitution: " << match_string << " --> " << shader_variable->substitution());
       positions[pos] = std::make_pair(match_string, shader_variable->substitution());
     }
   }
+  Dout(dc::vulkan, "Done finding substitutions.");
 
   static constexpr char const* version_header = "#version 450\n\n";
   size_t final_source_code_size = std::strlen(version_header) + declarations.length() + source.length() + id_to_name_growth;

@@ -78,8 +78,8 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
  protected:
   // Written to by AddVertexShader and AddFragmentShader.
   //
-  // A list of all ShaderVariable's (elements of m_glsl_id_full_to_vertex_attribute, m_glsl_id_full_to_push_constant,
-  // m_glsl_id_to_shader_resource, ...).
+  // A list of all ShaderVariable's (elements of VertexBuffers::m_glsl_id_full_to_vertex_attribute,
+  // AddPushConstant::m_glsl_id_full_to_push_constant, PipelineFactory::m_glsl_id_to_shader_resource, ...).
   std::vector<shader_builder::ShaderVariable const*> m_shader_variables;
 
  public:

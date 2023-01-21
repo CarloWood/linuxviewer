@@ -37,8 +37,8 @@ struct CharacteristicRangeBridge
   //virtual void destroy_shader_module_handles() { }
 
   // Implemented by AddVertexShader.
-  virtual void copy_vertex_input_binding_descriptions() { }
-  virtual void copy_vertex_input_attribute_descriptions() { }
+  virtual void copy_shader_variables() { }
+  virtual void update_vertex_input_descriptions() { }
   virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const { }
 
   // Implemented by AddFragmentShader.

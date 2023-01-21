@@ -20,18 +20,19 @@ class VertexShaderInputSetBase;
 
 class VertexBuffers
 {
+ public:
+  using glsl_id_full_to_vertex_attribute_container_t = std::map<std::string, shader_builder::VertexAttribute, std::less<>>;
+  using vertex_shader_input_sets_container_t = utils::Vector<shader_builder::VertexShaderInputSetBase*, VertexBufferBindingIndex>;
+
  private:
   utils::Vector<memory::Buffer, VertexBufferBindingIndex> m_memory;     // The actual buffers and their memory allocation.
                                                                         //
   uint32_t m_binding_count;                                             // Cache value to be used by bind().
   char* m_data;                                                         // Idem.
 
-  //FIXME: can the m_glsl_id_full_to_vertex_attribute in AddVertexShader be removed?
-  using glsl_id_full_to_vertex_attribute_container_t = std::map<std::string, shader_builder::VertexAttribute, std::less<>>;
   glsl_id_full_to_vertex_attribute_container_t m_glsl_id_full_to_vertex_attribute;      // Map VertexAttribute::m_glsl_id_full to the
                                                                                         // VertexAttribute object that contains it.
-  utils::Vector<shader_builder::VertexShaderInputSetBase*, VertexBufferBindingIndex> m_vertex_shader_input_sets;
-                                                                                        // Existing vertex shader input sets (a 'binding' slot).
+  vertex_shader_input_sets_container_t m_vertex_shader_input_sets;                      // Existing vertex shader input sets (a 'binding' slot).
 
  private:
   // Add shader variable (VertexAttribute) to m_glsl_id_full_to_vertex_attribute
@@ -64,6 +65,16 @@ class VertexBuffers
         m_binding_count,
         reinterpret_cast<vk::Buffer*>(m_data),
         reinterpret_cast<vk::DeviceSize*>(m_data + m_binding_count * sizeof(vk::Buffer)));
+  }
+
+  glsl_id_full_to_vertex_attribute_container_t const& glsl_id_full_to_vertex_attribute() const
+  {
+    return m_glsl_id_full_to_vertex_attribute;
+  }
+
+  vertex_shader_input_sets_container_t const& vertex_shader_input_sets() const
+  {
+    return m_vertex_shader_input_sets;
   }
 
 #ifdef CWDEBUG
@@ -102,9 +113,6 @@ void VertexBuffers::add_vertex_attribute(VertexBufferBindingIndex binding, shade
   auto ibp = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(ibp.second);
-
-  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
-//FIXME: do this later elsewhere  m_shader_variables.push_back(&ibp.first->second);
 }
 
 template<typename ContainingClass, glsl::Standard Standard, glsl::ScalarIndex ScalarIndex, int Rows, int Cols, size_t Alignment, size_t Size,
@@ -134,9 +142,6 @@ void VertexBuffers::add_vertex_attribute(VertexBufferBindingIndex binding, shade
   auto ibp = m_glsl_id_full_to_vertex_attribute.insert(std::pair{glsl_id_sv, vertex_attribute_tmp});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same attribute twice.
   ASSERT(ibp.second);
-
-  // Add a pointer to the VertexAttribute that was just added to m_glsl_id_full_to_vertex_attribute to m_shader_variables.
-//FIXME: do this later elsewhere  m_shader_variables.push_back(&ibp.first->second);
 }
 
 template<typename ENTRY>
@@ -181,19 +186,21 @@ void VertexBuffers::create_vertex_buffer(
   vk::Buffer new_buffer = m_memory.back().m_vh_buffer;
 
   // The memory layout of the m_data memory block is:
-  // vk::Buffer*
-  //   .
-  //   .
-  // vk::Buffer*
-  // vk::DeviceSize*    <-- buffer_end
-  //   .
-  //   .
-  // vk::DeviceSize*
-  // where there are m_binding_count vk::Buffer*'s as well as vk::DeviceSize*'s.
+  //               .------------------.
+  //     m_data -->| vk::Buffer       | ⎫
+  //               |   .              | ⎬ m_binding_count * sizeof(vk::Buffer) bytes.
+  //               |   .              | ⎮
+  //               | vk::Buffer       | ⎭
+  //               | vk::DeviceSize   | ⎫
+  //               |   .              | ⎬ m_binding_count * sizeof(vk::DeviceSize) bytes.
+  //               |   .              | ⎮
+  //               | vk::DeviceSize   | ⎭
+  //               `------------------'
+  // We're going to append one vk::Buffer and one vk::Device.
   ++m_binding_count;
-  char* new_device_size_start = m_data + m_binding_count * sizeof(vk::Buffer);
   m_data = (char*)std::realloc(m_data, m_binding_count * (sizeof(vk::Buffer) + sizeof(vk::DeviceSize)));
-  // After the realloc we need to move the vk::DeviceSize*'s in memory one up to make place for the new vk::Buffer*.
+  char* new_device_size_start = m_data + m_binding_count * sizeof(vk::Buffer);
+  // After the realloc we need to move the vk::DeviceSize's in memory one up to make place for the new vk::Buffer.
   std::memmove(new_device_size_start, new_device_size_start - sizeof(vk::Buffer), (m_binding_count - 1) * sizeof(vk::DeviceSize));
   reinterpret_cast<vk::Buffer*>(m_data)[m_binding_count - 1] = new_buffer;
   reinterpret_cast<vk::DeviceSize*>(new_device_size_start)[m_binding_count - 1] = 0;  // All offsets are zero at the moment.

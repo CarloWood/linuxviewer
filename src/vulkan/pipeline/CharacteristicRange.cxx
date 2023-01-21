@@ -49,6 +49,8 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case CharacteristicRange_initialized:
+      copy_shader_variables();
+
       m_owning_factory->characteristic_range_initialized();
       set_state(CharacteristicRange_continue_or_terminate);
       Debug(m_expected_state = CharacteristicRange_filled);
@@ -82,9 +84,8 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       copy_push_constant_ranges(m_owning_factory);
       // If this is a AddVertexShader then ...
       //   copy AddVertexShader::m_vertex_shader_input_sets to to AddVertexShader::m_vertex_input_binding_descriptions.
-      copy_vertex_input_binding_descriptions();
       //   copy AddVertexShader::m_glsl_id_full_to_vertex_attribute to AddVertexShader::m_vertex_input_attribute_descriptions.
-      copy_vertex_input_attribute_descriptions();
+      update_vertex_input_descriptions();
       // If this asserts then this characteristic isn't derived from AddShaderStage,
       // therefore we shouldn't have just "finished preprocessing".
       ASSERT((m_needs_signals & do_preprocess));
