@@ -29,7 +29,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 0
+#define ENABLE_IMGUI 1
 #define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 0
 
 class Window : public task::SynchronousWindow
