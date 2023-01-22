@@ -6,6 +6,7 @@
 #include "debug.h"
 #ifdef CWDEBUG
 #include "vk_utils/print_pointer.h"
+#include "vk_utils/print_flags.h"
 #endif
 
 namespace vulkan::shader_builder {
@@ -23,6 +24,7 @@ void VertexAttributeDeclarationContext::update_location(VertexAttribute const* v
 
 void VertexAttributeDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits CWDEBUG_ONLY(shader_stage), VertexAttribute const* vertex_attribute)
 {
+  DoutEntering(dc::vulkan, "VertexAttributeDeclarationContext::glsl_id_full_is_used_in(\"" << glsl_id_full << "\", " << shader_stage << ", " << vertex_attribute << ")");
   // Vertex attributes should only be used in the vertex shader.
   ASSERT(shader_stage == vk::ShaderStageFlagBits::eVertex);
   update_location(vertex_attribute);

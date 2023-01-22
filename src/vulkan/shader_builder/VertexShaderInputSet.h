@@ -19,7 +19,7 @@ namespace vulkan::shader_builder {
 class VertexShaderInputSetBase : public DataFeeder
 {
  private:
-  vk::VertexInputRate m_input_rate;     // Per vertex (vk::VertexInputRate::eVertex) or per instance (vk::VertexInputRate::eInstance).
+  vk::VertexInputRate const m_input_rate;       // Per vertex (vk::VertexInputRate::eVertex) or per instance (vk::VertexInputRate::eInstance).
 
  public:
   VertexShaderInputSetBase(vk::VertexInputRate input_rate) : m_input_rate(input_rate) { }
@@ -32,10 +32,9 @@ class VertexShaderInputSetFeeder final : public DataFeeder
 {
  private:
   VertexShaderInputSetBase* m_input_set;                                                // The actual data feeder.
-  boost::intrusive_ptr<vulkan::pipeline::CharacteristicRange const> m_input_set_owner;  // Must keep this alive. The input set pointed to by m_input_set
-                                                                                        // will be owned by the object derived from this.
+
  public:
-  [[gnu::always_inline]] inline VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner);
+  [[gnu::always_inline]] inline VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set);
 
   uint32_t chunk_size() const override { return m_input_set->chunk_size(); }
   int chunk_count() const override { return m_input_set->chunk_count(); }
@@ -114,8 +113,10 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 namespace vulkan::shader_builder {
 
 //inline
-VertexShaderInputSetFeeder::VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set, vulkan::pipeline::CharacteristicRange const* input_set_owner) :
-  m_input_set(input_set), m_input_set_owner(input_set_owner) { }
+VertexShaderInputSetFeeder::VertexShaderInputSetFeeder(VertexShaderInputSetBase* input_set) : m_input_set(input_set)
+{
+  DoutEntering(dc::vulkan, "VertexShaderInputSetFeeder::VertexShaderInputSetFeeder(" << input_set << ")");
+}
 
 } // namespace vulkan::shader_builder
 

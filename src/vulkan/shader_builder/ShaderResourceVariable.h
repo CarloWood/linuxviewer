@@ -15,7 +15,7 @@ class ShaderResourceVariable final : public ShaderVariable
   ShaderResourceVariable(char const* glsl_id_full, ShaderResourceDeclaration* shader_resource_declaration_ptr) : ShaderVariable(glsl_id_full), m_shader_resource_declaration_ptr(shader_resource_declaration_ptr) { }
 
   // Implement base class interface.
-  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const override;
   std::string name() const override;
   std::string substitution() const override;
 

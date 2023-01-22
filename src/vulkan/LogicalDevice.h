@@ -109,6 +109,9 @@ class LogicalDevice
   utils::Vector<QueueReply, QueueRequestIndex> m_queue_replies;
   QueueFamilies m_queue_families;
 
+  // Initialized in prepare; can be used to 'skip' descriptor set indexes not used in any current shader.
+  vk::UniqueDescriptorSetLayout m_empty_descriptor_set_layout;
+
   // Physical device properties.
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
@@ -136,8 +139,9 @@ class LogicalDevice
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
-  // The same type as PipelineFactory::sorted_descriptor_set_layouts_container_t.
+  // The same types as PipelineFactory::sorted_descriptor_set_layouts_container_t and sorted_descriptor_set_layouts_t.
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
+  using sorted_descriptor_set_layouts_t = aithreadsafe::Wrapper<sorted_descriptor_set_layouts_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   using pipeline_layouts_container_key_t = std::pair<sorted_descriptor_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
         utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
@@ -161,6 +165,7 @@ class LogicalDevice
   // Accessor for underlying physical and logical device.
   vk::PhysicalDevice vh_physical_device() const { return m_vh_physical_device; }
   vk::Device vh_logical_device(utils::Badge<ImGui>) const { return *m_device; }
+  vk::DescriptorSetLayout vh_empty_descriptor_set_layout() const { return *m_empty_descriptor_set_layout; }
 
   bool verify_presentation_support(PresentationSurface const&) const;
   bool supports_separate_depth_stencil_layouts() const { return m_supports_separate_depth_stencil_layouts; }
@@ -199,7 +204,8 @@ class LogicalDevice
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
   // and returns an updated set_index_hint_map_out (see explanation in LogicalDevice.cxx).
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
+      sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
+      descriptor::SetIndexHint largest_set_index_hint,
       descriptor::SetIndexHintMap& set_index_hint_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
       ) /*threadsafe-*/const;
@@ -215,7 +221,11 @@ class LogicalDevice
 
   // Wait the completion of outstanding queue operations for all queues of this logical device.
   // This is a blocking call, only intended for program termination.
-  void wait_idle() const { m_device->waitIdle(); }
+  void wait_idle() const
+  {
+    DoutEntering(dc::vulkan, "LogicalDevice::wait_idle()");
+    m_device->waitIdle();
+  }
 
   // Unsorted additional functions.
   inline vk::UniqueSemaphore create_timeline_semaphore(uint64_t initial_value COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
@@ -284,7 +294,7 @@ class LogicalDevice
   vk::UniqueDescriptorSetLayout create_descriptor_set_layout(descriptor::SetLayoutBindingsAndFlags const& sorted_descriptor_set_layout_bindings_and_flags
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   std::vector<descriptor::FrameResourceCapableDescriptorSet> allocate_descriptor_sets(FrameResourceIndex number_of_frame_resources,
-      std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+      std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts,
       std::vector<uint32_t> const& unbounded_descriptor_array_sizes,
       std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs, descriptor_pool_t& descriptor_pool
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
@@ -296,7 +306,7 @@ class LogicalDevice
   template<ConceptWriteDescriptorSetUpdateInfo T>
   void update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
       T const& write_descriptor_set_update_infos) const;
-  vk::UniquePipelineLayout create_pipeline_layout(std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
+  vk::UniquePipelineLayout create_pipeline_layout(utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> const& vhv_descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
       SwapchainKind const& swapchain_kind, vk::SwapchainKHR vh_old_swapchain

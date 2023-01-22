@@ -58,8 +58,7 @@ SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDE
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
   m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug)))
   COMMA_TRACY_ONLY(tracy_acquired_image_tracy_context(8), tracy_acquired_image_busy(8)),
-  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}),
-  m_dependent_tasks(utils::max_malloc_size(4096))
+  attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}), m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
   DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
@@ -126,6 +125,7 @@ char const* SynchronousWindow::condition_str_impl(condition_type condition) cons
     AI_CASE_RETURN(imgui_font_texture_ready);
     AI_CASE_RETURN(parent_window_created);
     AI_CASE_RETURN(condition_pipeline_available);
+    AI_CASE_RETURN(free_condition);
   }
   return direct_base_type::condition_str_impl(condition);
 }
@@ -289,6 +289,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       create_swapchain_images();
       create_frame_resources();
       create_imageless_framebuffers();  // Must be called after create_swapchain_images()!
+      create_vertex_buffers();
       register_shader_templates();
       // Upload the "loading texture".
       {
@@ -822,6 +823,7 @@ void SynchronousWindow::finish_frame()
 
   vk::Result res;
   {
+    Dout(dc::vkframe, "Calling presentKHR with .pWaitSemaphores = " << present_info.pWaitSemaphores[0]);
     CwZoneScopedN("presentKHR", max_number_of_swapchain_images(), m_swapchain.current_index());
     res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
   }
@@ -930,8 +932,16 @@ void SynchronousWindow::finish_impl()
   if (have_synchronous_task(atomic_flags()))
     handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
 
-  // Wait for (certain) tasks to be finished.
-  m_task_counter_gate.wait();
+  // Wait for (certain) tasks to be finished, while giving CPU to possibly still running synchronous tasks.
+  while (!m_task_counter_gate.wait_for(100))
+    while (mainloop().is_true())
+      ;
+
+  // Wait for semaphores to be finished (before destructing them).
+  if (m_logical_device)
+  {
+    m_logical_device->wait_idle();
+  }
 }
 
 //virtual

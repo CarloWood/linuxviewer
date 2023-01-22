@@ -365,6 +365,16 @@ std::ostream& operator<<(std::ostream& os, PushConstantRange const& push_constan
   return os;
 }
 
+std::ostream& operator<<(std::ostream& os, BufferCopy const& buffer_copy)
+{
+  os << '{';
+  os << "srcOffset:" << buffer_copy.srcOffset <<
+      ", dstOffset:" << buffer_copy.dstOffset <<
+      ", size:" << buffer_copy.size;
+  os << '}';
+  return os;
+}
+
 } // namespace vk
 
 #include "LogicalDevice.h"

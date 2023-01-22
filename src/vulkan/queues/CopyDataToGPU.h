@@ -37,11 +37,13 @@ class CopyDataToGPU : public ImmediateSubmit
     ImmediateSubmit({logical_device, this}, CopyDataToGPU_done COMMA_CWDEBUG_ONLY(debug)),
     m_data_size(data_size), m_resource_owner(nullptr), m_index(statefultask::RunningTasksTracker::s_aborted)
   {
-    DoutEntering(dc::vulkan, "CopyDataToGPU(" << logical_device << ", " << data_size << ")");
+    DoutEntering(dc::vulkan(mSMDebug), "CopyDataToGPU(" << logical_device << ", " << data_size << ")");
   }
 
   void set_resource_owner(SynchronousWindow const* resource_owner)
   {
+    // Setting the resource owner to nullptr can potentially cause a hang, see CopyDataToGPU::finish_impl.
+    ASSERT(resource_owner);
     m_resource_owner = resource_owner;
   }
 

@@ -12,6 +12,7 @@ namespace vulkan::descriptor {
 
 void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
+  DoutEntering(dc::setindexhint, "CombinedImageSamplerUpdater::prepare_shader_resource_declaration(" << set_index_hint << ", (AddShaderStage*)" << add_shader_stage << ") [" << this << "]");
   add_shader_stage->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
@@ -215,8 +216,6 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             }
             else
               m_owning_window->update_descriptor_set_with_loading_texture(descriptor_set, binding, { 0, descriptor_update_info->descriptor_array_size() });
-
-            Dout(dc::always, "m_factory_characteristic_key_to_descriptor is now: " << m_factory_characteristic_key_to_descriptor);
           }
           else
           {

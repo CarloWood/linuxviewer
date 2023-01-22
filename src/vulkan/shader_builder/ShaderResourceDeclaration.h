@@ -8,33 +8,34 @@
 #include <map>
 #ifdef CWDEBUG
 #include "vk_utils/print_pointer.h"
+#include "vk_utils/print_flags.h"
 #endif
 #include "debug.h"
+#include "cwds/UsageDetector.h"
 
 namespace vulkan::shader_builder {
 class ShaderResourceBase;
 
 class ShaderResourceDeclaration
 {
+ protected:
+  using shader_resource_variables_container_t = std::vector<ShaderResourceVariable>;
+
  private:
-  static constexpr uint32_t undefined_magic = 0xffffffff;     // Magic number.
+  static constexpr uint32_t undefined_magic = 0xffffafff;     // Magic number.
 
   std::string m_glsl_id;
   vk::DescriptorType m_descriptor_type;                 // The descriptor type of this shader resource.
   descriptor::SetIndexHint m_set_index_hint;            // The set index that this resource belongs to.
   // Mutable because we need to set it later.
   mutable uint32_t m_binding{undefined_magic};          // The binding that this resource belongs to. Set to magic value while set_binding wasn't called yet for debugging purposes.
-  using shader_resource_variables_container_t = std::vector<ShaderResourceVariable>;
   shader_resource_variables_container_t m_shader_resource_variables;
 
   ShaderResourceBase const& m_shader_resource;
   vk::ShaderStageFlags m_stage_flags{};
 
  public:
-  ShaderResourceDeclaration(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/, ShaderResourceBase const& shader_resource) :
-    m_glsl_id(std::move(glsl_id)), m_descriptor_type(descriptor_type), m_set_index_hint(set_index_hint),
-    /*m_offset(offset), m_array_size(array_size),*/ m_shader_resource(shader_resource)
-  { }
+  ShaderResourceDeclaration(std::string glsl_id, vk::DescriptorType descriptor_type, descriptor::SetIndexHint set_index_hint /*, uint32_t offset, uint32_t array_size = 0*/, ShaderResourceBase const& shader_resource);
 
   void add_member(ShaderResourceMember const& member)
   {
@@ -66,6 +67,7 @@ class ShaderResourceDeclaration
   vk::DescriptorType descriptor_type() const { return m_descriptor_type; }
   descriptor::SetIndexHint set_index_hint() const { return m_set_index_hint; }
   uint32_t binding() const { ASSERT(m_binding != undefined_magic); return m_binding; }
+  bool has_binding() const { return m_binding != undefined_magic; }
   shader_resource_variables_container_t const& shader_resource_variables() const { return m_shader_resource_variables; }
   ShaderResourceBase const& shader_resource() const { return m_shader_resource; }
   vk::ShaderStageFlags stage_flags() const { return m_stage_flags; }

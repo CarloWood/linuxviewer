@@ -9,7 +9,11 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS serialization)
 
 find_package(PkgConfig REQUIRED)
+# Prepend shaderc_ROOT in case this package was installed by gitache.
+set(stored_CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
+list(PREPEND CMAKE_PREFIX_PATH "${shaderc_ROOT}")
 pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
+set(CMAKE_PREFIX_PATH "${stored_CMAKE_PREFIX_PATH}")
 
 find_package(magic_enum REQUIRED)
 

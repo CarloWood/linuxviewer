@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SetIndex.h"
+#include "utils/AIAlert.h"
 #include <map>
 #include "debug.h"
 
@@ -13,10 +14,10 @@ class SetIndexHintMap
   set_map_container_t m_set_index_map;
 
  public:
-  void add_from_to(descriptor::SetIndexHint sih1, descriptor::SetIndexHint sih2)
+  void add_from_to(SetIndexHint sih1, SetIndexHint sih2)
   {
     DoutEntering(dc::vulkan, "add_from_to(" << sih1 << ", " << sih2);
-    descriptor::SetIndex final_set_index{sih2.get_value()};
+    SetIndex final_set_index{sih2.get_value()};
     if (sih1 >= m_set_index_map.iend())
       m_set_index_map.resize(sih1.get_value() + 1);
     // Don't call add_from_to twice for the same sih1.
@@ -29,7 +30,18 @@ class SetIndexHintMap
     m_set_index_map.clear();
   }
 
-  descriptor::SetIndex convert(descriptor::SetIndexHint set_index_hint) const { return m_set_index_map[set_index_hint]; }
+  SetIndex convert(SetIndexHint set_index_hint) const
+  {
+    DoutEntering(dc::setindexhint|continued_cf, "SetIndexHintMap::convert(" << set_index_hint << ") = ");
+    // If the value of set_index_hint was not passed to add_from_to as first argument, then
+    // we should return an 'undefined' SetIndex. This then indicates that this set_index_hint
+    // belongs to a shader resource that wasn't used in any of the shaders of the current pipeline.
+    SetIndex result;
+    if (set_index_hint < m_set_index_map.iend())
+      result = m_set_index_map[set_index_hint];
+    Dout(dc::finish, result);
+    return result;
+  }
 
   // Accessor.
   bool empty() const { return m_set_index_map.empty(); }

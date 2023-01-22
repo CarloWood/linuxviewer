@@ -1,13 +1,16 @@
 #pragma once
 
-#include "AddShaderVariableDeclaration.h"
 #include "CharacteristicRangeBridge.h"
+#include "AddShaderStageBridge.h"
+#include "PipelineFactory.h"
 #include "shader_builder/ShaderVariable.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/SPIRVCache.h"
 #include "shader_builder/ShaderResourceDeclarationContext.h"
 #include "descriptor/SetIndex.h"
 #include "utils/Badge.h"
+#include "utils/Array.h"
+#include "utils/is_power_of_two.h"
 #include <map>
 #include <vector>
 #include <set>
@@ -32,22 +35,51 @@ class CombinedImageSamplerUpdater;
 namespace vulkan::pipeline {
 class CharacteristicRange;
 
-class AddShaderStage : public AddShaderVariableDeclaration, public virtual CharacteristicRangeBridge
+class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
   using declaration_contexts_container_t = std::set<shader_builder::DeclarationContext*>;
-  declaration_contexts_container_t m_declaration_contexts;
+  using ShaderStageIndex = utils::ArrayIndex<declaration_contexts_container_t>;
 
+  static constexpr ShaderStageIndex eVertex_index{0};
+  static constexpr ShaderStageIndex eFragment_index{1};
+  static constexpr size_t number_of_shader_stage_indexes{2};
+  static constexpr vk::ShaderStageFlagBits largest_shader_stage_flag = vk::ShaderStageFlagBits::eFragment;
+
+  // Convert a vk::ShaderStageFlagBits single-bit mask to the index of s_log2ShaderStageFlagBits_to_ShaderStageIndex.
+  static constexpr int get_lookup_index(vk::ShaderStageFlagBits shader_stage_flag_bit) { return utils::log2(static_cast<VkShaderStageFlags>(shader_stage_flag_bit)); }
+
+  static constexpr ShaderStageIndex undefined_shader_stage_index{};
+  // Lookup table that converts the result of get_lookup_index to a ShaderStageIndex.
+  // Using log2 etc here because we're not allowed to use the "incomplete" get_lookup_index yet :(
+  static constexpr std::array<ShaderStageIndex, utils::log2(static_cast<VkShaderStageFlags>(largest_shader_stage_flag)) + 1> const s_log2ShaderStageFlagBits_to_ShaderStageIndex = {
+    eVertex_index,
+    undefined_shader_stage_index,
+    undefined_shader_stage_index,
+    undefined_shader_stage_index,
+    eFragment_index
+  };
+
+  static constexpr ShaderStageIndex ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits shader_stage_flag)
+  {
+    ASSERT(utils::is_power_of_two(static_cast<VkShaderStageFlags>(shader_stage_flag)));
+    return s_log2ShaderStageFlagBits_to_ShaderStageIndex[get_lookup_index(shader_stage_flag)];
+  }
+
+#ifdef CWDEBUG
+  friend struct StaticCheckLookUpTable;
+#endif
+
+  utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
+  utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
-
-  vk::UniqueShaderModule m_shader_module;
-  vk::PipelineShaderStageCreateInfo m_shader_stage_create_info;
+  int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
 
  protected:
   // Written to by AddVertexShader and AddFragmentShader.
   //
-  // A list of all ShaderVariable's (elements of m_glsl_id_full_to_vertex_attribute, m_glsl_id_full_to_push_constant,
-  // m_glsl_id_to_shader_resource, ...).
+  // A list of all ShaderVariable's (elements of VertexBuffers::m_glsl_id_full_to_vertex_attribute,
+  // AddPushConstant::m_glsl_id_full_to_push_constant, PipelineFactory::m_glsl_id_to_shader_resource, ...).
   std::vector<shader_builder::ShaderVariable const*> m_shader_variables;
 
  public:
@@ -67,9 +99,27 @@ class AddShaderStage : public AddShaderVariableDeclaration, public virtual Chara
   void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
   void prepare_uniform_buffer_declaration(shader_builder::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
 
+  // Accessor.
+  int context_changed_generation() const { return m_context_changed_generation; }
+
  private:
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();
+
+  // Override of AddShaderStageBridge.
+  void add_shader_variable(shader_builder::ShaderVariable const* shader_variable) override
+  {
+    m_shader_variables.push_back(shader_variable);
+  }
+
+  // This is a AddShaderStage.
+  bool is_add_shader_stage() const final { return true; }
+
+  // Override of CharacteristicRangeBridge.
+  void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const final
+  {
+    pipeline_factory->add_to_flat_create_info(&m_shader_stage_create_infos);
+  }
 
  protected:
   // Called from *UserCode*PipelineCharacteristic_initialize.
@@ -96,6 +146,26 @@ class AddShaderStage : public AddShaderVariableDeclaration, public virtual Chara
     shader_builder::SPIRVCache tmp_spirv_cache;
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
+
+#if 0
+  // Not used at the moment: we destruct them when AddShaderStage::m_per_stage_shader_module is destructed, which are vk::UniqueShaderModule.
+  void destroy_shader_module_handles() override
+  {
+    DoutEntering(dc::always, "destroy_shader_module_handles() [" << this << "]");
+    for (ShaderStageIndex i = m_per_stage_shader_module.ibegin(); i != m_per_stage_shader_module.iend(); ++i)
+      m_per_stage_shader_module[i].reset();
+  }
+#endif
 };
+
+#ifdef CWDEBUG
+struct StaticCheckLookUpTable : AddShaderStage
+{
+  // The above initialization must be in the same order as the vk::ShaderStageFlagBits enum (assuming those
+  // are defined with values of 1 << n, where n runs from 0 and up with increments of 1.
+  static_assert(ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits::eVertex) == eVertex_index);
+  static_assert(ShaderStageFlag_to_ShaderStageIndex(vk::ShaderStageFlagBits::eFragment) == eFragment_index);
+};
+#endif
 
 } // namespace vulkan::pipeline

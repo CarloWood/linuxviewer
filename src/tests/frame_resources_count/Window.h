@@ -160,6 +160,11 @@ class Window : public task::SynchronousWindow
     }
   }
 
+  void create_vertex_buffers() override
+  {
+    implement
+  }
+
   static constexpr std::string_view intel_vert_glsl = R"glsl(
 out gl_PerVertex
 {

@@ -300,8 +300,8 @@ void RenderPass::set_is_present_on_attachment_sink_with_index(AttachmentIndex in
 
 void RenderPass::stores_called(RenderPass* render_pass)
 {
-  auto res = m_stores_called.insert(render_pass);
-  if (!res.second)
+  auto ibp = m_stores_called.insert(render_pass);
+  if (!ibp.second)
     THROW_ALERT("Render pass \"[RENDERPASS]\" occurs more than once in the graph", AIArgs("[RENDERPASS]", render_pass));
 }
 
@@ -395,13 +395,13 @@ void RenderPass::print_on(std::ostream& os) const
 #ifdef CWDEBUG
 int get_id(RenderPass const* render_pass, std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id)
 {
-  auto res = ids.emplace(render_pass, next_id);
-  if (res.second)
+  auto ibp = ids.emplace(render_pass, next_id);
+  if (ibp.second)
   {
     names.push_back(render_pass->name());
     ++next_id;
   }
-  return res.first->second;
+  return ibp.first->second;
 }
 
 void RenderPass::print_vertices(std::map<RenderPass const*, int>& ids, std::vector<std::string>& names, int& next_id,

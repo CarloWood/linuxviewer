@@ -9,14 +9,14 @@
 #include <functional>
 #include "debug.h"
 
+namespace task {
+class PipelineFactory;
+} // namespace task
+
 namespace vulkan::pipeline {
 
 class FlatCreateInfo
 {
- public:
-  // The same type as PipelineFactory::sorted_descriptor_set_layouts_container_t.
-  using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-
  private:
   using pipeline_shader_stage_create_infos_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::PipelineShaderStageCreateInfo> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
   pipeline_shader_stage_create_infos_list_t m_pipeline_shader_stage_create_infos_list;
@@ -36,13 +36,11 @@ class FlatCreateInfo
   using push_constant_ranges_list_t = aithreadsafe::Wrapper<std::vector<std::vector<vk::PushConstantRange> const*>, aithreadsafe::policy::Primitive<std::mutex>>;
   push_constant_ranges_list_t m_push_constant_ranges_list;
 
-  sorted_descriptor_set_layouts_container_t* m_realized_descriptor_set_layouts_ptr{};
-
   template<typename T>
   static std::vector<T> merge(aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>> const& input_list)
   {
     std::vector<T> result;
-    typename aithreadsafe::Wrapper<std::vector<std::vector<T> const*>, aithreadsafe::policy::Primitive<std::mutex>>::crat input_list_r(input_list);
+    typename std::remove_reference_t<decltype(input_list)>::crat input_list_r(input_list);
     size_t s = 0;
     for (std::vector<T> const* v : *input_list_r)
     {
@@ -171,27 +169,6 @@ class FlatCreateInfo
   std::vector<vk::DynamicState> get_dynamic_states() const
   {
     return merge(m_dynamic_states_list);
-  }
-
-  void add_descriptor_set_layouts(sorted_descriptor_set_layouts_container_t* descriptor_set_layouts)
-  {
-    // Only call this once, merging is not supported.
-    ASSERT(m_realized_descriptor_set_layouts_ptr == nullptr);
-    m_realized_descriptor_set_layouts_ptr = descriptor_set_layouts;
-  }
-
-  sorted_descriptor_set_layouts_container_t* get_realized_descriptor_set_layouts()
-  {
-    // You must call add(std::vector<vk::DescriptorSetLayout> const&) from at least one Characteristic.
-    ASSERT(m_realized_descriptor_set_layouts_ptr != nullptr);
-#ifdef CWDEBUG
-    for (descriptor::SetLayout const& layout : *m_realized_descriptor_set_layouts_ptr)
-    {
-      // This vector must already have been realized.
-      ASSERT(layout.handle());
-    }
-#endif
-    return m_realized_descriptor_set_layouts_ptr;
   }
 
   int add(std::vector<vk::PushConstantRange> const* push_constant_ranges)

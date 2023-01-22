@@ -3,6 +3,7 @@
 #include "ShaderVariableLayouts.h"      // standards::vertex_attributes
 #include "ShaderVariable.h"
 #include "BasicType.h"
+#include "VertexBufferBindingIndex.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <cstdint>
@@ -11,7 +12,6 @@
 namespace vulkan::shader_builder {
 
 class VertexShaderInputSetBase;
-using BindingIndex = utils::VectorIndex<VertexShaderInputSetBase*>;
 
 struct VertexAttribute final : public ShaderVariable
 {
@@ -19,16 +19,16 @@ struct VertexAttribute final : public ShaderVariable
   BasicType const m_basic_type;                 // The glsl basic type of the variable, or underlying basic type in case of an array.
   uint32_t const m_offset;                      // The offset of the variable inside its C++ ENTRY struct.
   uint32_t const m_array_size;                  // Set to zero when this is not an array.
-  BindingIndex m_binding;
+  VertexBufferBindingIndex m_binding;
 
  public:
   // Accessors.
   BasicType basic_type() const { return m_basic_type; }
   uint32_t offset() const { return m_offset; }
   uint32_t array_size() const { return m_array_size; }
-  BindingIndex binding() const { return m_binding; }
+  VertexBufferBindingIndex binding() const { return m_binding; }
 
-  VertexAttribute(BasicType basic_type, char const* glsl_id_full, uint32_t offset, uint32_t array_size, BindingIndex binding) :
+  VertexAttribute(BasicType basic_type, char const* glsl_id_full, uint32_t offset, uint32_t array_size, VertexBufferBindingIndex binding) :
     ShaderVariable(glsl_id_full), m_basic_type(basic_type), m_offset(offset), m_array_size(array_size), m_binding(binding)
   {
     DoutEntering(dc::vulkan, "VertexAttribute::VertexAttribute(" << basic_type << ", \"" << glsl_id_full << "\", " << ", " << offset << ", " << array_size << ", " << binding << ")");
@@ -63,7 +63,7 @@ struct VertexAttribute final : public ShaderVariable
 
  private:
   // Implement base class interface.
-  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const override;
+  DeclarationContext* is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const override;
 
 #ifdef CWDEBUG
  public:

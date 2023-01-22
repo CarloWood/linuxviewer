@@ -2,6 +2,7 @@
 #include "PushConstant.h"
 #include "DeclarationContext.h"
 #include "pipeline/AddPushConstant.h"
+#include "pipeline/AddShaderStage.h"
 #include "vk_utils/print_flags.h"
 #include <sstream>
 #include <functional>
@@ -17,10 +18,10 @@ std::string PushConstant::name() const
 }
 
 // Called from AddShaderStage::preprocess1.
-DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderVariableDeclaration* add_shader_variable_declaration) const
+DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stage, pipeline::AddShaderStage* add_shader_stage) const
 {
-  DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << add_shader_variable_declaration << ") [" << this << "]");
-  pipeline::AddPushConstant* add_push_constant = static_cast<pipeline::AddPushConstant*>(add_shader_variable_declaration);
+  DoutEntering(dc::vulkan, "PushConstant::is_used_in(" << shader_stage << ", " << add_shader_stage << ") [" << this << "]");
+  pipeline::AddPushConstant* add_push_constant = add_shader_stage->convert_to_add_push_constant();
 
   auto push_constant_declaration_context_iter = add_push_constant->glsl_id_full_to_push_constant_declaration_context({}).find(prefix());
   // This prefix should already have been inserted by AddPushConstant::add_push_constant.

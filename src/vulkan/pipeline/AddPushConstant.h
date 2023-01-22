@@ -1,7 +1,8 @@
 #pragma once
 
 #include "PushConstantRangeCompare.h"
-#include "AddShaderVariableDeclaration.h"
+#include "CharacteristicRangeBridge.h"
+#include "AddShaderStageBridge.h"
 #include "shader_builder/PushConstant.h"
 #include "shader_builder/ShaderVariableLayouts.h"
 #include "shader_builder/PushConstantDeclarationContext.h"
@@ -14,13 +15,18 @@
 #include <set>
 #include <concepts>
 
+namespace task {
+class PipelineFactory;
+} // namespace task
+
 namespace vulkan::pipeline {
 
-class AddPushConstant : public AddShaderVariableDeclaration
+class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
-   //FIXME: is this not used?
-//  std::vector<vk::PushConstantRange> m_push_constant_ranges;
+  AddPushConstant* convert_to_add_push_constant() override { return this; }
+
+  std::vector<vk::PushConstantRange> m_push_constant_ranges;
 
   //---------------------------------------------------------------------------
   // Push constants.
@@ -31,6 +37,7 @@ class AddPushConstant : public AddShaderVariableDeclaration
   glsl_id_full_to_push_constant_container_t m_glsl_id_full_to_push_constant;                    // Map PushConstant::m_glsl_id_full to the PushConstant object that contains it.
 
   std::set<vk::PushConstantRange, PushConstantRangeCompare> m_sorted_push_constant_ranges;
+  bool m_sorted_push_constant_ranges_changed{false};
 
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
   // and a declaration context for its prefix) if that doesn't already exist, for a non-array push constant.
@@ -50,6 +57,10 @@ class AddPushConstant : public AddShaderVariableDeclaration
       shader_builder::ArrayLayout<shader_builder::BasicTypeLayout<Standard, ScalarIndex, Rows, Cols, Alignment, Size, ArrayStride>, Elements>,
       MemberIndex, MaxAlignment, Offset, GlslIdStr> const& member_layout);
 
+  // Override of CharacteristicRangeBridge.
+  void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) final;
+  void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const final;
+
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
   void insert_push_constant_range(vk::PushConstantRange const& push_constant_range)
@@ -57,16 +68,14 @@ class AddPushConstant : public AddShaderVariableDeclaration
     auto range = m_sorted_push_constant_ranges.equal_range(push_constant_range);
     m_sorted_push_constant_ranges.erase(range.first, range.second);
     m_sorted_push_constant_ranges.insert(push_constant_range);
-  }
-
-  // Access what calls to the above insert constructed. FIXME: probably needs a Badge
-  std::vector<vk::PushConstantRange> push_constant_ranges() const
-  {
-    return { m_sorted_push_constant_ranges.begin(), m_sorted_push_constant_ranges.end() };
+    m_sorted_push_constant_ranges_changed = true;
   }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
-  glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const { return m_glsl_id_full_to_push_constant_declaration_context; }
+  glsl_id_full_to_push_constant_declaration_context_container_t const& glsl_id_full_to_push_constant_declaration_context(utils::Badge<shader_builder::PushConstant>) const
+  {
+    return m_glsl_id_full_to_push_constant_declaration_context;
+  }
   glsl_id_full_to_push_constant_container_t const& glsl_id_full_to_push_constant() const { return m_glsl_id_full_to_push_constant; }
 
  protected:

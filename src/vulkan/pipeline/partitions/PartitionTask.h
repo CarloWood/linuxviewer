@@ -21,7 +21,7 @@ class PartitionTask
   LogicalDevice const* m_logical_device;        // The device that this is being used for: it determines the max_number_of_sets.
   int8_t m_number_of_elements;                  // The number of elements that we need to partition.
   int8_t m_max_number_of_sets;                  // The maximum number of sets that will be used by this task.
-  utils::RandomNumber m_random_number;          // Random number generator for generating random partitions.
+  utils::RandomNumber m_random_number{1};       // Random number generator for generating random partitions.
   std::map<Set, Score> m_set23_to_score;        // Initialized by initialize_set23_to_score.
   bool m_set23_to_score_initialized{false};     // Set to true when m_set23_to_score is initialized.
   std::vector<Score> m_scores;

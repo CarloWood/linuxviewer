@@ -670,6 +670,9 @@ void LogicalDevice::prepare(
     *descriptor_pool_w = create_descriptor_pool(pool_sizes, 2200
         COMMA_DEBUG_ONLY(debug_name_prefix("m_descriptor_pool")));
   }
+
+  // Create an empty vk::DescriptorSetLayout.
+  m_empty_descriptor_set_layout = create_descriptor_set_layout({}, debug_name_prefix("m_empty_descriptor_set_layout"));
 }
 
 Queue LogicalDevice::acquire_queue(QueueRequestKey queue_request_key) const
@@ -956,51 +959,65 @@ vk::UniqueDescriptorSetLayout LogicalDevice::create_descriptor_set_layout(
   return set_layout;
 }
 
-
 std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::allocate_descriptor_sets(
     FrameResourceIndex number_of_frame_resources,
-    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layout,
+    std::vector<vk::DescriptorSetLayout> const& vhv_descriptor_set_layouts,
     std::vector<uint32_t> const& unbounded_descriptor_array_sizes,
     std::vector<std::pair<descriptor::SetIndex, bool>> const& set_index_has_frame_resource_pairs,
     descriptor_pool_t& descriptor_pool
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << number_of_frame_resources << ", " << vhv_descriptor_set_layout << ", " << unbounded_descriptor_array_sizes <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::allocate_descriptor_sets(" << number_of_frame_resources << ", " << vhv_descriptor_set_layouts << ", " << unbounded_descriptor_array_sizes <<
       ", " << set_index_has_frame_resource_pairs << ", @" << (void*)&descriptor_pool << ", object_name:\"" << debug_name.object_name() << "\").");
-  uint32_t descriptorSetCount = 0;
-  vk::DescriptorSetLayout const* pSetLayouts = vhv_descriptor_set_layout.data();
-  std::vector<vk::DescriptorSetLayout> tmp_vhv_layouts;
+  // These vectors contain data that matches on a per index basis.
+  bool const unbounded_descriptor_array_sizes_empty = unbounded_descriptor_array_sizes.empty();
+  ASSERT(unbounded_descriptor_array_sizes_empty || vhv_descriptor_set_layouts.size() == unbounded_descriptor_array_sizes.size());
+  std::vector<vk::DescriptorSetLayout> tmp_vh_descriptor_set_layouts;
+  std::vector<uint32_t> tmp_unbounded_descriptor_array_sizes;
   static constexpr FrameResourceIndex one{1};
   int n = 0;
-  for (vk::DescriptorSetLayout vh_descriptor_set_layout : vhv_descriptor_set_layout)
+  for (vk::DescriptorSetLayout vh_descriptor_set_layout : vhv_descriptor_set_layouts)
   {
+    // It is not allowed to pass VK_NULL_HANDLE's in vhv_descriptor_set_layouts because
+    // we can't allocate a descriptor set for that and therefore it would be confusing
+    // to understand the result vector (that would have to omit those). We want also
+    // a one-on-one relationship per index between vhv_descriptor_set_layouts and
+    // the output vector.
+    ASSERT(vh_descriptor_set_layout);
+    uint32_t unbounded_descriptor_array_size = unbounded_descriptor_array_sizes_empty ? 0 : unbounded_descriptor_array_sizes[n];
     for (FrameResourceIndex frame_index{0}; frame_index < (set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources : one); ++frame_index)
     {
-      tmp_vhv_layouts.push_back(vh_descriptor_set_layout);
-      ++descriptorSetCount;
+      tmp_vh_descriptor_set_layouts.push_back(vh_descriptor_set_layout);
+      tmp_unbounded_descriptor_array_sizes.push_back(unbounded_descriptor_array_size);
     }
     ++n;
   }
-  pSetLayouts = tmp_vhv_layouts.data();
+  // This is only used when !unbounded_descriptor_array_sizes_empty.
   vk::DescriptorSetVariableDescriptorCountAllocateInfo descriptor_set_variable_descriptor_count_allocate_info{
-    .descriptorSetCount = descriptorSetCount,
-    .pDescriptorCounts = unbounded_descriptor_array_sizes.data()
+    .descriptorSetCount = static_cast<uint32_t>(tmp_unbounded_descriptor_array_sizes.size()),
+    .pDescriptorCounts = tmp_unbounded_descriptor_array_sizes.data()
   };
+  vk::DescriptorSetVariableDescriptorCountAllocateInfo* descriptor_set_variable_descriptor_count_allocate_info_ptr = nullptr;
+  if (!unbounded_descriptor_array_sizes_empty)
+  {
+    ASSERT(tmp_unbounded_descriptor_array_sizes.size() <= std::numeric_limits<uint32_t>::max());
+    descriptor_set_variable_descriptor_count_allocate_info_ptr = &descriptor_set_variable_descriptor_count_allocate_info;
+  }
   std::vector<vk::DescriptorSet> raw_descriptor_sets;
   {
     descriptor_pool_t::wat descriptor_pool_w(descriptor_pool);
     vk::DescriptorSetAllocateInfo descriptor_set_allocate_info{
-      .pNext = unbounded_descriptor_array_sizes.empty() ? nullptr : &descriptor_set_variable_descriptor_count_allocate_info,
+      .pNext = descriptor_set_variable_descriptor_count_allocate_info_ptr,
       .descriptorPool = descriptor_pool_w->get(),
-      .descriptorSetCount = descriptorSetCount,
-      .pSetLayouts = pSetLayouts
+      .descriptorSetCount = static_cast<uint32_t>(tmp_vh_descriptor_set_layouts.size()),
+      .pSetLayouts = tmp_vh_descriptor_set_layouts.data()
     };
     raw_descriptor_sets = m_device->allocateDescriptorSets(descriptor_set_allocate_info);
   }
 
   std::vector<descriptor::FrameResourceCapableDescriptorSet> descriptor_sets;
   auto raw_descriptor_set = raw_descriptor_sets.begin();
-  for (n = 0; n < vhv_descriptor_set_layout.size(); ++n)
+  for (n = 0; n < vhv_descriptor_set_layouts.size(); ++n)
   {
     size_t nfrs = set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources.get_value() : 1;
     descriptor_sets.emplace_back(raw_descriptor_set, raw_descriptor_set + nfrs);
@@ -1088,7 +1105,7 @@ void LogicalDevice::free_command_buffers(vk::CommandPool vh_pool, uint32_t count
 }
 
 vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
-    std::vector<vk::DescriptorSetLayout> const& vhv_sorted_descriptor_set_layouts,
+    utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> const& vhv_sorted_descriptor_set_layouts,
     std::vector<vk::PushConstantRange> const& push_constant_ranges
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const
 {
@@ -1264,10 +1281,10 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
                 boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
         descriptor_set_layouts_t::wat descriptor_set_layouts_w(descriptor_set_layouts_r);
-        auto res = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
+        auto ibp = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
         // We just used find and couldn't find it?!
-        ASSERT(res.second);
-        iter = res.first;
+        ASSERT(ibp.second);
+        iter = ibp.first;
         Dout(dc::shaderresource, "Created handle " << *iter->second << " with key: " << sorted_descriptor_set_layout_bindings << ".");
       }
       else
@@ -1384,21 +1401,24 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_descriptor_set_layouts_container_t* const realized_descriptor_set_layouts,
+    sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
+    descriptor::SetIndexHint largest_set_index_hint,
     descriptor::SetIndexHintMap& set_index_hint_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::realize_pipeline_layout(" << vk_utils::print_pointer(realized_descriptor_set_layouts) << ", " << sorted_push_constant_ranges << ")");
+  DoutEntering(dc::shaderresource|dc::vulkan|dc::setindexhint, "LogicalDevice::realize_pipeline_layout(" <<
+      *realized_descriptor_set_layouts_w << ", " << largest_set_index_hint << ", set_index_hint_map_out, " <<
+      sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
   descriptor::SetLayoutCompare set_layout_compare;
-  for (descriptor::SetLayout const& set_layout : *realized_descriptor_set_layouts)
+  for (descriptor::SetLayout const& set_layout : *realized_descriptor_set_layouts_w)
   {
     // realized_descriptor_set_layouts must be sorted.
     ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
     prev_set_layout = &set_layout;
   }
-  // What do you think you are doing?
+  // This is an output variable and it should be empty at the beginning of this function.
   ASSERT(set_index_hint_map_out.empty());
 #endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
@@ -1408,34 +1428,43 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     {
       using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
-      auto key = std::make_pair(*realized_descriptor_set_layouts, sorted_push_constant_ranges);
+      auto key = std::make_pair(*realized_descriptor_set_layouts_w, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
-        std::vector<vk::DescriptorSetLayout> vhv_realized_descriptor_set_layouts(realized_descriptor_set_layouts->size());
-        for (auto&& layout : *realized_descriptor_set_layouts)
+        // It is possible that set_index_hint is larger than or equal to realized_descriptor_set_layouts_w->size()
+        // if not all add_*-ed shader resources are used in the shaders of the current pipeline.
+        // In that case we must pass m_empty_descriptor_set_layout for the unused elements.
+        // So, begin with initializing largest_set_index_hint DescriptorSetLayout handles equal to m_empty_descriptor_set_layout
+        // in case we only partially overwrite this vector with new values.
+        utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts(largest_set_index_hint.get_value() + 1, *m_empty_descriptor_set_layout);
+        for (vulkan::descriptor::SetLayout const& layout : *realized_descriptor_set_layouts_w)
         {
-          vhv_realized_descriptor_set_layouts[layout.set_index_hint().get_value()] = layout.handle();
+          vulkan::descriptor::SetIndexHint set_index_hint = layout.set_index_hint();
+          // This can't happen if largest_set_index_hint was initialized correctly.
+          ASSERT(set_index_hint <= largest_set_index_hint);
+          vhv_realized_descriptor_set_layouts[set_index_hint] = layout.handle();
           // Create an identity set index hint map.
           set_index_hint_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layouts[" + std::to_string(pipeline_layouts_r->size()) + "]")));
         pipeline_layouts_t::wat pipeline_layouts_w(pipeline_layouts_r);
-        auto res = pipeline_layouts_w->try_emplace(key, std::move(layout));
+        auto ibp = pipeline_layouts_w->try_emplace(key, std::move(layout));
         // We just used find and couldn't find it?!
-        ASSERT(res.second);
-        iter = res.first;
+        ASSERT(ibp.second);
+        iter = ibp.first;
         Dout(dc::shaderresource, "Created vk::PipelineLayout " << *iter->second << " with key: " << key << ".");
+        Dout(dc::setindexhint, "Returning set_index_hint_map_out:" << set_index_hint_map_out);
       }
       else
       {
         sorted_descriptor_set_layouts_container_t const& sorted_descriptor_set_layouts = iter->first.first;
         // This should always be the case: they compared equal as key!?
-        ASSERT(realized_descriptor_set_layouts->size() == sorted_descriptor_set_layouts.size());
-        auto set_layout_in = realized_descriptor_set_layouts->begin();
+        ASSERT(realized_descriptor_set_layouts_w->size() == sorted_descriptor_set_layouts.size());
+        auto set_layout_in = realized_descriptor_set_layouts_w->begin();
         auto set_layout_out = sorted_descriptor_set_layouts.begin();
-        while (set_layout_in != realized_descriptor_set_layouts->end())
+        while (set_layout_in != realized_descriptor_set_layouts_w->end())
         {
           // Same.
           ASSERT(set_layout_in->sorted_bindings_and_flags().size() == set_layout_out->sorted_bindings_and_flags().size());
@@ -1453,7 +1482,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ++set_layout_in;
           ++set_layout_out;
         }
-        Dout(dc::shaderresource, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_index_hint_map_out << ".");
+        Dout(dc::shaderresource|dc::setindexhint, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_index_hint_map_out << ".");
       }
       ASSERT(*iter->second);
       Dout(dc::shaderresource, "Leaving LogicalDevice::realize_pipeline_layout");

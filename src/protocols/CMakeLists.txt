@@ -13,7 +13,19 @@ include(AICxxProject)
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(Libxmlpp30 REQUIRED IMPORTED_TARGET libxml++-3.0)
+pkg_check_modules(Libxmlpp30 libxml++-3.0 IMPORTED_TARGET)
+if (Libxmlpp30_FOUND)
+  set(LIBXMLPP PkgConfig::Libxmlpp30)
+  set(LIBXMLPP_VERSION 30)
+else ()
+  pkg_check_modules(Libxmlpp26 libxml++-2.6 IMPORTED_TARGET)
+  if (Libxmlpp26_FOUND)
+    set(LIBXMLPP PkgConfig::Libxmlpp26)
+    set(LIBXMLPP_VERSION 26)
+  else ()
+    message(FATAL_ERROR "Neither libxml++-3.0 nor libxml++-2.6 could be found!")
+  endif ()
+endif ()
 
 #==============================================================================
 # BUILD PROJECT
@@ -55,7 +67,7 @@ target_link_libraries(protocols_ObjLib
     AICxx::utils
   PUBLIC
     blaze::blaze
-    PkgConfig::Libxmlpp30
+    ${LIBXMLPP}
 )
 
 # Create an ALIAS target.
