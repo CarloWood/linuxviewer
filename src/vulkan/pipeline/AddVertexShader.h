@@ -23,7 +23,7 @@ class CharacteristicRange;
 
 class AddVertexShader : public virtual AddShaderStage
 {
- private:
+ protected:
   VertexBuffers const* m_current_vertex_buffers_object{};
   std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
   std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
@@ -32,7 +32,8 @@ class AddVertexShader : public virtual AddShaderStage
   // Vertex attributes.
   shader_builder::VertexAttributeDeclarationContext m_vertex_shader_location_context;   // Location context used for vertex attributes
                                                                                         // (VertexAttribute).
- private:
+ public:
+  // Implementation of virtual functions of AddShaderStage.
   void copy_shader_variables() final;
   void update_vertex_input_descriptions() final;
   void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const final;

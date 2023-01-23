@@ -440,17 +440,17 @@ void main()
           {
             using namespace vulkan::shader_builder;
 
-            ShaderIndex shader_vert_index = window->m_shader_indices[LocalShaderIndex::vertex0];
+            ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
 
             // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(shader_vert_index));
+            preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
 
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+            ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // This call, together with the preprocess1 call for the fragment shader, fills PipelineFactory::m_sorted_descriptor_set_layouts
             // with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
+            preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
 #endif
           }
 
@@ -469,16 +469,16 @@ void main()
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
 
-          ShaderIndex shader_vert_index = window->m_shader_indices[LocalShaderIndex::vertex0];
+          ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
 
           // Compile the shaders.
           ShaderCompiler compiler;
-          build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+          build_shader(m_owning_window, vertex_shader_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-          build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+          ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
+              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
 #endif
 
           set_continue_state(VertexPipelineCharacteristicRange_fill);
@@ -610,10 +610,10 @@ void main()
           {
             using namespace vulkan::shader_builder;
 
-            ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+            ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
             // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(shader_frag_index));
+            preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
           }
           // FIXME: do the below from the factory after all characteristics finished.
 //          m_push_constant_ranges = push_constant_ranges();
@@ -633,11 +633,11 @@ void main()
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
 
-          ShaderIndex shader_frag_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+          ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
 
           // Compile the shaders.
           ShaderCompiler compiler;
-          build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
+          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
               COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
 
           set_continue_state(FragmentPipelineCharacteristicRange_fill);

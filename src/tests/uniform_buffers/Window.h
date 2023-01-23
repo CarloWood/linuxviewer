@@ -345,9 +345,9 @@ void main()
           // Compile the shaders.
           ShaderCompiler compiler;
           shader_input_data().build_shader(m_owning_window, shader_vert_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
           shader_input_data().build_shader(m_owning_window, shader_frag_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
 
           run_state = Characteristic_compiled;
           break;

@@ -127,7 +127,7 @@ std::string_view AddShaderStage::preprocess2(
 void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
     shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
-    COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+    COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::build_shader(" << owning_window << ", " << shader_index << ", compiler, spirv_cache, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
 

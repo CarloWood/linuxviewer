@@ -179,6 +179,10 @@ void VertexBuffers::create_vertex_buffer(
   int count = input_set.chunk_count();
   size_t buffer_size = count * entry_size;
 
+  // This is the case for ImGUI.
+  if (buffer_size == 0)
+    return;
+
   m_memory.push_back(memory::Buffer{owning_window->logical_device(), buffer_size,
       { .usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
         .properties = vk::MemoryPropertyFlagBits::eDeviceLocal }

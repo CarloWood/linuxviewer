@@ -53,8 +53,8 @@ class UI final : public vulkan::shader_builder::VertexShaderInputSet<ImDrawVert>
 {
   int chunk_count() const override
   {
-    // This should never be called because the backend writes directly to the vertex buffer. See ImGui::render_frame.
-    ASSERT(false);
+    // The imgui backend writes directly to the vertex buffer. See ImGui::render_frame.
+    // Return 0 so that VertexBuffers::create_vertex_buffer won't create and upload a vertex buffer.
     return 0;
   }
 

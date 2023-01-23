@@ -5,9 +5,11 @@
 #include "Application.h"
 #include "ImageKind.h"
 #include "InputEvent.h"
+#include "VertexBuffers.h"
 
 #include "memory/DataFeeder.h"
 #include "descriptor/SetLayoutBindingsAndFlags.h"
+#include "pipeline/AddVertexShader.h"
 #include "vk_utils/print_flags.h"
 
 #include "Application.inl.h"
@@ -166,6 +168,58 @@ void ImGui::register_shader_templates()
   m_shader_frag = indices[1];
 }
 
+class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
+{
+ private:
+  shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) final
+  {
+    //FIXME: Is this being called?
+    ASSERT(false);
+    return {};
+  }
+
+  task::PipelineFactory* get_owning_factory() const final
+  {
+    // Should never be called.
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
+
+ public:
+  void add_vertex_input_bindings(VertexBuffers const& vertex_buffers)
+  {
+    AddVertexShader::add_vertex_input_bindings(vertex_buffers);
+  }
+
+  void compile_shaders(task::SynchronousWindow const* owning_window,
+      shader_builder::ShaderIndex const& vertex_shader_index, shader_builder::ShaderIndex const& fragment_shader_index
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
+  {
+    using namespace vulkan::shader_builder;
+    ShaderCompiler compiler;
+    SPIRVCache spirv_cache;
+
+    preprocess1(owning_window->application().get_shader_info(vertex_shader_index));
+    preprocess1(owning_window->application().get_shader_info(fragment_shader_index));
+
+    build_shader(owning_window, vertex_shader_index, compiler, spirv_cache, nullptr
+        COMMA_CWDEBUG_ONLY(ambifix));
+    spirv_cache.reset();
+    build_shader(owning_window, fragment_shader_index, compiler, spirv_cache, nullptr
+        COMMA_CWDEBUG_ONLY(ambifix));
+  }
+
+  std::vector<vk::VertexInputBindingDescription> const& vertex_input_binding_descriptions() const
+  {
+    return m_vertex_input_binding_descriptions;
+  }
+
+  std::vector<vk::VertexInputAttributeDescription> const& vertex_input_attribute_descriptions() const
+  {
+    return m_vertex_input_attribute_descriptions;
+  }
+};
+
 void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan, "ImGui::create_graphics_pipeline(" << MSAASamples << ")");
@@ -179,31 +233,22 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   m_pipeline_layout = logical_device()->create_pipeline_layout({ *m_descriptor_set_layout }, { push_constant_ranges }
       COMMA_CWDEBUG_ONLY(".m_pipeline_layout" + ambifix));
 
-  pipeline::ShaderInputData shader_input_data(m_owning_window);
-
   // Define the vertex shader input.
-  shader_input_data.add_vertex_input_binding({}, m_ui);
+  VertexBuffers vertex_buffers;
+  vertex_buffers.create_vertex_buffer(m_owning_window, m_ui);
+  ImGuiPipelineCharacteristic pipeline_characteristic;
+  pipeline_characteristic.add_vertex_input_bindings(vertex_buffers);
+  pipeline_characteristic.copy_shader_variables();
+  pipeline_characteristic.compile_shaders(m_owning_window, m_shader_vert, m_shader_frag
+      COMMA_CWDEBUG_ONLY(AmbifixOwner{ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline_characteristic" }));
 
-  {
-    using namespace vulkan::shader_builder;
-    ShaderCompiler compiler;
-
-    shader_input_data.preprocess1({}, m_owning_window->application().get_shader_info(m_shader_vert));
-    shader_input_data.preprocess1({}, m_owning_window->application().get_shader_info(m_shader_frag));
-
-    shader_input_data.build_shader({}, m_owning_window, m_shader_vert, compiler, {}
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
-    shader_input_data.build_shader({}, m_owning_window, m_shader_frag, compiler, {}
-        COMMA_CWDEBUG_ONLY({ m_owning_window, "ImGui::create_graphics_pipeline()::shader_input_data" }));
-  }
-
-  auto vertex_binding_descriptions = shader_input_data.vertex_binding_descriptions({});
-  auto vertex_input_attribute_descriptions = shader_input_data.vertex_input_attribute_descriptions({});
+  auto vertex_input_binding_descriptions = pipeline_characteristic.vertex_input_binding_descriptions();
+  auto vertex_input_attribute_descriptions = pipeline_characteristic.vertex_input_attribute_descriptions();
 
   vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
     .flags = {},
-    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descriptions.size()),
-    .pVertexBindingDescriptions = vertex_binding_descriptions.data(),
+    .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
+    .pVertexBindingDescriptions = vertex_input_binding_descriptions.data(),
     .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_attribute_descriptions.size()),
     .pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data()
   };
@@ -286,7 +331,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
     .pDynamicStates = dynamic_states.data()
   };
 
-  auto const& shader_stage_create_infos = shader_input_data.shader_stage_create_infos({});
+  auto const& shader_stage_create_infos = pipeline_characteristic.shader_stage_create_infos({});
 
   vk::GraphicsPipelineCreateInfo pipeline_create_info{
     .stageCount = static_cast<uint32_t>(shader_stage_create_infos.size()),

@@ -101,6 +101,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 
   // Accessor.
   int context_changed_generation() const { return m_context_changed_generation; }
+  std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos(utils::Badge<ImGui>) const { return m_shader_stage_create_infos; }
 
  private:
   // Called from the top of the first call to preprocess1.
@@ -136,16 +137,37 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
       shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix));
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   void build_shader(task::SynchronousWindow const* owning_window,
       shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
       descriptor::SetIndexHintMap const* set_index_hint_map
-      COMMA_CWDEBUG_ONLY(AmbifixOwner const& ambifix))
+      COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
     build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
+
+#ifdef CWDEBUG
+  void build_shader(task::SynchronousWindow const* owning_window,
+      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
+      COMMA_CWDEBUG_ONLY(std::string prefix))
+  {
+    build_shader(owning_window, shader_index, compiler, spirv_cache, set_index_hint_map
+        COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
+  }
+
+  void build_shader(task::SynchronousWindow const* owning_window,
+      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      descriptor::SetIndexHintMap const* set_index_hint_map
+      COMMA_CWDEBUG_ONLY(std::string prefix))
+  {
+    shader_builder::SPIRVCache tmp_spirv_cache;
+    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map
+        COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
+  }
+#endif
 
 #if 0
   // Not used at the moment: we destruct them when AddShaderStage::m_per_stage_shader_module is destructed, which are vk::UniqueShaderModule.

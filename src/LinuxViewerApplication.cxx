@@ -328,9 +328,9 @@ void main()
       ShaderCompiler compiler;
 
       shader_input_data.build_shader(this, m_shader_vert, compiler, {}
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
+          COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
       shader_input_data.build_shader(this, m_shader_frag, compiler, {}
-          COMMA_CWDEBUG_ONLY(debug_name_prefix("Window::create_graphics_pipelines()::shader_input_data")));
+          COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
     }
 
     auto vertex_binding_description = shader_input_data.vertex_binding_descriptions();
