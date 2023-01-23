@@ -68,6 +68,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   index_type const m_end;
   index_type m_fill_index{-1};
 #ifdef CWDEBUG
+ protected:
   state_type m_expected_state{direct_base_type::state_end};
 #endif
 

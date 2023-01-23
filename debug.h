@@ -7,7 +7,7 @@
 #include "cwds/debug.h"
 
 #ifdef CWDEBUG
-#ifdef DEBUGTHREADPOOLCOLORS
+#ifdef DEBUG_THREADPOOL_COLORS
 // We use colors for debug output.
 #include "threadpool/debug_colors.h"
 #endif

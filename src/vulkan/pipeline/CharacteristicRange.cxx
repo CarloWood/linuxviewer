@@ -134,12 +134,15 @@ void Characteristic::multiplex_impl(state_type run_state)
   switch (run_state)
   {
     case Characteristic_initialized:
+      copy_shader_variables();
+
       m_owning_factory->characteristic_range_initialized();
       // Characteristic is not supposed to use the do_fill signal?!
       ASSERT(!(m_needs_signals & do_fill));
       if ((m_needs_signals & do_preprocess))
       {
         set_state(CharacteristicRange_continue_or_terminate);
+        Debug(m_expected_state = Characteristic_preprocessed);
         wait(do_preprocess|do_terminate);
         return;
       }

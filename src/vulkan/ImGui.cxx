@@ -242,6 +242,7 @@ void ImGui::create_graphics_pipeline(vk::SampleCountFlagBits MSAASamples COMMA_C
   pipeline_characteristic.compile_shaders(m_owning_window, m_shader_vert, m_shader_frag
       COMMA_CWDEBUG_ONLY(AmbifixOwner{ m_owning_window, "ImGui::create_graphics_pipeline()::pipeline_characteristic" }));
 
+  pipeline_characteristic.update_vertex_input_descriptions();
   auto vertex_input_binding_descriptions = pipeline_characteristic.vertex_input_binding_descriptions();
   auto vertex_input_attribute_descriptions = pipeline_characteristic.vertex_input_attribute_descriptions();
 
@@ -893,7 +894,6 @@ void ImGui::setup_render_state(handle::CommandBuffer command_buffer, void* draw_
 
   // Bind the pipeline.
   command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-
   // Bind vertex and index buffer.
   command_buffer->bindVertexBuffers(0, { frame_resources.m_vertex_buffer.m_vh_buffer }, { 0 });
   command_buffer->bindIndexBuffer(frame_resources.m_index_buffer.m_vh_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);

@@ -17,6 +17,9 @@
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "vk_utils/ImageData.h"
 #include "utils/threading/aithreadid.h"
+
+#include "pipeline/AddPushConstant.inl.h"
+
 #include <imgui.h>
 #include "debug.h"
 #include "tracy/CwTracy.h"
@@ -171,7 +174,7 @@ class Window : public task::SynchronousWindow
       m_benchmark_texture.upload(texture_data.extent(), sample_image_view_kind, this, std::make_unique<vk_utils::stbi::ImageDataFeeder>(std::move(texture_data)), this, sample_texture_uploaded);
     }
 
-    m_combined_image_samplers[1].update_image_sampler(&m_background_texture, m_pipeline_factory_characteristic_id);
+    m_combined_image_samplers[1].update_image_sampler(&m_benchmark_texture, m_pipeline_factory_characteristic_id);
   }
 
   void create_vertex_buffers() override
@@ -323,6 +326,7 @@ void main()
     // The different states of this task.
     enum FrameResourcesCountPipelineCharacteristic_state_type {
       FrameResourcesCountPipelineCharacteristic_initialize = direct_base_type::state_end,
+      FrameResourcesCountPipelineCharacteristic_preprocess,
       FrameResourcesCountPipelineCharacteristic_compile
     };
 
@@ -343,6 +347,7 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_initialize);
+        AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_preprocess);
         AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_compile);
       }
       return direct_base_type::state_str_impl(run_state);
@@ -378,15 +383,20 @@ void main()
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
             add_combined_image_sampler(window->combined_image_samplers()[t]);
 
-          {
-            using namespace vulkan::shader_builder;
+          set_continue_state(FrameResourcesCountPipelineCharacteristic_preprocess);
+          run_state = Characteristic_initialized;
+          break;
+        }
+        case FrameResourcesCountPipelineCharacteristic_preprocess:
+        {
+          using namespace vulkan::shader_builder;
 
-            ShaderIndex vertex_shader_index = window->m_shader_vert;
-            ShaderIndex fragment_shader_index = window->m_shader_frag;
+          Window const* window = static_cast<Window const*>(m_owning_window);
+          ShaderIndex vertex_shader_index = window->m_shader_vert;
+          ShaderIndex fragment_shader_index = window->m_shader_frag;
 
-            preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
-            preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
-          }
+          preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
+          preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
 
           realize_descriptor_set_layouts(m_owning_window->logical_device());
 
@@ -406,14 +416,13 @@ void main()
 #endif
 
           set_continue_state(FrameResourcesCountPipelineCharacteristic_compile);
-          run_state = Characteristic_initialized;
+          run_state = Characteristic_preprocessed;
           break;
         }
         case FrameResourcesCountPipelineCharacteristic_compile:
         {
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
-
           ShaderIndex vertex_shader_index = window->m_shader_vert;
           ShaderIndex fragment_shader_index = window->m_shader_frag;
 
@@ -455,6 +464,7 @@ void main()
     }
 
     auto pipeline_factory = create_pipeline_factory(m_graphics_pipeline, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));
+    pipeline_factory.add_characteristic<BasePipelineCharacteristic>(this COMMA_CWDEBUG_ONLY(true));
     m_pipeline_factory_characteristic_id =
       pipeline_factory.add_characteristic<FrameResourcesCountPipelineCharacteristic>(this COMMA_CWDEBUG_ONLY(true));
     pipeline_factory.generate(this);
@@ -675,7 +685,7 @@ else
     //  bool show_demo_window = true;
     //  ShowDemoWindow(&show_demo_window);
     ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 120.0f, 20.0f));
-    m_imgui_stats_window.draw(io, m_timer);
+    m_imgui_stats_window.draw(io, m_imgui_timer);
 
     ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
     ImGui::Begin(reinterpret_cast<char const*>(application().application_name().c_str()), nullptr, ImGuiWindowFlags_AlwaysAutoResize);

@@ -637,26 +637,32 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // Clear the m_acquired_required_shader_resources_list vector of a previous fill.
         m_acquired_required_shader_resources_list.clear();
 
-        // The number of characteristic tasks that we need to wait for finishing do_fill.
-        m_number_of_running_characteristic_tasks = 0;
-        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
-            ++m_number_of_running_characteristic_tasks;
-        ASSERT(m_number_of_running_characteristic_tasks == 1);
-        // Run over each loop variable (and hence characteristic).
-        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
         {
-          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
+          // The number of characteristic tasks that we need to wait for finishing do_fill.
+          m_number_of_running_characteristic_tasks = 0;
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+            if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
+              ++m_number_of_running_characteristic_tasks;
+          bool have_characteristics_tasks_that_need_do_fill = m_number_of_running_characteristic_tasks > 0;
+          // Run over each loop variable (and hence characteristic).
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           {
-            // Do not accidently delete the parent task while still running a child task.
-            // Call fill with its current range index.
-            m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
-            m_characteristics[i]->signal(CharacteristicRange::do_fill);
+            if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill))
+            {
+              // Do not accidently delete the parent task while still running a child task.
+              // Call fill with its current range index.
+              m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]);
+              m_characteristics[i]->signal(CharacteristicRange::do_fill);
+            }
+          }
+          set_state(PipelineFactory_characteristics_filled);
+          if (have_characteristics_tasks_that_need_do_fill)
+          {
+            wait(characteristics_filled);
+            return;
           }
         }
-        set_state(PipelineFactory_characteristics_filled);
-        wait(characteristics_filled);
-        return;
+        [[fallthrough]];
       case PipelineFactory_characteristics_filled:
         prepare_shader_resource_declarations();
         // Now that we have added all shader variables, preprocess the shader code.
