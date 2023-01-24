@@ -1427,7 +1427,11 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
   // Idem.
   ASSERT(missing_descriptor_sets.size() == missing_descriptor_set_layouts.size());
   for (int i = 0; i < missing_descriptor_sets.size(); ++i)
+  {
     m_descriptor_set_per_set_index[set_index_has_frame_resource_pairs[i].first] = missing_descriptor_sets[i];
+    // Paranoia check: set_index_has_frame_resource_pairs was used to allocate missing_descriptor_sets, so this is what we expect.
+    ASSERT(set_index_has_frame_resource_pairs[i].second == missing_descriptor_sets[i].is_frame_resource());
+  }
 
   Dout(dc::shaderresource, "Updating, adding handles and unlocking: loop over set_index [" << set_index_begin << " - " << set_index_end << ">.");
   for (SetIndex set_index = set_index_begin; set_index < set_index_end; ++set_index)

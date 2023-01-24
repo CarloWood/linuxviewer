@@ -51,8 +51,8 @@ class Window : public task::SynchronousWindow
 //  Attachment     normal{this, "normal",   s_vector_image_view_kind};
 //  Attachment     albedo{this, "albedo",   s_color_image_view_kind};
 
-  vulkan::shader_builder::ShaderIndex m_shader_vert;
-  vulkan::shader_builder::ShaderIndex m_shader_frag;
+  vulkan::shader_builder::ShaderIndex m_vertex_shader_index;
+  vulkan::shader_builder::ShaderIndex m_fragment_shader_index;
 
  private:
   static constexpr int number_of_combined_image_samplers = 2;
@@ -236,8 +236,8 @@ void main()
     shader_info[0].load(intel_vert_glsl);
     shader_info[1].load(intel_frag_glsl);
     auto indices = application().register_shaders(std::move(shader_info));
-    m_shader_vert = indices[0];
-    m_shader_frag = indices[1];
+    m_vertex_shader_index = indices[0];
+    m_fragment_shader_index = indices[1];
   }
 
   // Accessor.
@@ -392,8 +392,8 @@ void main()
           using namespace vulkan::shader_builder;
 
           Window const* window = static_cast<Window const*>(m_owning_window);
-          ShaderIndex vertex_shader_index = window->m_shader_vert;
-          ShaderIndex fragment_shader_index = window->m_shader_frag;
+          ShaderIndex vertex_shader_index = window->m_vertex_shader_index;
+          ShaderIndex fragment_shader_index = window->m_fragment_shader_index;
 
           preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
           preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
@@ -423,8 +423,8 @@ void main()
         {
           using namespace vulkan::shader_builder;
           Window const* window = static_cast<Window const*>(m_owning_window);
-          ShaderIndex vertex_shader_index = window->m_shader_vert;
-          ShaderIndex fragment_shader_index = window->m_shader_frag;
+          ShaderIndex vertex_shader_index = window->m_vertex_shader_index;
+          ShaderIndex fragment_shader_index = window->m_fragment_shader_index;
 
           // Compile the shaders.
           ShaderCompiler compiler;

@@ -45,6 +45,9 @@ class FlatCreateInfo
     for (std::vector<T> const* v : *input_list_r)
     {
       // You called add(std::vector<T> const&) but never filled the passed vector with data.
+      // For example, you might have a pipeline factory characteristic that is derived from AddPushConstant
+      // and then are not calling add_push_constant<MyPushConstant>() in its initialization state.
+      // If you do not have a push constant you should not derive from AddPushConstant.
       ASSERT(v->size() != 0);
       s += v->size();
     }
