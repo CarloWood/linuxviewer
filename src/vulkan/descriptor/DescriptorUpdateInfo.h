@@ -19,7 +19,7 @@ class DescriptorUpdateInfo : public Update
 {
  private:
   task::SynchronousWindow const* m_owning_window;
-  pipeline::FactoryCharacteristicId m_factory_characteristic_id;                  // The pipeline factory / characteristic range pair that created this descriptor.
+  pipeline::FactoryCharacteristicId m_factory_characteristic_id;// The pipeline factory / characteristic range pair that created this descriptor.
   int m_fill_index;                                             // A range value with which this descriptor is used; -1 if created from initialize (which means the full range).
   int32_t m_descriptor_array_size;                              // 1 if this is not an array. Negative if unbounded.
   FrameResourceCapableDescriptorSet const* m_descriptor_set;    // The descriptor set that needs updating.

@@ -33,6 +33,7 @@ class CombinedImageSampler
     boost::intrusive_ptr<descriptor::Update> update = new descriptor::TextureUpdateRequest(texture, factory_characteristic_id, subrange, array_element_range);
 
     // Pass new image samplers that we need to update the descriptors with.
+    // Picked up by CombinedImageSamplerUpdater_need_action in CombinedImageSamplerUpdater::multiplex_impl.
     m_descriptor_task->have_new_datum(std::move(update));
   }
 

@@ -212,7 +212,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
                   .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
                 };
               }
-              m_owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_element_range.ibegin(), image_infos);
+              m_owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_element_range.ibegin(), image_infos, array_element_range.size(), m_owning_window->max_number_of_frame_resources());
             }
             else
               m_owning_window->update_descriptor_set_with_loading_texture(descriptor_set, binding, { 0, descriptor_update_info->descriptor_array_size() });
@@ -328,9 +328,10 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             }
             // Find matching descriptors and update them.
             auto matching_descriptors = find_descriptors(key);
-#if CW_DEBUG
+            vulkan::FrameResourceIndex number_of_frame_resources;
             if (matching_descriptors.first != matching_descriptors.second)
             {
+#if CW_DEBUG
               LogicalDevice const* logical_device = m_owning_window->logical_device();
               if (!logical_device->supports_sampled_image_update_after_bind())
               {
@@ -340,27 +341,28 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
               }
               // Call set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind) on the CombinedImageSamplerUpdater that owns this task.
               ASSERT((m_binding_flags.load(std::memory_order::relaxed) & vk::DescriptorBindingFlagBits::eUpdateAfterBind));
-            }
 #endif
-            for (auto descriptor = matching_descriptors.first; descriptor != matching_descriptors.second; ++descriptor)
-            {
-              FrameResourceCapableDescriptorSet const& descriptor_set = descriptor->second.descriptor_set();
-              uint32_t binding = descriptor->second.binding();
-              auto const array_element_range = texture_array_range.array_element_range();
-
-              Dout(dc::shaderresource, "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range);
-
-              std::vector<vk::DescriptorImageInfo> image_infos(array_element_range.size());
-              Texture const* texture_array = texture_array_range.texture_array();
-              for (int element = 0; element < array_element_range.size(); ++element)
+              number_of_frame_resources = m_owning_window->max_number_of_frame_resources();
+              for (auto descriptor = matching_descriptors.first; descriptor != matching_descriptors.second; ++descriptor)
               {
-                image_infos[element] = {
-                  .sampler = texture_array[element].sampler(),
-                  .imageView = texture_array[element].image_view(),
-                  .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-                };
+                FrameResourceCapableDescriptorSet const& descriptor_set = descriptor->second.descriptor_set();
+                uint32_t binding = descriptor->second.binding();
+                auto const array_element_range = texture_array_range.array_element_range();
+
+                Dout(dc::shaderresource, "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range);
+
+                std::vector<vk::DescriptorImageInfo> image_infos(array_element_range.size());
+                Texture const* texture_array = texture_array_range.texture_array();
+                for (int element = 0; element < array_element_range.size(); ++element)
+                {
+                  image_infos[element] = {
+                    .sampler = texture_array[element].sampler(),
+                    .imageView = texture_array[element].image_view(),
+                    .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+                  };
+                }
+                m_owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_element_range.ibegin(), image_infos, array_element_range.size(), number_of_frame_resources);
               }
-              m_owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_element_range.ibegin(), image_infos);
             }
           }
         });

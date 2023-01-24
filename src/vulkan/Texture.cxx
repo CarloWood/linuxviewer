@@ -43,7 +43,7 @@ void Texture::update_descriptor_array(task::SynchronousWindow const* owning_wind
       .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
     }
   );
-  owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_elements.ibegin(), image_infos);
+  owning_window->logical_device()->update_descriptor_sets(descriptor_set, vk::DescriptorType::eCombinedImageSampler, binding, array_elements.ibegin(), image_infos, array_elements.size(), owning_window->max_number_of_frame_resources());
 }
 
 #ifdef CWDEBUG

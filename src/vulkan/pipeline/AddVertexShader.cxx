@@ -103,8 +103,12 @@ void AddVertexShader::update_vertex_input_descriptions()
 
 void AddVertexShader::register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const
 {
-  pipeline_factory->add_to_flat_create_info(&m_vertex_input_binding_descriptions);
-  pipeline_factory->add_to_flat_create_info(&m_vertex_input_attribute_descriptions);
+  DoutEntering(dc::vulkan, "AddVertexShader::register_AddVertexShader_with(" << pipeline_factory << ")");
+  if (m_use_vertex_buffers)
+  {
+    pipeline_factory->add_to_flat_create_info(&m_vertex_input_binding_descriptions);
+    pipeline_factory->add_to_flat_create_info(&m_vertex_input_attribute_descriptions);
+  }
 }
 
 void AddVertexShader::add_vertex_input_bindings(VertexBuffers const& vertex_buffers)

@@ -143,6 +143,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
     boost::intrusive_ptr<Update> update = new DescriptorUpdateInfo(std::move(descriptor_update_info));
 
     // Pass new descriptors that need to be updated to this task (this is called from a PipelineFactory).
+    // Picked up by CombinedImageSamplerUpdater_need_action in CombinedImageSamplerUpdater::multiplex_impl.
     have_new_datum(std::move(update));
   }
 

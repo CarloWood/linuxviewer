@@ -25,14 +25,14 @@ void UniformBufferBase::update_descriptor_set(descriptor::DescriptorUpdateInfo d
   FrameResourceIndex const max_number_of_frame_resources = descriptor_update_info.owning_window()->max_number_of_frame_resources();
   LogicalDevice const* logical_device = descriptor_update_info.owning_window()->logical_device();
 
+  std::vector<vk::DescriptorBufferInfo> buffer_infos;
+  buffer_infos.reserve(max_number_of_frame_resources.get_value());
   for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
   {
     // Information about the buffer we want to point at in the descriptor.
-    std::array<vk::DescriptorBufferInfo, 1> buffer_infos = {{
-      m_uniform_buffers[frame_index].m_vh_buffer, 0, size()
-    }};
-    logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set()[frame_index], vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos);
+    buffer_infos.emplace_back(m_uniform_buffers[frame_index].m_vh_buffer, 0, size());
   }
+  logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set(), vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos, 1 /*array_size*/, max_number_of_frame_resources);
 }
 
 std::string UniformBufferBase::glsl_id() const

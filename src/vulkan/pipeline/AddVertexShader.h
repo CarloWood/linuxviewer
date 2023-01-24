@@ -27,6 +27,7 @@ class AddVertexShader : public virtual AddShaderStage
   VertexBuffers const* m_current_vertex_buffers_object{};
   std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
   std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
+  bool m_use_vertex_buffers{true};
 
   //---------------------------------------------------------------------------
   // Vertex attributes.

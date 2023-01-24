@@ -304,8 +304,9 @@ class LogicalDevice
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name, bool is_array = true)) const;
   void free_command_buffers(vk::CommandPool vh_pool, uint32_t count, vk::CommandBuffer const* command_buffers) const;
   template<ConceptWriteDescriptorSetUpdateInfo T>
-  void update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
-      T const& write_descriptor_set_update_infos) const;
+  void update_descriptor_sets(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, vk::DescriptorType descriptor_type,
+      uint32_t binding, uint32_t array_element, T const& write_descriptor_set_update_infos,
+      uint32_t array_element_count, FrameResourceIndex number_of_frame_resources) const;
   vk::UniquePipelineLayout create_pipeline_layout(utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> const& vhv_descriptor_set_layouts, std::vector<vk::PushConstantRange> const& push_constant_ranges
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
   vk::UniqueSwapchainKHR create_swapchain(vk::Extent2D extent, uint32_t min_image_count, PresentationSurface const& presentation_surface,
@@ -573,11 +574,13 @@ void LogicalDevice::destroy_command_pool(vk::CommandPool vh_command_pool) const
 }
 
 template<ConceptWriteDescriptorSetUpdateInfo T>
-void LogicalDevice::update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element,
-    T const& write_descriptor_set_update_infos) const
+void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescriptorSet const& descriptor_set,
+    vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element, T const& write_descriptor_set_update_infos,
+    uint32_t array_element_count, FrameResourceIndex number_of_frame_resources) const
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_sets(" <<
-      vh_descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " << write_descriptor_set_update_infos << ")");
+      descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " <<
+      write_descriptor_set_update_infos << ", " << array_element_count << ", " << number_of_frame_resources << ")");
 
   vk::DescriptorImageInfo const* pImageInfo = nullptr;
   vk::DescriptorBufferInfo const* pBufferInfo = nullptr;
@@ -600,20 +603,64 @@ void LogicalDevice::update_descriptor_sets(vk::DescriptorSet vh_descriptor_set, 
     ASSERT(descriptor_type == vk::DescriptorType::eUniformTexelBuffer || descriptor_type == vk::DescriptorType::eStorageTexelBuffer);
     pTexelBufferView = write_descriptor_set_update_infos.data();
   }
-  uint32_t const descriptor_count = write_descriptor_set_update_infos.size();
+  // Paranoia check: we expect write_descriptor_set_update_infos to contain, for each frame resource (if any),
+  // information for every array element.
+  ASSERT(write_descriptor_set_update_infos.size() % array_element_count == 0);
+  uint32_t const frame_resources = write_descriptor_set_update_infos.size() / array_element_count;
+  // Either no frame resource data should be passed (only per-array-element data), or that should be passed for all frame resource.
+  ASSERT(frame_resources == 1 ||
+      (frame_resources == number_of_frame_resources.get_value() &&
+       // Don't pass frame resource data for a descriptor that isn't a frame resource.
+       //FIXME: can't it happen that this descriptor_set was created for a combined image sampler (no frame resource)
+       //       and now we're trying to add -say- a uniform buffer (which is a frame resource)?
+       descriptor_set.is_frame_resource()));
 
   vk::WriteDescriptorSet descriptor_writes{
-    .dstSet = vh_descriptor_set,
     .dstBinding = binding,
     .dstArrayElement = array_element,
-    .descriptorCount = descriptor_count,
+    .descriptorCount = array_element_count,
     .descriptorType = descriptor_type,
     .pImageInfo = pImageInfo,
     .pBufferInfo = pBufferInfo,
     .pTexelBufferView = pTexelBufferView
   };
-
-  m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
+  if (frame_resources == 1)
+  {
+    if (!descriptor_set.is_frame_resource())
+    {
+      descriptor_writes.dstSet = static_cast<vk::DescriptorSet>(descriptor_set),
+      m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
+    }
+    else
+    {
+      // No frame resource data was passed, but descriptor_set is a frame resource; update all descriptor sets with the same data.
+      utils::Vector<vk::WriteDescriptorSet, FrameResourceIndex> descriptor_writes_list(number_of_frame_resources.get_value(), descriptor_writes);
+      for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
+        descriptor_writes_list[frame_index].dstSet = descriptor_set[frame_index];
+      m_device->updateDescriptorSets(number_of_frame_resources.get_value(), descriptor_writes_list.data(), 0, nullptr);
+    }
+  }
+  else
+  {
+    // Frame resource data was passed and descriptor_set is a frame resource; update all descriptor sets with their own data.
+    utils::Vector<vk::WriteDescriptorSet, FrameResourceIndex> descriptor_writes_list(frame_resources, descriptor_writes);
+    for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
+    {
+      descriptor_writes_list[frame_index].dstSet = descriptor_set[frame_index];
+      descriptor_writes_list[frame_index].pImageInfo = pImageInfo;
+      descriptor_writes_list[frame_index].pBufferInfo = pBufferInfo;
+      descriptor_writes_list[frame_index].pTexelBufferView = pTexelBufferView;
+    }
+    m_device->updateDescriptorSets(frame_resources, descriptor_writes_list.data(), 0, nullptr);
+    //FIXME: once you run into this assert, remove it and check that the array data is added in the inner loop.
+    ASSERT(array_element_count);
+    if constexpr (std::is_same_v<T, std::vector<vk::DescriptorImageInfo>> || std::is_same_v<T, std::array<vk::DescriptorImageInfo, 1>>)
+      pImageInfo += array_element_count;
+    else if constexpr (std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>> || std::is_same_v<T, std::array<vk::DescriptorBufferInfo, 1>>)
+      pBufferInfo += array_element_count;
+    else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>, std::is_same_v<T, std::array<vk::BufferView, 1>>)
+      pTexelBufferView += array_element_count;
+  }
 }
 
 } // namespace vulkan

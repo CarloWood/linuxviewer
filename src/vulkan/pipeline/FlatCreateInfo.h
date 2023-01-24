@@ -45,9 +45,17 @@ class FlatCreateInfo
     for (std::vector<T> const* v : *input_list_r)
     {
       // You called add(std::vector<T> const&) but never filled the passed vector with data.
-      // For example, you might have a pipeline factory characteristic that is derived from AddPushConstant
+      //
+      // For example,
+      //
+      // T = vk::PushConstantRange:
+      // you might have a pipeline factory characteristic that is derived from AddPushConstant
       // and then are not calling add_push_constant<MyPushConstant>() in its initialization state.
       // If you do not have a push constant you should not derive from AddPushConstant.
+      //
+      // T = vk::VertexInputBindingDescription:
+      // if you do not have any vertex buffers then you should set m_use_vertex_buffers = false; in
+      // the constructor of the pipeline factory characteristic derived from AddVertexShader.
       ASSERT(v->size() != 0);
       s += v->size();
     }

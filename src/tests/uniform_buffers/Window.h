@@ -320,7 +320,7 @@ void main()
     static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_compile + 1;
 
     UniformBuffersTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { }
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
