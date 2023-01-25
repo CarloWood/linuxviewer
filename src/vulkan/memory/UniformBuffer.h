@@ -27,7 +27,7 @@ struct UniformBuffer : Buffer
   using MemoryCreateInfo = UniformBufferMemoryCreateInfoDefaults;
 
  private:
-  void* m_pointer;
+  void* const m_pointer;
 
   static VmaAllocationInfo* allocation_info_ptr(MemoryCreateInfo const& memory_create_info, VmaAllocationInfo& vma_allocation_info_tmp)
   {

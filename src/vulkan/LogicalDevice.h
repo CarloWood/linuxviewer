@@ -650,16 +650,16 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
       descriptor_writes_list[frame_index].pImageInfo = pImageInfo;
       descriptor_writes_list[frame_index].pBufferInfo = pBufferInfo;
       descriptor_writes_list[frame_index].pTexelBufferView = pTexelBufferView;
+      //FIXME: once you run into this assert, remove it and check that the array data is added in the inner loop.
+      ASSERT(array_element_count == 1);
+      if constexpr (std::is_same_v<T, std::vector<vk::DescriptorImageInfo>> || std::is_same_v<T, std::array<vk::DescriptorImageInfo, 1>>)
+        pImageInfo += array_element_count;
+      else if constexpr (std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>> || std::is_same_v<T, std::array<vk::DescriptorBufferInfo, 1>>)
+        pBufferInfo += array_element_count;
+      else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>, std::is_same_v<T, std::array<vk::BufferView, 1>>)
+        pTexelBufferView += array_element_count;
     }
     m_device->updateDescriptorSets(frame_resources, descriptor_writes_list.data(), 0, nullptr);
-    //FIXME: once you run into this assert, remove it and check that the array data is added in the inner loop.
-    ASSERT(array_element_count);
-    if constexpr (std::is_same_v<T, std::vector<vk::DescriptorImageInfo>> || std::is_same_v<T, std::array<vk::DescriptorImageInfo, 1>>)
-      pImageInfo += array_element_count;
-    else if constexpr (std::is_same_v<T, std::vector<vk::DescriptorBufferInfo>> || std::is_same_v<T, std::array<vk::DescriptorBufferInfo, 1>>)
-      pBufferInfo += array_element_count;
-    else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>, std::is_same_v<T, std::array<vk::BufferView, 1>>)
-      pTexelBufferView += array_element_count;
   }
 }
 
