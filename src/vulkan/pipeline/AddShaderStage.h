@@ -72,7 +72,6 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 
   utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
   utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
-  std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
   int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
 
  protected:
@@ -81,6 +80,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   // A list of all ShaderVariable's (elements of VertexBuffers::m_glsl_id_full_to_vertex_attribute,
   // AddPushConstant::m_glsl_id_full_to_push_constant, PipelineFactory::m_glsl_id_to_shader_resource, ...).
   std::vector<shader_builder::ShaderVariable const*> m_shader_variables;
+
+  // Only access this when your application is not using a PipelineFactory; otherwise it will be used automatically.
+  std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
 
  public:
   using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;

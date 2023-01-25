@@ -4,8 +4,8 @@
 #include "vulkan/FrameResourcesData.h"
 #include "vulkan/SynchronousWindow.h"
 #include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/pipeline/ShaderInputData.h"
 #include "vulkan/shader_builder/ShaderIndex.h"
+#include "vulkan/pipeline/AddShaderStage.h"
 #include "vulkan/Application.inl.h"
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
@@ -310,6 +310,35 @@ void main()
     m_shader_frag = indices[1];
   }
 
+  class Characteristic : public vulkan::pipeline::AddShaderStage
+  {
+   public:
+    void build_shader(task::SynchronousWindow const* owning_window,
+        vulkan::shader_builder::ShaderIndex const& shader_index, vulkan::shader_builder::ShaderCompiler const& compiler
+        COMMA_CWDEBUG_ONLY(std::string prefix))
+    {
+      vulkan::pipeline::AddShaderStage::build_shader(owning_window, shader_index, compiler, nullptr COMMA_CWDEBUG_ONLY(prefix));
+    }
+
+    // Access base class vector that gets filled by build_shader. Needed because we're not using a pipeline factory.
+    std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
+
+   private:
+    // Implementation of pure virtual member functions of AddShaderStage.
+    vulkan::shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, vulkan::descriptor::SetIndexHint set_index_hint)
+    {
+      //When do we get here?
+      ASSERT(false);
+      return nullptr;
+    }
+
+    task::PipelineFactory* get_owning_factory() const override
+    {
+      // We're not using a pipeline factory.
+      return nullptr;
+    }
+  };
+
   void create_graphics_pipelines() override
   {
     DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
@@ -317,32 +346,24 @@ void main()
     m_pipeline_layout = logical_device()->create_pipeline_layout({}, {}
         COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layout")));
 
-    // The shader input data object doesn't need to know who owns it.
-    vulkan::pipeline::ShaderInputData shader_input_data(nullptr);
+    Characteristic shader_input_data;
 
-    shader_input_data.preprocess1(application().get_shader_info(m_shader_vert));
-    shader_input_data.preprocess1(application().get_shader_info(m_shader_frag));
+    // We don't need preprocessing.
+    //shader_input_data.preprocess1(application().get_shader_info(m_shader_vert));
+    //shader_input_data.preprocess1(application().get_shader_info(m_shader_frag));
 
     {
       using namespace vulkan::shader_builder;
       ShaderCompiler compiler;
 
-      shader_input_data.build_shader(this, m_shader_vert, compiler, {}
+      shader_input_data.build_shader(this, m_shader_vert, compiler
           COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
-      shader_input_data.build_shader(this, m_shader_frag, compiler, {}
+      shader_input_data.build_shader(this, m_shader_frag, compiler
           COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
     }
 
-    auto vertex_binding_description = shader_input_data.vertex_binding_descriptions();
-    auto vertex_input_attribute_descriptions = shader_input_data.vertex_input_attribute_descriptions();
-
-    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{
-      .flags = {},
-      .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_description.size()),
-      .pVertexBindingDescriptions = vertex_binding_description.data(),
-      .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_input_attribute_descriptions.size()),
-      .pVertexAttributeDescriptions = vertex_input_attribute_descriptions.data()
-    };
+    // We have no vertex buffers.
+    vk::PipelineVertexInputStateCreateInfo vertex_input_state_create_info{};
 
     vk::PipelineInputAssemblyStateCreateInfo input_assembly_state_create_info{
       .flags = {},

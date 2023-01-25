@@ -26,32 +26,32 @@ add_compile_definitions(
   IMGUI_USER_CONFIG="lvimconfig.h"
 )
 
-#add_executable(linuxviewer
-#  LinuxViewerApplication.cxx
-#  LinuxViewerApplication.h
-#  LinuxViewerMenuEntries.cxx
-#  LinuxViewerMenuEntries.h
-#  LinuxViewerMenuBar.h
-#)
+add_executable(linuxviewer
+  LinuxViewerApplication.cxx
+  LinuxViewerApplication.h
+  LinuxViewerMenuEntries.cxx
+  LinuxViewerMenuEntries.h
+  LinuxViewerMenuBar.h
+)
 
-#target_link_libraries(linuxviewer
-#  PRIVATE
-#    LinuxViewer::protocols
-#    LinuxViewer::xmlrpc
-#    LinuxViewer::data_types
-#    LinuxViewer::vulkan
-#    LinuxViewer::shader_builder
-#    AICxx::socket-task
-#    AICxx::resolver-task
-#    AICxx::xmlrpc-task
-#    AICxx::xcb-task
-#    AICxx::xcb-task::OrgFreedesktopXcbError
-#    ImGui::imgui
-#    ${AICXX_OBJECTS_LIST}
-#    dns::dns
-#    farmhash::farmhash
-#    blaze::blaze
-#)
+target_link_libraries(linuxviewer
+  PRIVATE
+    LinuxViewer::protocols
+    LinuxViewer::xmlrpc
+    LinuxViewer::data_types
+    LinuxViewer::vulkan
+    LinuxViewer::shader_builder
+    AICxx::socket-task
+    AICxx::resolver-task
+    AICxx::xmlrpc-task
+    AICxx::xcb-task
+    AICxx::xcb-task::OrgFreedesktopXcbError
+    ImGui::imgui
+    ${AICXX_OBJECTS_LIST}
+    dns::dns
+    farmhash::farmhash
+    blaze::blaze
+)
 
 add_subdirectory(protocols)
 add_subdirectory(data_types)
