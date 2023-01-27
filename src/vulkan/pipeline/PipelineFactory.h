@@ -81,7 +81,7 @@ class PipelineFactory : public AIStatefulTask
   vulkan::pipeline::FlatCreateInfo m_flat_create_info;
   utils::Vector<unsigned int, vulkan::pipeline::CharacteristicRangeIndex> m_range_shift;
   MultiLoop m_range_counters;
-#ifdef CWDEBUG
+#if CW_DEBUG
   bool m_debug_reached_characteristics_initialized;     // Set to true when PipelineFactory_characteristics_initialized was reached.
 #endif
   int m_start_of_next_loop;

@@ -559,7 +559,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       }
       case PipelineFactory_initialize:
         // Start a synchronous task that will be run when this task, that runs asynchronously, created a new pipeline and/or is finished.
-        Debug(m_debug_reached_characteristics_initialized = false);
+        DEBUG_ONLY(m_debug_reached_characteristics_initialized = false);
         m_move_new_pipelines_synchronously = statefultask::create<synchronous::MoveNewPipelines>(m_owning_window, m_pipeline_factory_index COMMA_CWDEBUG_ONLY(mSMDebug));
         m_move_new_pipelines_synchronously->run();
         // Wait until the user is done adding CharacteristicRange objects and called generate().
@@ -581,6 +581,10 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           m_range_shift[i] = range_shift;
           range_shift += m_characteristics[i]->range_width();
           m_characteristics[i]->set_flat_create_info(&m_flat_create_info);
+          // Each characteristic task runs its initialization state which can do add_push_constant<MyPushConstant>()
+          // call(s) that causes push constant members to be added to m_shader_variables; and each nitialization state
+          // ends with call to copy_shader_variables() that then copies the vertex attributes to m_shader_variables
+          // (if derived from AddVertexShader).
           m_characteristics[i]->run(vulkan::Application::instance().low_priority_queue());
         }
         set_state(PipelineFactory_characteristics_initialized);
@@ -589,7 +593,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       }
       case PipelineFactory_characteristics_initialized:
       {
-        Debug(m_debug_reached_characteristics_initialized = true);
+        // Use for ASSERTs.
+        DEBUG_ONLY(m_debug_reached_characteristics_initialized = true);
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
         // Enter the multi-loop.
@@ -664,6 +669,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         }
         [[fallthrough]];
       case PipelineFactory_characteristics_filled:
+        // Generate descriptor set index hints, realize all shader resource declarations (combined
+        // image samplers and uniform buffers) and add their member(s) to m_shader_variables.
         prepare_shader_resource_declarations();
         // Now that we have added all shader variables, preprocess the shader code.
         // The number of characteristic tasks that we need to wait for finishing do_preprocess.
