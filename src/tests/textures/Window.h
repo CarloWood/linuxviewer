@@ -30,7 +30,7 @@
 #endif
 
 #define ENABLE_IMGUI 1
-#define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 0
+#define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 1
 
 class Window : public task::SynchronousWindow
 {
@@ -261,13 +261,6 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  // Accessor.
-  combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
-  vulkan::VertexBuffers const& vertex_buffers() const { return m_vertex_buffers; }
-  // FIXME: these shouldn't be needed in the end.
-  Square const& square() const { return m_square; }
-  TopBottomPositions const& top_bottom_positions() const { return m_top_bottom_positions; }
-
   class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
@@ -414,10 +407,10 @@ void main()
           // Define the pipeline.
           add_push_constant<PushConstant>();
           //FIXME: is this the right place to call this?
-          add_vertex_input_bindings(window->vertex_buffers());        // Filled in create_vertex_buffers
+          add_vertex_input_bindings(window->m_vertex_buffers);        // Filled in create_vertex_buffers
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-          add_combined_image_sampler(window->combined_image_samplers()[0]);
-          add_combined_image_sampler(window->combined_image_samplers()[m_pipeline_factory + 1]);
+          add_combined_image_sampler(window->m_combined_image_samplers[0]);
+          add_combined_image_sampler(window->m_combined_image_samplers[m_pipeline_factory + 1]);
 #endif
 
           set_continue_state(VertexPipelineCharacteristicRange_fill);
@@ -577,7 +570,7 @@ void main()
 #if 0
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
-            key_preference.emplace_back(window->combined_image_samplers()[t].descriptor_task()->descriptor_set_key(), 0.1);
+            key_preference.emplace_back(window->m_combined_image_samplers[t].descriptor_task()->descriptor_set_key(), 0.1);
 #endif
 
           int constexpr number_of_combined_image_samplers_per_pipeline = 2;
@@ -588,7 +581,7 @@ void main()
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
           {
             add_combined_image_sampler(
-                window->combined_image_samplers()[combined_image_sampler_indexes[i]]
+                window->m_combined_image_samplers[combined_image_sampler_indexes[i]]
 #if 0
                 , {}
                 , { key_preference[combined_image_sampler_indexes[1 - i]] }
@@ -596,7 +589,7 @@ void main()
                 );
           }
 #else
-          add_combined_image_sampler(window->combined_image_samplers()[0]);
+          add_combined_image_sampler(window->m_combined_image_samplers[0]);
 #endif
           set_continue_state(FragmentPipelineCharacteristicRange_preprocess);
           run_state = CharacteristicRange_filled;
@@ -634,11 +627,10 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
 
           ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-
           // Compile the shaders.
           ShaderCompiler compiler;
           build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY({ m_owning_window, "PipelineFactory::m_shader_input_data" }));
+              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
 
           set_continue_state(FragmentPipelineCharacteristicRange_fill);
           run_state = CharacteristicRange_compiled;

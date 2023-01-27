@@ -140,8 +140,9 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
   spirv_cache.compile(glsl_source_code, compiler, shader_info);
 
   vk::UniqueShaderModule& shader_module_ptr = m_per_stage_shader_module[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
-  // Paranoia check. If the AddShaderStage virtual base class is used more than once then
-  // the m_shader_module handle should be moved to a safe place before overwriting it!
+  // Paranoia check. We should only create one shader module per stage, no?
+  //FIXME: is this still the case when we use a CharacteristicRange?
+  // The range could call build_shader again for a different fill_index, can we safely overwrite m_per_stage_shader_module then?
   ASSERT(!shader_module_ptr);
   shader_module_ptr = spirv_cache.create_module({}, owning_window->logical_device()
       COMMA_CWDEBUG_ONLY(".m_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
