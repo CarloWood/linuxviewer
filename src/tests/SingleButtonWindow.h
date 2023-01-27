@@ -68,11 +68,11 @@ class SingleButtonWindow : public task::SynchronousWindow
     auto command_buffer = frame_resources->m_command_buffer;
 
     Dout(dc::vkframe, "Start recording command buffer.");
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+    command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer.beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
     m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-    command_buffer->endRenderPass();
-    command_buffer->end();
+    command_buffer.endRenderPass();
+    command_buffer.end();
     Dout(dc::vkframe, "End recording command buffer.");
 
     submit(command_buffer);

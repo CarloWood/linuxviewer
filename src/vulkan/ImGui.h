@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CommandBuffer.h"      // handle::CommandBuffer
 #include "FrameResourcesData.h" // vulkan::FrameResourcesData::command_pool_type::data_type::create_flags
 #include "lvimconfig.h"         // lvImGuiTLS
 #include "CurrentFrameData.h"
@@ -18,6 +17,10 @@
 // Theoretically we should include imgui.h to get the definition of ImDrawVert.
 // However - I think that any other class will do here, as long as it has the
 // same memory layout. We can even put this dummy struct in a namespace.
+
+namespace vulkan::handle {
+class CommandBuffer;
+} // namespace vulkan::handle
 
 namespace imgui {
 struct ImDrawVert;

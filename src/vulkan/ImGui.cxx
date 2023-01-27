@@ -13,6 +13,7 @@
 #include "vk_utils/print_flags.h"
 
 #include "Application.inl.h"
+#include "VertexBuffers.inl.h"
 
 #include <imgui.h>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -893,19 +894,19 @@ void ImGui::setup_render_state(handle::CommandBuffer command_buffer, void* draw_
   ImDrawData* draw_data = reinterpret_cast<ImDrawData*>(draw_data_void_ptr);
 
   // Bind the pipeline.
-  command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+  command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
   // Bind vertex and index buffer.
-  command_buffer->bindVertexBuffers(0, { frame_resources.m_vertex_buffer.m_vh_buffer }, { 0 });
-  command_buffer->bindIndexBuffer(frame_resources.m_index_buffer.m_vh_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
+  command_buffer.vk::CommandBuffer::bindVertexBuffers(0, { frame_resources.m_vertex_buffer.m_vh_buffer }, { 0 });
+  command_buffer.bindIndexBuffer(frame_resources.m_index_buffer.m_vh_buffer, 0, sizeof(ImDrawIdx) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32);
 
   // Set viewport again (is this really needed?).
-  command_buffer->setViewport(0, { viewport });
+  command_buffer.setViewport(0, { viewport });
 
   // Setup scale and translation.
   std::array<float, 2> scale = { 2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y };
   std::array<float, 2> translate = { -1.0f - draw_data->DisplayPos.x * scale[0], -1.0f - draw_data->DisplayPos.y * scale[1] };
-  command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
-  command_buffer->pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
+  command_buffer.pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
+  command_buffer.pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
 }
 
 void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceIndex index
@@ -1053,14 +1054,14 @@ void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceInde
             .height = static_cast<uint32_t>(clip_max.y - clip_min.y)
           }
         };
-        command_buffer->setScissor(0, 1, &scissor);
+        command_buffer.setScissor(0, 1, &scissor);
 
         // Bind DescriptorSet with font or user texture.
         std::array<vk::DescriptorSet, 1> desc_set = { static_cast<VkDescriptorSet>(pcmd->TextureId) };
-        command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, desc_set, {});
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *m_pipeline_layout, 0, desc_set, {});
 
         // Draw
-        command_buffer->drawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+        command_buffer.drawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
       }
     }
     global_idx_offset += cmd_list->IdxBuffer.Size;

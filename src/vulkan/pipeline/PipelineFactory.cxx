@@ -137,12 +137,7 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
   int end = characteristic_range->iend();
   // Is this characteristic an AddVertexShader?
   AddShaderStage* add_shader_stage = dynamic_cast<AddShaderStage*>(characteristic_range.get());
-  if (add_shader_stage != m_add_shader_stage)
-  {
-    // There can be only one (virtual) shader stage (characteristic) per pipeline.
-    ASSERT(!m_add_shader_stage);
-    m_add_shader_stage = add_shader_stage;
-  }
+  //FIXME: use add_shader_stage.
   m_characteristics.push_back(std::move(characteristic_range));
   return FactoryCharacteristicId{ m_pipeline_factory_index, characteristic_range_index, end };
 }
@@ -152,7 +147,7 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
 void PipelineFactory::add_combined_image_sampler(
     utils::Badge<CharacteristicRange>,
     shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
-    CharacteristicRange const* adding_characteristic_range,
+    CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -169,7 +164,7 @@ void PipelineFactory::add_combined_image_sampler(
 void PipelineFactory::add_uniform_buffer(
     utils::Badge<CharacteristicRange>,
     shader_builder::UniformBufferBase const& uniform_buffer,
-    CharacteristicRange const* adding_characteristic_range,
+    CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -214,7 +209,7 @@ void PipelineFactory::realize_descriptor_set_layouts(utils::Badge<vulkan::pipeli
 // Called from add_combined_image_sampler and add_uniform_buffer.
 void PipelineFactory::add_shader_resource(
     shader_builder::ShaderResourceBase const* shader_resource,
-    CharacteristicRange const* adding_characteristic_range,
+    CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
 {
@@ -508,11 +503,18 @@ void PipelineFactory::prepare_shader_resource_declarations()
     shader_builder::ShaderResourceBase const* shader_resource = (*added_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.shader_resource();
 //    Dout(dc::always, "shader_resource_plus_characteristic_index = " << shader_resource_plus_characteristic_index << "; shader_resource = " << shader_resource);
     auto ibp = m_set_key_to_set_index_hint.insert_or_assign(shader_resource->descriptor_set_key(), set_index_hints[shader_resource_plus_characteristic_index]);
-    // prepare_shader_resource_declaration should only be called once per m_add_shader_stage value per shader_resource.
+    // prepare_shader_resource_declaration should only be called once per AddShaderStage instance per shader_resource.
     if (ibp.second)
     {
-//      Dout(dc::always, "Calling prepare_shader_resource_declaration() on \"" << shader_resource->debug_name() << "\" passing m_add_shader_stage " << m_add_shader_stage);
-      shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_plus_characteristic_index], m_add_shader_stage);
+      CharacteristicRange* characteristic = (*added_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.characteristic_range();
+      AddShaderStage* add_shader_stage = dynamic_cast<AddShaderStage*>(characteristic);
+      if (add_shader_stage)
+      {
+//      Dout(dc::always, "Calling prepare_shader_resource_declaration() on \"" << shader_resource->debug_name() << "\".");
+        shader_resource->prepare_shader_resource_declaration(set_index_hints[shader_resource_plus_characteristic_index], add_shader_stage);
+      }
+//    else
+//      Dout(dc::always, "Skipping \"" << shader_resource->debug_name() << "\" because it has isn't derived from AddShaderStage.");
     }
 //    else
 //      Dout(dc::always, "Skipping \"" << shader_resource->debug_name() << "\" because it has ibp.second is false.");

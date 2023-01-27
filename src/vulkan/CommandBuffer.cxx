@@ -7,7 +7,9 @@ namespace vulkan::handle {
 #ifdef CWDEBUG
 void CommandBuffer::print_on(std::ostream& os) const
 {
-  os << "{vh_command_buffer:" << m_vh_command_buffer << '}';
+  os << '{';
+  os << static_cast<vk::CommandBuffer const&>(*this);
+  os << '}';
 }
 #endif
 

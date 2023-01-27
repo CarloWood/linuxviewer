@@ -554,35 +554,35 @@ void main()
 
     auto command_buffer = frame_resources->m_command_buffer;
     Dout(dc::vkframe, "Start recording command buffer.");
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass1, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
           max_number_of_frame_resources(), m_current_frame.m_resource_index);
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass2, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
           max_number_of_swapchain_images(), swapchain_index);
 
-      command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer.beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_graphics_pipeline0.handle() || !m_graphics_pipeline1.handle())
   Dout(dc::warning, "Pipeline not available");
 else
 {
-      command_buffer->setViewport(0, { viewport });
-      command_buffer->setScissor(0, { scissor });
+      command_buffer.setViewport(0, { viewport });
+      command_buffer.setScissor(0, { scissor });
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline0.handle()));
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline0.layout(), 0 /* uint32_t first_set */,
           m_graphics_pipeline0.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-      command_buffer->draw(3, 1, 0, 0);
+      command_buffer.draw(3, 1, 0, 0);
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline1.handle()));
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline1.layout(), 0 /* uint32_t first_set */,
           m_graphics_pipeline1.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-      command_buffer->draw(3, 1, 0, 0);
+      command_buffer.draw(3, 1, 0, 0);
 }
-      command_buffer->endRenderPass();
+      command_buffer.endRenderPass();
       TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #if ENABLE_IMGUI
@@ -591,13 +591,13 @@ else
           max_number_of_frame_resources(), m_current_frame.m_resource_index);
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass2, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
           max_number_of_swapchain_images(), swapchain_index);
-      command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer.beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer->endRenderPass();
+      command_buffer.endRenderPass();
       TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #endif
-    command_buffer->end();
+    command_buffer.end();
     Dout(dc::vkframe, "End recording command buffer.");
 
     submit(command_buffer);

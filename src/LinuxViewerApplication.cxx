@@ -559,18 +559,18 @@ void main()
 
     auto command_buffer = frame_resources->m_command_buffer;
     Dout(dc::vkframe, "Start recording command buffer.");
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
       TracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), "final_pass");
-      command_buffer->beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
-      command_buffer->setViewport(0, { viewport });
-      command_buffer->setScissor(0, { scissor });
-      command_buffer->draw(3, 1, 0, 0);
-      command_buffer->endRenderPass();
+      command_buffer.beginRenderPass(final_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *m_graphics_pipeline);
+      command_buffer.setViewport(0, { viewport });
+      command_buffer.setScissor(0, { scissor });
+      command_buffer.draw(3, 1, 0, 0);
+      command_buffer.endRenderPass();
       TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
-    command_buffer->end();
+    command_buffer.end();
     Dout(dc::vkframe, "End recording command buffer.");
 
     vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -579,7 +579,7 @@ void main()
       .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
       .pWaitDstStageMask = &wait_dst_stage_mask,
       .commandBufferCount = 1,
-      .pCommandBuffers = command_buffer.get_array(),
+      .pCommandBuffers = &command_buffer,
       .signalSemaphoreCount = 1,
       .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
     };

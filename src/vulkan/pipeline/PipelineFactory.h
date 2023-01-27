@@ -68,7 +68,6 @@ class PipelineFactory : public AIStatefulTask
   characteristics_container_t m_characteristics;
   // Index into SynchronousWindow::m_pipeline_factories, pointing to ourselves.
   PipelineFactoryIndex m_pipeline_factory_index;
-  vulkan::pipeline::AddShaderStage* m_add_shader_stage{};       // Virtual base class of the added characteristics.
 
   // run
   // initialize_impl.
@@ -191,13 +190,13 @@ class PipelineFactory : public AIStatefulTask
 
   void add_combined_image_sampler(utils::Badge<vulkan::pipeline::CharacteristicRange>,
       vulkan::shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
-      vulkan::pipeline::CharacteristicRange const* adding_characteristic_range,
+      vulkan::pipeline::CharacteristicRange* adding_characteristic_range,
       std::vector<vulkan::descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<vulkan::descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
   void add_uniform_buffer(utils::Badge<vulkan::pipeline::CharacteristicRange>,
       vulkan::shader_builder::UniformBufferBase const& uniform_buffer,
-      vulkan::pipeline::CharacteristicRange const* adding_characteristic_range,
+      vulkan::pipeline::CharacteristicRange* adding_characteristic_range,
       std::vector<vulkan::descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<vulkan::descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
@@ -214,7 +213,7 @@ class PipelineFactory : public AIStatefulTask
   // Called by add_combined_image_sampler and/or add_uniform_buffer (at the end), requesting to be created
   // and storing the preferred and undesirable descriptor set vectors.
   void add_shader_resource(vulkan::shader_builder::ShaderResourceBase const* shader_resource,
-      vulkan::pipeline::CharacteristicRange const* adding_characteristic_range,
+      vulkan::pipeline::CharacteristicRange* adding_characteristic_range,
       std::vector<vulkan::descriptor::SetKeyPreference> const& preferred_descriptor_sets,
       std::vector<vulkan::descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 

@@ -19,6 +19,7 @@
 #include "utils/threading/aithreadid.h"
 
 #include "pipeline/AddPushConstant.inl.h"
+#include "CommandBuffer.inl.h"
 
 #include <imgui.h>
 #include "debug.h"
@@ -602,7 +603,7 @@ void main()
     auto command_buffer = frame_resources->m_command_buffer;
 
     Dout(dc::vkframe, "Start recording command buffer.");
-    command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
 #if 0
       CwTracyVkZone(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(),
@@ -614,30 +615,31 @@ void main()
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass2, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
           max_number_of_swapchain_images(), swapchain_index);
 
-      command_buffer->beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer.beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
 if (!m_graphics_pipeline.handle())
   Dout(dc::warning, "Pipeline not available");
 else
 {
-      command_buffer->setViewport(0, { viewport });
-      command_buffer->setScissor(0, { scissor });
-      m_vertex_buffers.bind(command_buffer);
+      command_buffer.setViewport(0, { viewport });
+      command_buffer.setScissor(0, { scissor });
+      command_buffer.bindVertexBuffers(m_vertex_buffers);
 
-      command_buffer->bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
-      command_buffer->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */,
+      command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
+      command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */,
           m_graphics_pipeline.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-      //command_buffer->pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex,
+      //command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex,
       //    offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position), &pc.m_x_position);
-      //command_buffer->pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eFragment,
+      //command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eFragment,
       //    offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index), &pc.m_texture_index);
-      //FIXME: this should become something like: update_push_constant(scaling_factor, command_buffer);
-      command_buffer->pushConstants(m_graphics_pipeline.layout(), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment,
+      //FIXME: this should become something like:
+//    command_buffer.pushConstants(m_push_constants);
+      command_buffer.pushConstants(m_graphics_pipeline.layout(), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment,
           offsetof(PushConstant, aspect_scale), sizeof(float), &scaling_factor);
-      command_buffer->draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
+      command_buffer.draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
-      command_buffer->endRenderPass();
+      command_buffer.endRenderPass();
       TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #if ENABLE_IMGUI
@@ -651,13 +653,13 @@ else
           max_number_of_frame_resources(), m_current_frame.m_resource_index);
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass2, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
           max_number_of_swapchain_images(), swapchain_index);
-      command_buffer->beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
+      command_buffer.beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
-      command_buffer->endRenderPass();
+      command_buffer.endRenderPass();
       TracyVkCollect(presentation_surface().tracy_context(), static_cast<vk::CommandBuffer>(command_buffer));
     }
 #endif
-    command_buffer->end();
+    command_buffer.end();
     Dout(dc::vkframe, "End recording command buffer.");
 
     submit(command_buffer);

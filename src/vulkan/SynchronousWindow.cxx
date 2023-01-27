@@ -725,9 +725,9 @@ void SynchronousWindow::set_image_memory_barrier(
 
   // Record command buffer which copies data from the staging buffer to the destination buffer.
   {
-    tmp_command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
-    tmp_command_buffer->pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
-    tmp_command_buffer->end();
+    tmp_command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+    tmp_command_buffer.pipelineBarrier(source.pipeline_stage_mask, destination.pipeline_stage_mask, {}, {}, {}, { image_memory_barrier });
+    tmp_command_buffer.end();
   }
 
   // Submit
@@ -740,7 +740,7 @@ void SynchronousWindow::set_image_memory_barrier(
       .pWaitSemaphores = nullptr,
       .pWaitDstStageMask = nullptr,
       .commandBufferCount = 1,
-      .pCommandBuffers = tmp_command_buffer.get_array(),
+      .pCommandBuffers = &tmp_command_buffer,
       .signalSemaphoreCount = 0,
       .pSignalSemaphores = nullptr
     };
@@ -1114,7 +1114,7 @@ void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
     .pWaitSemaphores = swapchain().vhp_current_image_available_semaphore(),
     .pWaitDstStageMask = &wait_dst_stage_mask,
     .commandBufferCount = 1,
-    .pCommandBuffers = command_buffer.get_array(),
+    .pCommandBuffers = &command_buffer,
     .signalSemaphoreCount = 1,
     .pSignalSemaphores = swapchain().vhp_current_rendering_finished_semaphore()
   };

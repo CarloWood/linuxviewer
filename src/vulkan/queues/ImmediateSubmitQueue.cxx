@@ -148,7 +148,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
           m_pending_requests += acquired;
 
           // Submit recorded commands.
-          m_queue.submit(command_buffers.data()->get_array(), acquired, m_semaphore);
+          m_queue.submit(command_buffers.data(), acquired, m_semaphore);
 
           // Wake me up when you're done.
           m_semaphore.add_poll(this, need_action);

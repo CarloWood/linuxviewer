@@ -83,7 +83,7 @@ handle::CommandBuffer CommandPool<pool_type>::allocate_buffer(
     CWDEBUG_ONLY(Ambifix const& debug_name))
 {
   handle::CommandBuffer command_buffer;
-  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, 1, &command_buffer.m_vh_command_buffer
+  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, 1, &command_buffer
       COMMA_CWDEBUG_ONLY(debug_name, false));
   return command_buffer;
 }
@@ -92,8 +92,7 @@ template<vk::CommandPoolCreateFlags::MaskType pool_type>
 void CommandPool<pool_type>::allocate_buffers(uint32_t count, handle::CommandBuffer* command_buffers
     COMMA_CWDEBUG_ONLY(Ambifix const& debug_name))
 {
-  static_assert(sizeof(command_buffers[0]) == sizeof(command_buffers[0].m_vh_command_buffer), "m_vh_command_buffer must be the only member");
-  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, command_buffers->get_array()
+  m_logical_device->allocate_command_buffers(*m_command_pool, vk::CommandBufferLevel::ePrimary, count, command_buffers
       COMMA_CWDEBUG_ONLY(debug_name, true));
 }
 
@@ -109,14 +108,13 @@ void CommandPool<pool_type>::allocate_buffers(std::vector<handle::CommandBuffer>
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 void CommandPool<pool_type>::free_buffer(handle::CommandBuffer command_buffer)
 {
-  m_logical_device->free_command_buffers(*m_command_pool, 1, &command_buffer.m_vh_command_buffer);
+  m_logical_device->free_command_buffers(*m_command_pool, 1, &command_buffer);
 }
 
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 void CommandPool<pool_type>::free_buffers(uint32_t count, handle::CommandBuffer const* command_buffers)
 {
-  static_assert(sizeof(command_buffers[0]) == sizeof(command_buffers[0].m_vh_command_buffer), "m_vh_command_buffer must be the only member");
-  m_logical_device->free_command_buffers(*m_command_pool, count, command_buffers->get_array());
+  m_logical_device->free_command_buffers(*m_command_pool, count, command_buffers);
 }
 
 } // namespace vulkan

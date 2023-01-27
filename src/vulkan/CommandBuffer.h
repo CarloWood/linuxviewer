@@ -13,6 +13,8 @@ namespace vulkan {
 template<vk::CommandPoolCreateFlags::MaskType pool_type>
 class CommandPool;
 
+class VertexBuffers;
+
 namespace handle {
 
 // class CommandBuffer.
@@ -56,23 +58,21 @@ namespace handle {
 // Now the command buffer can be accessed using operator-> which returns a vk::CommandBuffer*.
 // For example,
 //
-//   command_buffer->begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+//   command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
 //   ...
-//   command_buffer->end();
+//   command_buffer.end();
 //
 // Finally, a vulkan::CommandBuffer* can be converted to the underlying
 // vk::CommandBuffer, so that it can be submitted using:
 //
 //   ...
-//   .commandBufferCount = count,
-//   .pCommandBuffers = command_buffers->get_array()
+//   .commandBufferCount = command_buffers.size(),
+//   .pCommandBuffers = command_buffers.data()
 //   ...
 //
-class CommandBuffer
+class CommandBuffer : public vk::CommandBuffer
 {
  private:
-  vk::CommandBuffer m_vh_command_buffer;           // The underlying vulkan handle.
-
   // Needed to allocate new buffers.
   template<vk::CommandPoolCreateFlags::MaskType pool_type>
   friend class vulkan::CommandPool;
@@ -81,18 +81,16 @@ class CommandBuffer
   // Default constructor.
   CommandBuffer() = default;
 
-  vk::CommandBuffer* get_array() { return &m_vh_command_buffer; }
-  vk::CommandBuffer const* get_array() const { return &m_vh_command_buffer; }
-
-  vk::CommandBuffer* operator->() { return &m_vh_command_buffer; }
-  vk::CommandBuffer const* operator->() const { return &m_vh_command_buffer; }
-
-  operator vk::CommandBuffer() const { return m_vh_command_buffer; }
+  [[gnu::always_inline]] inline void bindVertexBuffers(VertexBuffers const& vertex_buffers);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif
 };
+
+// Among others see CommandPool<pool_type>::allocate_buffers and CommandPool<pool_type>::free_buffers
+// and of course when used as array (i.e. for .pCommandBuffers).
+static_assert(sizeof(CommandBuffer) == sizeof(vk::CommandBuffer), "handle::CommandBuffer must be a thin wrapper around a vk::CommandBuffer.");
 
 } // namespace handle
 } // namespace vulkan
