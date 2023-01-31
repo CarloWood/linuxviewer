@@ -905,8 +905,8 @@ void ImGui::setup_render_state(handle::CommandBuffer command_buffer, void* draw_
   // Setup scale and translation.
   std::array<float, 2> scale = { 2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y };
   std::array<float, 2> translate = { -1.0f - draw_data->DisplayPos.x * scale[0], -1.0f - draw_data->DisplayPos.y * scale[1] };
-  command_buffer.pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
-  command_buffer.pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
+  command_buffer.vk::CommandBuffer::pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 0, sizeof(float) * scale.size(), scale.data());
+  command_buffer.vk::CommandBuffer::pushConstants(*m_pipeline_layout, vk::ShaderStageFlagBits::eVertex, sizeof(float) * 2, sizeof(float) * translate.size(), translate.data());
 }
 
 void ImGui::render_frame(handle::CommandBuffer command_buffer, FrameResourceIndex index

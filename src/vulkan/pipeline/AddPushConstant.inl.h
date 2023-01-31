@@ -26,7 +26,7 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset);
+  shader_builder::PushConstant push_constant{typeid(ContainingClass), basic_type, member_layout.glsl_id_full.chars.data(), Offset};
   auto ibp1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(ibp1.second);
@@ -54,7 +54,7 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   std::string_view glsl_id_sv = static_cast<std::string_view>(member_layout.glsl_id_full);
   shader_builder::BasicType const basic_type = { .m_standard = Standard, .m_rows = Rows, .m_cols = Cols, .m_scalar_type = ScalarIndex,
     .m_log2_alignment = utils::log2(Alignment), .m_size = Size, .m_array_stride = ArrayStride };
-  shader_builder::PushConstant push_constant(basic_type, member_layout.glsl_id_full.chars.data(), Offset, Elements);
+  shader_builder::PushConstant push_constant{basic_type, member_layout.glsl_id_full.chars.data(), Offset, Elements};
   auto ibp1 = m_glsl_id_full_to_push_constant.insert(std::pair{glsl_id_sv, push_constant});
   // The m_glsl_id_full of each ENTRY must be unique. And of course, don't register the same push constant twice.
   ASSERT(ibp1.second);

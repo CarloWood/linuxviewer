@@ -933,6 +933,8 @@ void SynchronousWindow::finish_impl()
     handle_synchronous_tasks(CWDEBUG_ONLY(mSMDebug));
 
   // Wait for (certain) tasks to be finished, while giving CPU to possibly still running synchronous tasks.
+  // Currently this waits for CopyDataToGPU and PipelineCache tasks; the most common reason for the latter
+  // not finishing is because not all PipelineFactory tasks finished.
   while (!m_task_counter_gate.wait_for(100))
     while (mainloop().is_true())
       ;

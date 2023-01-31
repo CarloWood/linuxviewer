@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PushConstantRangeCompare.h"
+#include "PushConstantRange.h"
 #include "CharacteristicRangeBridge.h"
 #include "AddShaderStageBridge.h"
 #include "shader_builder/PushConstant.h"
@@ -26,7 +26,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
  private:
   AddPushConstant* convert_to_add_push_constant() override { return this; }
 
-  std::vector<vk::PushConstantRange> m_push_constant_ranges;
+  std::vector<vulkan::PushConstantRange> m_push_constant_ranges;
 
   //---------------------------------------------------------------------------
   // Push constants.
@@ -36,7 +36,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
   using glsl_id_full_to_push_constant_container_t = std::map<std::string, shader_builder::PushConstant, std::less<>>;
   glsl_id_full_to_push_constant_container_t m_glsl_id_full_to_push_constant;                    // Map PushConstant::m_glsl_id_full to the PushConstant object that contains it.
 
-  std::set<vk::PushConstantRange, PushConstantRangeCompare> m_sorted_push_constant_ranges;
+  std::set<vulkan::PushConstantRange> m_sorted_push_constant_ranges;
   bool m_sorted_push_constant_ranges_changed{false};
 
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
@@ -63,7 +63,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
 
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
-  void insert_push_constant_range(vk::PushConstantRange const& push_constant_range)
+  void insert_push_constant_range(vulkan::PushConstantRange const& push_constant_range)
   {
     auto range = m_sorted_push_constant_ranges.equal_range(push_constant_range);
     m_sorted_push_constant_ranges.erase(range.first, range.second);

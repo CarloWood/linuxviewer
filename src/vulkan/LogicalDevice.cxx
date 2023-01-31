@@ -497,6 +497,7 @@ void LogicalDevice::prepare(
     m_non_coherent_atom_size    = properties.limits.nonCoherentAtomSize;
     m_max_sampler_anisotropy    = properties.limits.maxSamplerAnisotropy;
     m_max_bound_descriptor_sets = properties.limits.maxBoundDescriptorSets;
+    m_max_push_constants_size   = properties.limits.maxPushConstantsSize;
     m_set_limits = {
       .maxPerStageDescriptorSamplers = properties.limits.maxPerStageDescriptorSamplers,
       .maxPerStageDescriptorUniformBuffers = properties.limits.maxPerStageDescriptorUniformBuffers,
@@ -518,6 +519,7 @@ void LogicalDevice::prepare(
     Dout(dc::vulkan, "m_non_coherent_atom_size = " << m_non_coherent_atom_size);
     Dout(dc::vulkan, "m_max_sampler_anisotropy = " << m_max_sampler_anisotropy);
     Dout(dc::vulkan, "m_max_bound_descriptor_sets = " << m_max_bound_descriptor_sets);
+    Dout(dc::vulkan, "m_max_push_constants_size = " << m_max_push_constants_size);
     Dout(dc::vulkan, "m_set_limits = " << m_set_limits);
   }
   Dout(dc::vulkan, "Physical Device Memory Properties:");

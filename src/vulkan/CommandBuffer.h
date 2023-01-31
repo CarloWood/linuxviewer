@@ -14,6 +14,7 @@ template<vk::CommandPoolCreateFlags::MaskType pool_type>
 class CommandPool;
 
 class VertexBuffers;
+class PushConstantRange;
 
 namespace handle {
 
@@ -82,6 +83,9 @@ class CommandBuffer : public vk::CommandBuffer
   CommandBuffer() = default;
 
   [[gnu::always_inline]] inline void bindVertexBuffers(VertexBuffers const& vertex_buffers);
+
+  template<typename T>
+  void pushConstants(vk::PipelineLayout layout, PushConstantRange const& push_constant_range, T const& push_constants);
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;

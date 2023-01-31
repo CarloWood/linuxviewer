@@ -116,6 +116,7 @@ class LogicalDevice
   vk::DeviceSize m_non_coherent_atom_size;              // Allocated non-coherent memory must be a multiple of this value in size.
   float m_max_sampler_anisotropy;                       // GraphicsSettingsPOD::maxAnisotropy must be less than or equal this value.
   uint32_t m_max_bound_descriptor_sets;                 // Each pipeline object can use up to m_max_bound_descriptor_sets descriptor sets.
+  uint32_t m_max_push_constants_size;                   // The maximum size, in bytes, of the pool of push constant memory.
   descriptor::SetLimits m_set_limits;
 
   uint32_t m_memory_type_count;                         // The number of memory types of this GPU.
@@ -175,6 +176,7 @@ class LogicalDevice
   vk::DeviceSize non_coherent_atom_size() const { return m_non_coherent_atom_size; }
   float max_sampler_anisotropy() const { return m_max_sampler_anisotropy; }
   uint32_t max_bound_descriptor_sets() const { return m_max_bound_descriptor_sets; }
+  uint32_t max_push_constants_size() const { return m_max_push_constants_size; }
   bool has_explicit_transfer_support() const { return m_queue_families.has_explicit_transfer_support(); }
   QueueRequestKey::request_cookie_type transfer_request_cookie() const { return m_transfer_request_cookie; }
 

@@ -16,7 +16,7 @@ class SetIndexHintMap
  public:
   void add_from_to(SetIndexHint sih1, SetIndexHint sih2)
   {
-    DoutEntering(dc::vulkan, "add_from_to(" << sih1 << ", " << sih2);
+    DoutEntering(dc::vulkan, "add_from_to(" << sih1 << ", " << sih2 << ')');
     SetIndex final_set_index{sih2.get_value()};
     if (sih1 >= m_set_index_map.iend())
       m_set_index_map.resize(sih1.get_value() + 1);

@@ -1,0 +1,62 @@
+    PipelineFactory
+         ^
+         |
+       add_to
+         |
+   "characteristics"
+
+Each Characteristic is derived from at least CharacteristicRange (or Characteristic which is derived from CharacteristicRange),
+and optionally from one or more of:
+
+        CharacteristicRangeBridge   AddShaderStageBridge               AIStatefulTask   CharacteristicRangeBridge
+                       v                 v                                     |                 v
+                       |                 |                                     |                 |
+                        \               /                                       \               / 
+                         \             /                                       CharacteristicRange
+                         AddShaderStage                                                 |
+                              v                                                         |
+                              |                                                   Characteristic
+     --->               AddVertexShader
+
+
+        CharacteristicRangeBridge   AddShaderStageBridge
+                       v                 v
+                       |                 |
+                        \               /
+                         \             /
+                         AddShaderStage
+                              v
+                              |
+     --->               AddFragmentShader
+
+
+        CharacteristicRangeBridge   AddShaderStageBridge
+                       v                 v
+                       |                 |
+                        \               /
+                         \             /
+     --->                AddPushConstant
+
+
+For example, a user characteristic class MyCharacteristic that is derived from Characteristic, AddVertexShader, AddFragmentShader and
+AddPushConstant would have the following inhertitance structure:
+
+
+        AIStatefulTask   CharacteristicRangeBridge   AddShaderStageBridge
+                |                 v        v   v            v       v
+                |                 |        |    \__________ | _     |
+                 \               /          \              /   \     \
+                CharacteristicRange          AddShaderStage     \     \____________
+                         |                     v        v        \________         \
+                         |                     |        |                  \        \
+                   Characteristic    AddVertexShader   AddFragmentShader   AddPushConstant
+                         |                   |                 |                 |
+                          \                   \               /                 /
+                           \                   \             /                 /
+                            \_________________  \           /   ______________/
+                                              \  \         /   /
+                                               MyCharacteristic
+
+      v
+Where | means 'derived from virtual base class'.
+

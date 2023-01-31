@@ -68,6 +68,13 @@ class Window : public task::SynchronousWindow
   Square m_square;                              // Vertex buffer.
   TopBottomPositions m_top_bottom_positions;    // Instance buffer.
 
+  // Push constant ranges.
+  //FIXME: the shader stage flags should be filled in automatically by the vulkan engine.
+  vulkan::PushConstantRange m_push_constant_range_x_position{
+    typeid(PushConstant), vk::ShaderStageFlagBits::eVertex, offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position)};
+  vulkan::PushConstantRange m_push_constant_range_texture_index{
+    typeid(PushConstant), vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index)};
+
   std::array<vulkan::Pipeline, number_of_pipeline_factories> m_graphics_pipelines;
 
   imgui::StatsWindow m_imgui_stats_window;
@@ -520,7 +527,7 @@ void main()
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_compile + 1;
 
     FragmentPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -828,8 +835,8 @@ else
           pl - 0.5f,
           1
         };
-        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex, offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position), &pc.m_x_position);
-        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index), &pc.m_texture_index);
+        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_x_position, pc.m_x_position);
+        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_texture_index, pc.m_texture_index);
         command_buffer.draw(6 * square_steps * square_steps, 2, 0, 0);
       }
 

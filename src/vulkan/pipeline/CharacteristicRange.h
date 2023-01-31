@@ -180,7 +180,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   static state_type constexpr state_end = CharacteristicRange_compiled + 1;
 
   void set_flat_create_info(FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
-  void set_fill_index(index_type fill_index) { m_fill_index = fill_index; }
+  bool set_fill_index(index_type fill_index) { bool changed = m_fill_index != fill_index; m_fill_index = fill_index; return changed; }
   void set_characteristic_range_index(CharacteristicRangeIndex characteristic_range_index) { m_characteristic_range_index = characteristic_range_index; }
   void terminate() { m_terminate = true; signal(do_terminate); }
 

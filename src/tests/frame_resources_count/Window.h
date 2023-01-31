@@ -6,8 +6,9 @@
 #include "SampleParameters.h"
 #include "FrameResourcesCount.h"
 #include "VertexBuffers.h"
-#include "SynchronousWindow.h"
 #include "Pipeline.h"
+#include "PushConstantRange.h"
+#include "SynchronousWindow.h"
 #include "pipeline/AddVertexShader.h"
 #include "pipeline/AddFragmentShader.h"
 #include "pipeline/AddPushConstant.h"
@@ -67,6 +68,10 @@ class Window : public task::SynchronousWindow
   // Vertex buffer generators.
   HeavyRectangle m_heavy_rectangle;             // Vertex buffer.
   RandomPositions m_random_positions;           // Instance buffer.
+
+  // Push constant ranges.
+  //FIXME: the shader stage flags should be filled in automatically by the vulkan engine.
+  vulkan::PushConstantRange m_push_constant_range_aspect_scale{typeid(PushConstant), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, aspect_scale), sizeof(float)};
 
   vulkan::Texture m_background_texture;
   vulkan::Texture m_benchmark_texture;
@@ -596,7 +601,7 @@ void main()
       .extent = swapchain_extent
     };
 
-    float scaling_factor = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
+    float aspect_scale = static_cast<float>(swapchain_extent.width) / static_cast<float>(swapchain_extent.height);
 
     wait_command_buffer_completed();
     m_logical_device->reset_fences({ *frame_resources->m_command_buffers_completed });
@@ -629,14 +634,7 @@ else
       command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.layout(), 0 /* uint32_t first_set */,
           m_graphics_pipeline.vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-      //command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eVertex,
-      //    offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position), &pc.m_x_position);
-      //command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), vk::ShaderStageFlagBits::eFragment,
-      //    offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index), &pc.m_texture_index);
-      //FIXME: this should become something like:
-//    command_buffer.pushConstants(m_push_constants);
-      command_buffer.pushConstants(m_graphics_pipeline.layout(), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment,
-          offsetof(PushConstant, aspect_scale), sizeof(float), &scaling_factor);
+      command_buffer.pushConstants(m_graphics_pipeline.layout(), m_push_constant_range_aspect_scale, aspect_scale);
       command_buffer.draw(6 * SampleParameters::s_quad_tessellation * SampleParameters::s_quad_tessellation, m_sample_parameters.ObjectCount, 0, 0);
 }
       command_buffer.endRenderPass();

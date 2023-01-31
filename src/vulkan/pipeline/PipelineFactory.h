@@ -84,7 +84,11 @@ class PipelineFactory : public AIStatefulTask
   bool m_debug_reached_characteristics_initialized;     // Set to true when PipelineFactory_characteristics_initialized was reached.
 #endif
   int m_start_of_next_loop;
+  // Keep track of tasks that we have to wait for (to do a callback when they finish their current state).
   std::atomic<size_t> m_number_of_running_characteristic_tasks;
+  // A bit mask of tasks that did ran the fill state because their fill_index changed.
+  uint64_t m_running_characteristic_tasks;
+  static uint64_t to_bit_mask(vulkan::pipeline::CharacteristicRangeIndex index) { return uint64_t{1} << index.get_value(); }
   // State PipelineFactory_top_multiloop_while_loop
   vulkan::descriptor::SetIndexHintMap m_set_index_hint_map;
   // PipelineFactory_characteristics_preprocessed.

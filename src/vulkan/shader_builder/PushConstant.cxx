@@ -33,7 +33,7 @@ DeclarationContext* PushConstant::is_used_in(vk::ShaderStageFlagBits shader_stag
   PushConstantDeclarationContext* push_constant_declaration_context = push_constant_declaration_context_iter->second.get();
 
   // Register that this push constant is being used.
-  push_constant_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), shader_stage, this, add_push_constant);
+  push_constant_declaration_context->glsl_id_full_is_used_in(glsl_id_full(), m_type_index, shader_stage, this, add_push_constant);
 
   // Return the declaration context.
   return push_constant_declaration_context;

@@ -18,7 +18,7 @@ PushConstantDeclarationContext::PushConstantDeclarationContext(std::string prefi
 }
 
 // Called from PushConstant::is_used_in.
-void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::AddPushConstant* add_push_constant)
+void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id_full, std::type_index type_index, vk::ShaderStageFlagBits shader_stage, PushConstant const* push_constant, pipeline::AddPushConstant* add_push_constant)
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)add_push_constant << ")");
 
@@ -47,11 +47,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   struct Compare { bool operator()(PushConstant const* pc1, PushConstant const* pc2) { return pc1->offset() < pc2->offset(); } };
   std::sort(push_constants_in_range.begin(), push_constants_in_range.end(), Compare{});
 
-  vk::PushConstantRange push_constant_range = {
-    .stageFlags = shader_stage,
-    .offset = minimum_offset,
-    .size = offset_end - minimum_offset
-  };
+  vulkan::PushConstantRange push_constant_range{type_index, shader_stage, minimum_offset, offset_end - minimum_offset};
   // This possibly replaces ranges that were added before, if they have the same stageFlags
   // and push_constant_range completely overlaps them.
   add_push_constant->insert_push_constant_range(push_constant_range);

@@ -16,7 +16,12 @@ struct AddShaderStageBridge
   virtual ~AddShaderStageBridge() = default;
 
   // Implemented by AddShaderStage.
-  virtual void add_shader_variable(shader_builder::ShaderVariable const* shader_variable) { ASSERT(false); AI_NEVER_REACHED }
+  virtual void add_shader_variable(shader_builder::ShaderVariable const* shader_variable)
+  {
+    // This would happen, for example, if you derive from AddPushConstant without also deriving from AddShaderStage.
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
 
   // Implemented by AddPushConstant.
   virtual AddPushConstant* convert_to_add_push_constant() { ASSERT(false); AI_NEVER_REACHED }

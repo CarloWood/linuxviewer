@@ -24,6 +24,7 @@ char const* CopyDataToGPU::state_str_impl(state_type run_state) const
 
 void CopyDataToGPU::initialize_impl()
 {
+  DoutEntering(dc::statefultask(mSMDebug), "CopyDataToGPU::initialize_impl() [" << this << "]");
   set_state(CopyDataToGPU_start);
   if (m_resource_owner)
   {
@@ -43,6 +44,7 @@ void CopyDataToGPU::initialize_impl()
 
 void CopyDataToGPU::finish_impl()
 {
+  DoutEntering(dc::statefultask(mSMDebug), "CopyDataToGPU::finish_impl() [" << this << "]");
   if (m_resource_owner)
     // See above.
     const_cast<SynchronousWindow*>(m_resource_owner)->m_task_counter_gate.decrement();
