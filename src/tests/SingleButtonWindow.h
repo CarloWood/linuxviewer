@@ -7,7 +7,7 @@
 
 #define ADD_STATS_TO_SINGLE_BUTTON_WINDOW 0
 
-class SingleButtonWindow : public task::SynchronousWindow
+class SingleButtonWindow : public vulkan::task::SynchronousWindow
 {
   std::function<void(SingleButtonWindow&)> m_callback;
 
@@ -17,7 +17,7 @@ class SingleButtonWindow : public task::SynchronousWindow
 
  public:
   SingleButtonWindow(std::function<void(SingleButtonWindow&)> callback, vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
-    task::SynchronousWindow(application COMMA_CWDEBUG_ONLY(debug)), m_callback(callback) { }
+    vulkan::task::SynchronousWindow(application COMMA_CWDEBUG_ONLY(debug)), m_callback(callback) { }
 
  private:
   void create_render_graph() override

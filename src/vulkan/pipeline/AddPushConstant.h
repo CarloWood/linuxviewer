@@ -15,9 +15,9 @@
 #include <set>
 #include <concepts>
 
-namespace task {
+namespace vukan::task {
 class PipelineFactory;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::pipeline {
 

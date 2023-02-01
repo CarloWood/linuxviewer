@@ -11,13 +11,12 @@
 #include <iosfwd>
 #include <bit>
 
-namespace task {
-class SynchronousWindow;
-class PipelineFactory;
-} // namespace task
-
 //FIXME: Are these still needed after deleting the proxy calls that needed them?
 namespace vulkan {
+namespace task {
+class PipelineFactory;
+class SynchronousWindow;
+} // namespace task
 class AmbifixOwner;
 namespace shader_builder {
 class ShaderInfo;

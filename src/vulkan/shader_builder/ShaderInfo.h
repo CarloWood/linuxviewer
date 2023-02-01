@@ -11,9 +11,9 @@
 #include "debug/vulkan_print_on.h"
 #endif
 
-namespace task {
+namespace vulkan::task {
 class SynchronousWindow;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::shader_builder {
 

@@ -3,7 +3,7 @@
 #include "CopyDataToGPU.h"
 #include "vk_utils/print_flags.h"
 
-namespace task {
+namespace vulkan::task {
 
 class CopyDataToBuffer final : public CopyDataToGPU
 {
@@ -38,7 +38,7 @@ class CopyDataToBuffer final : public CopyDataToGPU
   }
 
  private:
-  void record_command_buffer(vulkan::handle::CommandBuffer command_buffer) override;
+  void record_command_buffer(handle::CommandBuffer command_buffer) override;
 };
 
-} // namespace task
+} // namespace vulkan::task

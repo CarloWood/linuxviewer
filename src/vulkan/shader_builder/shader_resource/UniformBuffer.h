@@ -17,9 +17,9 @@
 #include "src/tests/uniform_buffers/TopPosition.h"
 #endif
 
-namespace task {
+namespace vulkan::task {
 class SynchronousWindow;
-} // namespace vulkan
+} // namespace vulkan::task
 
 namespace vulkan::shader_builder {
 

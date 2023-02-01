@@ -27,12 +27,6 @@
 #endif
 #include "debug.h"
 
-namespace task {
-class SynchronousWindow;
-class PipelineFactory;
-class PipelineCache;
-} // namespace task
-
 namespace evio {
 class EventLoop;
 } // namespace evio
@@ -43,6 +37,12 @@ class Scope;
 
 namespace vulkan {
 
+namespace task {
+class PipelineFactory;
+class PipelineCache;
+class SynchronousWindow;
+} // namespace task
+
 class InstanceCreateInfo;
 class DeviceCreateInfo;
 class ImGui;
@@ -52,7 +52,7 @@ class Application
  public:
   // The same types as used in SynchronousWindow.
   using request_cookie_type = QueueRequest::cookies_type;
-  using xcb_connection_broker_type = task::Broker<task::XcbConnection>;
+  using xcb_connection_broker_type = ::task::Broker<::task::XcbConnection>;
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
 
   // Set up the thread pool for the application.

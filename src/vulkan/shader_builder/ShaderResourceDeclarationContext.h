@@ -7,9 +7,9 @@
 #include <cstdint>
 #include <map>
 
-namespace task {
+namespace vulkan::task {
 class PipelineFactory;
-} // namespace vulkan::pipeline
+} // namespace vulkan::task
 
 namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;

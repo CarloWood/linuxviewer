@@ -8,16 +8,16 @@
 #include "vk_utils/TaskToTaskDeque.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 
-namespace task {
+namespace vulkan::task {
 
 class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
 {
  private:
   using CommandBufferHandle = vulkan::CommandBufferFactory::resource_type;    // vulkan::handle::CommandBuffer
   utils::DequeAllocator<CommandBufferHandle> m_deque_allocator{vulkan::Application::instance().deque512_nmr()};
-  statefultask::ResourcePool<vulkan::CommandBufferFactory> m_command_buffer_pool;
-  vulkan::Queue m_queue;                                                // Queue that is owned by this task.
-  vulkan::TimelineSemaphore m_semaphore;                                // Timeline semaphore used for submitting to m_queue.
+  statefultask::ResourcePool<CommandBufferFactory> m_command_buffer_pool;
+  Queue m_queue;                                                // Queue that is owned by this task.
+  TimelineSemaphore m_semaphore;                                // Timeline semaphore used for submitting to m_queue.
   int m_pending_requests{};                                             // The number of command buffers that were submitted but were not signaled yet.
   container_type::const_iterator m_last_submitted;                      // Pointer to the last ImmediateSubmitRequest associated with the pending requests.
                                                                         // Only valid if m_pending_requests > 0.
@@ -43,7 +43,7 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Pers
   ImmediateSubmitQueue(
     // Arguments for m_command_buffer_pool.
     vulkan::LogicalDevice const* logical_device,
-    vulkan::Queue const& queue
+    Queue const& queue
     COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void wait_for(uint64_t signal_value) { m_semaphore.wait_for(signal_value); }
@@ -51,4 +51,4 @@ class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::Pers
   void terminate();
 };
 
-} // namespace task
+} // namespace vulkan::task

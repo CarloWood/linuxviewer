@@ -8,11 +8,11 @@
 
 class AIStatefulTask;
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 } // namespace task
-
-namespace vulkan {
 
 class LogicalDevice;
 

@@ -6,16 +6,16 @@
 
 class AIStatefulTask;
 
-namespace task {
-class SynchronousWindow;
-class PipelineFactory;
-} // namespace task
-
 namespace linuxviewer::OS {
 class Window;
 } // namespace linuxviewer::OS
 
 namespace vulkan {
+
+namespace task {
+class PipelineFactory;
+class SynchronousWindow;
+} // namespace task
 
 namespace pipeline {
 class CharacteristicRange;

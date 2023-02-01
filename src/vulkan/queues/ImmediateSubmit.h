@@ -4,18 +4,18 @@
 #include "AsyncTask.h"
 #include "debug.h"
 
-namespace task {
+namespace vulkan::task {
 
 class ImmediateSubmitQueue;
 
-class ImmediateSubmit : public vulkan::AsyncTask
+class ImmediateSubmit : public AsyncTask
 {
  public:
   static constexpr condition_type submit_finished = 1;
 
  protected:
   // Constructor, set_queue_request_key, set_record_function.
-  vulkan::ImmediateSubmitRequest m_submit_request;
+  ImmediateSubmitRequest m_submit_request;
   // Constructor.
   state_type m_continue_state{ImmediateSubmit_done};
   // ImmediateSubmit_start.
@@ -31,10 +31,10 @@ class ImmediateSubmit : public vulkan::AsyncTask
   static state_type constexpr state_end = ImmediateSubmit_done + 1;
 
   ImmediateSubmit(CWDEBUG_ONLY(bool debug));
-  ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug));
+  ImmediateSubmit(ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug));
 
-  void set_queue_request_key(vulkan::QueueRequestKey queue_request_key) { m_submit_request.set_queue_request_key(queue_request_key); }
-  void set_record_function(vulkan::ImmediateSubmitRequest::record_function_type&& record_function) { m_submit_request.set_record_function(std::move(record_function)); }
+  void set_queue_request_key(QueueRequestKey queue_request_key) { m_submit_request.set_queue_request_key(queue_request_key); }
+  void set_record_function(ImmediateSubmitRequest::record_function_type&& record_function) { m_submit_request.set_record_function(std::move(record_function)); }
 
  protected:
   ~ImmediateSubmit() override;
@@ -45,4 +45,4 @@ class ImmediateSubmit : public vulkan::AsyncTask
   void multiplex_impl(state_type run_state) override;
 };
 
-} // namespace task
+} // namespace vulkan::task

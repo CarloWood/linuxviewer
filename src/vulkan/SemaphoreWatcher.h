@@ -8,17 +8,17 @@
 
 namespace vulkan {
 class TimelineSemaphore;
-} // namespace vulkan
 
 namespace task {
+using ::task::TaskType;
 
 struct SemaphoreWatcherWatchData
 {
-  vulkan::TimelineSemaphore const* m_timeline_semaphore;        // The timeline semaphore to watch.
+  TimelineSemaphore const* m_timeline_semaphore;        // The timeline semaphore to watch.
   uint64_t m_signal_value;                                      // The counter value that it must reach before we can call signal on a task.
 
   // Clang requires a constructor.
-  SemaphoreWatcherWatchData(vulkan::TimelineSemaphore const* timeline_semaphore, uint64_t signal_value) :
+  SemaphoreWatcherWatchData(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value) :
     m_timeline_semaphore(timeline_semaphore), m_signal_value(signal_value) { }
 };
 
@@ -90,8 +90,8 @@ class SemaphoreWatcher : public BASE
   using BASE::wait;
   using BASE::signal;
 
-  void add(vulkan::TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition);
-  void remove(vulkan::TimelineSemaphore const* timeline_semaphore);
+  void add(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition);
+  void remove(TimelineSemaphore const* timeline_semaphore);
   bool poll();
 
  protected:
@@ -105,7 +105,7 @@ class SemaphoreWatcher : public BASE
   void initialize_impl() override;
 };
 
-class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
+class AsyncSemaphoreWatcher : public SemaphoreWatcher<AsyncTask>
 {
  public:
   static constexpr AIStatefulTask::condition_type poll_timer = 2;
@@ -115,7 +115,7 @@ class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
   threadpool::Timer m_poll_rate_limiter{[this](){ signal(poll_timer); }};
 
  public:
-  using SemaphoreWatcher<vulkan::AsyncTask>::SemaphoreWatcher;
+  using SemaphoreWatcher<AsyncTask>::SemaphoreWatcher;
 
  protected:
   char const* condition_str_impl(condition_type condition) const override;
@@ -123,6 +123,7 @@ class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
 };
 
 } // namespace task
+} // namespace vulkan
 
 #endif // VULKAN_SEMAPHORE_WATCHER_H
 
@@ -133,10 +134,10 @@ class AsyncSemaphoreWatcher : public SemaphoreWatcher<vulkan::AsyncTask>
 #ifndef VULKAN_SEMAPHORE_WATCHER_H_definitions
 #define VULKAN_SEMAPHORE_WATCHER_H_definitions
 
-namespace task {
+namespace vulkan::task {
 
 template<TaskType BASE>
-void SemaphoreWatcher<BASE>::add(vulkan::TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition)
+void SemaphoreWatcher<BASE>::add(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition)
 {
   DoutEntering(dc::notice, "SemaphoreWatcher::add(" << timeline_semaphore << ", " << signal_value << ", " << task << ", " << task->print_conditions(condition) << ")");
   watch_set_type::wat watch_set_w(m_watch_set);
@@ -158,7 +159,7 @@ void SemaphoreWatcher<BASE>::add(vulkan::TimelineSemaphore const* timeline_semap
 }
 
 template<TaskType BASE>
-void SemaphoreWatcher<BASE>::remove(vulkan::TimelineSemaphore const* timeline_semaphore)
+void SemaphoreWatcher<BASE>::remove(TimelineSemaphore const* timeline_semaphore)
 {
   DoutEntering(dc::notice, "SemaphoreWatcher::remove(" << timeline_semaphore << ")");
   watch_set_type::wat watch_set_w(m_watch_set);
@@ -238,7 +239,7 @@ char const* SemaphoreWatcher<BASE>::task_name_impl() const
 {
   if constexpr (std::is_same_v<BASE, SynchronousTask>)
     return "SemaphoreWatcher<SynchronousTask>";
-  else if constexpr (std::is_same_v<BASE, vulkan::AsyncTask>)
+  else if constexpr (std::is_same_v<BASE, AsyncTask>)
     return "SemaphoreWatcher<AsyncTask>";
   return "SemaphoreWatcher<>";
 }
@@ -266,6 +267,6 @@ void SemaphoreWatcher<BASE>::initialize_impl()
   BASE::set_state(SemaphoreWatcher_poll);
 }
 
-} // namespace task
+} // namespace vulkan::task
 
 #endif // VULKAN_SEMAPHORE_WATCHER_H_definitions

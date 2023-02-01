@@ -19,7 +19,7 @@
 #endif
 #include "debug.h"
 
-namespace task {
+namespace vulkan::task {
 
 class PipelineFactory;
 
@@ -31,7 +31,7 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
 
  private:
   // Constructor.
-  boost::intrusive_ptr<task::PipelineFactory> m_owning_factory; // We have one pipeline cache per factory - or each factory would still be
+  boost::intrusive_ptr<PipelineFactory> m_owning_factory; // We have one pipeline cache per factory - or each factory would still be
                                                                 // slowed down as a result of concurrent accesses to the cache.
                                                                 // This is a intrusive_ptr because the PipelineFactory might finish before this task.
   // State PipelineCache_load_from_disk.
@@ -96,6 +96,6 @@ class PipelineCache : public vk_utils::TaskToTaskDeque<AIStatefulTask, vk::Uniqu
   BOOST_SERIALIZATION_SPLIT_MEMBER()
 };
 
-} // namespace task
+} // namespace vulkan::task
 
 #endif // PIPELINE_PIPELINE_CACHE_H

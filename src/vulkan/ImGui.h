@@ -68,11 +68,11 @@ class UI final : public vulkan::shader_builder::VertexShaderInputSet<ImDrawVert>
 
 } // namespace imgui
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 } // namespace task
-
-namespace vulkan {
 
 // Frame resources.
 struct ImGui_FrameResourcesData

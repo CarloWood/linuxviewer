@@ -6,10 +6,10 @@
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 
-namespace task {
+namespace vulkan::task {
 class PipelineFactory;
 class SynchronousWindow;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::pipeline {
 

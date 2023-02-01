@@ -11,9 +11,9 @@
 #include <algorithm>
 #include "debug.h"
 
-namespace task {
+namespace vulkan::task {
 class PipelineFactory;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::pipeline {
 

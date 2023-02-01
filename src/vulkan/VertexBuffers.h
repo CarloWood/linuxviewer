@@ -11,11 +11,11 @@
 #include <string>
 #include <algorithm>
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 } // namespace task
-
-namespace vulkan {
 namespace shader_builder {
 class VertexShaderInputSetBase;
 } // namespace shader_builder

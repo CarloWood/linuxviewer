@@ -27,13 +27,13 @@
 
 static constexpr int top_position_array_index = 6;
 
-class Window : public task::SynchronousWindow
+class Window : public vulkan::task::SynchronousWindow
 {
  private:
   using Directory = vulkan::Directory;
 
  public:
-  using task::SynchronousWindow::SynchronousWindow;
+  using vulkan::task::SynchronousWindow::SynchronousWindow;
   static constexpr condition_type sample_texture_uploaded = free_condition;
 
  private:
@@ -247,7 +247,7 @@ void main()
    public:
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
-    BasePipelineCharacteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
+    BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
@@ -317,7 +317,7 @@ void main()
    public:
     static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
 
-    UniformBuffersTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
+    UniformBuffersTestPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
 
    protected:
@@ -567,7 +567,7 @@ else
 
   UniformBuffersTest const& application() const
   {
-    return static_cast<UniformBuffersTest const&>(task::SynchronousWindow::application());
+    return static_cast<UniformBuffersTest const&>(vulkan::task::SynchronousWindow::application());
   }
 
   float m_top_position{0.5};

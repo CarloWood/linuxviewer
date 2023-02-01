@@ -27,6 +27,10 @@ namespace descriptor {
 using utils::has_print_on::operator<<;
 } // namespace descriptor
 
+namespace task {
+using utils::has_print_on::operator<<;
+} // namespace task
+
 } // namespace vulkan
 
 namespace vk_defaults {

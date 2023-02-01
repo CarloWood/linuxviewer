@@ -3,7 +3,7 @@
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
 
-namespace task {
+namespace vulkan::task {
 
 class SynchronousWindow;
 
@@ -62,4 +62,4 @@ class SynchronousTask : public AIStatefulTask
   void multiplex_impl(state_type run_state) override;
 };
 
-} // namespace task
+} // namespace vulkan::task

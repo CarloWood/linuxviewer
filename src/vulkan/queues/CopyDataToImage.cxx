@@ -1,9 +1,9 @@
 #include "sys.h"
 #include "CopyDataToImage.h"
 
-namespace task {
+namespace vulkan::task {
 
-void CopyDataToImage::record_command_buffer(vulkan::handle::CommandBuffer command_buffer)
+void CopyDataToImage::record_command_buffer(handle::CommandBuffer command_buffer)
 {
   DoutEntering(dc::vulkan(mSMDebug), "CopyDataToImage::record_command_buffer(" << command_buffer << ")");
 
@@ -59,4 +59,4 @@ void CopyDataToImage::record_command_buffer(vulkan::handle::CommandBuffer comman
   command_buffer.end();
 }
 
-} // namespace task
+} // namespace vulkan::task

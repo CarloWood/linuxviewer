@@ -6,14 +6,14 @@
 #include "QueuePool.h"
 #include "utils/AIAlert.h"
 
-namespace task {
+namespace vulkan::task {
 
 ImmediateSubmit::ImmediateSubmit(CWDEBUG_ONLY(bool debug)) :
   AsyncTask(CWDEBUG_ONLY(debug))
 {
 }
 
-ImmediateSubmit::ImmediateSubmit(vulkan::ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug)) :
+ImmediateSubmit::ImmediateSubmit(ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug)) :
   AsyncTask(CWDEBUG_ONLY(debug)), m_submit_request(std::move(submit_request)), m_continue_state(continue_state)
 {
 }
@@ -56,7 +56,7 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
     case ImmediateSubmit_start:
     {
       // Obtain reference to associated QueuePool.
-      vulkan::QueuePool& queue_pool = vulkan::QueuePool::instance(m_submit_request);
+      QueuePool& queue_pool = QueuePool::instance(m_submit_request);
       // Get a running ImmediateSubmitQueue task from the pool.
       m_immediate_submit_queue_task = queue_pool.get_immediate_submit_queue_task(CWDEBUG_ONLY(mSMDebug));
 
@@ -72,4 +72,4 @@ void ImmediateSubmit::multiplex_impl(state_type run_state)
   }
 }
 
-} // namespace task
+} // namespace vulkan::task

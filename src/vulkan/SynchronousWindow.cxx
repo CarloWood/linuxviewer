@@ -35,7 +35,7 @@ channel_ct renderloop("RENDERLOOP");
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 
-namespace task {
+namespace vulkan::task {
 
 //static
 vulkan::ImageKind const SynchronousWindow::s_depth_image_kind({
@@ -56,7 +56,7 @@ vulkan::ImageViewKind const SynchronousWindow::s_color_image_view_kind(s_color_i
 SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), SynchronousEngine("SynchronousEngine", 10.0f),
   m_application(application), m_frame_rate_limiter([this](){ signal(frame_timer); }),
-  m_semaphore_watcher(statefultask::create<task::SemaphoreWatcher<task::SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug)))
+  m_semaphore_watcher(statefultask::create<SemaphoreWatcher<SynchronousTask>>(this COMMA_CWDEBUG_ONLY(mSMDebug)))
   COMMA_TRACY_ONLY(tracy_acquired_image_tracy_context(8), tracy_acquired_image_busy(8)),
   attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}), m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))

@@ -3,11 +3,11 @@
 #include "utils/Badge.h"
 #include <atomic>
 
+namespace vulkan {
+
 namespace task {
 class SynchronousTask;
 } // namespace task
-
-namespace vulkan {
 
 class AsyncAccessSpecialCircumstances;
 class SynchronousEngine;

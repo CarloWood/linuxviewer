@@ -19,11 +19,10 @@
 #include <cstring>
 #include <iostream>
 
+namespace vulkan {
 namespace task {
 class SynchronousWindow;
 } // namespace vulkan
-
-namespace vulkan {
 class SpecialCircumstances;
 } // namespace vulkan
 

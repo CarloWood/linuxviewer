@@ -220,10 +220,10 @@ void LinuxViewerApplication::on_menu_File_QUIT()
 }
 #endif
 
-class Window : public task::SynchronousWindow
+class Window : public vulkan::task::SynchronousWindow
 {
  public:
-  using task::SynchronousWindow::SynchronousWindow;
+  using vulkan::task::SynchronousWindow::SynchronousWindow;
 
  private:
   // Create renderpass / attachment objects.
@@ -313,7 +313,7 @@ void main()
   class Characteristic : public vulkan::pipeline::AddShaderStage
   {
    public:
-    void build_shader(task::SynchronousWindow const* owning_window,
+    void build_shader(vulkan::task::SynchronousWindow const* owning_window,
         vulkan::shader_builder::ShaderIndex const& shader_index, vulkan::shader_builder::ShaderCompiler const& compiler
         COMMA_CWDEBUG_ONLY(std::string prefix))
     {
@@ -332,7 +332,7 @@ void main()
       return nullptr;
     }
 
-    task::PipelineFactory* get_owning_factory() const override
+    vulkan::task::PipelineFactory* get_owning_factory() const override
     {
       // We're not using a pipeline factory.
       return nullptr;

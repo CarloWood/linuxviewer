@@ -15,9 +15,8 @@
 #include "utils/at_scope_end.h"
 #include "utils/almost_equal.h"
 
-namespace task {
-using namespace vulkan;
-using namespace vulkan::pipeline;
+namespace vulkan::task {
+using namespace pipeline;
 
 namespace synchronous {
 
@@ -1046,7 +1045,7 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
     }
 
     // Try to get the lock on all other shader resources.
-    if (!shader_resource->acquire_create_lock(this, task::PipelineFactory::obtained_create_lock))
+    if (!shader_resource->acquire_create_lock(this, PipelineFactory::obtained_create_lock))
     {
 //      Dout(dc::always, "  Returning false because acquire_create_lock returned false.");
       // If some other task was first, then we back off by returning false.
@@ -1305,7 +1304,7 @@ bool PipelineFactory::update_missing_descriptor_sets()
         bool in_progress =
           first_shader_resource &&        // Only lock the first shader_resource for every set_index.
           !m_have_lock &&                 // Already have the lock; no need to call lock_set_layout_binding.
-          !shader_resource->lock_set_layout_binding(set_layout_binding, this, task::PipelineFactory::obtained_set_layout_binding_lock);
+          !shader_resource->lock_set_layout_binding(set_layout_binding, this, PipelineFactory::obtained_set_layout_binding_lock);
         if (first_shader_resource)
         {
 #ifdef CWDEBUG
@@ -1541,4 +1540,4 @@ void PipelineFactory::ShaderResourcePlusCharacteristicPlusPreferredAndUndesirabl
 }
 #endif
 
-} // namespace task
+} // namespace vulkan::task

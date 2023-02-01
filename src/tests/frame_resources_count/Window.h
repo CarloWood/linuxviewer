@@ -31,13 +31,13 @@
 
 #define ENABLE_IMGUI 1
 
-class Window : public task::SynchronousWindow
+class Window : public vulkan::task::SynchronousWindow
 {
  private:
   using Directory = vulkan::Directory;
 
  public:
-  using task::SynchronousWindow::SynchronousWindow;
+  using vulkan::task::SynchronousWindow::SynchronousWindow;
   static constexpr condition_type background_texture_uploaded = free_condition;
   static constexpr condition_type sample_texture_uploaded = free_condition << 1;
 
@@ -275,7 +275,7 @@ void main()
    public:
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
-    BasePipelineCharacteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
+    BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
@@ -342,7 +342,7 @@ void main()
    public:
     static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_initialize + 1;
 
-    FrameResourcesCountPipelineCharacteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
+    FrameResourcesCountPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
@@ -611,7 +611,7 @@ else
 
   FrameResourcesCount const& application() const
   {
-    return static_cast<FrameResourcesCount const&>(task::SynchronousWindow::application());
+    return static_cast<FrameResourcesCount const&>(vulkan::task::SynchronousWindow::application());
   }
 
   void draw_imgui() override final

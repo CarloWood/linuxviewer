@@ -33,7 +33,7 @@ std::ostream& operator<<(std::ostream& os, vk::PipelineCacheHeaderVersionOne con
 } // namespace vk
 #endif
 
-namespace task {
+namespace vulkan::task {
 
 PipelineCache::PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
 {
@@ -84,7 +84,7 @@ char const* PipelineCache::task_name_impl() const
 
 std::filesystem::path PipelineCache::get_filename() const
 {
-  return vulkan::Application::instance().path_of(vulkan::Directory::cache) / utils::u8string_to_filename(u8"pipeline_cache of " + m_owning_factory->owning_window()->pipeline_cache_name());
+  return Application::instance().path_of(Directory::cache) / utils::u8string_to_filename(u8"pipeline_cache of " + m_owning_factory->owning_window()->pipeline_cache_name());
 }
 
 void PipelineCache::multiplex_impl(state_type run_state)
@@ -101,7 +101,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
           .initialDataSize = 0
         };
         m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
-            COMMA_CWDEBUG_ONLY({"PipelineCache_initialize::m_pipeline_cache", vulkan::as_postfix(this)}));
+            COMMA_CWDEBUG_ONLY({"PipelineCache_initialize::m_pipeline_cache", as_postfix(this)}));
         set_state(PipelineCache_ready);
         break;
       }
@@ -215,7 +215,7 @@ void PipelineCache::load(boost::archive::binary_iarchive& archive, unsigned int 
     .pInitialData = tmp_storage
   };
   m_pipeline_cache = logical_device->create_pipeline_cache(pipeline_cache_create_info
-      COMMA_CWDEBUG_ONLY({"PipelineCache::m_pipeline_cache", vulkan::as_postfix(this)}));
+      COMMA_CWDEBUG_ONLY({"PipelineCache::m_pipeline_cache", as_postfix(this)}));
   free(tmp_storage);
 }
 
@@ -245,4 +245,4 @@ void PipelineCache::save(boost::archive::binary_oarchive& archive, unsigned int 
   free(tmp_storage);
 }
 
-} // namespace task
+} // namespace vulkan::task

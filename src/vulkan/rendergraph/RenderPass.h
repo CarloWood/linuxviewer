@@ -23,7 +23,7 @@ extern channel_ct rpverbose;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 
-namespace task {
+namespace vulkan::task {
 class SynchronousWindow;
 } // namespace task
 

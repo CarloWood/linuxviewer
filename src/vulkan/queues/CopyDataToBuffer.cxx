@@ -1,9 +1,9 @@
 #include "sys.h"
 #include "CopyDataToBuffer.h"
 
-namespace task {
+namespace vulkan::task {
 
-void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer command_buffer)
+void CopyDataToBuffer::record_command_buffer(handle::CommandBuffer command_buffer)
 {
   DoutEntering(dc::vulkan(mSMDebug), "CopyDataToBuffer::record_command_buffer(" << command_buffer << ") [" << this << "]");
 
@@ -41,4 +41,4 @@ void CopyDataToBuffer::record_command_buffer(vulkan::handle::CommandBuffer comma
   command_buffer.end();
 }
 
-} // namespace task
+} // namespace vulkan::task

@@ -14,11 +14,10 @@ extern channel_ct xcbmotion;
 NAMESPACE_DEBUG_CHANNELS_END
 #endif
 
+namespace vulkan {
 namespace task {
 class SynchronousWindow;
 } // namespace task
-
-namespace vulkan {
 
 // Gives asynchronous access to SpecialCircumstances.
 class AsyncAccessSpecialCircumstances

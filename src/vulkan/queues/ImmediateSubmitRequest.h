@@ -5,11 +5,11 @@
 #include "QueueRequestKey.h"
 #include <functional>
 
+namespace vulkan {
+
 namespace task {
 class ImmediateSubmit;
 } // namespace task
-
-namespace vulkan {
 
 // This struct contains the data needed to start an ImmediateSubmit task.
 class ImmediateSubmitRequest
@@ -31,7 +31,7 @@ class ImmediateSubmitRequest
  public:
   ImmediateSubmitRequest() = default;
   ImmediateSubmitRequest(ImmediateSubmitRequest&&) = default;
-  ImmediateSubmitRequest(vulkan::LogicalDevice const* logical_device, task::ImmediateSubmit* immediate_submit) :
+  ImmediateSubmitRequest(LogicalDevice const* logical_device, task::ImmediateSubmit* immediate_submit) :
     m_logical_device(logical_device), m_immediate_submit(immediate_submit), m_queue_request_key({QueueFlagBits::eTransfer, logical_device->transfer_request_cookie()}) { }
 
   ImmediateSubmitRequest& operator=(ImmediateSubmitRequest&& orig)
@@ -44,18 +44,18 @@ class ImmediateSubmitRequest
   }
 
   // Use before submitting request.
-  void set_logical_device(vulkan::LogicalDevice const* logical_device) { m_logical_device = logical_device; }
-  void set_queue_request_key(vulkan::QueueRequestKey queue_request_key) { m_queue_request_key = queue_request_key; }
+  void set_logical_device(LogicalDevice const* logical_device) { m_logical_device = logical_device; }
+  void set_queue_request_key(QueueRequestKey queue_request_key) { m_queue_request_key = queue_request_key; }
   void set_record_function(record_function_type&& record_function) { m_record_function = std::move(record_function); }
   // Called by ImmediateSubmitQueue_need_action.
   void set_command_buffer_and_signal_value(handle::CommandBuffer command_buffer, uint64_t signal_value) const { m_command_buffer = command_buffer; m_signal_value = signal_value; }
 
-  vulkan::LogicalDevice const* logical_device() const
+  LogicalDevice const* logical_device() const
   {
     return m_logical_device;
   }
 
-  vulkan::QueueRequestKey const& queue_request_key() const
+  QueueRequestKey const& queue_request_key() const
   {
     return m_queue_request_key;
   }

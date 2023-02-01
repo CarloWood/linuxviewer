@@ -2,7 +2,7 @@
 #include "SynchronousTask.h"
 #include "SynchronousWindow.h"
 
-namespace task {
+namespace vulkan::task {
 
 char const* SynchronousTask::state_str_impl(state_type run_state) const
 {

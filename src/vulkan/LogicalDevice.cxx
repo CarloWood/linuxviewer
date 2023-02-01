@@ -1580,11 +1580,9 @@ AmbifixOwner LogicalDevice::debug_name_prefix(std::string prefix) const
 }
 #endif
 
-} // namespace vulkan
-
 namespace task {
 
-LogicalDevice::LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
+LogicalDevice::LogicalDevice(Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application)
 {
 }
@@ -1653,3 +1651,4 @@ void LogicalDevice::multiplex_impl(state_type run_state)
 }
 
 } // namespace task
+} // namespace vulkan

@@ -34,8 +34,6 @@ namespace descriptor {
 class CombinedImageSamplerUpdater;
 } // namespace descriptor
 
-} // namespace vulkan
-
 namespace task {
 class PipelineCache;
 
@@ -62,7 +60,7 @@ class PipelineFactory : public AIStatefulTask
 
  private:
   // Constructor.
-  SynchronousWindow* m_owning_window;
+  vulkan::task::SynchronousWindow* m_owning_window;
   vk::RenderPass m_vh_render_pass;
   // add.
   characteristics_container_t m_characteristics;
@@ -281,11 +279,11 @@ class PipelineFactory : public AIStatefulTask
   void finish_impl() override;
 
  public:
-  PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
+  PipelineFactory(vulkan::task::SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
       COMMA_CWDEBUG_ONLY(bool debug = false));
 
   // Accessor.
-  SynchronousWindow* owning_window() const { return m_owning_window; }
+  vulkan::task::SynchronousWindow* owning_window() const { return m_owning_window; }
 
   template<typename T>
   void add_to_flat_create_info(std::vector<T> const* list) { m_flat_create_info.add(list); }
@@ -308,6 +306,7 @@ class PipelineFactory : public AIStatefulTask
 };
 
 } // namespace task
+} // namespace vulkan
 #endif // PIPELINE_PIPELINE_FACTORY_H
 
 #ifndef PIPELINE_PIPELINE_CACHE_H
@@ -318,13 +317,13 @@ class PipelineFactory : public AIStatefulTask
 #ifndef PIPELINE_PIPELINE_FACTORY_H_definitions
 #define PIPELINE_PIPELINE_FACTORY_H_definitions
 
-namespace task {
+namespace vulkan::task {
 
 boost::intrusive_ptr<PipelineCache> PipelineFactory::detach_pipeline_cache_task()
 {
   return std::move(m_pipeline_cache_task);
 }
 
-} // namespace task
+} // namespace vulkan::task
 
 #endif // PIPELINE_PIPELINE_FACTORY_H_definitions

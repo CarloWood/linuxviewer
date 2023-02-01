@@ -9,11 +9,11 @@
 #include "FrameResourceIndex.h"
 #endif
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 } // namespace task
-
-namespace vulkan {
 
 #ifdef CWDEBUG
 class AmbifixOwner;

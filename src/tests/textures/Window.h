@@ -33,13 +33,13 @@
 #define ENABLE_IMGUI 1
 #define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 1
 
-class Window : public task::SynchronousWindow
+class Window : public vulkan::task::SynchronousWindow
 {
  private:
   using Directory = vulkan::Directory;
 
  public:
-  using task::SynchronousWindow::SynchronousWindow;
+  using vulkan::task::SynchronousWindow::SynchronousWindow;
   static constexpr condition_type texture_uploaded = free_condition;
 
  private:
@@ -295,7 +295,7 @@ void main()
    public:
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
-    BasePipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+    BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
@@ -368,7 +368,7 @@ void main()
    public:
     static constexpr state_type state_end = VertexPipelineCharacteristicRange_fill + 1;
 
-    VertexPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+    VertexPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
@@ -475,7 +475,7 @@ void main()
    public:
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_fill + 1;
 
-    FragmentPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
+    FragmentPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
@@ -780,7 +780,7 @@ else
 
   TextureTest const& application() const
   {
-    return static_cast<TextureTest const&>(task::SynchronousWindow::application());
+    return static_cast<TextureTest const&>(vulkan::task::SynchronousWindow::application());
   }
 
   void draw_imgui() override final

@@ -10,11 +10,12 @@
 #include <set>
 #include "debug.h"
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 } // namespace task
 
-namespace vulkan {
 #ifdef CWDEBUG
 class Ambifix;
 #endif

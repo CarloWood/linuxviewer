@@ -3,11 +3,11 @@
 #include "CommandBufferFactory.h"
 #include "utils/AIAlert.h"
 
-namespace task {
+namespace vulkan::task {
 
 ImmediateSubmitQueue::ImmediateSubmitQueue(
     vulkan::LogicalDevice const* logical_device,
-    vulkan::Queue const& queue
+    Queue const& queue
     COMMA_CWDEBUG_ONLY(bool debug)) :
   direct_base_type(CWDEBUG_ONLY(debug)),
   m_command_buffer_pool(8, m_deque_allocator, logical_device, queue.queue_family()
@@ -85,7 +85,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
       if (m_pending_requests > 0)
       {
         Dout(dc::vulkan, "Considering " << m_pending_requests << " pending requests.");
-        std::vector<vulkan::handle::CommandBuffer> command_buffers(m_pending_requests);
+        std::vector<handle::CommandBuffer> command_buffers(m_pending_requests);
         container_type::const_iterator pending_request = first_pending_request;
         uint64_t counter_value = m_semaphore.get_counter_value();
         int processed = 0;
@@ -118,7 +118,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
       if (n > 0)
       {
         // Acquire n command buffers from the command buffer pool.
-        std::vector<vulkan::handle::CommandBuffer> command_buffers(n);
+        std::vector<handle::CommandBuffer> command_buffers(n);
         // Attempt to acquire n buffers - this might fail.
         Debug(m_command_buffer_pool.factory().set_ambifix({"ImmediateSubmitQueue_need_action::command_buffers", as_postfix(this)}));
         size_t const acquired = m_command_buffer_pool.acquire(command_buffers);
@@ -175,7 +175,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
 void ImmediateSubmitQueue::abort_impl()
 {
   m_semaphore.remove_poll();
-  flush_new_data([](vulkan::ImmediateSubmitRequest&& submit_request){
+  flush_new_data([](ImmediateSubmitRequest&& submit_request){
     submit_request.abort();
   });
 }
@@ -188,4 +188,4 @@ void ImmediateSubmitQueue::terminate()
   abort();
 }
 
-} // namespace task
+} // namespace vulkan::task

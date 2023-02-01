@@ -6,13 +6,13 @@
 #include "statefultask/RunningTasksTracker.h"
 #include <vector>
 
-namespace task {
+namespace vulkan::task {
 
 class CopyDataToGPU : public ImmediateSubmit
 {
  protected:
-  std::unique_ptr<vulkan::DataFeeder> m_data_feeder;
-  vulkan::memory::StagingBuffer m_staging_buffer;
+  std::unique_ptr<DataFeeder> m_data_feeder;
+  memory::StagingBuffer m_staging_buffer;
   uint32_t m_data_size;
   SynchronousWindow const* m_resource_owner;                    // If any resources that this task uses are part of a window, then this should be set.
   statefultask::RunningTasksTracker::index_type m_index;        // Our index, if added to m_resource_owner.
@@ -47,13 +47,13 @@ class CopyDataToGPU : public ImmediateSubmit
     m_resource_owner = resource_owner;
   }
 
-  void set_data_feeder(std::unique_ptr<vulkan::DataFeeder> data_feeder)
+  void set_data_feeder(std::unique_ptr<DataFeeder> data_feeder)
   {
     m_data_feeder = std::move(data_feeder);
   }
 
  private:
-  virtual void record_command_buffer(vulkan::handle::CommandBuffer command_buffer) = 0;
+  virtual void record_command_buffer(handle::CommandBuffer command_buffer) = 0;
 
  protected:
   ~CopyDataToGPU() override;
@@ -64,4 +64,4 @@ class CopyDataToGPU : public ImmediateSubmit
   void multiplex_impl(state_type run_state) override;
 };
 
-} // namespace task
+} // namespace vulkan::task

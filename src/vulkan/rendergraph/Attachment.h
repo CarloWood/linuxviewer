@@ -5,9 +5,9 @@
 #include "utils/UniqueID.h"
 #include "utils/Vector.h"
 
-namespace task {
+namespace vulkan::task {
 class SynchronousWindow;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::rendergraph {
 

@@ -3,7 +3,7 @@
 #include "SynchronousWindow.h"
 #include "memory/StagingBuffer.h"
 
-namespace task {
+namespace vulkan::task {
 
 CopyDataToGPU::~CopyDataToGPU()
 {
@@ -59,7 +59,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
       ZoneScopedN("CopyDataToGPU_start");
       vulkan::LogicalDevice const* logical_device = m_submit_request.logical_device();
       // Create staging buffer and map its memory to copy data from the CPU.
-      m_staging_buffer = vulkan::memory::StagingBuffer(logical_device, m_data_size
+      m_staging_buffer = memory::StagingBuffer(logical_device, m_data_size
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer")));
       set_state(CopyDataToGPU_write);
     }
@@ -89,7 +89,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
       logical_device->flush_mapped_allocation(m_staging_buffer.m_vh_allocation, 0, VK_WHOLE_SIZE);
       // Set callback to record command buffer to virtual function `record_command_buffer`,
       // the derived class is responsible for appropriate commands to copy the staging buffer to the right destination.
-      m_submit_request.set_record_function([this](vulkan::handle::CommandBuffer command_buffer){
+      m_submit_request.set_record_function([this](handle::CommandBuffer command_buffer){
         record_command_buffer(command_buffer);
       });
       // Finish the rest of this "immediate submit" by passing control to the base class.
@@ -106,4 +106,4 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
   direct_base_type::multiplex_impl(run_state);
 }
 
-} // namespace task
+} // namespace vulkan::task

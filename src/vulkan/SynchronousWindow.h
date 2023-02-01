@@ -48,16 +48,19 @@ namespace xcb {
 class ConnectionBrokerKey;
 } // namespace xcb
 
+namespace linuxviewer::OS {
+class Window;
+} // namespace linuxviewer::OS
+
+namespace vulkan {
 namespace task {
 class LogicalDevice;
-class SynchronousTask;
 class SynchronousWindow;
+class SynchronousTask;
 namespace synchronous {
 class MoveNewPipelines;
 } // namespace synchronous
 } // namespace task
-
-namespace vulkan {
 class Application;
 class LogicalDevice;
 class Ambifix;
@@ -98,11 +101,6 @@ class DelaySemaphoreDestruction
 };
 
 } // namespace detail
-} // namespace vulkan
-
-namespace linuxviewer::OS {
-class Window;
-} // namespace linuxviewer::OS
 
 namespace task {
 
@@ -110,20 +108,20 @@ namespace task {
  * The SynchronousWindow task.
  *
  */
-class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEngine
+class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
 {
  public:
-  using request_cookie_type = vulkan::QueueRequest::cookies_type;
-  using xcb_connection_broker_type = Broker<XcbConnection>;
-  using AttachmentIndex = vulkan::rendergraph::AttachmentIndex;
+  using request_cookie_type = QueueRequest::cookies_type;
+  using xcb_connection_broker_type = ::task::Broker<::task::XcbConnection>;
+  using AttachmentIndex = rendergraph::AttachmentIndex;
 
   // This event is triggered as soon as m_window is created.
   statefultask::TaskEvent m_window_created_event;
 
-  static vulkan::ImageKind const s_depth_image_kind;
-  static vulkan::ImageViewKind const s_depth_image_view_kind;
-  static vulkan::ImageKind const s_color_image_kind;
-  static vulkan::ImageViewKind const s_color_image_view_kind;
+  static ImageKind const s_depth_image_kind;
+  static ImageViewKind const s_depth_image_view_kind;
+  static ImageKind const s_color_image_kind;
+  static ImageViewKind const s_color_image_view_kind;
 
  private:
   static constexpr condition_type connection_set_up              = 0x01;
@@ -138,7 +136,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   // Constructor
-  boost::intrusive_ptr<vulkan::Application> m_application;              // Pointer to the underlying application, which terminates when the last such reference is destructed.
+  boost::intrusive_ptr<Application> m_application;                      // Pointer to the underlying application, which terminates when the last such reference is destructed.
   vulkan::LogicalDevice* m_logical_device = nullptr;                    // Cached pointer to the LogicalDevice; set during task state LogicalDevice_create or
                                                                         // SynchronousWindow_logical_device_index_available.
  private:
@@ -154,7 +152,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   boost::intrusive_ptr<SynchronousWindow const> m_parent_window_task;   // A pointer to the parent window, or nullptr when this is a root window.
                                                                         // It is NOT thread-safe to access the parent window without knowing what you are doing.
   // create_window_events
-  std::unique_ptr<vulkan::WindowEvents> m_window_events;                // Pointer to the asynchronous object `WindowEvents`.
+  std::unique_ptr<WindowEvents> m_window_events;                        // Pointer to the asynchronous object `WindowEvents`.
 
   // set_xcb_connection_broker_and_key
   boost::intrusive_ptr<xcb_connection_broker_type> m_broker;
@@ -162,11 +160,11 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // run
   request_cookie_type m_request_cookie = {};                            // Unique bit for the creation event of this window (as determined by the user).
-  boost::intrusive_ptr<XcbConnection const> m_xcb_connection_task;      // Initialized in SynchronousWindow_start.
+  boost::intrusive_ptr<::task::XcbConnection const> m_xcb_connection_task;      // Initialized in SynchronousWindow_start.
   std::atomic_int m_logical_device_index = -1;                          // Index into Application::m_logical_device_list.
                                                                         // Initialized in LogicalDevice_create by call to Application::create_device.
-  vulkan::PresentationSurface m_presentation_surface;                   // The presentation surface information (surface-, graphics- and presentation queue handles).
-  vulkan::Swapchain m_swapchain;                                        // The swap chain used for this surface.
+  PresentationSurface m_presentation_surface;                           // The presentation surface information (surface-, graphics- and presentation queue handles).
+  Swapchain m_swapchain;                                                // The swap chain used for this surface.
 
   threadpool::Timer::Interval m_frame_rate_interval;                    // The minimum time between two frames.
   threadpool::Timer m_frame_rate_limiter;
@@ -178,13 +176,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  private:
   static constexpr int s_input_event_buffer_size = 32;                  // If the application is lagging more than 32 events behind then
                                                                         // the user is having other problems then losing key strokes.
-  vulkan::InputEventBuffer m_input_event_buffer;                        // Thread-safe ringbuffer to transfer input events from EventThread to this task.
+  InputEventBuffer m_input_event_buffer;                                // Thread-safe ringbuffer to transfer input events from EventThread to this task.
   bool m_in_focus;                                                      // Cache value of decoded input events.
 #ifdef TRACY_ENABLE
  protected:
   bool m_is_tracy_window;                                               // Set upon entering this window with the mouse; unset when a different window is entered.
-  utils::Vector<TracyCZoneCtx, vulkan::SwapchainIndex> tracy_acquired_image_tracy_context;
-  utils::Vector<bool, vulkan::SwapchainIndex> tracy_acquired_image_busy;
+  utils::Vector<TracyCZoneCtx, SwapchainIndex> tracy_acquired_image_tracy_context;
+  utils::Vector<bool, SwapchainIndex> tracy_acquired_image_busy;
  private:
 #endif
 
@@ -192,9 +190,9 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
   mutable child_window_list_t m_child_window_list;                      // List with child windows.
 
-  vulkan::GraphicsSettingsPOD m_graphics_settings;                      // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
+  GraphicsSettingsPOD m_graphics_settings;                              // Cached copy of global graphics settings; should be synchronized at the start of the render loop.
 
-  vulkan::Texture m_loading_texture;                                    // A "texture" (opaque gray) that is shown while the real texture isn't available yet.
+  Texture m_loading_texture;                                            // A "texture" (opaque gray) that is shown while the real texture isn't available yet.
 #ifdef CWDEBUG
   bool const mVWDebug;                                                  // A copy of mSMDebug.
 #endif
@@ -204,17 +202,17 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   // Only provide read access to derive class, because m_graphics_settings is only a local cache and is overwritten when Application::m_graphics_settings is changed.
-  vulkan::GraphicsSettingsPOD const& graphics_settings() const { return m_graphics_settings; }
+  GraphicsSettingsPOD const& graphics_settings() const { return m_graphics_settings; }
 
   // Optionally called from something like a Graphics Settings window.
   void change_number_of_swapchain_images(uint32_t image_count);
 
  public:
-  // Accessed by vulkan::rendergraph::Attachment::assign_unique_index().
+  // Accessed by rendergraph::Attachment::assign_unique_index().
   utils::UniqueIDContext<AttachmentIndex> attachment_index_context;     // Provides an unique index for registered attachments (through register_attachment).
 
   // Accessed by Swapchain.
-  vulkan::detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
+  detail::DelaySemaphoreDestruction m_delay_by_completed_draw_frames;
 
   statefultask::TaskEvent m_logical_device_index_available_event;       // Triggered when m_logical_device_index is set.
 
@@ -226,17 +224,17 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  static constexpr vulkan::FrameResourceIndex s_default_max_number_of_frame_resources{2};       // Default size of m_frame_resources_list.
-  static constexpr vulkan::SwapchainIndex s_default_max_number_of_swapchain_images{3};          // The default number of maximum number of swapchain images
-                                                                                                // that the application has to take into account (for example,
-                                                                                                // used for static creation of Tracy GPU zone labels).
+  static constexpr FrameResourceIndex s_default_max_number_of_frame_resources{2};       // Default size of m_frame_resources_list.
+  static constexpr SwapchainIndex s_default_max_number_of_swapchain_images{3};          // The default number of maximum number of swapchain images
+                                                                                        // that the application has to take into account (for example,
+                                                                                        // used for static creation of Tracy GPU zone labels).
   // Render graph nodes.
   using RenderPass = vulkan::RenderPass;                                // Use to define render passes in derived Window class.
-  using Attachment = vulkan::rendergraph::Attachment;                   // Use to define attachments in derived Window class.
+  using Attachment = rendergraph::Attachment;                           // Use to define attachments in derived Window class.
   // During construction of derived class (that must construct the needed RenderPass and Attachment objects as members).
   std::vector<RenderPass*> m_render_passes;                             // All render pass objects.
   utils::Vector<Attachment const*> m_attachments;                       // All known attachments, except the swapchain attachment (if any).
-  vulkan::rendergraph::RenderGraph m_render_graph;                      // Must be assigned in the derived Window class.
+  rendergraph::RenderGraph m_render_graph;                              // Must be assigned in the derived Window class.
   RenderPass imgui_pass{this, "imgui_pass"};                            // Must be constructed AFTER m_render_passes!
 
  public:
@@ -250,12 +248,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 #endif
 
  protected:
-  utils::Vector<std::unique_ptr<vulkan::FrameResourcesData>, vulkan::FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
-  vulkan::CurrentFrameData m_current_frame = { nullptr, vulkan::FrameResourceIndex{0}, vulkan::FrameResourceIndex{0} };
+  utils::Vector<std::unique_ptr<FrameResourcesData>, FrameResourceIndex> m_frame_resources_list;        // Vector with frame resources.
+  CurrentFrameData m_current_frame = { nullptr, FrameResourceIndex{0}, FrameResourceIndex{0} };
 
   // Initialized by create_imgui. Deinitialized by destruction.
   vk_utils::TimerData m_imgui_timer;
-  vulkan::ImGui m_imgui;                // ImGui framework.
+  ImGui m_imgui;                // ImGui framework.
 
  protected:
   /// The base class of this task.
@@ -281,14 +279,14 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  public:
   /// Construct a synchronous SynchronousWindow task.
-  SynchronousWindow(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
+  SynchronousWindow(Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
-  // Called by the constructor of vulkan::rendergraph::RenderPass objects,
+  // Called by the constructor of rendergraph::RenderPass objects,
   // which should be members of the derived class.
-  vulkan::rendergraph::RenderGraph& render_graph() { return m_render_graph; }
+  rendergraph::RenderGraph& render_graph() { return m_render_graph; }
 
   // Called from Application::create_window.
-  template<vulkan::ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
+  template<ConceptWindowEvents WINDOW_EVENTS> void create_window_events(vk::Extent2D extent);
   void set_title(std::u8string&& title) { m_title = std::move(title); }
   void set_offset(vk::Offset2D offset) { m_offset = offset; }
   void set_request_cookie(request_cookie_type request_cookie) { m_request_cookie = request_cookie; }
@@ -357,7 +355,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   }
 
   // Create and run a new window task that will run a child window of this window.
-  template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
+  template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
   void create_child_window(
       std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
       vk::Rect2D geometry,
@@ -373,12 +371,12 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     return m_presentation_surface.vh_surface();
   }
 
-  vulkan::Application const& application() const
+  Application const& application() const
   {
     return *m_application;
   }
 
-  vulkan::WindowEvents const* window_events() const
+  WindowEvents const* window_events() const
   {
     return m_window_events.get();
   }
@@ -392,7 +390,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     return logical_device_index;
   }
 
-  vulkan::PresentationSurface const& presentation_surface() const
+  PresentationSurface const& presentation_surface() const
   {
     return m_presentation_surface;
   }
@@ -407,10 +405,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
     return m_logical_device;
   }
 
-  vulkan::Swapchain& swapchain() { return m_swapchain; }
-  vulkan::Swapchain const& swapchain() const { return m_swapchain; }
-  void no_swapchain(utils::Badge<vulkan::Swapchain>) const { vulkan::SynchronousEngine::no_swapchain(); }
-  void have_swapchain(utils::Badge<vulkan::Swapchain>) const { vulkan::SynchronousEngine::have_swapchain(); }
+  Swapchain& swapchain() { return m_swapchain; }
+  Swapchain const& swapchain() const { return m_swapchain; }
+  void no_swapchain(utils::Badge<Swapchain>) const { SynchronousEngine::no_swapchain(); }
+  void have_swapchain(utils::Badge<Swapchain>) const { SynchronousEngine::have_swapchain(); }
 
   void wait_for_all_fences() const;
 
@@ -426,43 +424,43 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
   void add_synchronous_task(std::function<void(SynchronousWindow*)> lambda);
 
   void set_image_memory_barrier(
-    vulkan::ResourceState const& source,
-    vulkan::ResourceState const& destination,
+    ResourceState const& source,
+    ResourceState const& destination,
     vk::Image vh_image,
     vk::ImageSubresourceRange const& image_subresource_range) const;
 
   void detect_if_imgui_is_used();
 
   void update_descriptor_set_with_loading_texture(
-      vulkan::descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, vulkan::descriptor::ArrayElementRange array_elements) const
+      descriptor::FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, descriptor::ArrayElementRange array_elements) const
   {
     m_loading_texture.update_descriptor_array(this, descriptor_set, binding, array_elements);
   }
 
  public:
-  // The same type as the type defined in vulkan::pipeline::FactoryHandle, vulkan::pipeline::Handle::PipelineFactoryIndex,
-  // task::PipelineFactory, task::SynchronousWindow and vulkan::Application with the same name.
-  using PipelineFactoryIndex = vulkan::pipeline::Handle::PipelineFactoryIndex;
+  // The same type as the type defined in pipeline::FactoryHandle, pipeline::Handle::PipelineFactoryIndex,
+  // task::PipelineFactory, task::SynchronousWindow and Application with the same name.
+  using PipelineFactoryIndex = pipeline::Handle::PipelineFactoryIndex;
 
  protected:
-  utils::Vector<boost::intrusive_ptr<task::PipelineFactory>> m_pipeline_factories;
-  utils::Vector<utils::Vector<vk::UniquePipeline, vulkan::pipeline::Index>, PipelineFactoryIndex> m_pipelines;
-//  std::map<vulkan::FlatPipelineLayout, vk::UniquePipelineLayout> m_pipeline_layouts;
+  utils::Vector<boost::intrusive_ptr<PipelineFactory>> m_pipeline_factories;
+  utils::Vector<utils::Vector<vk::UniquePipeline, pipeline::Index>, PipelineFactoryIndex> m_pipelines;
+//  std::map<FlatPipelineLayout, vk::UniquePipelineLayout> m_pipeline_layouts;
 
   // Called from create_graphics_pipelines of derived class.
-  vulkan::pipeline::FactoryHandle create_pipeline_factory(vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
+  pipeline::FactoryHandle create_pipeline_factory(Pipeline& pipeline_out, vk::RenderPass vh_render_pass COMMA_CWDEBUG_ONLY(bool debug));
 
   // Return the vulkan handle of this pipeline.
-  vk::Pipeline vh_graphics_pipeline(vulkan::pipeline::Handle pipeline_handle) const;
+  vk::Pipeline vh_graphics_pipeline(pipeline::Handle pipeline_handle) const;
 
  public:
-  void have_new_pipeline(vulkan::Pipeline&& pipeline_handle_and_layout, vk::UniquePipeline&& pipeline);
+  void have_new_pipeline(Pipeline&& pipeline_handle_and_layout, vk::UniquePipeline&& pipeline);
 
   // Called by state MoveNewPipelines_done.
   void pipeline_factory_done(utils::Badge<synchronous::MoveNewPipelines>, PipelineFactoryIndex index);
 
-  // Called by vulkan::pipeline::FactoryHandle::generate.
-  inline task::PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
+  // Called by pipeline::FactoryHandle::generate.
+  inline PipelineFactory* pipeline_factory(PipelineFactoryIndex factory_index) const;
 
  private:
   // SynchronousWindow_acquire_queues:
@@ -470,7 +468,7 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
   // SynchronousWindow_initialize_vukan:
   // (virtual functions are implemented by most derived class)
-  virtual void set_default_clear_values(vulkan::rendergraph::ClearValue& color, vulkan::rendergraph::ClearValue& depth_stencil);
+  virtual void set_default_clear_values(rendergraph::ClearValue& color, rendergraph::ClearValue& depth_stencil);
   void prepare_swapchain();
   virtual void create_render_graph() = 0;
   void create_swapchain_images();
@@ -503,10 +501,10 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
 
  public:
   // Called by create_frame_resources() (and PresentationSurface::set_queues when TRACY_ENABLE).
-  virtual vulkan::FrameResourceIndex max_number_of_frame_resources() const;
+  virtual FrameResourceIndex max_number_of_frame_resources() const;
 
   // Called by ... when TRACY_ENABLE.
-  virtual vulkan::SwapchainIndex max_number_of_swapchain_images() const;
+  virtual SwapchainIndex max_number_of_swapchain_images() const;
 
   // Override this function to give a Window its own (or shared) pipeline cache ID.
   // Windows with the same pipeline_cache_name will share the same cache file.
@@ -515,13 +513,13 @@ class SynchronousWindow : public AIStatefulTask, protected vulkan::SynchronousEn
  protected:
   void start_frame();
   void wait_command_buffer_completed();
-  void submit(vulkan::handle::CommandBuffer command_buffer);
+  void submit(handle::CommandBuffer command_buffer);
   void finish_frame();
   void acquire_image();
 
  public:
 #ifdef CWDEBUG
-  vulkan::AmbifixOwner debug_name_prefix(std::string prefix) const;
+  AmbifixOwner debug_name_prefix(std::string prefix) const;
 #endif
 
  protected:
@@ -552,6 +550,7 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 #endif
 
 } // namespace task
+} // namespace vulkan
 
 #endif // VULKAN_SYNCHRONOUS_WINDOW_H
 
@@ -568,9 +567,9 @@ inline std::ostream& operator<<(std::ostream& os, SynchronousWindow const* ptr)
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_H_definitions
 #define VULKAN_SYNCHRONOUS_WINDOW_H_definitions
 
-namespace task {
+namespace vulkan::task {
 
-template<vulkan::ConceptWindowEvents WINDOW_EVENTS>
+template<ConceptWindowEvents WINDOW_EVENTS>
 void SynchronousWindow::create_window_events(vk::Extent2D extent)
 {
   DoutEntering(dc::notice, "SynchronousWindow::create_window_events(" << extent << ") [" << this << " : \"" << m_title << "\"]");
@@ -580,7 +579,7 @@ void SynchronousWindow::create_window_events(vk::Extent2D extent)
   m_window_events->set_extent(extent);
 }
 
-template<vulkan::ConceptWindowEvents WINDOW_EVENTS, vulkan::ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
+template<ConceptWindowEvents WINDOW_EVENTS, ConceptSynchronousWindow SYNCHRONOUS_WINDOW, typename... SYNCHRONOUS_WINDOW_ARGS>
 void SynchronousWindow::create_child_window(
     std::tuple<SYNCHRONOUS_WINDOW_ARGS...>&& window_constructor_args,
     vk::Rect2D geometry,
@@ -594,11 +593,11 @@ void SynchronousWindow::create_child_window(
 }
 
 //inline
-task::PipelineFactory* SynchronousWindow::pipeline_factory(PipelineFactoryIndex factory_index) const
+PipelineFactory* SynchronousWindow::pipeline_factory(PipelineFactoryIndex factory_index) const
 {
   return m_pipeline_factories[factory_index].get();
 }
 
-} // namespace task
+} // namespace vulkan::task
 
 #endif // VULKAN_SYNCHRONOUS_WINDOW_H_definitions

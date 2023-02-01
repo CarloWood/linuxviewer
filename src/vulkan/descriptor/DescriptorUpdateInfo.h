@@ -8,9 +8,9 @@
 #include <iosfwd>
 #endif
 
-namespace task {
+namespace vulkan::task {
 class SynchronousWindow;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::descriptor {
 class FrameResourceCapableDescriptorSet;

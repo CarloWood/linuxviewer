@@ -45,12 +45,12 @@
 #include <TracyVulkan.hpp>
 #endif
 
+namespace vulkan {
+
 namespace task {
 class SynchronousWindow;
 class AsyncSemaphoreWatcher;
 } // namespace task
-
-namespace vulkan {
 
 // Forward declarations.
 class PhysicalDeviceFeatures;
@@ -453,17 +453,15 @@ class LogicalDevice
   virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const { }
 };
 
-} // namespace vulkan
-
 namespace task {
 
 class LogicalDevice final : public AIStatefulTask
 {
  protected:
-  vulkan::Application* m_application;
+  Application* m_application;
 
  private:
-  boost::intrusive_ptr<task::SynchronousWindow> m_root_window;          // The root window that we have to support presentation to (if any). Only used during initialization.
+  boost::intrusive_ptr<SynchronousWindow> m_root_window;          // The root window that we have to support presentation to (if any). Only used during initialization.
                                                                         // This is reset as soon as we added ourselves to m_application; so don't use it.
   std::unique_ptr<vulkan::LogicalDevice> m_logical_device;              // Temporary storage of a pointer to the logical device object.
                                                                         // This is moved away to the Application and becomes nullptr; so don't use it.
@@ -489,7 +487,7 @@ class LogicalDevice final : public AIStatefulTask
   static constexpr condition_type window_available_condition = 1;
 
  public:
-  LogicalDevice(vulkan::Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
+  LogicalDevice(Application* application COMMA_CWDEBUG_ONLY(bool debug = false));
 
   void set_logical_device(std::unique_ptr<vulkan::LogicalDevice>&& logical_device) { m_logical_device = std::move(logical_device); }
   void set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window);
@@ -508,6 +506,8 @@ class LogicalDevice final : public AIStatefulTask
 };
 
 } // namespace task
+} // namespace vulkan
+
 #endif // VULKAN_LOGICAL_DEVICE_H
 
 #ifndef DEBUG_SET_NAME_DECLARATION_H

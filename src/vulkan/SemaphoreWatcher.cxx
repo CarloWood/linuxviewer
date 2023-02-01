@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "SemaphoreWatcher.h"
 
-namespace task {
+namespace vulkan::task {
 
 char const* AsyncSemaphoreWatcher::condition_str_impl(condition_type condition) const
 {
@@ -44,4 +44,4 @@ void AsyncSemaphoreWatcher::multiplex_impl(state_type run_state)
   }
 }
 
-} // namespace task
+} // namespace vulkan::task

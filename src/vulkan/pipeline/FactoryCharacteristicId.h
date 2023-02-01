@@ -5,9 +5,9 @@
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
 
-namespace task {
+namespace vulkan::task {
 class PipelineFactory;
-} // namespace task
+} // namespace vulkan::task
 
 namespace vulkan::pipeline {
 class CharacteristicRange;
