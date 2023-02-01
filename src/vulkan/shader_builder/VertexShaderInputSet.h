@@ -9,11 +9,6 @@
 #include <type_traits>
 #include "debug.h"
 
-// Forward declaration
-namespace vulkan::pipeline {
-class CharacteristicRange;
-} // namespace vulkan::pipeline
-
 namespace vulkan::shader_builder {
 
 class VertexShaderInputSetBase : public DataFeeder

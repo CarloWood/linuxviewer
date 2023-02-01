@@ -5,12 +5,14 @@
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
 
-namespace vulkan::task {
-class PipelineFactory;
-} // namespace vulkan::task
+namespace vulkan {
 
-namespace vulkan::pipeline {
+namespace task {
+class PipelineFactory;
 class CharacteristicRange;
+} // namespace task
+
+namespace pipeline {
 
 // A unique ID for a given pipeline factory / characteristic range pair.
 //
@@ -20,7 +22,7 @@ class FactoryCharacteristicId
 {
  public:
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
-  using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
+  using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
 
  private:
   PipelineFactoryIndex m_factory_index;
@@ -65,4 +67,5 @@ class FactoryCharacteristicId
 #endif
 };
 
-} // namespace vulkan::pipeline
+} // namespace pipeline
+} // namespace vulkan

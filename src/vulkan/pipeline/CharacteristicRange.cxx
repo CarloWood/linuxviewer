@@ -4,7 +4,7 @@
 #include "shader_builder/ShaderResourceDeclaration.h"
 #include "descriptor/CombinedImageSamplerUpdater.h"
 
-namespace vulkan::pipeline {
+namespace vulkan::task {
 
 char const* CharacteristicRange::state_str_impl(state_type run_state) const
 {
@@ -157,4 +157,4 @@ void Characteristic::initialize_impl()
   set_state(state_end);
 }
 
-} // namespace vulkan::pipeline
+} // namespace vulkan::task

@@ -173,7 +173,7 @@ void PipelineFactory::add_uniform_buffer(
   add_shader_resource(&uniform_buffer, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
-shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resource_declaration(utils::Badge<vulkan::pipeline::CharacteristicRange>, std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
+shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resource_declaration(utils::Badge<CharacteristicRange>, std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "PipelineFactory::realize_shader_resource_declaration(\"" << glsl_id_full << "\", " <<
       descriptor_type << ", " << shader_resource << set_index_hint << ") [" << this << "]");

@@ -15,11 +15,8 @@ namespace vulkan {
 namespace task {
 class PipelineFactory;
 class SynchronousWindow;
-} // namespace task
-
-namespace pipeline {
 class CharacteristicRange;
-} // namespace pipeline
+} // namespace task
 
 template<typename T>
 concept ConceptWindowEvents = std::is_base_of_v<linuxviewer::OS::Window, T>;
@@ -40,7 +37,7 @@ template<typename T>
 concept ConceptUniqueVulkanHandle = is_unique_handle<T>::value;
 
 template<typename T>
-concept ConceptPipelineCharacteristic = std::is_base_of_v<pipeline::CharacteristicRange, T>;
+concept ConceptPipelineCharacteristic = std::is_base_of_v<task::CharacteristicRange, T>;
 
 template<typename T>
 concept ConceptWriteDescriptorSetUpdateInfo =

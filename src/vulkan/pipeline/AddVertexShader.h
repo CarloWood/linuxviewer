@@ -12,14 +12,13 @@
 #include "debug.h"
 
 namespace vulkan {
+
 class VertexBuffers;
 namespace shader_builder {
 class VertexShaderInputSetBase;
 } // namespace shader_builder
-} // namespace vulkan
 
-namespace vulkan::pipeline {
-class CharacteristicRange;
+namespace pipeline {
 
 class AddVertexShader : public virtual AddShaderStage
 {
@@ -56,4 +55,5 @@ class AddVertexShader : public virtual AddShaderStage
 #endif
 };
 
-} // namespace vulkan::pipeline
+} // namespace pipeline
+} // namespace vulkan

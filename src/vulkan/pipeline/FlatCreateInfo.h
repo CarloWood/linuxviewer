@@ -11,11 +11,13 @@
 #include <algorithm>
 #include "debug.h"
 
-namespace vulkan::task {
+namespace vulkan {
+
+namespace task {
 class PipelineFactory;
 } // namespace vulkan::task
 
-namespace vulkan::pipeline {
+namespace pipeline {
 
 namespace {
 struct NoPushConstant { };
@@ -323,4 +325,5 @@ class FlatCreateInfo
   }
 };
 
-} // namespace vulkan::pipeline
+} // namespace pipeline
+} // namespace vulkan

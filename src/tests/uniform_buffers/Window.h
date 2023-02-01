@@ -222,7 +222,7 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class BasePipelineCharacteristic : public vulkan::task::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -232,7 +232,7 @@ void main()
     };
 
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::task::Characteristic;
 
     // The different states of this task.
     enum BasePipelineCharacteristic_state_type {
@@ -248,7 +248,7 @@ void main()
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
+      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -293,7 +293,7 @@ void main()
 #endif
   };
 
-  class UniformBuffersTestPipelineCharacteristic : public vulkan::pipeline::Characteristic,
+  class UniformBuffersTestPipelineCharacteristic : public vulkan::task::Characteristic,
       public vulkan::pipeline::AddVertexShader,
       public vulkan::pipeline::AddFragmentShader
   {
@@ -302,7 +302,7 @@ void main()
     vulkan::VertexBuffers m_empty_vertex_buffers;
 
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::task::Characteristic;
 
     // The different states of this task.
     enum UniformBuffersTestPipelineCharacteristic_state_type {
@@ -318,7 +318,7 @@ void main()
     static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
 
     UniformBuffersTestPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
+      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override

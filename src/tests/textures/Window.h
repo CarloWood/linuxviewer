@@ -269,7 +269,7 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class BasePipelineCharacteristic : public vulkan::task::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -280,7 +280,7 @@ void main()
     int m_pipeline_factory;
 
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::task::Characteristic;
 
     // The different states of this task.
     enum BasePipelineCharacteristic_state_type {
@@ -296,7 +296,7 @@ void main()
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -341,7 +341,7 @@ void main()
 #endif
   };
 
-  class VertexPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
+  class VertexPipelineCharacteristicRange : public vulkan::task::CharacteristicRange,
       public vulkan::pipeline::AddVertexShader,
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
       public vulkan::pipeline::AddFragmentShader,
@@ -352,7 +352,7 @@ void main()
     int m_pipeline_factory;
 
    protected:
-    using direct_base_type = vulkan::pipeline::CharacteristicRange;
+    using direct_base_type = vulkan::task::CharacteristicRange;
 
     // The different states of this task.
     enum VertexPipelineCharacteristicRange_state_type {
@@ -369,7 +369,7 @@ void main()
     static constexpr state_type state_end = VertexPipelineCharacteristicRange_fill + 1;
 
     VertexPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
@@ -451,7 +451,7 @@ void main()
   };
 
 #if SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-  class FragmentPipelineCharacteristicRange : public vulkan::pipeline::CharacteristicRange,
+  class FragmentPipelineCharacteristicRange : public vulkan::task::CharacteristicRange,
       public vulkan::pipeline::AddFragmentShader,
       public vulkan::pipeline::AddPushConstant
   {
@@ -459,7 +459,7 @@ void main()
     int m_pipeline_factory;
 
    protected:
-    using direct_base_type = vulkan::pipeline::CharacteristicRange;
+    using direct_base_type = vulkan::task::CharacteristicRange;
 
     // The different states of this task.
     enum FragmentPipelineCharacteristicRange_state_type {
@@ -476,7 +476,7 @@ void main()
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_fill + 1;
 
     FragmentPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override

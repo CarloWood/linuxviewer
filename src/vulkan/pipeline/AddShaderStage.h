@@ -17,6 +17,7 @@
 #include "debug.h"
 
 namespace vulkan {
+
 class ImGui;
 class AmbifixOwner;
 namespace shader_builder {
@@ -30,10 +31,8 @@ namespace descriptor {
 class SetIndexHintMap;
 class CombinedImageSamplerUpdater;
 } // namespace descriptor
-} // namespace vulkan
 
-namespace vulkan::pipeline {
-class CharacteristicRange;
+namespace pipeline {
 
 class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
@@ -208,4 +207,5 @@ struct StaticCheckLookUpTable : AddShaderStage
 };
 #endif
 
-} // namespace vulkan::pipeline
+} // namespace pipeline
+} // namespace vulkan

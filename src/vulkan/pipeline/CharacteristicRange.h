@@ -1,7 +1,6 @@
 #ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
-#include "FlatCreateInfo.h"
 #include "CharacteristicRangeBridge.h"
 #include "shader_builder/ShaderIndex.h"
 #include "utils/AIRefCount.h"
@@ -13,11 +12,9 @@
 
 //FIXME: Are these still needed after deleting the proxy calls that needed them?
 namespace vulkan {
-namespace task {
-class PipelineFactory;
-class SynchronousWindow;
-} // namespace task
+class AddVertexShader;
 class AmbifixOwner;
+
 namespace shader_builder {
 class ShaderInfo;
 class ShaderCompiler;
@@ -28,20 +25,24 @@ namespace shader_resource {
 class CombinedImageSampler;
 } // namespace shader_resource
 } // namespace shader_builder
-} // namespace vulkan
-namespace vulkan::descriptor {
+
+namespace descriptor {
 class SetKeyPreference;
-} // namespace vulkan::descriptor
+} // namespace descriptor
 
-namespace vulkan::pipeline {
-class CharacteristicRange;
-using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
-class AddVertexShader;
-
+namespace pipeline {
+class FlatCreateInfo;
 struct IndexCategory;
 using Index = utils::VectorIndex<IndexCategory>;
+} // namespace pipeline
 
-class CharacteristicRange : public AIStatefulTask, public virtual CharacteristicRangeBridge
+namespace task {
+class PipelineFactory;
+class SynchronousWindow;
+class CharacteristicRange;
+using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
+
+class CharacteristicRange : public AIStatefulTask, public virtual pipeline::CharacteristicRangeBridge
 {
  public:
   static constexpr condition_type do_fill = 1;
@@ -52,12 +53,12 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   condition_type m_needs_signals{do_fill};      // The signals that are required by the derived class.
 
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
-  using pipeline_index_t = aithreadsafe::Wrapper<vulkan::pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_index_t = aithreadsafe::Wrapper<pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
  protected:
-  task::PipelineFactory* m_owning_factory;
-  task::SynchronousWindow const* m_owning_window;
-  FlatCreateInfo* m_flat_create_info{};
+  PipelineFactory* m_owning_factory;
+  SynchronousWindow const* m_owning_window;
+  pipeline::FlatCreateInfo* m_flat_create_info{};
   bool m_terminate{false};                      // Set to true when the task must terminate.
   CharacteristicRangeIndex m_characteristic_range_index;
 
@@ -68,7 +69,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
 
  public:
   // The default has a range of a single entry with index 0.
-  CharacteristicRange(task::SynchronousWindow const* owning_window, index_type begin = 0, index_type end = 1 COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owning_window(owning_window), m_begin(begin), m_end(end)
+  CharacteristicRange(SynchronousWindow const* owning_window, index_type begin = 0, index_type end = 1 COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owning_window(owning_window), m_begin(begin), m_end(end)
   {
     DoutEntering(dc::statefultask(mSMDebug), "CharacteristicRange() [" << (void*)this << "]");
     // end is not included in the range. It must always be larger than begin.
@@ -84,7 +85,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
     register_AddFragmentShader_with(m_owning_factory);
     register_AddPushConstant_with(m_owning_factory);
   }
-  void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
+  void set_owner(PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
 
   // Accessors.
   index_type ibegin() const { return m_begin; }
@@ -129,7 +130,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   {
     // Out of range.
     ASSERT(m_begin <= index && index < m_end);
-    *pipeline_index |= Index{static_cast<unsigned int>(index - m_begin) << range_shift};
+    *pipeline_index |= pipeline::Index{static_cast<unsigned int>(index - m_begin) << range_shift};
   }
 
   // Accessor.
@@ -169,7 +170,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
  public:
   static state_type constexpr state_end = CharacteristicRange_compiled + 1;
 
-  void set_flat_create_info(FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
+  void set_flat_create_info(pipeline::FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
   bool set_fill_index(index_type fill_index) { bool changed = m_fill_index != fill_index; m_fill_index = fill_index; return changed; }
   void set_characteristic_range_index(CharacteristicRangeIndex characteristic_range_index) { m_characteristic_range_index = characteristic_range_index; }
   void terminate() { m_terminate = true; signal(do_terminate); }
@@ -185,7 +186,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   // Override of CharacteristicRangeBridge.
   inline shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) final;
 
-  task::PipelineFactory* get_owning_factory() const final { return m_owning_factory; }
+  PipelineFactory* get_owning_factory() const final { return m_owning_factory; }
 
 #ifdef CWDEBUG
  public:
@@ -213,7 +214,7 @@ class Characteristic : public CharacteristicRange
   };
 
  protected:
-  using direct_base_type = vulkan::pipeline::CharacteristicRange;
+  using direct_base_type = CharacteristicRange;
 
   // The different states of this task.
   enum Characteristic_state_type {
@@ -225,7 +226,7 @@ class Characteristic : public CharacteristicRange
  public:
   static constexpr state_type state_end = Characteristic_initialized + 1;
 
-  Characteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
+  Characteristic(SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
     CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug))
   {
     // We are not a range and therefore to not require the do_fill signal.
@@ -238,7 +239,8 @@ class Characteristic : public CharacteristicRange
   void initialize_impl() override;
 };
 
-} // namespace vulkan::pipeline
+} // namespace task
+} // namespace vulkan
 
 #endif // VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
@@ -249,7 +251,7 @@ class Characteristic : public CharacteristicRange
 #ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H_definitions
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H_definitions
 
-namespace vulkan::pipeline {
+namespace vulkan::task {
 
 void CharacteristicRange::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
@@ -273,6 +275,6 @@ shader_builder::ShaderResourceDeclaration* CharacteristicRange::realize_shader_r
   return m_owning_factory->realize_shader_resource_declaration({}, glsl_id_full, descriptor_type, shader_resource, set_index_hint);
 }
 
-} // namespace vulkan::pipeline
+} // namespace vulkan::task
 
 #endif // VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H_definitions

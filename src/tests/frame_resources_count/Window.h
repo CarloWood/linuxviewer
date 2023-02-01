@@ -250,7 +250,7 @@ void main()
   combined_image_samplers_t const& combined_image_samplers() const { return m_combined_image_samplers; }
   vulkan::VertexBuffers const& vertex_buffers() const { return m_vertex_buffers; }
 
-  class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
+  class BasePipelineCharacteristic : public vulkan::task::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -260,7 +260,7 @@ void main()
     };
 
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::task::Characteristic;
 
     // The different states of this task.
     enum BasePipelineCharacteristic_state_type {
@@ -276,7 +276,7 @@ void main()
     static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
 
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
+      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -321,13 +321,13 @@ void main()
 #endif
   };
 
-  class FrameResourcesCountPipelineCharacteristic : public vulkan::pipeline::Characteristic,
+  class FrameResourcesCountPipelineCharacteristic : public vulkan::task::Characteristic,
       public vulkan::pipeline::AddVertexShader,
       public vulkan::pipeline::AddFragmentShader,
       public vulkan::pipeline::AddPushConstant
   {
    protected:
-    using direct_base_type = vulkan::pipeline::Characteristic;
+    using direct_base_type = vulkan::task::Characteristic;
 
     // The different states of this task.
     enum FrameResourcesCountPipelineCharacteristic_state_type {
@@ -343,7 +343,7 @@ void main()
     static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_initialize + 1;
 
     FrameResourcesCountPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
+      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
