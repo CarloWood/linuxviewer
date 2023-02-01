@@ -331,9 +331,7 @@ void main()
 
     // The different states of this task.
     enum FrameResourcesCountPipelineCharacteristic_state_type {
-      FrameResourcesCountPipelineCharacteristic_initialize = direct_base_type::state_end,
-      FrameResourcesCountPipelineCharacteristic_preprocess,
-      FrameResourcesCountPipelineCharacteristic_compile
+      FrameResourcesCountPipelineCharacteristic_initialize = direct_base_type::state_end
     };
 
     ~FrameResourcesCountPipelineCharacteristic() override
@@ -342,7 +340,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_compile + 1;
+    static constexpr state_type state_end = FrameResourcesCountPipelineCharacteristic_initialize + 1;
 
     FrameResourcesCountPipelineCharacteristic(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
@@ -353,8 +351,6 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_initialize);
-        AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_preprocess);
-        AI_CASE_RETURN(FrameResourcesCountPipelineCharacteristic_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -372,74 +368,16 @@ void main()
         {
           Window const* window = static_cast<Window const*>(m_owning_window);
 
-          // Register the vectors that we will fill.
-//          m_flat_create_info->add(&m_vertex_input_binding_descriptions);
-//          m_flat_create_info->add(&m_vertex_input_attribute_descriptions);
-//          m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
-//          m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-//          m_flat_create_info->add(&m_dynamic_states);
-//          m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
-//          m_flat_create_info->add(&m_push_constant_ranges);
-
           // Define the pipeline.
           add_push_constant<PushConstant>();
-//          shader_input_data().add_vertex_input_binding(m_heavy_rectangle);
-//          shader_input_data().add_vertex_input_binding(m_random_positions);
           add_vertex_input_bindings(window->vertex_buffers());        // Filled in create_vertex_buffers
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
             add_combined_image_sampler(window->combined_image_samplers()[t]);
 
-          set_continue_state(FrameResourcesCountPipelineCharacteristic_preprocess);
+          compile(window->m_vertex_shader_index);
+          compile(window->m_fragment_shader_index);
+
           run_state = Characteristic_initialized;
-          break;
-        }
-        case FrameResourcesCountPipelineCharacteristic_preprocess:
-        {
-          using namespace vulkan::shader_builder;
-
-          Window const* window = static_cast<Window const*>(m_owning_window);
-          ShaderIndex vertex_shader_index = window->m_vertex_shader_index;
-          ShaderIndex fragment_shader_index = window->m_fragment_shader_index;
-
-          preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
-          preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
-
-          realize_descriptor_set_layouts(m_owning_window->logical_device());
-
-//          m_vertex_input_binding_descriptions = shader_input_data().vertex_binding_descriptions();
-//          m_vertex_input_attribute_descriptions = shader_input_data().vertex_input_attribute_descriptions();
-//          m_push_constant_ranges = shader_input_data().push_constant_ranges();
-
-//          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
-
-#if 0
-          // Generate vertex buffers.
-          // FIXME: it seems weird to call this here, because create_vertex_buffers should only be called once
-          // while the current function is part of a pipeline factory...
-          static std::atomic_int done = false;
-          if (done.fetch_or(true) == false)
-            window->create_vertex_buffers(this);
-#endif
-
-          set_continue_state(FrameResourcesCountPipelineCharacteristic_compile);
-          run_state = Characteristic_preprocessed;
-          break;
-        }
-        case FrameResourcesCountPipelineCharacteristic_compile:
-        {
-          using namespace vulkan::shader_builder;
-          Window const* window = static_cast<Window const*>(m_owning_window);
-          ShaderIndex vertex_shader_index = window->m_vertex_shader_index;
-          ShaderIndex fragment_shader_index = window->m_fragment_shader_index;
-
-          // Compile the shaders.
-          ShaderCompiler compiler;
-          build_shader(m_owning_window, vertex_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
-          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
-
-          run_state = Characteristic_compiled;
           break;
         }
       }

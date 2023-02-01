@@ -306,9 +306,7 @@ void main()
 
     // The different states of this task.
     enum UniformBuffersTestPipelineCharacteristic_state_type {
-      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end,
-      UniformBuffersTestPipelineCharacteristic_preprocess,
-      UniformBuffersTestPipelineCharacteristic_compile
+      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end
     };
 
     ~UniformBuffersTestPipelineCharacteristic() override
@@ -317,7 +315,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_compile + 1;
+    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
 
     UniformBuffersTestPipelineCharacteristic(task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
@@ -336,8 +334,6 @@ void main()
       switch(run_state)
       {
         AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_initialize);
-        AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_preprocess);
-        AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -354,14 +350,6 @@ void main()
         case UniformBuffersTestPipelineCharacteristic_initialize:
         {
           Window const* window = static_cast<Window const*>(m_owning_window);
-
-          // Register the vectors that we will fill.
-//          m_flat_create_info->add(&shader_input_data().shader_stage_create_infos());
-//          m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-//          m_flat_create_info->add(&m_dynamic_states);
-//          m_flat_create_info->add_descriptor_set_layouts(&shader_input_data().sorted_descriptor_set_layouts());
-
-//          window->add_shader_resources_to(shader_input_data(), m_pipeline);
 
           // Define the pipeline.
           vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
@@ -386,48 +374,14 @@ void main()
           // Add an empty VertexBuffers in order to avoid an ASSERT in AddVertexShader::copy_shader_variables.
           add_vertex_input_bindings(m_empty_vertex_buffers);
 
-          set_continue_state(UniformBuffersTestPipelineCharacteristic_preprocess);
+          vulkan::shader_builder::ShaderIndex vertex_shader_index =
+            (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+          vulkan::shader_builder::ShaderIndex fragment_shader_index =
+            (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
+          compile(vertex_shader_index);
+          compile(fragment_shader_index);
+
           run_state = Characteristic_initialized;
-          break;
-        }
-        case UniformBuffersTestPipelineCharacteristic_preprocess:
-        {
-          using namespace vulkan::shader_builder;
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-          ShaderIndex vertex_shader_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
-          ShaderIndex fragment_shader_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
-
-          // These two calls fill ShaderInputData::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-          preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
-          preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
-
-          // Realize the descriptor set layouts: if a layout already exists then use the existing
-          // handle and update the binding values used in ShaderInputData::m_sorted_descriptor_set_layouts.
-          // Otherwise, if it does not already exist, create a new descriptor set layout using the
-          // provided binding values as-is.
-          realize_descriptor_set_layouts(m_owning_window->logical_device());
-
-          set_continue_state(UniformBuffersTestPipelineCharacteristic_compile);
-          run_state = Characteristic_preprocessed;
-          break;
-        }
-        case UniformBuffersTestPipelineCharacteristic_compile:
-        {
-          using namespace vulkan::shader_builder;
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-          ShaderIndex vertex_shader_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
-          ShaderIndex fragment_shader_index = (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
-
-          // Compile the shaders.
-          ShaderCompiler compiler;
-          build_shader(m_owning_window, vertex_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
-          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
-
-          run_state = Characteristic_compiled;
           break;
         }
       }

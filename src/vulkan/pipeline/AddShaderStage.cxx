@@ -9,6 +9,38 @@
 
 namespace vulkan::pipeline {
 
+void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
+{
+  DoutEntering(dc::vulkan, "AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(" << pipeline_factory << ") [" << this << "]");
+
+  task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
+  for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
+  {
+    // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
+    // (in the order that they are found in the shader template code).
+    preprocess1(owning_window->application().get_shader_info(shader_index));
+  }
+
+  // Realize the descriptor set layouts: if a layout already exists then use the existing
+  // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
+  // Otherwise, if it does not already exist, create a new descriptor set layout using the
+  // provided binding values as-is.
+  pipeline_factory->realize_descriptor_set_layouts({});
+}
+
+void AddShaderStage::build_shaders(task::PipelineFactory* pipeline_factory)
+{
+  DoutEntering(dc::vulkan, "AddShaderStage::build_shaders(" << pipeline_factory << ") [" << this << "]");
+
+  task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
+  shader_builder::ShaderCompiler compiler;
+  for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
+  {
+    build_shader(owning_window, shader_index, compiler, m_set_index_hint_map
+       COMMA_CWDEBUG_ONLY("AddShaderStage::"));
+  }
+}
+
 void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
 {
   DoutEntering(dc::vulkan, "AddShaderStage::preprocess1(" << shader_info << ") [" << this << "]");
@@ -145,7 +177,7 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
   // The range could call build_shader again for a different fill_index, can we safely overwrite m_per_stage_shader_module then?
   ASSERT(!shader_module_ptr);
   shader_module_ptr = spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY(".m_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
+      COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
   m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{
     .flags = vk::PipelineShaderStageCreateFlags(0),
     .stage = shader_info.stage(),

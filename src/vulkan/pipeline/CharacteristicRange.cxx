@@ -11,10 +11,10 @@ char const* CharacteristicRange::state_str_impl(state_type run_state) const
   switch (run_state)
   {
     AI_CASE_RETURN(CharacteristicRange_initialized);
-    AI_CASE_RETURN(CharacteristicRange_continue_or_terminate);
+    AI_CASE_RETURN(CharacteristicRange_fill_or_terminate);
     AI_CASE_RETURN(CharacteristicRange_filled);
-    AI_CASE_RETURN(CharacteristicRange_preprocessed);
-    AI_CASE_RETURN(CharacteristicRange_compiled);
+    AI_CASE_RETURN(CharacteristicRange_preprocess);
+    AI_CASE_RETURN(CharacteristicRange_compile);
   }
   AI_NEVER_REACHED
 }
@@ -33,54 +33,50 @@ char const* CharacteristicRange::condition_str_impl(condition_type condition) co
 
 void CharacteristicRange::multiplex_impl(state_type run_state)
 {
-#ifdef CWDEBUG
-  if (!(run_state == m_expected_state || run_state == CharacteristicRange_continue_or_terminate))
-  {
-    DoutFatal(dc::core, "While running " << state_str_impl(run_state) << ": state " << state_str_impl(m_continue_state) <<
-        " should have ended with 'run_state = " << state_str_impl(m_expected_state) << "', or it forgot to call"
-        " set_continue_state() with the correct value.");
-  }
-#endif
-  // Must rotate between CharacteristicRange_filled, CharacteristicRange_preprocessed and CharacteristicRange_compiled.
-  // The current value of m_continue_state is the state that should have ended with 'run_state = m_expected_state;',
-  // where m_expected_state must be replaced with the literal state of the value that it has.
-  // Or m_continue_state forgot to call set_continue_state with the correct value.
-  ASSERT(run_state == m_expected_state || run_state == CharacteristicRange_continue_or_terminate);
+  // You're not handling the state run_state in the derived class?
+  ASSERT(run_state < state_end);
   switch (run_state)
   {
     case CharacteristicRange_initialized:
       copy_shader_variables();
 
       m_owning_factory->characteristic_range_initialized();
-      set_state(CharacteristicRange_continue_or_terminate);
-      Debug(m_expected_state = CharacteristicRange_filled);
+      set_state(CharacteristicRange_fill_or_terminate);
       wait(do_fill|do_terminate);             // Wait until we're ready to start the next fill index.
       break;
     case CharacteristicRange_filled:
       // This characteristic isn't derived from CharacteristicRange!?
       ASSERT((m_needs_signals & do_fill));
       m_owning_factory->characteristic_range_filled(m_characteristic_range_index);
-      set_state(CharacteristicRange_continue_or_terminate);
       if ((m_needs_signals & do_preprocess))
       {
-        Debug(m_expected_state = CharacteristicRange_preprocessed);
+        set_state(CharacteristicRange_preprocess);
         wait(do_preprocess|do_terminate);       // Wait until we're ready to start preprocessing.
         break;
       }
       // If this Characteristic didn't need to do preprocessing, then why would it need compiling?!
       ASSERT(!(m_needs_signals & do_compile));
-      Debug(m_expected_state = CharacteristicRange_filled);
-      [[fallthrough]];
-    case CharacteristicRange_continue_or_terminate:
+      set_state(CharacteristicRange_fill_or_terminate);
+      wait(do_fill|do_terminate);               // Wait until we're ready for the next fill index state again.
+      break;
+    case CharacteristicRange_fill_or_terminate:
       if (m_terminate)
       {
         finish();
         break;
       }
-      set_state(m_continue_state);            // The continue state is the fill, preprocess or compile state of the derived class.
+      set_state(m_fill_state);                  // The fill state of the derived class.
       break;
-    case CharacteristicRange_preprocessed:
-      // If this is a AddPushConstant then now we can copy AddPushConstant::m_sorted_push_constant_ranges to AddPushConstant::m_push_constant_ranges.
+    case CharacteristicRange_preprocess:
+      if (m_terminate)
+      {
+        finish();
+        break;
+      }
+      // This should be an AddShaderStage. Call that to preprocess shader(s).
+      preprocess_shaders_and_realize_descriptor_set_layouts(m_owning_factory);
+      // If this is a AddPushConstant then now we can copy AddPushConstant::m_sorted_push_constant_ranges
+      // to AddPushConstant::m_push_constant_ranges.
       copy_push_constant_ranges(m_owning_factory);
       // If this is a AddVertexShader then ...
       //   copy AddVertexShader::m_vertex_shader_input_sets to to AddVertexShader::m_vertex_input_binding_descriptions.
@@ -90,14 +86,19 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       // therefore we shouldn't have just "finished preprocessing".
       ASSERT((m_needs_signals & do_preprocess));
       m_owning_factory->characteristic_range_preprocessed();
-      set_state(CharacteristicRange_continue_or_terminate);
-      Debug(m_expected_state = CharacteristicRange_compiled);
+      set_state(CharacteristicRange_compile);
       wait(do_compile|do_terminate);          // Wait until we're ready to start compiling.
       break;
-    case CharacteristicRange_compiled:
+    case CharacteristicRange_compile:
+      if (m_terminate)
+      {
+        finish();
+        break;
+      }
+      build_shaders(m_owning_factory);
       // If this asserts then this characteristic isn't derived from AddShaderStage,
       // therefore we shouldn't have just "finished compiling".
-      ASSERT((m_needs_signals & do_preprocess));
+      ASSERT((m_needs_signals & do_compile));
       m_owning_factory->characteristic_range_compiled();
       if (!(m_needs_signals & do_fill))
       {
@@ -105,8 +106,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         finish();
         break;
       }
-      set_state(CharacteristicRange_continue_or_terminate);
-      Debug(m_expected_state = CharacteristicRange_filled);
+      set_state(CharacteristicRange_fill_or_terminate);
       wait(do_fill|do_terminate);             // Wait until we're ready for the next fill index state again.
       break;
   }
@@ -123,8 +123,6 @@ char const* Characteristic::state_str_impl(state_type run_state) const
   switch(run_state)
   {
     AI_CASE_RETURN(Characteristic_initialized);
-    AI_CASE_RETURN(Characteristic_preprocessed);
-    AI_CASE_RETURN(Characteristic_compiled);
   }
   return direct_base_type::state_str_impl(run_state);
 }
@@ -141,8 +139,7 @@ void Characteristic::multiplex_impl(state_type run_state)
       ASSERT(!(m_needs_signals & do_fill));
       if ((m_needs_signals & do_preprocess))
       {
-        set_state(CharacteristicRange_continue_or_terminate);
-        Debug(m_expected_state = Characteristic_preprocessed);
+        set_state(CharacteristicRange_preprocess);
         wait(do_preprocess|do_terminate);
         return;
       }

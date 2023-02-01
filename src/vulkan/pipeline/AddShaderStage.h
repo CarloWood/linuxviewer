@@ -70,6 +70,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   friend struct StaticCheckLookUpTable;
 #endif
 
+  std::vector<shader_builder::ShaderIndex> m_shaders_that_need_compiling;       // The shaders that need preprocessing and building,
+                                                                                // filled by calls to compile.
+  descriptor::SetIndexHintMap const* m_set_index_hint_map{};
   utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
   utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
   int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
@@ -106,6 +109,16 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos(utils::Badge<ImGui>) const { return m_shader_stage_create_infos; }
 
  private:
+  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) override
+  {
+    DoutEntering(dc::setindexhint, "AddShaderStage::set_set_index_hint_map(" << vk_utils::print_pointer(set_index_hint_map) << ")");
+    m_set_index_hint_map = set_index_hint_map;
+  }
+  // Called from CharacteristicRange_preprocess.
+  void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory) override;
+  // Called from CharacteristicRange_compile.
+  void build_shaders(task::PipelineFactory* pipeline_factory) override;
+
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();
 
@@ -125,6 +138,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   }
 
  protected:
+  // Called from *UserCode*PipelineCharacteristic_fill.
+  void compile(shader_builder::ShaderIndex shader_index) { m_shaders_that_need_compiling.push_back(shader_index); }
+
   // Called from *UserCode*PipelineCharacteristic_initialize.
   void preprocess1(shader_builder::ShaderInfo const& shader_info);
 

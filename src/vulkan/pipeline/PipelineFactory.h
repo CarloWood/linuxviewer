@@ -206,7 +206,7 @@ class PipelineFactory : public AIStatefulTask
 
   vulkan::shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(utils::Badge<vulkan::pipeline::CharacteristicRange>, std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, vulkan::descriptor::SetIndexHint set_index_hint);
 
-  void realize_descriptor_set_layouts(utils::Badge<vulkan::pipeline::CharacteristicRange>, vulkan::LogicalDevice const* logical_device);
+  void realize_descriptor_set_layouts(utils::Badge<vulkan::pipeline::AddShaderStage>);
 
   void push_back_descriptor_set_layout_binding(vulkan::descriptor::SetIndexHint set_index_hint,
       vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,

@@ -192,10 +192,11 @@ shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resou
   return shader_resource_ptr;
 }
 
-// Called from *UserCode*PipelineCharacteristic_initialize.
-void PipelineFactory::realize_descriptor_set_layouts(utils::Badge<vulkan::pipeline::CharacteristicRange>, vulkan::LogicalDevice const* logical_device)
+// Called from AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts.
+void PipelineFactory::realize_descriptor_set_layouts(utils::Badge<vulkan::pipeline::AddShaderStage>)
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "PipelineFactory::realize_descriptor_set_layouts(" << logical_device << ") [" << this << "]");
+  DoutEntering(dc::shaderresource|dc::vulkan, "PipelineFactory::realize_descriptor_set_layouts() [" << this << "]");
+  vulkan::LogicalDevice const* logical_device = m_owning_window->logical_device();
   sorted_descriptor_set_layouts_t::wat sorted_descriptor_set_layouts_w(m_sorted_descriptor_set_layouts);
 #ifdef CWDEBUG
   Dout(dc::debug, "m_sorted_descriptor_set_layouts =");

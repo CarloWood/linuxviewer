@@ -10,6 +10,10 @@ namespace task {
 class PipelineFactory;
 } // namespace task
 
+namespace vulkan::descriptor {
+class SetIndexHintMap;
+} // namespace vulkan::descriptor
+
 namespace vulkan::shader_builder {
 class VertexShaderInputSetBase;
 class ShaderResourceDeclaration;
@@ -34,6 +38,21 @@ struct CharacteristicRangeBridge
   // Implemented by AddShaderStage.
   virtual bool is_add_shader_stage() const { return false; }
   virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const { }
+  virtual void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
+  virtual void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
+  virtual void build_shaders(task::PipelineFactory* pipeline_factory)
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
   //virtual void destroy_shader_module_handles() { }
 
   // Implemented by AddVertexShader.

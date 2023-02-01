@@ -357,9 +357,7 @@ void main()
     // The different states of this task.
     enum VertexPipelineCharacteristicRange_state_type {
       VertexPipelineCharacteristicRange_initialize = direct_base_type::state_end,
-      VertexPipelineCharacteristicRange_fill,
-      VertexPipelineCharacteristicRange_preprocess,
-      VertexPipelineCharacteristicRange_compile
+      VertexPipelineCharacteristicRange_fill
     };
 
     ~VertexPipelineCharacteristicRange() override
@@ -368,7 +366,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = VertexPipelineCharacteristicRange_compile + 1;
+    static constexpr state_type state_end = VertexPipelineCharacteristicRange_fill + 1;
 
     VertexPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
@@ -388,8 +386,6 @@ void main()
       {
         AI_CASE_RETURN(VertexPipelineCharacteristicRange_initialize);
         AI_CASE_RETURN(VertexPipelineCharacteristicRange_fill);
-        AI_CASE_RETURN(VertexPipelineCharacteristicRange_preprocess);
-        AI_CASE_RETURN(VertexPipelineCharacteristicRange_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -421,69 +417,24 @@ void main()
           add_combined_image_sampler(window->m_combined_image_samplers[m_pipeline_factory + 1]);
 #endif
 
-          set_continue_state(VertexPipelineCharacteristicRange_fill);
+          set_fill_state(VertexPipelineCharacteristicRange_fill);
           run_state = CharacteristicRange_initialized;
           break;
         }
         case VertexPipelineCharacteristicRange_fill:
         {
+          using namespace vulkan::shader_builder;
           Dout(dc::notice, "fill_index = " << fill_index());
           Window const* window = static_cast<Window const*>(m_owning_window);
-          set_continue_state(VertexPipelineCharacteristicRange_preprocess);
-          run_state = CharacteristicRange_filled;
-          break;
-        }
-        case VertexPipelineCharacteristicRange_preprocess:
-        {
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-          // Preprocess the shaders.
-          {
-            using namespace vulkan::shader_builder;
-
-            ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-
-            // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(vertex_shader_index));
-
-#if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-            ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-
-            // This call, together with the preprocess1 call for the fragment shader, fills PipelineFactory::m_sorted_descriptor_set_layouts
-            // with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
-#endif
-          }
-
-          // Realize the descriptor set layouts: if a layout already exists then use the existing
-          // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
-          // Otherwise, if it does not already exist, create a new descriptor set layout using the
-          // provided binding values as-is.
-          realize_descriptor_set_layouts(m_owning_window->logical_device());
-          //
-          set_continue_state(VertexPipelineCharacteristicRange_compile);
-          run_state = CharacteristicRange_preprocessed;
-          break;
-        }
-        case VertexPipelineCharacteristicRange_compile:
-        {
-          using namespace vulkan::shader_builder;
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
           ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-
-          // Compile the shaders.
-          ShaderCompiler compiler;
-          build_shader(m_owning_window, vertex_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
+          compile(vertex_shader_index);
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
+          compile(fragment_shader_index);
 #endif
-
-          set_continue_state(VertexPipelineCharacteristicRange_fill);
-          run_state = CharacteristicRange_compiled;
+          // Preprocess and build the shaders that were just passed to compile()
+          // and then generate the next pipeline from the current state.
+          run_state = CharacteristicRange_filled;
           break;
         }
       }
@@ -513,9 +464,7 @@ void main()
     // The different states of this task.
     enum FragmentPipelineCharacteristicRange_state_type {
       FragmentPipelineCharacteristicRange_initialize = direct_base_type::state_end,
-      FragmentPipelineCharacteristicRange_fill,
-      FragmentPipelineCharacteristicRange_preprocess,
-      FragmentPipelineCharacteristicRange_compile
+      FragmentPipelineCharacteristicRange_fill
     };
 
     ~FragmentPipelineCharacteristicRange() override
@@ -524,7 +473,7 @@ void main()
     }
 
    public:
-    static constexpr state_type state_end = FragmentPipelineCharacteristicRange_compile + 1;
+    static constexpr state_type state_end = FragmentPipelineCharacteristicRange_fill + 1;
 
     FragmentPipelineCharacteristicRange(task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
       vulkan::pipeline::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
@@ -536,8 +485,6 @@ void main()
       {
         AI_CASE_RETURN(FragmentPipelineCharacteristicRange_initialize);
         AI_CASE_RETURN(FragmentPipelineCharacteristicRange_fill);
-        AI_CASE_RETURN(FragmentPipelineCharacteristicRange_preprocess);
-        AI_CASE_RETURN(FragmentPipelineCharacteristicRange_compile);
       }
       return direct_base_type::state_str_impl(run_state);
     }
@@ -562,22 +509,10 @@ void main()
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
-          add_combined_image_sampler(window->m_combined_image_samplers[0]);
-          add_combined_image_sampler(window->m_combined_image_samplers[m_pipeline_factory + 1]);
-
-          set_continue_state(FragmentPipelineCharacteristicRange_fill);
-          run_state = CharacteristicRange_initialized;
-          break;
-        }
-        case FragmentPipelineCharacteristicRange_fill:
-        {
-          Dout(dc::notice, "fill_index = " << fill_index());
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-#if 0
+#if 1
           // Below we use 1 + m_pipeline_factory as index into the array of combined image samplers.
           ASSERT(number_of_combined_image_samplers >= number_of_pipeline_factories);
-#if 0
+#if 1
           std::vector<vulkan::descriptor::SetKeyPreference> key_preference;
           for (int t = 0; t < number_of_combined_image_samplers; ++t)
             key_preference.emplace_back(window->m_combined_image_samplers[t].descriptor_task()->descriptor_set_key(), 0.1);
@@ -586,64 +521,37 @@ void main()
           int constexpr number_of_combined_image_samplers_per_pipeline = 2;
           std::array<int, number_of_combined_image_samplers_per_pipeline> combined_image_sampler_indexes = {
             0,
-            1 + m_pipeline
+            1 + m_pipeline_factory
           };
           for (int i = 0; i < number_of_combined_image_samplers_per_pipeline; ++i)
           {
             add_combined_image_sampler(
                 window->m_combined_image_samplers[combined_image_sampler_indexes[i]]
-#if 0
+#if 1
                 , {}
                 , { key_preference[combined_image_sampler_indexes[1 - i]] }
 #endif
                 );
           }
 #else
-//          add_combined_image_sampler(window->m_combined_image_samplers[0]);
+          add_combined_image_sampler(window->m_combined_image_samplers[0]);
+          add_combined_image_sampler(window->m_combined_image_samplers[m_pipeline_factory + 1]);
 #endif
-          set_continue_state(FragmentPipelineCharacteristicRange_preprocess);
-          run_state = CharacteristicRange_filled;
+
+          set_fill_state(FragmentPipelineCharacteristicRange_fill);
+          run_state = CharacteristicRange_initialized;
           break;
         }
-        case FragmentPipelineCharacteristicRange_preprocess:
-        {
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-          // Preprocess the shaders.
-          {
-            using namespace vulkan::shader_builder;
-
-            ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-
-            // These two calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers (in the order that they are found in the shader template code).
-            preprocess1(m_owning_window->application().get_shader_info(fragment_shader_index));
-          }
-          // FIXME: do the below from the factory after all characteristics finished.
-//          m_push_constant_ranges = push_constant_ranges();
-
-          // Realize the descriptor set layouts: if a layout already exists then use the existing
-          // handle and update the binding values used in PipelineFactory::m_sorted_descriptor_set_layouts.
-          // Otherwise, if it does not already exist, create a new descriptor set layout using the
-          // provided binding values as-is.
-          realize_descriptor_set_layouts(m_owning_window->logical_device());
-          //
-          set_continue_state(FragmentPipelineCharacteristicRange_compile);
-          run_state = CharacteristicRange_preprocessed;
-          break;
-        }
-        case FragmentPipelineCharacteristicRange_compile:
+        case FragmentPipelineCharacteristicRange_fill:
         {
           using namespace vulkan::shader_builder;
+          Dout(dc::notice, "fill_index = " << fill_index());
           Window const* window = static_cast<Window const*>(m_owning_window);
-
           ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-          // Compile the shaders.
-          ShaderCompiler compiler;
-          build_shader(m_owning_window, fragment_shader_index, compiler, m_set_index_hint_map
-              COMMA_CWDEBUG_ONLY("PipelineFactory::m_shader_input_data"));
-
-          set_continue_state(FragmentPipelineCharacteristicRange_fill);
-          run_state = CharacteristicRange_compiled;
+          compile(fragment_shader_index);
+          // Preprocess and build the shaders that were just passed to compile()
+          // and then generate the next pipeline from the current state.
+          run_state = CharacteristicRange_filled;
           break;
         }
       }

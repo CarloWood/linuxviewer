@@ -59,7 +59,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   task::PipelineFactory* m_owning_factory;
   task::SynchronousWindow const* m_owning_window;
   FlatCreateInfo* m_flat_create_info{};
-  descriptor::SetIndexHintMap const* m_set_index_hint_map{};
   bool m_terminate{false};                      // Set to true when the task must terminate.
   CharacteristicRangeIndex m_characteristic_range_index;
 
@@ -67,10 +66,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
   index_type const m_begin;
   index_type const m_end;
   index_type m_fill_index{-1};
-#ifdef CWDEBUG
- protected:
-  state_type m_expected_state{direct_base_type::state_end};
-#endif
 
  public:
   // The default has a range of a single entry with index 0.
@@ -91,11 +86,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
     register_AddPushConstant_with(m_owning_factory);
   }
   void set_owner(task::PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
-  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
-  {
-    DoutEntering(dc::setindexhint, "CharacteristicRange::set_set_index_hint_map(" << vk_utils::print_pointer(set_index_hint_map) << ")");
-    m_set_index_hint_map = set_index_hint_map;
-  }
 
   // Accessors.
   index_type ibegin() const { return m_begin; }
@@ -157,24 +147,25 @@ class CharacteristicRange : public AIStatefulTask, public virtual Characteristic
       std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
       std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
 
-  inline void realize_descriptor_set_layouts(LogicalDevice const* logical_device);
-
   //---------------------------------------------------------------------------
   // Task specific code
  protected:
   using direct_base_type = AIStatefulTask;
-  state_type m_continue_state;                  // The state of the derived class that we should continue with when this task is done with its current state.
+  state_type m_fill_state;                      // The state of the derived class that we should continue with when this
+                                                // task is done with its current state.
 
   // The different states of the task.
   enum characteristic_range_state_type {
     CharacteristicRange_initialized = direct_base_type::state_end,
-    CharacteristicRange_continue_or_terminate,
+    CharacteristicRange_fill_or_terminate,
     CharacteristicRange_filled,
+    CharacteristicRange_preprocess,
+    CharacteristicRange_compile,
     CharacteristicRange_preprocessed,
     CharacteristicRange_compiled
   };
 
-  void set_continue_state(state_type continue_state) { m_continue_state = continue_state; }
+  void set_fill_state(state_type fill_state) { m_fill_state = fill_state; }
 
  public:
   static state_type constexpr state_end = CharacteristicRange_compiled + 1;
@@ -275,11 +266,6 @@ void CharacteristicRange::add_uniform_buffer(shader_builder::UniformBufferBase c
 {
   m_owning_factory->add_uniform_buffer({},
       uniform_buffer, this, preferred_descriptor_sets, undesirable_descriptor_sets);
-}
-
-void CharacteristicRange::realize_descriptor_set_layouts(LogicalDevice const* logical_device)
-{
-  m_owning_factory->realize_descriptor_set_layouts({}, logical_device);
 }
 
 shader_builder::ShaderResourceDeclaration* CharacteristicRange::realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
