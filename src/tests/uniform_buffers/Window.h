@@ -10,6 +10,7 @@
 #include "Pipeline.h"
 #include "pipeline/AddVertexShader.h"
 #include "pipeline/AddFragmentShader.h"
+#include "pipeline/Characteristic.h"
 #include "queues/CopyDataToImage.h"
 #include "shader_builder/ShaderIndex.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
@@ -222,7 +223,7 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  class BasePipelineCharacteristic : public vulkan::task::Characteristic
+  class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -232,56 +233,28 @@ void main()
     };
 
    protected:
-    using direct_base_type = vulkan::task::Characteristic;
-
-    // The different states of this task.
-    enum BasePipelineCharacteristic_state_type {
-      BasePipelineCharacteristic_initialize = direct_base_type::state_end
-    };
-
     ~BasePipelineCharacteristic() override
     {
       DoutEntering(dc::vulkan, "BasePipelineCharacteristic::~BasePipelineCharacteristic() [" << this << "]");
     }
 
    public:
-    static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
-
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)) { }
 
    protected:
-    char const* state_str_impl(state_type run_state) const override
+    void initialize() final
     {
-      switch(run_state)
-      {
-        AI_CASE_RETURN(BasePipelineCharacteristic_initialize);
-      }
-      return direct_base_type::state_str_impl(run_state);
-    }
+      Window const* window = static_cast<Window const*>(m_owning_window);
 
-    void multiplex_impl(state_type run_state) override
-    {
-      switch (run_state)
-      {
-        case BasePipelineCharacteristic_initialize:
-        {
-          Window const* window = static_cast<Window const*>(m_owning_window);
+      // Register the vectors that we will fill.
+      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
+      m_flat_create_info->add(&m_dynamic_states);
 
-          // Register the vectors that we will fill.
-          m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-          m_flat_create_info->add(&m_dynamic_states);
-
-          // Add default color blend.
-          m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
-          // Add default topology.
-          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
-
-          run_state = Characteristic_initialized;
-          break;
-        }
-      }
-      direct_base_type::multiplex_impl(run_state);
+      // Add default color blend.
+      m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
+      // Add default topology.
+      m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
     }
 
    public:
@@ -293,99 +266,64 @@ void main()
 #endif
   };
 
-  class UniformBuffersTestPipelineCharacteristic : public vulkan::task::Characteristic,
-      public vulkan::pipeline::AddVertexShader,
-      public vulkan::pipeline::AddFragmentShader
+  class UniformBuffersTestPipelineCharacteristic :
+    public vulkan::pipeline::Characteristic,
+    public vulkan::pipeline::AddVertexShader,
+    public vulkan::pipeline::AddFragmentShader
   {
    private:
     int m_pipeline;
     vulkan::VertexBuffers m_empty_vertex_buffers;
 
    protected:
-    using direct_base_type = vulkan::task::Characteristic;
-
-    // The different states of this task.
-    enum UniformBuffersTestPipelineCharacteristic_state_type {
-      UniformBuffersTestPipelineCharacteristic_initialize = direct_base_type::state_end
-    };
-
     ~UniformBuffersTestPipelineCharacteristic() override
     {
       DoutEntering(dc::vulkan, "UniformBuffersTestPipelineCharacteristic::~UniformBuffersTestPipelineCharacteristic() [" << this << "]");
     }
 
    public:
-    static constexpr state_type state_end = UniformBuffersTestPipelineCharacteristic_initialize + 1;
-
     UniformBuffersTestPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline) { m_use_vertex_buffers = false; }
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline)
+    {
+      // We do not have vertex buffers.
+      m_use_vertex_buffers = false;
+    }
 
    protected:
-    char const* condition_str_impl(condition_type condition) const override
+    // Overriden from vulkan::pipeline::CharacteristicBase.
+    void initialize() final
     {
-      switch (condition)
+      Window const* window = static_cast<Window const*>(m_owning_window);
+
+      // Define the pipeline.
+      vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
+      vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
+
+      if (m_pipeline == 0)
       {
+        // This assigns top to descriptor set 0 and left to 1.
+        add_uniform_buffer(window->m_top_buffer);
+        add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
       }
-      return direct_base_type::condition_str_impl(condition);
-    }
-
-    char const* state_str_impl(state_type run_state) const override
-    {
-      switch(run_state)
+      else
       {
-        AI_CASE_RETURN(UniformBuffersTestPipelineCharacteristic_initialize);
+        // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
+        add_uniform_buffer(window->m_left_buffer);
+        add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
       }
-      return direct_base_type::state_str_impl(run_state);
-    }
+      // This assigns bottom to set 2.
+      add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
+      // The texture must go into the same set as top.
+      add_combined_image_sampler(window->m_combined_image_sampler, { top_set_key_preference });
+      // Add an empty VertexBuffers in order to avoid an ASSERT in AddVertexShader::copy_shader_variables.
+      add_vertex_input_bindings(m_empty_vertex_buffers);
 
-    void initialize_impl() override
-    {
-      set_state(UniformBuffersTestPipelineCharacteristic_initialize);
-    }
-
-    void multiplex_impl(state_type run_state) override
-    {
-      switch (run_state)
-      {
-        case UniformBuffersTestPipelineCharacteristic_initialize:
-        {
-          Window const* window = static_cast<Window const*>(m_owning_window);
-
-          // Define the pipeline.
-          vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
-          vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
-
-          if (m_pipeline == 0)
-          {
-            // This assigns top to descriptor set 0 and left to 1.
-            add_uniform_buffer(window->m_top_buffer);
-            add_uniform_buffer(window->m_left_buffer, {}, { top_set_key_preference });
-          }
-          else
-          {
-            // Swap top and left (hopefully resulting in that they swap descriptor sets; left in 0 and top in 1).
-            add_uniform_buffer(window->m_left_buffer);
-            add_uniform_buffer(window->m_top_buffer, {}, { left_set_key_preference });
-          }
-          // This assigns bottom to set 2.
-          add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
-          // The texture must go into the same set as top.
-          add_combined_image_sampler(window->m_combined_image_sampler, { top_set_key_preference });
-          // Add an empty VertexBuffers in order to avoid an ASSERT in AddVertexShader::copy_shader_variables.
-          add_vertex_input_bindings(m_empty_vertex_buffers);
-
-          vulkan::shader_builder::ShaderIndex vertex_shader_index =
-            (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
-          vulkan::shader_builder::ShaderIndex fragment_shader_index =
-            (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
-          compile(vertex_shader_index);
-          compile(fragment_shader_index);
-
-          run_state = Characteristic_initialized;
-          break;
-        }
-      }
-      direct_base_type::multiplex_impl(run_state);
+      vulkan::shader_builder::ShaderIndex vertex_shader_index =
+        (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+      vulkan::shader_builder::ShaderIndex fragment_shader_index =
+        (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
+      compile(vertex_shader_index);
+      compile(fragment_shader_index);
     }
 
    public:

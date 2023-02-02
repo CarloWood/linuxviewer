@@ -17,6 +17,7 @@
 #include "pipeline/FactoryCharacteristicId.h"
 #include "pipeline/AddVertexShader.h"
 #include "pipeline/AddFragmentShader.h"
+#include "pipeline/Characteristic.h"
 #include "vk_utils/ImageData.h"
 #include "statefultask/AITimer.h"
 
@@ -269,7 +270,7 @@ void main()
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 
-  class BasePipelineCharacteristic : public vulkan::task::Characteristic
+  class BasePipelineCharacteristic : public vulkan::pipeline::Characteristic
   {
    private:
     std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
@@ -280,56 +281,28 @@ void main()
     int m_pipeline_factory;
 
    protected:
-    using direct_base_type = vulkan::task::Characteristic;
-
-    // The different states of this task.
-    enum BasePipelineCharacteristic_state_type {
-      BasePipelineCharacteristic_initialize = direct_base_type::state_end
-    };
-
     ~BasePipelineCharacteristic() override
     {
       DoutEntering(dc::vulkan, "BasePipelineCharacteristic::~BasePipelineCharacteristic() [" << this << "]");
     }
 
    public:
-    static constexpr state_type state_end = BasePipelineCharacteristic_initialize + 1;
-
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
 
    protected:
-    char const* state_str_impl(state_type run_state) const override
+    void initialize() final
     {
-      switch(run_state)
-      {
-        AI_CASE_RETURN(BasePipelineCharacteristic_initialize);
-      }
-      return direct_base_type::state_str_impl(run_state);
-    }
+      Window const* window = static_cast<Window const*>(m_owning_window);
 
-    void multiplex_impl(state_type run_state) override
-    {
-      switch (run_state)
-      {
-        case BasePipelineCharacteristic_initialize:
-        {
-          Window const* window = static_cast<Window const*>(m_owning_window);
+      // Register the vectors that we will fill.
+      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
+      m_flat_create_info->add(&m_dynamic_states);
 
-          // Register the vectors that we will fill.
-          m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-          m_flat_create_info->add(&m_dynamic_states);
-
-          // Add default color blend.
-          m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
-          // Add default topology.
-          m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
-
-          run_state = Characteristic_initialized;
-          break;
-        }
-      }
-      direct_base_type::multiplex_impl(run_state);
+      // Add default color blend.
+      m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
+      // Add default topology.
+      m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
     }
 
    public:

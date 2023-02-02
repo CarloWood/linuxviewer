@@ -41,6 +41,23 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       copy_shader_variables();
 
       m_owning_factory->characteristic_range_initialized();
+
+      // If this is not a range (m_needs_signals was set to 0) then
+      // either continue with preprocessing if needed or finish.
+      if (!(m_needs_signals & do_fill))
+      {
+        if ((m_needs_signals & do_preprocess))
+        {
+          set_state(CharacteristicRange_preprocess);
+          wait(do_preprocess|do_terminate);
+          return;
+        }
+        // If this Characteristic didn't need to do preprocessing, then why would it need compiling?!
+        ASSERT(!(m_needs_signals & do_compile));
+        finish();
+        return;
+      }
+
       set_state(CharacteristicRange_fill_or_terminate);
       wait(do_fill|do_terminate);             // Wait until we're ready to start the next fill index.
       break;
@@ -113,45 +130,6 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
 }
 
 void CharacteristicRange::initialize_impl()
-{
-  // Start by default with the first state of the derived class.
-  set_state(state_end);
-}
-
-char const* Characteristic::state_str_impl(state_type run_state) const
-{
-  switch(run_state)
-  {
-    AI_CASE_RETURN(Characteristic_initialized);
-  }
-  return direct_base_type::state_str_impl(run_state);
-}
-
-void Characteristic::multiplex_impl(state_type run_state)
-{
-  switch (run_state)
-  {
-    case Characteristic_initialized:
-      copy_shader_variables();
-
-      m_owning_factory->characteristic_range_initialized();
-      // Characteristic is not supposed to use the do_fill signal?!
-      ASSERT(!(m_needs_signals & do_fill));
-      if ((m_needs_signals & do_preprocess))
-      {
-        set_state(CharacteristicRange_preprocess);
-        wait(do_preprocess|do_terminate);
-        return;
-      }
-      // If this Characteristic didn't need to do preprocessing, then why would it need compiling?!
-      ASSERT(!(m_needs_signals & do_compile));
-      finish();
-      return;
-  }
-  direct_base_type::multiplex_impl(run_state);
-}
-
-void Characteristic::initialize_impl()
 {
   // Start by default with the first state of the derived class.
   set_state(state_end);

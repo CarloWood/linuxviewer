@@ -198,46 +198,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
 // Index used for pipeline characteristic ranges.
 using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
 
-class Characteristic : public CharacteristicRange
-{
-  // Make these private. You shouldn't try to use them because they are just always 0 and 1.
-  using CharacteristicRange::ibegin;
-  using CharacteristicRange::iend;
-
- private:
-  // Hide CharacteristicRange_* states.
-  enum UseCharacteristic {
-    CharacteristicRange_initialized,            // Don't use these, use Characteristic_*.
-    CharacteristicRange_check_terminate,
-    CharacteristicRange_filled,
-    CharacteristicRange_preprocessed,
-    CharacteristicRange_compiled
-  };
-
- protected:
-  using direct_base_type = CharacteristicRange;
-
-  // The different states of this task.
-  enum Characteristic_state_type {
-    Characteristic_initialized = direct_base_type::state_end
-  };
-
- public:
-  static constexpr state_type state_end = Characteristic_initialized + 1;
-
-  Characteristic(SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
-    CharacteristicRange(owning_window COMMA_CWDEBUG_ONLY(0, 1, debug))
-  {
-    // We are not a range and therefore to not require the do_fill signal.
-    m_needs_signals = 0;
-  }
-
- protected:
-  char const* state_str_impl(state_type run_state) const override;
-  void multiplex_impl(state_type run_state) override;
-  void initialize_impl() override;
-};
-
 } // namespace task
 } // namespace vulkan
 
