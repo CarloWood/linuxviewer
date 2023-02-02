@@ -113,6 +113,8 @@ void MoveNewPipelines::abort_impl()
 
 } // namespace synchronous
 
+using namespace shader_builder;
+
 PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipeline& pipeline_out, vk::RenderPass vh_render_pass
     COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
     m_owning_window(owning_window), m_pipeline_out(pipeline_out), m_vh_render_pass(vh_render_pass), m_index(vulkan::Application::instance().m_dependent_tasks.add(this))
@@ -145,7 +147,7 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
 // Called from *UserCode*PipelineCharacteristic_initialize.
 void PipelineFactory::add_combined_image_sampler(
     utils::Badge<CharacteristicRange>,
-    shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
+    shader_resource::CombinedImageSampler const& combined_image_sampler,
     CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
@@ -162,7 +164,7 @@ void PipelineFactory::add_combined_image_sampler(
 // called from *UserCode*PipelineCharacteristic_initialize.
 void PipelineFactory::add_uniform_buffer(
     utils::Badge<CharacteristicRange>,
-    shader_builder::UniformBufferBase const& uniform_buffer,
+    UniformBufferBase const& uniform_buffer,
     CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
@@ -173,18 +175,18 @@ void PipelineFactory::add_uniform_buffer(
   add_shader_resource(&uniform_buffer, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
-shader_builder::ShaderResourceDeclaration* PipelineFactory::realize_shader_resource_declaration(utils::Badge<CharacteristicRange>, std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
+ShaderResourceDeclaration* PipelineFactory::realize_shader_resource_declaration(utils::Badge<CharacteristicRange>, std::string glsl_id_full, vk::DescriptorType descriptor_type, ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "PipelineFactory::realize_shader_resource_declaration(\"" << glsl_id_full << "\", " <<
       descriptor_type << ", " << shader_resource << set_index_hint << ") [" << this << "]");
 
   glsl_id_to_shader_resource_t::wat glsl_id_to_shader_resource_w(m_glsl_id_to_shader_resource);
-  shader_builder::ShaderResourceDeclaration shader_resource_tmp(glsl_id_full, descriptor_type, set_index_hint, shader_resource);
+  ShaderResourceDeclaration shader_resource_tmp(glsl_id_full, descriptor_type, set_index_hint, shader_resource);
   auto ibp = glsl_id_to_shader_resource_w->insert(std::pair{glsl_id_full, shader_resource_tmp});
   // The m_glsl_id_full of each CombinedImageSampler must be unique. And of course, don't register the same shader_resource twice.
   ASSERT(ibp.second);
 
-  shader_builder::ShaderResourceDeclaration* shader_resource_ptr = &ibp.first->second;
+  ShaderResourceDeclaration* shader_resource_ptr = &ibp.first->second;
   Dout(dc::vulkan, "Using ShaderResourceDeclaration* " << shader_resource_ptr);
   m_shader_resource_set_key_to_shader_resource_declaration.try_emplace_declaration(shader_resource.descriptor_set_key(), shader_resource_ptr);
 
@@ -208,7 +210,7 @@ void PipelineFactory::realize_descriptor_set_layouts(utils::Badge<vulkan::pipeli
 
 // Called from add_combined_image_sampler and add_uniform_buffer.
 void PipelineFactory::add_shader_resource(
-    shader_builder::ShaderResourceBase const* shader_resource,
+    ShaderResourceBase const* shader_resource,
     CharacteristicRange* adding_characteristic_range,
     std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
     std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
@@ -500,7 +502,7 @@ void PipelineFactory::prepare_shader_resource_declarations()
   for (pipeline::ShaderResourcePlusCharacteristicIndex shader_resource_plus_characteristic_index = added_shader_resource_plus_characteristic_list_r->ibegin();
       shader_resource_plus_characteristic_index != added_shader_resource_plus_characteristic_list_r->iend(); ++shader_resource_plus_characteristic_index)
   {
-    shader_builder::ShaderResourceBase const* shader_resource = (*added_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.shader_resource();
+    ShaderResourceBase const* shader_resource = (*added_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.shader_resource();
 //    Dout(dc::always, "shader_resource_plus_characteristic_index = " << shader_resource_plus_characteristic_index << "; shader_resource = " << shader_resource);
     auto ibp = m_set_key_to_set_index_hint.insert_or_assign(shader_resource->descriptor_set_key(), set_index_hints[shader_resource_plus_characteristic_index]);
     // prepare_shader_resource_declaration should only be called once per AddShaderStage instance per shader_resource.
@@ -961,7 +963,7 @@ bool PipelineFactory::sort_required_shader_resources_list()
 // Called by ShaderResourceDeclarationContext::generate1 which is
 // called from preprocess1.
 void PipelineFactory::push_back_descriptor_set_layout_binding(vulkan::descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size,
-    utils::Badge<vulkan::shader_builder::ShaderResourceDeclarationContext>)
+    utils::Badge<ShaderResourceDeclarationContext>)
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "PipelineFactory::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ") [" << this << "]");
   Dout(dc::vulkan|dc::setindexhint, "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings_and_flags:");
@@ -992,8 +994,8 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
 {
   DoutEntering(dc::shaderresource|dc::vulkan|dc::setindexhint, "PipelineFactory::handle_shader_resource_creation_requests() [" << this << "]");
 
-  using namespace vulkan::descriptor;
-  using namespace vulkan::shader_builder::shader_resource;
+  using namespace descriptor;
+  using namespace shader_builder::shader_resource;
 
   // Just (re)initialize m_set_index_end every time we (re)enter this function.
   m_set_index_end.set_to_zero();
@@ -1019,7 +1021,7 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
 //  Dout(dc::always, "Running over m_added_shader_resource_plus_characteristic_list (" << added_shader_resource_plus_characteristic_list_r->size() << " objects [" << this << "]");
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    shader_builder::ShaderResourceBase const* shader_resource =
+    ShaderResourceBase const* shader_resource =
       shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
 //    Dout(dc::always, "  Processing shader_resource " << shader_resource->debug_name());
     SetKey const set_key = shader_resource->descriptor_set_key();
@@ -1057,14 +1059,14 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
     // Now that we have the exclusive lock - it is safe to const_cast the const-ness away.
     // This is only safe because no other thread will be reading the (non-atomic) members
     // of the shader resources that we are creating while we are creating them.
-    m_acquired_required_shader_resources_list.push_back(const_cast<shader_builder::ShaderResourceBase*>(shader_resource));
+    m_acquired_required_shader_resources_list.push_back(const_cast<ShaderResourceBase*>(shader_resource));
   }
 
 #ifdef CWDEBUG
   int index = 0;
 #endif
 //  Dout(dc::always, "Running over " << m_acquired_required_shader_resources_list.size() << " shader resources in m_acquired_required_shader_resources_list:");
-  for (shader_builder::ShaderResourceBase* shader_resource : m_acquired_required_shader_resources_list)
+  for (ShaderResourceBase* shader_resource : m_acquired_required_shader_resources_list)
   {
 //    Dout(dc::always, "  Creating " << shader_resource->debug_name());
     // Create the shader resource (if not already created (e.g. UniformBuffer)).
@@ -1090,15 +1092,15 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
   DoutEntering(dc::vulkan|dc::setindexhint, "PipelineFactory::initialize_shader_resources_per_set_index() [" << this << "]");
   Dout(dc::shaderresource, "m_set_index_end = " << m_set_index_end);
 
-  using namespace vulkan::descriptor;
-  using namespace vulkan::shader_builder::shader_resource;
+  using namespace descriptor;
+  using namespace shader_builder::shader_resource;
 
   m_added_shader_resource_plus_characteristics_per_used_set_index.resize(m_set_index_end.get_value());
   Dout(dc::shaderresource, "Running over all m_added_shader_resource_plus_characteristic_list shader_resource's:");
   added_shader_resource_plus_characteristic_list_t::rat added_shader_resource_plus_characteristic_list_r(m_added_shader_resource_plus_characteristic_list);
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
+    ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
@@ -1113,7 +1115,7 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
   // to create the same descriptor set will process the associated shader resources in the same order.
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
+    ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
@@ -1143,8 +1145,8 @@ bool PipelineFactory::update_missing_descriptor_sets()
   DoutEntering(dc::shaderresource|dc::vulkan|dc::setindexhint, "PipelineFactory::update_missing_descriptor_sets() [" << this << "]");
 //  Dout(dc::always, "m_set_index_end = " << m_set_index_end);
 
-  using namespace vulkan::descriptor;
-  using namespace vulkan::shader_builder::shader_resource;
+  using namespace descriptor;
+  using namespace shader_builder::shader_resource;
 
   std::vector<vk::DescriptorSetLayout> missing_descriptor_set_layouts;          // The descriptor set layout handles of descriptor sets that we need to create.
   std::vector<uint32_t> missing_descriptor_set_unbounded_descriptor_array_sizes; // Whether or not that descriptor set layout contains a descriptor that is an unbounded array.
@@ -1233,7 +1235,7 @@ bool PipelineFactory::update_missing_descriptor_sets()
       auto shader_resource_plus_characteristic_iter = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].begin();
       for (; shader_resource_plus_characteristic_iter != m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].end(); ++shader_resource_plus_characteristic_iter)
       {
-        shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic_iter->shader_resource();
+        ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic_iter->shader_resource();
         Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << NAMESPACE_DEBUG::print_string(shader_resource->debug_name()) << ")");
         SetKey const set_key = shader_resource->descriptor_set_key();
         SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1433,8 +1435,8 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
       missing_descriptor_set_layouts << ", " << missing_descriptor_set_unbounded_descriptor_array_sizes << ", " <<
       set_index_has_frame_resource_pairs << ", " << set_index_begin << ", " << set_index_end << ") [" << this << "]");
 
-  using namespace vulkan::descriptor;
-  using namespace vulkan::shader_builder::shader_resource;
+  using namespace descriptor;
+  using namespace shader_builder::shader_resource;
 
   // These correspond on a per index basis.
   ASSERT(
@@ -1468,7 +1470,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
     for (int i = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].size() - 1; i >= 0; --i)
     {
       ShaderResourcePlusCharacteristic const& shader_resource_plus_characteristic = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index][i];
-      shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.shader_resource();
+      ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.shader_resource();
       bool first_shader_resource = i == 0;
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1498,7 +1500,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
           // Therefore it is thread-safe to store the information in the task and then continue it which
           // translates into it being ok that that function is non-const.
           CharacteristicRange const* adding_characteristic_range = shader_resource_plus_characteristic.characteristic_range();
-          const_cast<shader_builder::ShaderResourceBase*>(shader_resource)->update_descriptor_set(
+          const_cast<ShaderResourceBase*>(shader_resource)->update_descriptor_set(
               { m_owning_window,
                 { m_pipeline_factory_index,
                   adding_characteristic_range->characteristic_range_index(),
