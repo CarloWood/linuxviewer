@@ -10,11 +10,11 @@
 
 namespace vulkan::task {
 
-class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<vulkan::PersistentAsyncTask, vulkan::ImmediateSubmitRequest>
+class ImmediateSubmitQueue final : public vk_utils::TaskToTaskDeque<PersistentAsyncTask, ImmediateSubmitRequest>
 {
  private:
-  using CommandBufferHandle = vulkan::CommandBufferFactory::resource_type;    // vulkan::handle::CommandBuffer
-  utils::DequeAllocator<CommandBufferHandle> m_deque_allocator{vulkan::Application::instance().deque512_nmr()};
+  using CommandBufferHandle = CommandBufferFactory::resource_type;    // vulkan::handle::CommandBuffer
+  utils::DequeAllocator<CommandBufferHandle> m_deque_allocator{Application::instance().deque512_nmr()};
   statefultask::ResourcePool<CommandBufferFactory> m_command_buffer_pool;
   Queue m_queue;                                                // Queue that is owned by this task.
   TimelineSemaphore m_semaphore;                                // Timeline semaphore used for submitting to m_queue.

@@ -14,9 +14,9 @@
 namespace vulkan {
 class Texture;
 
-namespace descriptor {
+namespace task {
+
 using utils::has_print_on::operator<<;
-using namespace shader_builder;
 
 namespace detail {
 
@@ -27,7 +27,7 @@ namespace detail {
 class CombinedImageSamplerShaderResourceMember
 {
  private:
-  ShaderResourceMember m_member;
+  shader_builder::ShaderResourceMember m_member;
   char m_glsl_id_full[];
 
   CombinedImageSamplerShaderResourceMember(std::string const& glsl_id_full) : m_member(m_glsl_id_full)
@@ -38,7 +38,7 @@ class CombinedImageSamplerShaderResourceMember
  public:
   static std::unique_ptr<CombinedImageSamplerShaderResourceMember> create(std::string const& glsl_id_full)
   {
-    void* memory = malloc(sizeof(ShaderResourceMember) + glsl_id_full.size() + 1);
+    void* memory = malloc(sizeof(shader_builder::ShaderResourceMember) + glsl_id_full.size() + 1);
     return std::unique_ptr<CombinedImageSamplerShaderResourceMember>{new (memory) CombinedImageSamplerShaderResourceMember(glsl_id_full)};
   }
 
@@ -48,7 +48,7 @@ class CombinedImageSamplerShaderResourceMember
   }
 
   // Accessor.
-  ShaderResourceMember const& member() const { return m_member; }
+  shader_builder::ShaderResourceMember const& member() const { return m_member; }
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
@@ -58,7 +58,7 @@ class CombinedImageSamplerShaderResourceMember
 } // namespace detail
 
 // Data collection used for textures.
-class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>, public shader_builder::ShaderResourceBase
+class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<descriptor::Update>>, public shader_builder::ShaderResourceBase
 {
  protected:
   using direct_base_type = AIStatefulTask;
@@ -72,7 +72,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   static state_type constexpr state_end = CombinedImageSamplerUpdater_done + 1;
 
  private:
-  task::SynchronousWindow const* m_owning_window{};                             // The owning window.
+  SynchronousWindow const* m_owning_window{};                             // The owning window.
   std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSamplerUpdater only has a single "member".
   std::atomic<vk::DescriptorBindingFlags> m_binding_flags{};                    // Optional binding flags to use for this descriptor.
   std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.
@@ -87,7 +87,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
  public:
   CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
-    vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<Update>>(CWDEBUG_ONLY(debug)), ShaderResourceBase(SetKeyContext::instance(), glsl_id_full_postfix)
+    vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<descriptor::Update>>(CWDEBUG_ONLY(debug)), ShaderResourceBase(descriptor::SetKeyContext::instance(), glsl_id_full_postfix)
   {
     DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << NAMESPACE_DEBUG::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
@@ -129,18 +129,18 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   }
 
   char const* glsl_id_full() const { return m_member->member().glsl_id_full(); }
-  ShaderResourceMember const& member() const { return m_member->member(); }
+  shader_builder::ShaderResourceMember const& member() const { return m_member->member(); }
 
   // There is no need to instantiate anything for CombinedImageSamplerUpdaters.
-  void instantiate(task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
+  void instantiate(SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) override { }
 
-  void prepare_shader_resource_declaration(SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const override final;
+  void prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const override final;
 
-  void update_descriptor_set(DescriptorUpdateInfo descriptor_update_info) override final
+  void update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info) override final
   {
     DoutEntering(dc::shaderresource, "CombinedImageSamplerUpdater::update_descriptor_set(" << descriptor_update_info << ")");
 
-    boost::intrusive_ptr<Update> update = new DescriptorUpdateInfo(std::move(descriptor_update_info));
+    boost::intrusive_ptr<descriptor::Update> update = new descriptor::DescriptorUpdateInfo(std::move(descriptor_update_info));
 
     // Pass new descriptors that need to be updated to this task (this is called from a PipelineFactory).
     // Picked up by CombinedImageSamplerUpdater_need_action in CombinedImageSamplerUpdater::multiplex_impl.
@@ -165,5 +165,5 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 #endif
 };
 
-} // namespace descriptor
+} // namespace task {
 } // namespace vulkan

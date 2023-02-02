@@ -7,6 +7,8 @@ namespace vulkan {
 class Application;
 class Ambifix;
 
+namespace task {
+
 // A task that runs asynchronously from the render loop - for example from the thread pool
 // or in immediate mode.
 class AsyncTask : public AIStatefulTask
@@ -20,4 +22,5 @@ class AsyncTask : public AIStatefulTask
 #endif
 };
 
+} // namespace task
 } // namespace vulkan

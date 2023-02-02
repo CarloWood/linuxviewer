@@ -8,7 +8,7 @@
 #include "utils/has_print_on.h"
 #endif
 
-namespace vulkan::descriptor {
+namespace vulkan::task {
 
 void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
@@ -80,11 +80,11 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
   {
     case CombinedImageSamplerUpdater_need_action:
       // Get all the new descriptors that need updating from the TaskToTaskDeque.
-      flush_new_data([this](boost::intrusive_ptr<Update>&& update){
+      flush_new_data([this](boost::intrusive_ptr<descriptor::Update>&& update){
           Dout(dc::always, "Received: " << *update << " on " << this << " (" << debug_name() << ")");
           if (update->is_descriptor_update_info())
           {
-            DescriptorUpdateInfo const* descriptor_update_info = static_cast<DescriptorUpdateInfo const*>(update.get());
+            descriptor::DescriptorUpdateInfo const* descriptor_update_info = static_cast<descriptor::DescriptorUpdateInfo const*>(update.get());
             // All DescriptorUpdateInfo's must refer to the window that owns this CombinedImageSamplerUpdater.
             ASSERT(!m_owning_window || m_owning_window == descriptor_update_info->owning_window());
             m_owning_window = descriptor_update_info->owning_window();
@@ -194,7 +194,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
               }
             }
             auto texture_array_range = find_texture_array_range(key);
-            FrameResourceCapableDescriptorSet const& descriptor_set = descriptor_update_info->descriptor_set();
+            descriptor::FrameResourceCapableDescriptorSet const& descriptor_set = descriptor_update_info->descriptor_set();
             uint32_t const binding = descriptor_update_info->binding();
             if (texture_array_range != m_factory_characteristic_key_to_texture_array_range.end())
             {
@@ -220,7 +220,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
           else
           {
             // We received a TextureUpdateRequest.
-            TextureUpdateRequest const* texture_update_request = static_cast<TextureUpdateRequest const*>(update.get());
+            descriptor::TextureUpdateRequest const* texture_update_request = static_cast<descriptor::TextureUpdateRequest const*>(update.get());
             pipeline::FactoryCharacteristicKey const key = texture_update_request->key();
             TextureArrayRange const& texture_array_range = texture_update_request->texture_array_range();
 
@@ -332,7 +332,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             if (matching_descriptors.first != matching_descriptors.second)
             {
 #if CW_DEBUG
-              LogicalDevice const* logical_device = m_owning_window->logical_device();
+              vulkan::LogicalDevice const* logical_device = m_owning_window->logical_device();
               if (!logical_device->supports_sampled_image_update_after_bind())
               {
                 // In principle this is a bug in the program: it should call LogicalDevice::supports_sampled_image_update_after_bind()
@@ -345,7 +345,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
               number_of_frame_resources = m_owning_window->max_number_of_frame_resources();
               for (auto descriptor = matching_descriptors.first; descriptor != matching_descriptors.second; ++descriptor)
               {
-                FrameResourceCapableDescriptorSet const& descriptor_set = descriptor->second.descriptor_set();
+                descriptor::FrameResourceCapableDescriptorSet const& descriptor_set = descriptor->second.descriptor_set();
                 uint32_t binding = descriptor->second.binding();
                 auto const array_element_range = texture_array_range.array_element_range();
 
@@ -400,4 +400,4 @@ void CombinedImageSamplerUpdater::print_on(std::ostream& os) const
 
 #endif // CWDEBUG
 
-} // namespace vulkan::descriptor
+} // namespace vulkan::task

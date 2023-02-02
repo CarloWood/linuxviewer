@@ -16,7 +16,7 @@ class CombinedImageSampler
   };
 
  private:
-  boost::intrusive_ptr<descriptor::CombinedImageSamplerUpdater> m_descriptor_task;
+  boost::intrusive_ptr<task::CombinedImageSamplerUpdater> m_descriptor_task;
 
  public:
   // Note: the call to set_glsl_id_postfix creates and runs m_descriptor_task,
@@ -53,7 +53,7 @@ class CombinedImageSampler
   }
 
   // Accessor.
-  descriptor::CombinedImageSamplerUpdater const* descriptor_task() const { return m_descriptor_task.get(); }
+  task::CombinedImageSamplerUpdater const* descriptor_task() const { return m_descriptor_task.get(); }
 
 #ifdef CWDEBUG
  public:

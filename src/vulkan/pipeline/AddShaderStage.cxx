@@ -206,7 +206,7 @@ void AddShaderStage::realize_shader_resource_declaration_context(descriptor::Set
 // called from prepare_shader_resource_declarations.
 //
 // This function is called once for each combined_image_sampler that was passed to a call to add_combined_image_sampler.
-void AddShaderStage::prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
+void AddShaderStage::prepare_combined_image_sampler_declaration(task::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint)
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::prepare_combined_image_sampler_declaration(" << combined_image_sampler << ", " << set_index_hint << ") [" << this << "]");
 

@@ -307,7 +307,7 @@ void Application::run()
   Dout(dc::notice, "======= Program terminating ======");
 
   // Terminate all running PersistentAsyncTask's.
-  PersistentAsyncTask::terminate_and_wait();
+  task::PersistentAsyncTask::terminate_and_wait();
 
   // Wait till all logical devices are idle.
   {

@@ -28,11 +28,9 @@ namespace shader_builder::shader_resource {
 class CombinedImageSampler;
 } // namespace shader_builder::shader_resource
 
-namespace descriptor {
-class CombinedImageSamplerUpdater;
-} // namespace descriptor
-
 namespace task {
+
+class CombinedImageSamplerUpdater;
 class PipelineCache;
 class CharacteristicRange;
 using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;

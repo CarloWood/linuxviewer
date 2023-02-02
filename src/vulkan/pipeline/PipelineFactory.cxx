@@ -154,7 +154,7 @@ void PipelineFactory::add_combined_image_sampler(
       preferred_descriptor_sets << ", " << undesirable_descriptor_sets << ") [" << this << "]");
 
   // Remember that this combined_image_sampler must be bound to its descriptor set from the PipelineFactory.
-  descriptor::CombinedImageSamplerUpdater const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
+  CombinedImageSamplerUpdater const* combined_image_sampler_task = combined_image_sampler.descriptor_task();
   add_shader_resource(combined_image_sampler_task, adding_characteristic_range, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
@@ -1019,7 +1019,8 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
 //  Dout(dc::always, "Running over m_added_shader_resource_plus_characteristic_list (" << added_shader_resource_plus_characteristic_list_r->size() << " objects [" << this << "]");
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
+    shader_builder::ShaderResourceBase const* shader_resource =
+      shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
 //    Dout(dc::always, "  Processing shader_resource " << shader_resource->debug_name());
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1056,14 +1057,14 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
     // Now that we have the exclusive lock - it is safe to const_cast the const-ness away.
     // This is only safe because no other thread will be reading the (non-atomic) members
     // of the shader resources that we are creating while we are creating them.
-    m_acquired_required_shader_resources_list.push_back(const_cast<ShaderResourceBase*>(shader_resource));
+    m_acquired_required_shader_resources_list.push_back(const_cast<shader_builder::ShaderResourceBase*>(shader_resource));
   }
 
 #ifdef CWDEBUG
   int index = 0;
 #endif
 //  Dout(dc::always, "Running over " << m_acquired_required_shader_resources_list.size() << " shader resources in m_acquired_required_shader_resources_list:");
-  for (ShaderResourceBase* shader_resource : m_acquired_required_shader_resources_list)
+  for (shader_builder::ShaderResourceBase* shader_resource : m_acquired_required_shader_resources_list)
   {
 //    Dout(dc::always, "  Creating " << shader_resource->debug_name());
     // Create the shader resource (if not already created (e.g. UniformBuffer)).
@@ -1097,7 +1098,7 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
   added_shader_resource_plus_characteristic_list_t::rat added_shader_resource_plus_characteristic_list_r(m_added_shader_resource_plus_characteristic_list);
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
+    shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
@@ -1112,7 +1113,7 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
   // to create the same descriptor set will process the associated shader resources in the same order.
   for (auto&& shader_resource_plus_characteristic : *added_shader_resource_plus_characteristic_list_r)
   {
-    ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
+    shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
     SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
@@ -1232,7 +1233,7 @@ bool PipelineFactory::update_missing_descriptor_sets()
       auto shader_resource_plus_characteristic_iter = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].begin();
       for (; shader_resource_plus_characteristic_iter != m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].end(); ++shader_resource_plus_characteristic_iter)
       {
-        ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic_iter->shader_resource();
+        shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic_iter->shader_resource();
         Dout(dc::shaderresource, "shader_resource = " << shader_resource << " (" << NAMESPACE_DEBUG::print_string(shader_resource->debug_name()) << ")");
         SetKey const set_key = shader_resource->descriptor_set_key();
         SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1467,7 +1468,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
     for (int i = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].size() - 1; i >= 0; --i)
     {
       ShaderResourcePlusCharacteristic const& shader_resource_plus_characteristic = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index][i];
-      ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.shader_resource();
+      shader_builder::ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.shader_resource();
       bool first_shader_resource = i == 0;
       SetKey const set_key = shader_resource->descriptor_set_key();
       SetIndexHint const set_index_hint = get_set_index_hint(set_key);
@@ -1497,7 +1498,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
           // Therefore it is thread-safe to store the information in the task and then continue it which
           // translates into it being ok that that function is non-const.
           CharacteristicRange const* adding_characteristic_range = shader_resource_plus_characteristic.characteristic_range();
-          const_cast<ShaderResourceBase*>(shader_resource)->update_descriptor_set(
+          const_cast<shader_builder::ShaderResourceBase*>(shader_resource)->update_descriptor_set(
               { m_owning_window,
                 { m_pipeline_factory_index,
                   adding_characteristic_range->characteristic_range_index(),

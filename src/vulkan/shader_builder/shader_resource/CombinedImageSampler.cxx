@@ -11,7 +11,7 @@ void CombinedImageSampler::set_glsl_id_postfix(char const* glsl_id_full_postfix)
   // Only call set_glsl_id_postfix once, for example from create_texures.
   ASSERT(!m_descriptor_task);
   // Create the task that will realize the descriptor.
-  m_descriptor_task = statefultask::create<descriptor::CombinedImageSamplerUpdater>(glsl_id_full_postfix COMMA_CWDEBUG_ONLY(true));
+  m_descriptor_task = statefultask::create<task::CombinedImageSamplerUpdater>(glsl_id_full_postfix COMMA_CWDEBUG_ONLY(true));
   m_descriptor_task->run();
 }
 

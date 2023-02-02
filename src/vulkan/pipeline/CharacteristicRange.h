@@ -37,6 +37,7 @@ using Index = utils::VectorIndex<IndexCategory>;
 } // namespace pipeline
 
 namespace task {
+
 class PipelineFactory;
 class SynchronousWindow;
 class CharacteristicRange;
@@ -218,8 +219,6 @@ class Characteristic : public CharacteristicRange
 
   // The different states of this task.
   enum Characteristic_state_type {
-    Characteristic_preprocessed = direct_base_type::CharacteristicRange_preprocessed,
-    Characteristic_compiled = direct_base_type::CharacteristicRange_compiled,
     Characteristic_initialized = direct_base_type::state_end
   };
 

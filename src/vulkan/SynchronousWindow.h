@@ -78,6 +78,8 @@ namespace pipeline {
 class FactoryHandle;
 } // namespace pipeline
 
+namespace task {
+
 namespace detail {
 
 class DelaySemaphoreDestruction
@@ -101,8 +103,6 @@ class DelaySemaphoreDestruction
 };
 
 } // namespace detail
-
-namespace task {
 
 /**
  * The SynchronousWindow task.

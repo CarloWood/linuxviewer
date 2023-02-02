@@ -3,7 +3,7 @@
 #include "AsyncTask.h"
 #include "utils/threading/Gate.h"
 
-namespace vulkan {
+namespace vulkan::task {
 
 // A task that runs asynchronously from the render loop - and is long lived; which
 // doesn't normally finish. These tasks need to be killed at the end of the application.
@@ -24,4 +24,4 @@ class PersistentAsyncTask : public AsyncTask
   static void terminate_and_wait();
 };
 
-} // namespace vulkan
+} // namespace vulkan::task

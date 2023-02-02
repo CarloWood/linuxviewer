@@ -4,7 +4,7 @@
 #include "debug/DebugSetName.h"
 #endif
 
-namespace vulkan {
+namespace vulkan::task {
 
 #ifdef CWDEBUG
 Ambifix AsyncTask::debug_name_prefix(std::string prefix)
@@ -13,4 +13,4 @@ Ambifix AsyncTask::debug_name_prefix(std::string prefix)
 }
 #endif
 
-} // namespace vulkan
+} // namespace vulkan::task

@@ -9,7 +9,7 @@ char const* AsyncSemaphoreWatcher::condition_str_impl(condition_type condition) 
   {
     AI_CASE_RETURN(poll_timer);
   }
-  return SemaphoreWatcher<vulkan::AsyncTask>::condition_str_impl(condition);
+  return SemaphoreWatcher<AsyncTask>::condition_str_impl(condition);
 }
 
 void AsyncSemaphoreWatcher::multiplex_impl(state_type run_state)

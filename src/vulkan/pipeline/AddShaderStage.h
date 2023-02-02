@@ -29,8 +29,10 @@ class UniformBufferBase;
 } // namespace shader_builder
 namespace descriptor {
 class SetIndexHintMap;
-class CombinedImageSamplerUpdater;
 } // namespace descriptor
+namespace task {
+class CombinedImageSamplerUpdater;
+} // namespace task
 
 namespace pipeline {
 
@@ -100,7 +102,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 
   void realize_shader_resource_declaration_context(descriptor::SetIndexHint set_index_hint);
 
-  void prepare_combined_image_sampler_declaration(descriptor::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
+  void prepare_combined_image_sampler_declaration(task::CombinedImageSamplerUpdater const& combined_image_sampler, descriptor::SetIndexHint set_index_hint);
   void prepare_uniform_buffer_declaration(shader_builder::UniformBufferBase const& uniform_buffer, descriptor::SetIndexHint set_index_hint);
 
   // Accessor.

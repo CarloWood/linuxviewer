@@ -2,7 +2,7 @@
 #include "PersistentAsyncTask.h"
 #include "queues/QueuePool.h"
 
-namespace vulkan {
+namespace vulkan::task {
 
 utils::threading::Gate PersistentAsyncTask::s_until_persistent_tasks_terminated;
 std::atomic<int> PersistentAsyncTask::s_task_count;
@@ -34,4 +34,4 @@ void PersistentAsyncTask::terminate_and_wait()
     s_until_persistent_tasks_terminated.wait();
 }
 
-} // namespace vulkan
+} // namespace vulkan::task
