@@ -48,7 +48,7 @@ class Window : public vulkan::task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_pipeline_factories = 2;
+  static constexpr int number_of_pipeline_factories = 1;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
@@ -84,7 +84,7 @@ class Window : public vulkan::task::SynchronousWindow
  private:
   void create_render_graph() override
   {
-    DoutEntering(dc::vulkan, "Window::create_render_graph() [" << this << "]");
+    DoutEntering(dc::notice, "Window::create_render_graph() [" << this << "]");
 
     // This must be a reference.
     auto& output = swapchain().presentation_attachment();
@@ -119,7 +119,7 @@ class Window : public vulkan::task::SynchronousWindow
  private:
   void create_textures() override
   {
-    DoutEntering(dc::vulkan, "Window::create_textures() [" << this << "]");
+    DoutEntering(dc::notice, "Window::create_textures() [" << this << "]");
 
     std::array<char const*, number_of_combined_image_samplers> textures_names{
       "textures/digit13.png",
@@ -174,7 +174,7 @@ class Window : public vulkan::task::SynchronousWindow
 #else
         int const characteristic = 1; // VertexPipelineCharacteristicRange which now also do the fragment shader.
 #endif
-        Dout(dc::vulkan, "Calling update_image_sampler_array with cis = " << cis << "; ti = " << ti << "; characteristic = " << characteristic);
+        Dout(dc::notice, "Calling update_image_sampler_array with cis = " << cis << "; ti = " << ti << "; characteristic = " << characteristic);
         m_combined_image_samplers[cis].update_image_sampler_array(
             &m_textures[ti], m_pipeline_factory_characteristic_range_ids[pipeline_factory * number_of_characteristics + characteristic], 1);
         break;
@@ -186,7 +186,7 @@ class Window : public vulkan::task::SynchronousWindow
 
   void create_vertex_buffers() override
   {
-    DoutEntering(dc::vulkan, "Window::create_vertex_buffers() [" << this << "]");
+    DoutEntering(dc::notice, "Window::create_vertex_buffers() [" << this << "]");
 
     m_vertex_buffers.create_vertex_buffer(this, m_square);
     m_vertex_buffers.create_vertex_buffer(this, m_top_bottom_positions);
@@ -283,16 +283,20 @@ void main()
    protected:
     ~BasePipelineCharacteristic() override
     {
-      DoutEntering(dc::vulkan, "BasePipelineCharacteristic::~BasePipelineCharacteristic() [" << this << "]");
+      DoutEntering(dc::notice, "BasePipelineCharacteristic::~BasePipelineCharacteristic() [" << this << "]");
     }
 
    public:
     BasePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
+    {
+      DoutEntering(dc::notice, "BasePipelineCharacteristic::BasePipelineCharacteristic(" << owning_window << ", " << pipeline_factory << ") [" << this << "]");
+    }
 
    protected:
     void initialize() final
     {
+      DoutEntering(dc::notice, "BasePipelineCharacteristic::initialize() [" << this << "]");
       Window const* window = static_cast<Window const*>(m_owning_window);
 
       // Register the vectors that we will fill.
@@ -335,14 +339,17 @@ void main()
 
     ~VertexPipelineCharacteristicRange() override
     {
-      DoutEntering(dc::vulkan, "VertexPipelineCharacteristicRange::~VertexPipelineCharacteristicRange() [" << this << "]");
+      DoutEntering(dc::notice, "VertexPipelineCharacteristicRange::~VertexPipelineCharacteristicRange() [" << this << "]");
     }
 
    public:
     static constexpr state_type state_end = VertexPipelineCharacteristicRange_fill + 1;
 
     VertexPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
+    {
+      DoutEntering(dc::notice, "VertexPipelineCharacteristicRange::VertexPipelineCharacteristicRange(" << owning_window << ", " << pipeline_factory << ") [" << this << "]");
+    }
 
    protected:
     char const* condition_str_impl(condition_type condition) const override
@@ -376,14 +383,8 @@ void main()
         {
           Window const* window = static_cast<Window const*>(m_owning_window);
 
-          //FIXME: do this in the Add* base classes
-          // Register the vectors that we will fill.
-//          m_flat_create_info->add(&m_vertex_input_binding_descriptions);
-//          m_flat_create_info->add_descriptor_set_layouts(&sorted_descriptor_set_layouts());
-
           // Define the pipeline.
           add_push_constant<PushConstant>();
-          //FIXME: is this the right place to call this?
           add_vertex_input_bindings(window->m_vertex_buffers);        // Filled in create_vertex_buffers
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           add_combined_image_sampler(window->m_combined_image_samplers[0]);
@@ -396,9 +397,10 @@ void main()
         }
         case VertexPipelineCharacteristicRange_fill:
         {
-          using namespace vulkan::shader_builder;
-          Dout(dc::notice, "fill_index = " << fill_index());
           Window const* window = static_cast<Window const*>(m_owning_window);
+          Dout(dc::notice, "fill_index = " << fill_index());
+
+          using namespace vulkan::shader_builder;
           ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
           compile(vertex_shader_index);
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
@@ -442,14 +444,17 @@ void main()
 
     ~FragmentPipelineCharacteristicRange() override
     {
-      DoutEntering(dc::vulkan, "FragmentPipelineCharacteristicRange::~FragmentPipelineCharacteristicRange() [" << this << "]");
+      DoutEntering(dc::notice, "FragmentPipelineCharacteristicRange::~FragmentPipelineCharacteristicRange() [" << this << "]");
     }
 
    public:
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_fill + 1;
 
     FragmentPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory) { }
+      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
+    {
+      DoutEntering(dc::notice, "FragmentPipelineCharacteristicRange::FragmentPipelineCharacteristicRange(" << owning_window << ", " << pipeline_factory << ") [" << this << "]");
+    }
 
    protected:
     char const* state_str_impl(state_type run_state) const override
@@ -474,11 +479,6 @@ void main()
         case FragmentPipelineCharacteristicRange_initialize:
         {
           Window const* window = static_cast<Window const*>(m_owning_window);
-
-          // Register the vectors that we will fill.
-//          m_flat_create_info->add_descriptor_set_layouts(&sorted_descriptor_set_layouts());
-//          m_flat_create_info->add(&m_push_constant_ranges);
-//          m_flat_create_info->add(&m_shader_stage_create_infos);
 
           // Define the pipeline.
           add_push_constant<PushConstant>();
@@ -550,7 +550,7 @@ void main()
 
   void create_graphics_pipelines() override
   {
-    DoutEntering(dc::vulkan, "Window::create_graphics_pipelines() [" << this << "]");
+    DoutEntering(dc::notice, "Window::create_graphics_pipelines() [" << this << "]");
     auto const unbounded_array = vulkan::shader_builder::shader_resource::CombinedImageSampler::unbounded_array;
 
     for (int t = 0; t < number_of_combined_image_samplers; ++t)
@@ -601,7 +601,7 @@ void main()
   //
   threadpool::Timer::Interval get_frame_rate_interval() const override
   {
-    DoutEntering(dc::vulkan, "Window::get_frame_rate_interval() [" << this << "]");
+    DoutEntering(dc::notice, "Window::get_frame_rate_interval() [" << this << "]");
     // Limit the frame rate of this window to 100 frames per second.
     return threadpool::Interval<10, std::chrono::milliseconds>{};
   }

@@ -16,12 +16,12 @@ ImmediateSubmitQueue::ImmediateSubmitQueue(
   m_semaphore(logical_device, 0
       COMMA_CWDEBUG_ONLY(debug_name_prefix("m_timeline_semaphore")))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue::ImmediateSubmitQueue(" << logical_device << ", " << queue << ") [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue(" << logical_device << ", " << queue << ") [" << this << "]");
 }
 
 ImmediateSubmitQueue::~ImmediateSubmitQueue()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmitQueue::~ImmediateSubmitQueue() [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "~ImmediateSubmitQueue() [" << this << "]");
 }
 
 char const* ImmediateSubmitQueue::state_str_impl(state_type run_state) const

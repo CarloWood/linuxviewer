@@ -18,7 +18,7 @@ void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor
 
 CombinedImageSamplerUpdater::~CombinedImageSamplerUpdater()
 {
-  DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "CombinedImageSamplerUpdater::~CombinedImageSamplerUpdater() [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "~CombinedImageSamplerUpdater() [" << this << "]");
 }
 
 char const* CombinedImageSamplerUpdater::state_str_impl(state_type run_state) const

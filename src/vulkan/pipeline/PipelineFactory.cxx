@@ -119,12 +119,12 @@ PipelineFactory::PipelineFactory(SynchronousWindow* owning_window, vulkan::Pipel
     COMMA_CWDEBUG_ONLY(bool debug)) : AIStatefulTask(CWDEBUG_ONLY(debug)),
     m_owning_window(owning_window), m_pipeline_out(pipeline_out), m_vh_render_pass(vh_render_pass), m_index(vulkan::Application::instance().m_dependent_tasks.add(this))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::PipelineFactory(" << owning_window << ", @" << (void*)&pipeline_out << ", " << vh_render_pass << ")");
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory(" << owning_window << ", @" << (void*)&pipeline_out << ", " << vh_render_pass << ")");
 }
 
 PipelineFactory::~PipelineFactory()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "PipelineFactory::~PipelineFactory() [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "~PipelineFactory() [" << this << "]");
 
   vulkan::Application::instance().m_dependent_tasks.remove(m_index);
 }

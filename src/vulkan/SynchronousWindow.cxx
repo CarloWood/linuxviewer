@@ -61,13 +61,13 @@ SynchronousWindow::SynchronousWindow(vulkan::Application* application COMMA_CWDE
   attachment_index_context(vulkan::rendergraph::AttachmentIndex{0}), m_dependent_tasks(utils::max_malloc_size(4096))
   COMMA_CWDEBUG_ONLY(mVWDebug(mSMDebug))
 {
-  DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::SynchronousWindow(" << application << ") [" << (void*)this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "SynchronousWindow(" << application << ") [" << (void*)this << "]");
   m_semaphore_watcher->run();
 }
 
 SynchronousWindow::~SynchronousWindow()
 {
-  DoutEntering(dc::statefultask(mSMDebug), "task::SynchronousWindow::~SynchronousWindow() [" << (void*)this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "~SynchronousWindow() [" << (void*)this << "]");
   m_frame_rate_limiter.stop();
   if (m_parent_window_task)
     m_parent_window_task->remove_child_window_task(this);

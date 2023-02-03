@@ -72,7 +72,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   // The default has a range of a single entry with index 0.
   CharacteristicRange(SynchronousWindow const* owning_window, index_type begin = 0, index_type end = 1 COMMA_CWDEBUG_ONLY(bool debug = false)) : AIStatefulTask(CWDEBUG_ONLY(debug)), m_owning_window(owning_window), m_begin(begin), m_end(end)
   {
-    DoutEntering(dc::statefultask(mSMDebug), "CharacteristicRange() [" << (void*)this << "]");
     // end is not included in the range. It must always be larger than begin.
     ASSERT(end > begin);
   }

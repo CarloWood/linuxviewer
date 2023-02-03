@@ -37,7 +37,7 @@ namespace vulkan::task {
 
 PipelineCache::PipelineCache(PipelineFactory* factory COMMA_CWDEBUG_ONLY(bool debug)) : direct_base_type(CWDEBUG_ONLY(debug)), m_owning_factory(factory)
 {
-  DoutEntering(dc::statefultask(mSMDebug), "PipelineCache::PipelineCache(" << factory << ") [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "PipelineCache(" << factory << ") [" << this << "]");
   // We depend on the owning window, but should not be aborted at program termination.
   // Note: increment() can, theoretically, throw -- but that should never happen in
   // this case: a PipelineCache is created in PipelineFactory_start, but all PipelineFactory

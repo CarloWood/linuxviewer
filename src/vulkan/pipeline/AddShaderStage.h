@@ -71,11 +71,30 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   friend struct StaticCheckLookUpTable;
 #endif
 
+  // Fill by user characteristic object to indicate that these shader are needed
+  // for the next pipeline (of the current fill index).
   std::vector<shader_builder::ShaderIndex> m_shaders_that_need_compiling;       // The shaders that need preprocessing and building,
                                                                                 // filled by calls to compile.
+  // PipelineFactory::m_set_index_hint_map is generated, during PipelineFactory_characteristics_preprocessed,
+  // by passing it to LogicalDevice::realize_pipeline_layout, with either an identity map (when a new layout
+  // is created) or a map that maps a found existing layout to the one requested, and subsequently, as this
+  // ponter, passed to all characteristics that need a do_compile signal and just had their fill index changed
+  // (including first time calls of non-range characteristics). Those characteristics that also need do_preprocess
+  // then have the CharacteristicRange_preprocess state run followed by CharacteristicRange_compile that calls
+  // build_shaders passing this m_set_index_hint_map pointer to build_shader which passes it to preprocess2
+  // which uses it to initialize ShaderResourceDeclarationContext::m_set_index_hint_map so that generated
+  // declarations will use the correct descriptor set index.
   descriptor::SetIndexHintMap const* m_set_index_hint_map{};
+
+  // Filled by preprocess1, used by preprocess2.
   utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
+
+  // Filled by build_shader, used to keep the shader modules alive until at least after pipeline construction (after
+  // which they could be destroyed, if it wasn't for the fact that we might want to create more pipelines with the
+  // same handle). Note that the handles are copied into m_shader_stage_create_infos by build_shader,
+  // which is a vector used by the FlatCreateInfo.
   utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
+
   int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
 
  protected:
@@ -86,12 +105,16 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   std::vector<shader_builder::ShaderVariable const*> m_shader_variables;
 
   // Only access this when your application is not using a PipelineFactory; otherwise it will be used automatically.
+  // This is the main output to FlatCreateInfo, filled by build_shader, and contains the shader module handles
+  // and the vk::ShaderStageFlagBits that specifies in which stage the module is used.
   std::vector<vk::PipelineShaderStageCreateInfo> m_shader_stage_create_infos;
 
- public:
+ private:
   using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;
   set_index_hint_to_shader_resource_declaration_context_container_t m_set_index_hint_to_shader_resource_declaration_context;
-  // Used by ShaderResourceVariable::is_used_in to look up the declaration context.
+
+ public:
+  // Used by ShaderResourceVariable::is_used_in to look up the declaration context by set index hint.
   set_index_hint_to_shader_resource_declaration_context_container_t& set_index_hint_to_shader_resource_declaration_context(utils::Badge<shader_builder::ShaderResourceVariable>) { return m_set_index_hint_to_shader_resource_declaration_context; }
 
   // Overridden by AddVertexShader.

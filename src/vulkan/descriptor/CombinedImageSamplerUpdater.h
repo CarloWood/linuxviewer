@@ -89,7 +89,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   CombinedImageSamplerUpdater(char const* glsl_id_full_postfix COMMA_CWDEBUG_ONLY(bool debug = false)) :
     vk_utils::TaskToTaskDeque<AIStatefulTask, boost::intrusive_ptr<descriptor::Update>>(CWDEBUG_ONLY(debug)), ShaderResourceBase(descriptor::SetKeyContext::instance(), glsl_id_full_postfix)
   {
-    DoutEntering(dc::statefultask(mSMDebug)|dc::vulkan, "descriptor::CombinedImageSamplerUpdater::CombinedImageSamplerUpdater(" << NAMESPACE_DEBUG::print_string(glsl_id_full_postfix) << " [" << this << "]");
+    DoutEntering(dc::statefultask(mSMDebug), "CombinedImageSamplerUpdater(" << NAMESPACE_DEBUG::print_string(glsl_id_full_postfix) << " [" << this << "]");
     std::string glsl_id_full("CombinedImageSampler::");
     glsl_id_full.append(glsl_id_full_postfix);
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
