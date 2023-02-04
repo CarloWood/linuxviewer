@@ -139,7 +139,7 @@ void VertexBuffers::create_vertex_buffer(
 
   auto copy_data_to_buffer = statefultask::create<task::CopyDataToBuffer>(owning_window->logical_device(), buffer_size, new_buffer, 0,
       vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe, vk::AccessFlagBits::eVertexAttributeRead,
-      vk::PipelineStageFlagBits::eVertexInput COMMA_CWDEBUG_ONLY(true));
+      vk::PipelineStageFlagBits::eVertexInput COMMA_CWDEBUG_ONLY(Application::instance().debug_CopyDataToBuffer()));
 
   copy_data_to_buffer->set_resource_owner(owning_window);       // Wait for this task to finish before destroying this window,
                                                                 // because this window owns the buffer (m_vertex_buffers.back()),

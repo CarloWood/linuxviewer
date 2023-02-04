@@ -16,7 +16,7 @@ ImmediateSubmit::ImmediateSubmit(CWDEBUG_ONLY(bool debug)) :
 ImmediateSubmit::ImmediateSubmit(ImmediateSubmitRequest&& submit_request, state_type continue_state COMMA_CWDEBUG_ONLY(bool debug)) :
   AsyncTask(CWDEBUG_ONLY(debug)), m_submit_request(std::move(submit_request)), m_continue_state(continue_state)
 {
-  DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmit(" << submit_request << ", " << state_str_impl(continue_state) << ") [" << this << "]");
+  DoutEntering(dc::statefultask(mSMDebug), "ImmediateSubmit(" << submit_request << ", " << continue_state << ") [" << this << "]");
 }
 
 ImmediateSubmit::~ImmediateSubmit()

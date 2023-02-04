@@ -30,9 +30,14 @@ class CopyDataToImage final : public CopyDataToGPU
     m_current_image_layout(current_image_layout), m_current_image_access(current_image_access), m_generating_stages(generating_stages),
     m_new_image_layout(new_image_layout), m_new_image_access(new_image_access), m_consuming_stages(consuming_stages)
   {
-    DoutEntering(dc::vulkan(mSMDebug), "CopyDataToImage(" << logical_device << ", " << data_size << ", " << vh_target_image << ", " <<
+    DoutEntering(dc::statefultask(mSMDebug), "CopyDataToImage(" << logical_device << ", " << data_size << ", " << vh_target_image << ", " <<
         extent << ", " << image_subresource_range << ", " << current_image_layout << ", " << current_image_access << ", " <<
-        generating_stages << ", " << new_image_layout << ", " << new_image_access << ", " << consuming_stages << ")");
+        generating_stages << ", " << new_image_layout << ", " << new_image_access << ", " << consuming_stages << ") [" << this << "]");
+  }
+
+  ~CopyDataToImage()
+  {
+    DoutEntering(dc::statefultask(mSMDebug), "~CopyDataToImage()  [" << this << "]");
   }
 
  private:

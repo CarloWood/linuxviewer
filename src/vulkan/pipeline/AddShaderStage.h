@@ -111,6 +111,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 
  private:
   using set_index_hint_to_shader_resource_declaration_context_container_t = std::map<descriptor::SetIndexHint, shader_builder::ShaderResourceDeclarationContext>;
+  // Filled by realize_shader_resource_declaration_context for new set_index_hint's.
   set_index_hint_to_shader_resource_declaration_context_container_t m_set_index_hint_to_shader_resource_declaration_context;
 
  public:

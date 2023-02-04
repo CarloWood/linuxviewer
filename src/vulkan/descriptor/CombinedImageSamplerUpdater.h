@@ -100,7 +100,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
   void set_bindings_flags(vk::DescriptorBindingFlags binding_flags)
   {
-    DoutEntering(dc::vulkan, "CombinedImageSamplerUpdater::set_bindings_flags(" << binding_flags << ") [" << this << "]");
+    DoutEntering(dc::vulkan(mSMDebug), "CombinedImageSamplerUpdater::set_bindings_flags(" << binding_flags << ") [" << this << "]");
     // Don't call set_bindings_flags unless you have something to set :p.
     ASSERT(!!binding_flags);
     [[maybe_unused]] vk::DescriptorBindingFlags prev_binding_flags = m_binding_flags.exchange(binding_flags, std::memory_order::relaxed);
@@ -110,7 +110,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
   void set_array_size(uint32_t descriptor_array_size, bool unbounded)
   {
-    DoutEntering(dc::vulkan, "CombinedImageSamplerUpdater::set_array_size(" << descriptor_array_size << ", " << (unbounded ? "un" : "") << "bounded) [" << this << "]");
+    DoutEntering(dc::vulkan(mSMDebug), "CombinedImageSamplerUpdater::set_array_size(" << descriptor_array_size << ", " << (unbounded ? "un" : "") << "bounded) [" << this << "]");
     // Don't call set_array_size unless it's an array :p.
     ASSERT(descriptor_array_size > 1);
     // A negative value means unbounded.
@@ -138,7 +138,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
 
   void update_descriptor_set(descriptor::DescriptorUpdateInfo descriptor_update_info) override final
   {
-    DoutEntering(dc::shaderresource, "CombinedImageSamplerUpdater::update_descriptor_set(" << descriptor_update_info << ")");
+    DoutEntering(dc::shaderresource(mSMDebug), "CombinedImageSamplerUpdater::update_descriptor_set(" << descriptor_update_info << ")");
 
     boost::intrusive_ptr<descriptor::Update> update = new descriptor::DescriptorUpdateInfo(std::move(descriptor_update_info));
 

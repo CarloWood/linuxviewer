@@ -123,6 +123,18 @@ class Application
   // this must be defined below m_instance
   // and preferably before m_logical_device_list.
   DebugUtilsMessenger m_debug_utils_messenger;          // Debug message utility extension. Print vulkan layer debug output to dc::vulkan.
+
+  // These booleans determine whether or not the associated task is writing debug output.
+  bool m_debug_LogicalDevice{false};
+  bool m_debug_XcbConnection{false};                    // Also turns on Broker<XcbConnection>.
+  bool m_debug_SemaphoreWatcher{false};
+  bool m_debug_AsyncSemaphoreWatcher{false};
+  bool m_debug_PipelineCache{false};                    // Only prints debug output when also the associated PipelineFactory is turned on.
+  bool m_MoveNewPipelines{false};                       // Idem.
+  bool m_CopyDataToBuffer{false};
+  bool m_CopyDataToImage{false};
+  bool m_ImmediateSubmitQueue{false};                   // Only prints debug output when also the associated CopyDataTo* is turned on.
+  bool m_CombinedImageSamplerUpdater{false};
 #endif
 
   // All logical devices.
@@ -209,6 +221,17 @@ class Application
 
  public:
   void initialize(int argc = 0, char** argv = nullptr);
+
+#ifdef CWDEBUG
+  bool debug_PipelineCache() const { return m_debug_PipelineCache; }
+  bool debug_SemaphoreWatcher() const { return m_debug_SemaphoreWatcher; }
+  bool debug_AsyncSemaphoreWatcher() const { return m_debug_AsyncSemaphoreWatcher; }
+  bool debug_MoveNewPipelines() const { return m_MoveNewPipelines; }
+  bool debug_CopyDataToBuffer() const { return m_CopyDataToBuffer; }
+  bool debug_CopyDataToImage() const { return m_CopyDataToImage; }
+  bool debug_ImmediateSubmitQueue() const { return m_ImmediateSubmitQueue; }
+  bool debug_CombinedImageSamplerUpdater() const { return m_CombinedImageSamplerUpdater; }
+#endif
 
   // Closes all windows - resulting in the termination of the application.
   void quit();

@@ -100,7 +100,8 @@ task::ImmediateSubmitQueue* QueuePool::get_immediate_submit_queue_task(CWDEBUG_O
     m_no_more_queues.store(true, std::memory_order::relaxed);
     return get_immediate_submit_queue_task(CWDEBUG_ONLY(debug));
   }
-  auto immediate_submit_queue_task = statefultask::create<task::ImmediateSubmitQueue>(m_logical_device, queue COMMA_CWDEBUG_ONLY(debug));
+  auto immediate_submit_queue_task = statefultask::create<task::ImmediateSubmitQueue>(m_logical_device, queue
+      COMMA_CWDEBUG_ONLY(debug && Application::instance().debug_ImmediateSubmitQueue()));
   immediate_submit_queue_task->run(vulkan::Application::instance().medium_priority_queue());
 
   // Keep a copy of the task pointer.

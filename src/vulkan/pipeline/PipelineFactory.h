@@ -170,7 +170,7 @@ class PipelineFactory : public AIStatefulTask
   // Returns the SetIndexHint that was assigned to this key (usually by shader_resource::add_*).
   descriptor::SetIndexHint get_set_index_hint(descriptor::SetKey set_key) const
   {
-    DoutEntering(dc::setindexhint|continued_cf, "PipelineFactory::get_set_index_hint(" << set_key << ") = ");
+    DoutEntering(dc::setindexhint(mSMDebug)|continued_cf, "PipelineFactory::get_set_index_hint(" << set_key << ") = ");
     auto set_index_hint = m_set_key_to_set_index_hint.find(set_key);
     // Don't call get_set_index_hint for a key that wasn't added yet.
     ASSERT(set_index_hint != m_set_key_to_set_index_hint.end());

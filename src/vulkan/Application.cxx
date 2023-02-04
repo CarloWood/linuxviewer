@@ -165,7 +165,7 @@ void Application::initialize(int argc, char** argv)
   m_resolver_scope = std::make_unique<resolver::Scope>(m_low_priority_queue, false);
 
   // Start the connection broker.
-  m_xcb_connection_broker = statefultask::create<xcb_connection_broker_type>(CWDEBUG_ONLY(false));
+  m_xcb_connection_broker = statefultask::create<xcb_connection_broker_type>(CWDEBUG_ONLY(m_debug_XcbConnection));
   m_xcb_connection_broker->run(m_low_priority_queue);           // Note: the broker never finishes, until abort() is called on it.
 
   ApplicationInfo application_info;
@@ -205,7 +205,7 @@ boost::intrusive_ptr<task::LogicalDevice> Application::create_logical_device(
 {
   DoutEntering(dc::vulkan, "vulkan::Application::create_logical_device(" << (void*)logical_device.get() << ", " << (void const*)root_window.get() << ")");
 
-  auto logical_device_task = statefultask::create<task::LogicalDevice>(this COMMA_CWDEBUG_ONLY(true));
+  auto logical_device_task = statefultask::create<task::LogicalDevice>(this COMMA_CWDEBUG_ONLY(m_debug_LogicalDevice));
   logical_device_task->set_logical_device(std::move(logical_device));
   logical_device_task->set_root_window(std::move(root_window));
 

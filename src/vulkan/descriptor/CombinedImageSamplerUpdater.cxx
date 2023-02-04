@@ -12,7 +12,7 @@ namespace vulkan::task {
 
 void CombinedImageSamplerUpdater::prepare_shader_resource_declaration(descriptor::SetIndexHint set_index_hint, pipeline::AddShaderStage* add_shader_stage) const
 {
-  DoutEntering(dc::setindexhint, "CombinedImageSamplerUpdater::prepare_shader_resource_declaration(" << set_index_hint << ", (AddShaderStage*)" << add_shader_stage << ") [" << this << "]");
+  DoutEntering(dc::setindexhint(mSMDebug), "CombinedImageSamplerUpdater::prepare_shader_resource_declaration(" << set_index_hint << ", (AddShaderStage*)" << add_shader_stage << ") [" << this << "]");
   add_shader_stage->prepare_combined_image_sampler_declaration(*this, set_index_hint);
 }
 
@@ -200,7 +200,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             {
               auto const array_element_range = texture_array_range->second.array_element_range();
 
-              Dout(dc::shaderresource, "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range->second.texture_array() << " targetting array elements " << array_element_range);
+              Dout(dc::shaderresource(mSMDebug), "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range->second.texture_array() << " targetting array elements " << array_element_range);
 
               std::vector<vk::DescriptorImageInfo> image_infos(array_element_range.size());
               Texture const* texture_array = texture_array_range->second.texture_array();
@@ -349,7 +349,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
                 uint32_t binding = descriptor->second.binding();
                 auto const array_element_range = texture_array_range.array_element_range();
 
-                Dout(dc::shaderresource, "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range);
+                Dout(dc::shaderresource(mSMDebug), "Update " << descriptor_set << " binding " << binding << " with " << texture_array_range);
 
                 std::vector<vk::DescriptorImageInfo> image_infos(array_element_range.size());
                 Texture const* texture_array = texture_array_range.texture_array();

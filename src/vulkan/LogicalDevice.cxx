@@ -1499,7 +1499,8 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
   }
 }
 
-LogicalDevice::LogicalDevice() : m_semaphore_watcher(statefultask::create<task::AsyncSemaphoreWatcher>(CWDEBUG_ONLY(true)))
+LogicalDevice::LogicalDevice() : m_semaphore_watcher(statefultask::create<task::AsyncSemaphoreWatcher>(
+      CWDEBUG_ONLY(Application::instance().debug_AsyncSemaphoreWatcher())))
 {
   m_semaphore_watcher->run(Application::instance().high_priority_queue());
 }
@@ -1585,10 +1586,12 @@ namespace task {
 LogicalDevice::LogicalDevice(Application* application COMMA_CWDEBUG_ONLY(bool debug)) :
   AIStatefulTask(CWDEBUG_ONLY(debug)), m_application(application)
 {
+  DoutEntering(dc::statefultask(mSMDebug), "LogicalDevice(" << application << ") [" << this << "]");
 }
 
 LogicalDevice::~LogicalDevice()
 {
+  DoutEntering(dc::statefultask(mSMDebug), "~LogicalDevice() [" << this << "]");
 }
 
 void LogicalDevice::set_root_window(boost::intrusive_ptr<task::SynchronousWindow const>&& root_window)

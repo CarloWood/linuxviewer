@@ -1,6 +1,7 @@
 #pragma once
 
 #include "utils/iomanip.h"
+#include <boost/intrusive_ptr.hpp>
 #include <memory>
 
 namespace vk_utils {
@@ -35,6 +36,12 @@ PrintPointer<T> print_pointer(T const* ptr)
 
 template<typename T>
 PrintPointer<T> print_pointer(std::unique_ptr<T> const& ptr)
+{
+  return { ptr.get() };
+}
+
+template<typename T>
+PrintPointer<T> print_pointer(boost::intrusive_ptr<T> const& ptr)
 {
   return { ptr.get() };
 }

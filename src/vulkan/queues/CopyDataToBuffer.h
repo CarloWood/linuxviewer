@@ -27,14 +27,14 @@ class CopyDataToBuffer final : public CopyDataToGPU
     m_current_buffer_access(current_buffer_access), m_generating_stages(generating_stages),
     m_new_buffer_access(new_buffer_access), m_consuming_stages(consuming_stages)
   {
-    DoutEntering(dc::vulkan(mSMDebug), "CopyDataToBuffer(" << logical_device << ", " << data_size << ", " << vh_target_buffer <<
+    DoutEntering(dc::statefultask(mSMDebug), "CopyDataToBuffer(" << logical_device << ", " << data_size << ", " << vh_target_buffer <<
         ", " << buffer_offset << ", " << current_buffer_access << ", " << generating_stages <<
         ", " << new_buffer_access << ", " << consuming_stages << ") [" << this << "]");
   }
 
   ~CopyDataToBuffer()
   {
-    DoutEntering(dc::vulkan(mSMDebug), "~CopyDataToBuffer() [" << this << "]");
+    DoutEntering(dc::statefultask(mSMDebug), "~CopyDataToBuffer() [" << this << "]");
   }
 
  private:

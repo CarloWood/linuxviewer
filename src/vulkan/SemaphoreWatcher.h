@@ -63,7 +63,7 @@ class SemaphoreWatcher : public BASE
 
   void remove(watch_set_type::wat const& watch_set_w, SemaphoreWatcherIndex wsi, SemaphoreWatcherIndex wsi_last)
   {
-    Dout(dc::notice, "SemaphoreWatcher::remove() removing timeline semaphore " << watch_set_w->m_watch_data[wsi].m_timeline_semaphore);
+    Dout(dc::notice(BASE::mSMDebug), "SemaphoreWatcher::remove() removing timeline semaphore " << watch_set_w->m_watch_data[wsi].m_timeline_semaphore);
     if (wsi != wsi_last)
     {
       watch_set_w->m_watch_data[wsi] = watch_set_w->m_watch_data[wsi_last];
@@ -139,7 +139,7 @@ namespace vulkan::task {
 template<TaskType BASE>
 void SemaphoreWatcher<BASE>::add(TimelineSemaphore const* timeline_semaphore, uint64_t signal_value, AIStatefulTask* task, AIStatefulTask::condition_type condition)
 {
-  DoutEntering(dc::notice, "SemaphoreWatcher::add(" << timeline_semaphore << ", " << signal_value << ", " << task << ", " << task->print_conditions(condition) << ")");
+  DoutEntering(dc::notice(BASE::mSMDebug), "SemaphoreWatcher::add(" << timeline_semaphore << ", " << signal_value << ", " << task << ", " << task->print_conditions(condition) << ")");
   watch_set_type::wat watch_set_w(m_watch_set);
   SemaphoreWatcherIndex const wsi_end{watch_set_w->m_watch_data.size()};
   for (SemaphoreWatcherIndex wsi{0}; wsi != wsi_end; ++wsi)
@@ -161,7 +161,7 @@ void SemaphoreWatcher<BASE>::add(TimelineSemaphore const* timeline_semaphore, ui
 template<TaskType BASE>
 void SemaphoreWatcher<BASE>::remove(TimelineSemaphore const* timeline_semaphore)
 {
-  DoutEntering(dc::notice, "SemaphoreWatcher::remove(" << timeline_semaphore << ")");
+  DoutEntering(dc::notice(BASE::mSMDebug), "SemaphoreWatcher::remove(" << timeline_semaphore << ")");
   watch_set_type::wat watch_set_w(m_watch_set);
   SemaphoreWatcherIndex const wsi_end{watch_set_w->m_watch_data.size()};
   for (SemaphoreWatcherIndex wsi{0}; wsi != wsi_end; ++wsi)
@@ -177,14 +177,14 @@ void SemaphoreWatcher<BASE>::remove(TimelineSemaphore const* timeline_semaphore)
 template<TaskType BASE>
 bool SemaphoreWatcher<BASE>::poll()
 {
-  DoutEntering(dc::notice, "SemaphoreWatcher::poll()");
+  DoutEntering(dc::notice(BASE::mSMDebug), "SemaphoreWatcher::poll()");
   watch_set_type::wat watch_set_w(m_watch_set);
   SemaphoreWatcherIndex wsi_end{watch_set_w->m_watch_data.size()};
   for (SemaphoreWatcherIndex wsi{0}; wsi != wsi_end;)
   {
     uint64_t const signal_value = watch_set_w->m_watch_data[wsi].m_signal_value;
     uint64_t const counter_value = watch_set_w->m_watch_data[wsi].m_timeline_semaphore->get_counter_value();
-    Dout(dc::notice, "Timeline semaphore " << watch_set_w->m_watch_data[wsi].m_timeline_semaphore << " has value " << counter_value << '.');
+    Dout(dc::notice(BASE::mSMDebug), "Timeline semaphore " << watch_set_w->m_watch_data[wsi].m_timeline_semaphore << " has value " << counter_value << '.');
     if (counter_value >= signal_value)
     {
       auto value_task_condition_triplet = watch_set_w->m_notify_data[wsi].m_value_task_condition_triplets.begin();

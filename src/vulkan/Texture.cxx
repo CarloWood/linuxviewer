@@ -24,7 +24,7 @@ void Texture::upload(vk::Extent2D extent, vulkan::ImageViewKind const& image_vie
             m_vh_image, extent, vk_defaults::ImageSubresourceRange{},
             vk::ImageLayout::eUndefined, vk::AccessFlags(0), vk::PipelineStageFlagBits::eTopOfPipe,
             vk::ImageLayout::eShaderReadOnlyOptimal, vk::AccessFlagBits::eShaderRead, vk::PipelineStageFlagBits::eFragmentShader
-            COMMA_CWDEBUG_ONLY(true));
+            COMMA_CWDEBUG_ONLY(Application::instance().debug_CopyDataToImage()));
 
   copy_data_to_image->set_resource_owner(resource_owner);       // Wait for this task to finish before destroying the owning window, because the window owns this texture.
   copy_data_to_image->set_data_feeder(std::move(texture_data_feeder));
