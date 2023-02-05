@@ -42,6 +42,7 @@ void AddVertexShader::copy_shader_variables()
     ASSERT(std::find_if(m_shader_variables.begin(), m_shader_variables.end(), DebugCompareGlslId{vertex_attribute.glsl_id_full()}) ==
         m_shader_variables.end());
     // Add a pointer to all VertexAttribute's in m_glsl_id_full_to_vertex_attribute to m_shader_variables.
+    Dout(dc::vulkan, "Adding " << vertex_attribute << " to m_shader_variables.");
     m_shader_variables.push_back(&vertex_attribute);
   }
 }

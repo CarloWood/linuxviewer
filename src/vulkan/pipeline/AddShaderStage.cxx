@@ -56,6 +56,10 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
     declaration_contexts_container_t& declaration_contexts = m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
     // m_shader_variables contains a number of strings that we need to find in the source.
     // They may occur zero or more times.
+    //
+    // This is very unexpected; m_shader_variables should not be empty.
+    // If it really should be empty then please add a '#version' line at the top of the template code to turn off preprocessing.
+    ASSERT(!m_shader_variables.empty());
     for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
     {
       std::string match_string = shader_variable->glsl_id_full();
@@ -215,7 +219,10 @@ void AddShaderStage::prepare_combined_image_sampler_declaration(task::CombinedIm
   shader_resource_declaration_ptr->add_member(combined_image_sampler.member());
   // Which is treated here in a general way (but really shader_resource_variables() has just a size of one).
   for (auto& shader_resource_variable : shader_resource_declaration_ptr->shader_resource_variables())
+  {
+    Dout(dc::vulkan, "Adding " << shader_resource_variable << " to m_shader_variables.");
     m_shader_variables.push_back(&shader_resource_variable);
+  }
 
 #if 1
   Dout(dc::debug, "m_shader_variables (@" << (void*)&m_shader_variables << " [" << this << "]) currently contains:");
@@ -239,7 +246,10 @@ void AddShaderStage::prepare_uniform_buffer_declaration(shader_builder::UniformB
   shader_builder::ShaderResourceDeclaration* shader_resource_ptr = realize_shader_resource_declaration(uniform_buffer.glsl_id(), vk::DescriptorType::eUniformBuffer, uniform_buffer, set_index_hint);
   shader_resource_ptr->add_members(uniform_buffer.members());
   for (auto const& shader_resource_variable : shader_resource_ptr->shader_resource_variables())
+  {
+    Dout(dc::vulkan, "Adding " << shader_resource_variable << " to m_shader_variables.");
     m_shader_variables.push_back(&shader_resource_variable);
+  }
 
   // Create and store ShaderResourceDeclarationContext in a map with key set_index_hint, if that doesn't already exists.
   realize_shader_resource_declaration_context(set_index_hint);
