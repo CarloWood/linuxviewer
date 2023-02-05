@@ -154,7 +154,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   }
 
   // This is a AddShaderStage.
-  bool is_add_shader_stage() const final { return true; }
+  AddShaderStage* get_add_shader_stage() final { return this; }
 
   // Override of CharacteristicRangeBridge.
   void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const final

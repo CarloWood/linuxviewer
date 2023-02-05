@@ -21,6 +21,7 @@ class ShaderResourceBase;
 } // namespace vulkan::shader_builder
 
 namespace vulkan::pipeline {
+class AddShaderStage;
 
 // This bridges the CharacteristicRange to other base classes that are used for a Characteristic user class.
 struct CharacteristicRangeBridge
@@ -36,7 +37,7 @@ struct CharacteristicRangeBridge
   }
 
   // Implemented by AddShaderStage.
-  virtual bool is_add_shader_stage() const { return false; }
+  virtual AddShaderStage* get_add_shader_stage() { return nullptr; }
   virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const { }
   virtual void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
   {

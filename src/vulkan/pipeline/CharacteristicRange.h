@@ -77,7 +77,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   }
 
   // If the user Characteristic class is derived from AddShaderStage then we need to do preprocessing and compiling.
-  void set_needs_signals() { if (is_add_shader_stage()) m_needs_signals |= do_preprocess|do_compile; }
+  void set_needs_signals() { if (get_add_shader_stage()) m_needs_signals |= do_preprocess|do_compile; }
   void register_with_the_flat_create_info() const
   {
     register_AddShaderStage_with(m_owning_factory);

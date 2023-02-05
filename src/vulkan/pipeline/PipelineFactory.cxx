@@ -510,7 +510,8 @@ void PipelineFactory::prepare_shader_resource_declarations()
     if (ibp.second)
     {
       CharacteristicRange* characteristic = (*added_shader_resource_plus_characteristic_list_r)[shader_resource_plus_characteristic_index].m_shader_resource_plus_characteristic.characteristic_range();
-      AddShaderStage* add_shader_stage = dynamic_cast<AddShaderStage*>(characteristic);
+      // dynamic_cast doesn't work because of the private/protected inheritance that we use.
+      AddShaderStage* add_shader_stage = characteristic->get_add_shader_stage();
       if (add_shader_stage)
       {
 //      Dout(dc::always, "Calling prepare_shader_resource_declaration() on \"" << shader_resource->debug_name() << "\".");
