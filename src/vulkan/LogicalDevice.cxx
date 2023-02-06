@@ -1403,7 +1403,7 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
+    sorted_descriptor_set_layouts_t::rat const& realized_descriptor_set_layouts_w,
     descriptor::SetIndexHint largest_set_index_hint,
     descriptor::SetIndexHintMap& set_index_hint_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const

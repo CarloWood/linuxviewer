@@ -206,7 +206,7 @@ class LogicalDevice
   // This function realizes a pipeline layout, using realized_descriptor_set_layouts and sorted_push_constant_ranges,
   // and returns an updated set_index_hint_map_out (see explanation in LogicalDevice.cxx).
   vk::PipelineLayout realize_pipeline_layout(
-      sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
+      sorted_descriptor_set_layouts_t::rat const& realized_descriptor_set_layouts_w,
       descriptor::SetIndexHint largest_set_index_hint,
       descriptor::SetIndexHintMap& set_index_hint_map_out,
       std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges
