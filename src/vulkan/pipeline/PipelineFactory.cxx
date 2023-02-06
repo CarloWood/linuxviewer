@@ -602,6 +602,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
       {
         // Use for ASSERTs.
         DEBUG_ONLY(m_debug_reached_characteristics_initialized = true);
+        // Generate descriptor set index hints, realize all shader resource declarations (combined
+        // image samplers and uniform buffers) and add their member(s) to m_shader_variables.
+        // Note: this function only uses input from add_shader_resource, which must be called from
+        // the initialize states of the Characteristics.
+        prepare_shader_resource_declarations();
+        // Now that we have added all shader variables, preprocess the shader code.
+
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
         // Enter the multi-loop.
@@ -649,20 +656,22 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // Clear the m_acquired_required_shader_resources_list vector of a previous fill.
         m_acquired_required_shader_resources_list.clear();
 
+        // We use m_running_characteristic_tasks as a bit mask with the characteristic index as bit index.
+        ASSERT(m_characteristics.size() <= sizeof(m_running_characteristic_tasks) * 8);
+        m_running_characteristic_tasks = 0;
+        // Count the number of characteristic tasks that we'll send the do_fill signal.
+        // We only send the do_fill signal when the fill_index changed.
+        m_number_of_running_characteristic_tasks = 0;
+        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill) &&
+              m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]))
+          {
+            ++m_number_of_running_characteristic_tasks;
+            m_running_characteristic_tasks |= to_bit_mask(i);
+          }
+
+        // Send the do_fill signal to the Characteristic tasks, if any.
         {
-          // We use m_running_characteristic_tasks as a bit mask with the characteristic index as bit index.
-          ASSERT(m_characteristics.size() <= sizeof(m_running_characteristic_tasks) * 8);
-          m_running_characteristic_tasks = 0;
-          // Count the number of characteristic tasks that we'll send the do_fill signal.
-          // We only send the do_fill signal when the fill_index changed.
-          m_number_of_running_characteristic_tasks = 0;
-          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-            if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill) &&
-                m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]))
-            {
-              ++m_number_of_running_characteristic_tasks;
-              m_running_characteristic_tasks |= to_bit_mask(i);
-            }
           bool sent_do_fill_signal = m_number_of_running_characteristic_tasks > 0;
           // Run over each loop variable (and hence characteristic).
           for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
@@ -688,36 +697,42 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         }
         [[fallthrough]];
       case PipelineFactory_characteristics_filled:
-        // Generate descriptor set index hints, realize all shader resource declarations (combined
-        // image samplers and uniform buffers) and add their member(s) to m_shader_variables.
-        prepare_shader_resource_declarations();
-        // Now that we have added all shader variables, preprocess the shader code.
         // The number of characteristic tasks that we need to wait for finishing do_preprocess.
         m_number_of_running_characteristic_tasks = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess) &&
               (m_running_characteristic_tasks & (1ULL << i.get_value())))
             ++m_number_of_running_characteristic_tasks;
-        // Run over each loop variable (and hence characteristic).
-        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+        // Send the do_preprocess signal to the Characteristic tasks, if any.
         {
-          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess) &&
-              (m_running_characteristic_tasks & (1ULL << i.get_value())))
-            m_characteristics[i]->signal(CharacteristicRange::do_preprocess);
+          bool sent_do_preprocess_signal = m_number_of_running_characteristic_tasks > 0;
+          // Run over each loop variable (and hence characteristic).
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+          {
+            if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess) &&
+                (m_running_characteristic_tasks & (1ULL << i.get_value())))
+              m_characteristics[i]->signal(CharacteristicRange::do_preprocess);
+          }
+          set_state(PipelineFactory_characteristics_preprocessed);
+          if (sent_do_preprocess_signal)
+          {
+            wait(characteristics_preprocessed);
+            return;
+          }
         }
-        set_state(PipelineFactory_characteristics_preprocessed);
-        wait(characteristics_preprocessed);
-        return;
+        [[fallthrough]];
       case PipelineFactory_characteristics_preprocessed:
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
+        // (Re)generate m_set_index_hint_map, m_largest_set_index_hint and m_vh_pipeline_layout.
         {
-          // Clear the m_set_index_hint_map of a previous fill.
-          m_set_index_hint_map.clear();
-
+          // These are the inputs.
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
           sorted_descriptor_set_layouts_t::wat sorted_descriptor_set_layouts_w(m_sorted_descriptor_set_layouts);
+
+          // Clear the m_set_index_hint_map of a previous fill.
+          m_set_index_hint_map.clear();
 
           vulkan::descriptor::SetIndexHint largest_set_index_hint{0};
           // Can this ever happen?

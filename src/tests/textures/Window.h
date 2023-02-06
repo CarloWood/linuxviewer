@@ -451,7 +451,7 @@ void main()
     static constexpr state_type state_end = FragmentPipelineCharacteristicRange_fill + 1;
 
     FragmentPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
+      vulkan::task::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
     {
       DoutEntering(dc::notice, "FragmentPipelineCharacteristicRange::FragmentPipelineCharacteristicRange(" << owning_window << ", " << pipeline_factory << ") [" << this << "]");
     }
