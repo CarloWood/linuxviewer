@@ -12,7 +12,7 @@ namespace vulkan::shader_builder {
 struct UnlockedShaderInfos
 {
   utils::Deque<ShaderInfo, ShaderIndex> deque;          // All ShaderInfo objects. This must be a deque because it is grown after already handing out indices into it.
-  std::map<std::size_t, ShaderIndex> hash_to_index;     // A map from ShaderInfo hash values to their index into list.
+  std::map<std::size_t, ShaderIndex> hash_to_index;     // A map from ShaderInfo hash values to their index into deque.
 };
 
 using ShaderInfos = aithreadsafe::Wrapper<UnlockedShaderInfos, aithreadsafe::policy::Primitive<std::mutex>>;

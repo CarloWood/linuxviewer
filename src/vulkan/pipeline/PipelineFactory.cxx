@@ -725,7 +725,9 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
-        // (Re)generate m_set_index_hint_map, m_largest_set_index_hint and m_vh_pipeline_layout.
+        // (Re)generate m_set_index_hint_map and m_largest_set_index_hint,
+        // and either create a new pipeline layout or get an existing one from cache
+        // and store that in m_vh_pipeline_layout.
         {
           // These are the inputs.
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
@@ -755,26 +757,34 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               sorted_descriptor_set_layouts_w, m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
         }
 
-        // Now that we have initialized m_set_index_hint_map, run the code that needs it.
+        // Now that we have (re)initialized m_set_index_hint_map, run the code that needs it.
         // The number of characteristic tasks that we need to wait for finishing do_compile.
         m_number_of_running_characteristic_tasks = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile) &&
               (m_running_characteristic_tasks & (1ULL << i.get_value())))
             ++m_number_of_running_characteristic_tasks;
-        // Run over each loop variable (and hence characteristic).
-        for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+        // Send the do_compile signal to the Characteristic tasks, if any.
         {
-          if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile) &&
-              (m_running_characteristic_tasks & (1ULL << i.get_value())))
+          bool sent_do_compile_signal = m_number_of_running_characteristic_tasks > 0;
+          // Run over each loop variable (and hence characteristic).
+          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           {
-            m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
-            m_characteristics[i]->signal(CharacteristicRange::do_compile);
+            if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile) &&
+                (m_running_characteristic_tasks & (1ULL << i.get_value())))
+            {
+              m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
+              m_characteristics[i]->signal(CharacteristicRange::do_compile);
+            }
+          }
+          set_state(PipelineFactory_characteristics_compiled);
+          if (sent_do_compile_signal)
+          {
+            wait(characteristics_compiled);
+            return;
           }
         }
-        set_state(PipelineFactory_characteristics_compiled);
-        wait(characteristics_compiled);
-        return;
+        [[fallthrough]];
       case PipelineFactory_characteristics_compiled:
         // All Characteristic(Range) tasks have finished their work for this pipeline at
         // this point and are waiting for the do_fill signal for the next pipeline.

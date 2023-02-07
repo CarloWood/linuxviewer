@@ -221,7 +221,7 @@ class FlatCreateInfo
     }
 #endif
 
-    // If there is input data, return an empty vector.
+    // If there is no input data, return an empty vector.
     if (push_constant_ranges_list_r->empty())
       return {};
 
