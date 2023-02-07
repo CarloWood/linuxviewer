@@ -74,7 +74,7 @@ of the different types.
 
 ### Building ###
 
-    NUMBER_OF_CPUS=$(($(grep '^cpu cores' /proc/cpuinfo | wc --lines) - 2))
+    NUMBER_OF_CPUS=$((`nproc` - 2))
     cmake --build ${BUILD_DIR} --config ${CMAKE_CONFIG} --parallel ${NUMBER_OF_CPUS}
 
 Just set `NUMBER_OF_CPUS` to whatever you want, of course.
