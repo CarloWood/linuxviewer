@@ -11,6 +11,7 @@
 #include "descriptor/SetLayoutBindingsAndFlags.h"
 #include "pipeline/AddVertexShader.h"
 #include "vk_utils/print_flags.h"
+#include "block-task/BlockingTaskMutex.h"
 
 #include "Application.inl.h"
 #include "VertexBuffers.inl.h"
@@ -193,7 +194,7 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
   }
 
   void compile_shaders(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& vertex_shader_index, shader_builder::ShaderIndex const& fragment_shader_index
+      shader_builder::ShaderIndex vertex_shader_index, shader_builder::ShaderIndex fragment_shader_index
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
   {
     using namespace vulkan::shader_builder;
@@ -203,11 +204,24 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
     preprocess1(owning_window->application().get_shader_info(vertex_shader_index));
     preprocess1(owning_window->application().get_shader_info(fragment_shader_index));
 
-    build_shader(owning_window, vertex_shader_index, compiler, spirv_cache, nullptr
-        COMMA_CWDEBUG_ONLY(ambifix));
-    spirv_cache.reset();
-    build_shader(owning_window, fragment_shader_index, compiler, spirv_cache, nullptr
-        COMMA_CWDEBUG_ONLY(ambifix));
+    //build_shaders
+    compiler.initialize();
+    shader_builder::ShaderIndex shader_index = vertex_shader_index;
+    for (int shader = 0;; ++shader)
+    {
+      ShaderInfoCache& shader_info_cache = Application::instance().get_shader_info(shader_index);
+      // shader_info_cache.m_task_mutex must be locked before we may access shader_info_cache.
+      auto blocking_task_mutex = statefultask::create<::task::BlockingTaskMutex>(CWDEBUG_ONLY(true));
+      blocking_task_mutex->set_mutex(shader_info_cache.m_task_mutex);
+      blocking_task_mutex->lock();
+      build_shader(owning_window, shader_index, shader_info_cache, compiler, spirv_cache, nullptr
+          COMMA_CWDEBUG_ONLY(ambifix));
+      blocking_task_mutex->unlock();
+      if (shader == 1)
+        break;
+      spirv_cache.reset();
+      shader_index = fragment_shader_index;
+    }
   }
 
   std::vector<vk::VertexInputBindingDescription> const& vertex_input_binding_descriptions() const

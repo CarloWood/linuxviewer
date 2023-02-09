@@ -360,18 +360,18 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
     for (size_t i = 0; i < number_of_new_shaders; ++i)
     {
       if (new_indices[i] >= first_new_index)
-        shader_infos_w->deque.push_back(std::move(new_shader_info_list[i]));
+        shader_infos_w->deque.emplace_back(std::move(new_shader_info_list[i]));
     }
   }
 
   return new_indices;
 }
 
-shader_builder::ShaderInfo const& Application::get_shader_info(shader_builder::ShaderIndex shader_index) const
+shader_builder::ShaderInfoCache& Application::get_shader_info(shader_builder::ShaderIndex shader_index) const
 {
-  shader_builder::ShaderInfos::rat shader_infos_r(m_shader_infos);
-  // We can return a reference because m_shader_infos_r->list is a deque for which references are not invalidated by inserting more elements at the end.
-  return shader_infos_r->deque[shader_index];
+  shader_builder::ShaderInfos::wat shader_infos_w(m_shader_infos);
+  // We can return a reference because m_shader_infos_w->list is a deque for which references are not invalidated by inserting more elements at the end.
+  return shader_infos_w->deque[shader_index];
 }
 
 void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index)

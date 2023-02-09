@@ -137,5 +137,6 @@ add_subdirectory(socket-task)
 add_subdirectory(xmlrpc-task)
 add_subdirectory(dbus-task)
 add_subdirectory(xcb-task)
+add_subdirectory(block-task)
 
 add_subdirectory(src)

@@ -61,6 +61,7 @@ target_link_libraries(uniform_buffers_test
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task
+    AICxx::block-task
     ImGui::imgui
     ${AICXX_OBJECTS_LIST}
     dns::dns

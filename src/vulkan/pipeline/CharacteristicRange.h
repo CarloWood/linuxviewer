@@ -49,7 +49,8 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   static constexpr condition_type do_fill = 1;
   static constexpr condition_type do_preprocess = 2;
   static constexpr condition_type do_compile = 4;
-  static constexpr condition_type do_terminate = 8;
+  static constexpr condition_type do_build_shaders = 8;
+  static constexpr condition_type do_terminate = 16;
 
   condition_type m_needs_signals{do_fill};      // The signals that are required by the derived class.
 
@@ -161,7 +162,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
     CharacteristicRange_filled,
     CharacteristicRange_preprocess,
     CharacteristicRange_compile,
-    CharacteristicRange_preprocessed,
+    CharacteristicRange_build_shaders,
     CharacteristicRange_compiled
   };
 

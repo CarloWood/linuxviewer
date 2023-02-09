@@ -9,6 +9,13 @@
 
 namespace vulkan::pipeline {
 
+void AddShaderStage::pre_fill_state()
+{
+  DoutEntering(dc::vulkan, "AddShaderStage::pre_fill_state() [" << this << "]");
+  // build_shaders() must be called every fill_index to re-fill this vector.
+  m_shader_stage_create_infos.clear();
+}
+
 void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
 {
   DoutEntering(dc::vulkan, "AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(" << pipeline_factory << ") [" << this << "]");
@@ -28,17 +35,50 @@ void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task:
   pipeline_factory->realize_descriptor_set_layouts({});
 }
 
-void AddShaderStage::build_shaders(task::PipelineFactory* pipeline_factory)
+bool AddShaderStage::build_shaders(
+    task::CharacteristicRange* characteristic_range, task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::build_shaders(" << pipeline_factory << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::build_shaders(" << pipeline_factory << ") with index = " <<
+      m_shaders_that_need_compiling_index << " [" << this << "]");
 
   task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
-  shader_builder::ShaderCompiler compiler;
-  for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
+  while (m_shaders_that_need_compiling_index != m_shaders_that_need_compiling.size())
   {
-    build_shader(owning_window, shader_index, compiler, m_set_index_hint_map
-       COMMA_CWDEBUG_ONLY("AddShaderStage::"));
+    // If m_shaders_that_need_compiling_index is negative then that means that we received
+    // the locked signal for the current m_shaders_that_need_compiling_index and now we have the lock.
+    bool have_lock = m_shaders_that_need_compiling_index < 0;
+    if (have_lock)
+      m_shaders_that_need_compiling_index = -m_shaders_that_need_compiling_index - 1;
+
+    shader_builder::ShaderIndex shader_index = m_shaders_that_need_compiling[m_shaders_that_need_compiling_index];
+    shader_builder::ShaderInfoCache& shader_info_cache = Application::instance().get_shader_info(shader_index);
+
+    if (!have_lock &&
+        !shader_info_cache.m_task_mutex.lock(characteristic_range, locked))
+    {
+      // Make the index negative to signal that we're blocking on trying to get the task mutex.
+      m_shaders_that_need_compiling_index = -m_shaders_that_need_compiling_index - 1;
+      return false;
+    }
+
+    {
+      statefultask::AdoptLock lock(shader_info_cache.m_task_mutex);
+
+      // Now that we locked shader_info_cache.m_task_mutex we're allowed to access shader_info_cache.
+      // The mutex mainly makes sure that only a single task will compile any given shader and assign
+      // shader_info_cache.m_shader_module.
+      build_shader(owning_window, shader_index, shader_info_cache, m_compiler, m_set_index_hint_map
+         COMMA_CWDEBUG_ONLY("AddShaderStage::"));
+    }
+
+    // Advance to the next shader, if any.
+    ++m_shaders_that_need_compiling_index;
   }
+
+  m_compiler.release();
+
+  // Returns true on success.
+  return true;
 }
 
 void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
@@ -161,31 +201,36 @@ std::string_view AddShaderStage::preprocess2(
 }
 
 void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
-    shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-    shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
+    shader_builder::ShaderIndex shader_index,
+    shader_builder::ShaderInfoCache& shader_info_cache,
+    shader_builder::ShaderCompiler const& compiler,
+    shader_builder::SPIRVCache& spirv_cache,
+    descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::build_shader(" << owning_window << ", " << shader_index << ", compiler, spirv_cache, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
 
-  std::string glsl_source_code_buffer;
-  std::string_view glsl_source_code;
-  shader_builder::ShaderInfo const& shader_info = owning_window->application().get_shader_info(shader_index);
-  glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map);
+  // It should be ok to get a reference to the ShaderInfo element like this,
+  // since we could also get it by calling Application::instance().get_shader_info(shader_index).
+  shader_builder::ShaderInfo const& shader_info = shader_info_cache;
 
-  // Add a shader module to this pipeline.
-  spirv_cache.compile(glsl_source_code, compiler, shader_info);
+  if (!shader_info_cache.m_shader_module)
+  {
+    std::string glsl_source_code_buffer;
+    std::string_view glsl_source_code;
+    glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map);
 
-  vk::UniqueShaderModule& shader_module_ptr = m_per_stage_shader_module[ShaderStageFlag_to_ShaderStageIndex(shader_info.stage())];
-  // Paranoia check. We should only create one shader module per stage, no?
-  //FIXME: is this still the case when we use a CharacteristicRange?
-  // The range could call build_shader again for a different fill_index, can we safely overwrite m_per_stage_shader_module then?
-  ASSERT(!shader_module_ptr);
-  shader_module_ptr = spirv_cache.create_module({}, owning_window->logical_device()
-      COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
+    // Add a shader module to this pipeline.
+    spirv_cache.compile(glsl_source_code, compiler, shader_info);
+
+    shader_info_cache.m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
+        COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
+  }
+
   m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{
     .flags = vk::PipelineShaderStageCreateFlags(0),
     .stage = shader_info.stage(),
-    .module = *shader_module_ptr,
+    .module = *shader_info_cache.m_shader_module,
     .pName = "main"
   });
 }

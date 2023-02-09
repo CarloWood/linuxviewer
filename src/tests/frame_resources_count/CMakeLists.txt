@@ -64,6 +64,7 @@ target_link_libraries(frame_resources_count
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task
+    AICxx::block-task
     ImGui::imgui
     ${AICXX_OBJECTS_LIST}
     dns::dns

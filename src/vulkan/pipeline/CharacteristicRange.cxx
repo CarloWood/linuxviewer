@@ -15,6 +15,8 @@ char const* CharacteristicRange::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(CharacteristicRange_filled);
     AI_CASE_RETURN(CharacteristicRange_preprocess);
     AI_CASE_RETURN(CharacteristicRange_compile);
+    AI_CASE_RETURN(CharacteristicRange_build_shaders);
+    AI_CASE_RETURN(CharacteristicRange_compiled);
   }
   AI_NEVER_REACHED
 }
@@ -26,6 +28,7 @@ char const* CharacteristicRange::condition_str_impl(condition_type condition) co
     AI_CASE_RETURN(do_fill);
     AI_CASE_RETURN(do_preprocess);
     AI_CASE_RETURN(do_compile);
+    AI_CASE_RETURN(do_build_shaders);
     AI_CASE_RETURN(do_terminate);
   }
   return direct_base_type::condition_str_impl(condition);
@@ -82,6 +85,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         finish();
         break;
       }
+      pre_fill_state();
       set_state(m_fill_state);                  // The fill state of the derived class.
       break;
     case CharacteristicRange_preprocess:
@@ -112,7 +116,20 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         finish();
         break;
       }
-      build_shaders(m_owning_factory);
+      start_build_shaders();
+      set_state(CharacteristicRange_build_shaders);
+      [[fallthrough]];
+    case CharacteristicRange_build_shaders:
+      // If build_shaders returns false we must reenter it when signal(do_build_shaders) is received.
+      // Note that it keeps returning false until all shaders are compiled.
+      if (!build_shaders(this, m_owning_factory, do_build_shaders))
+      {
+        wait(do_build_shaders);
+        break;
+      }
+      set_state(CharacteristicRange_compiled);
+      [[fallthrough]];
+    case CharacteristicRange_compiled:
       // If this asserts then this characteristic isn't derived from AddShaderStage,
       // therefore we shouldn't have just "finished compiling".
       ASSERT((m_needs_signals & do_compile));

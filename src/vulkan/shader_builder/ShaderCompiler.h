@@ -265,11 +265,8 @@ class ShaderCompiler
   shaderc_compiler_t m_compiler;
 
  public:
-  ShaderCompiler()
+  ShaderCompiler() : m_compiler{nullptr}
   {
-    m_compiler = shaderc_compiler_initialize();
-    if (m_compiler == nullptr)
-      THROW_ALERT("Error initializing shader compiler");
   }
 
   // Move constructor.
@@ -280,7 +277,24 @@ class ShaderCompiler
 
   ~ShaderCompiler()
   {
-    shaderc_compiler_release(m_compiler);
+    release();
+  }
+
+  void initialize()
+  {
+    ASSERT(!m_compiler);
+    m_compiler = shaderc_compiler_initialize();
+    if (m_compiler == nullptr)
+      THROW_ALERT("Error initializing shader compiler");
+  }
+
+  void release()
+  {
+    if (m_compiler)
+    {
+      shaderc_compiler_release(m_compiler);
+      m_compiler = nullptr;
+    }
   }
 
   // Calls to compile are thread-safe.

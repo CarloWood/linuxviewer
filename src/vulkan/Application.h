@@ -321,8 +321,8 @@ class Application
   // Marked const because it is thread-safe; it isn't really const.
   std::vector<vulkan::shader_builder::ShaderIndex> register_shaders(std::vector<vulkan::shader_builder::ShaderInfo>&& new_shader_info_list) const;
 
-  // Return a reference to the ShaderInfo that corresponds to shader_index, as added by a call to register_shaders.
-  vulkan::shader_builder::ShaderInfo const& get_shader_info(vulkan::shader_builder::ShaderIndex shader_index) const;
+  // Return a reference to the ShaderInfoCache that corresponds to shader_index, as added by a call to register_shaders.
+  vulkan::shader_builder::ShaderInfoCache& get_shader_info(vulkan::shader_builder::ShaderIndex shader_index) const;
 
   // Called by SynchronousWindow::create_pipeline_factory.
   void run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactory> const& factory, task::SynchronousWindow* window, PipelineFactoryIndex index);

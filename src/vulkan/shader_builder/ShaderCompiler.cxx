@@ -43,6 +43,9 @@ Compiler::Compiler(ShaderInfo const& shader_info, std::string_view glsl_source_c
 
 std::vector<uint32_t> ShaderCompiler::compile(utils::Badge<SPIRVCache>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const
 {
+  // Call initialize before calling compile.
+  // Did you forget to call initialize() on the compiler before passing it to build_shader?
+  ASSERT(m_compiler != nullptr);
   Compiler compiler(shader_info, glsl_source_code, m_compiler);
   // Cache resulting SPIR-V code in a vector.
   return { compiler.data_out, compiler.data_out + compiler.data_size_out / sizeof(uint32_t) };
@@ -52,6 +55,8 @@ vk::UniqueShaderModule ShaderCompiler::compile_and_create(utils::Badge<ShaderInf
     vulkan::LogicalDevice const* logical_device, ShaderInfo const& shader_info, std::string_view glsl_source_code
     COMMA_CWDEBUG_ONLY(AmbifixOwner const& debug_name)) const
 {
+  // Call initialize before calling compile_and_create.
+  ASSERT(m_compiler != nullptr);
   Compiler compiler(shader_info, glsl_source_code, m_compiler);
   // Create the vk::UniqueShaderModule. This is the same as SPIRVCache::create_module() except that it uses what we just compiled instead of the cached SPIR-V code.
   return logical_device->create_shader_module(compiler.data_out, compiler.data_size_out

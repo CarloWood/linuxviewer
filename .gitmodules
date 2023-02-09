@@ -66,3 +66,6 @@
 [submodule "external/tracy"]
 	path = external/tracy
 	url = https://github.com/wolfpld/tracy.git
+[submodule "block-task"]
+	path = block-task
+	url = github-carlo:CarloWood/block-task.git

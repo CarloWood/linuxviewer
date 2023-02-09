@@ -828,11 +828,16 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // Create the (next) pipeline...
         {
           // Merge the results of all characteristics into local vectors.
-          std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions      = m_flat_create_info.get_vertex_input_binding_descriptions();
-          std::vector<vk::VertexInputAttributeDescription>   const vertex_input_attribute_descriptions    = m_flat_create_info.get_vertex_input_attribute_descriptions();
-          std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos     = m_flat_create_info.get_pipeline_shader_stage_create_infos();
-          std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states = m_flat_create_info.get_pipeline_color_blend_attachment_states();
-          std::vector<vk::DynamicState>                      const dynamic_state                          = m_flat_create_info.get_dynamic_states();
+          // All these vectors need to be kept until after the pipeline is created.
+          std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions =
+            m_flat_create_info.get_vertex_input_binding_descriptions();
+          std::vector<vk::VertexInputAttributeDescription>   const vertex_input_attribute_descriptions =
+            m_flat_create_info.get_vertex_input_attribute_descriptions();
+          std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos =
+            m_flat_create_info.get_pipeline_shader_stage_create_infos();
+          std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states =
+            m_flat_create_info.get_pipeline_color_blend_attachment_states();
+          std::vector<vk::DynamicState>                      const dynamic_state = m_flat_create_info.get_dynamic_states();
 
           vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
             .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
@@ -880,11 +885,10 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
 
-#if 0
-          // It is possible to destroy the shader modules here (after creating the pipeline).
-          // But, lets not do that. They are currently destroyed when the pipeline factory is destroyed.
-          for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
-            m_characteristics[i]->destroy_shader_module_handles();
+#if CW_DEBUG
+          // Reset these in order to avoid an assert in FlatCreateInfo::get_pipeline_color_blend_attachment_states.
+          m_flat_create_info.m_color_blend_state_create_info.attachmentCount = 0;
+          m_flat_create_info.m_color_blend_state_create_info.pAttachments = nullptr;
 #endif
 
           // Inform the SynchronousWindow.

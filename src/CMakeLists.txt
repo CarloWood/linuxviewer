@@ -46,6 +46,7 @@ target_link_libraries(linuxviewer
     AICxx::xmlrpc-task
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
+    AICxx::block-task
     ImGui::imgui
     ${AICXX_OBJECTS_LIST}
     dns::dns

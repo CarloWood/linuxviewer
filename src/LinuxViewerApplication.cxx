@@ -15,6 +15,7 @@
 #include "evio/protocol/xmlrpc/Decoder.h"
 #include "statefultask/AIEngine.h"
 #include "xmlrpc-task/XML_RPC_MethodCall.h"
+#include "block-task/BlockingTaskMutex.h"
 #include "evio/Socket.h"
 #include "evio/File.h"
 #include "evio/protocol/http.h"
@@ -314,10 +315,13 @@ void main()
   {
    public:
     void build_shader(vulkan::task::SynchronousWindow const* owning_window,
-        vulkan::shader_builder::ShaderIndex const& shader_index, vulkan::shader_builder::ShaderCompiler const& compiler
+        vulkan::shader_builder::ShaderIndex shader_index,
+        vulkan::shader_builder::ShaderInfoCache& shader_info_cache,
+        vulkan::shader_builder::ShaderCompiler const& compiler
         COMMA_CWDEBUG_ONLY(std::string prefix))
     {
-      vulkan::pipeline::AddShaderStage::build_shader(owning_window, shader_index, compiler, nullptr COMMA_CWDEBUG_ONLY(prefix));
+      vulkan::pipeline::AddShaderStage::build_shader(owning_window, shader_index, shader_info_cache, compiler, nullptr
+          COMMA_CWDEBUG_ONLY(prefix));
     }
 
     // Access base class vector that gets filled by build_shader. Needed because we're not using a pipeline factory.
@@ -356,10 +360,23 @@ void main()
       using namespace vulkan::shader_builder;
       ShaderCompiler compiler;
 
-      shader_input_data.build_shader(this, m_shader_vert, compiler
-          COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
-      shader_input_data.build_shader(this, m_shader_frag, compiler
-          COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
+      compiler.initialize();
+
+      vulkan::shader_builder::ShaderIndex shader_index = m_shader_vert;
+      for (int shader = 0;; ++shader)
+      {
+        vulkan::shader_builder::ShaderInfoCache& shader_info_cache = vulkan::Application::instance().get_shader_info(shader_index);
+        // shader_info_cache.m_task_mutex must be locked before we may access shader_info_cache.
+        auto blocking_task_mutex = statefultask::create<task::BlockingTaskMutex>(CWDEBUG_ONLY(false));
+        blocking_task_mutex->set_mutex(shader_info_cache.m_task_mutex);
+        blocking_task_mutex->lock();
+        shader_input_data.build_shader(this, shader_index, shader_info_cache, compiler
+            COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
+        blocking_task_mutex->unlock();
+        if (shader == 1)
+          break;
+        shader_index = m_shader_frag;
+      }
     }
 
     // We have no vertex buffers.

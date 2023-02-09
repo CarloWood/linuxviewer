@@ -165,10 +165,14 @@ class FlatCreateInfo
 
   std::vector<vk::PipelineColorBlendAttachmentState> get_pipeline_color_blend_attachment_states() const
   {
-    std::vector<vk::PipelineColorBlendAttachmentState> pipeline_color_blend_attachment_states = merge(m_pipeline_color_blend_attachment_states_list);
+    std::vector<vk::PipelineColorBlendAttachmentState> pipeline_color_blend_attachment_states;
+    pipeline_color_blend_attachment_states = merge(m_pipeline_color_blend_attachment_states_list);
     // Use add(std::vector<vk::PipelineColorBlendAttachmentState> const& pipeline_color_blend_attachment_states)
     // instead of manipulating m_color_blend_state_create_info.attachmentCount and/or m_color_blend_state_create_info.pAttachments.
     ASSERT(m_color_blend_state_create_info.attachmentCount == 0 && m_color_blend_state_create_info.pAttachments == nullptr);
+    // Note: this call stores pipeline_color_blend_attachment_states.data(), but that should
+    // remain valid upon returning from this function since the caller either move-constructs
+    // from the returned value or even copy-elision applies.
     m_color_blend_state_create_info.setAttachments(pipeline_color_blend_attachment_states);
     return pipeline_color_blend_attachment_states;
   }

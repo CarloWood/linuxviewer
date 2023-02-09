@@ -63,6 +63,7 @@ target_link_libraries(texture_test
     AICxx::xcb-task
     AICxx::xcb-task::OrgFreedesktopXcbError
     AICxx::resolver-task
+    AICxx::block-task
     ImGui::imgui
     ${AICXX_OBJECTS_LIST}
     dns::dns

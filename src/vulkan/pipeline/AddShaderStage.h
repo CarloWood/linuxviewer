@@ -86,14 +86,12 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   // declarations will use the correct descriptor set index.
   descriptor::SetIndexHintMap const* m_set_index_hint_map{};
 
+  // Variables used by builder_shaders.
+  int m_shaders_that_need_compiling_index;
+  shader_builder::ShaderCompiler m_compiler;
+
   // Filled by preprocess1, used by preprocess2.
   utils::Array<declaration_contexts_container_t, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_declaration_contexts;
-
-  // Filled by build_shader, used to keep the shader modules alive until at least after pipeline construction (after
-  // which they could be destroyed, if it wasn't for the fact that we might want to create more pipelines with the
-  // same handle). Note that the handles are copied into m_shader_stage_create_infos by build_shader,
-  // which is a vector used by the FlatCreateInfo.
-  utils::Array<vk::UniqueShaderModule, number_of_shader_stage_indexes, ShaderStageIndex> m_per_stage_shader_module;
 
   int m_context_changed_generation{0};  // Incremented each call to preprocess1 and stored in a context if that was changed.
 
@@ -139,10 +137,17 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
     DoutEntering(dc::setindexhint, "AddShaderStage::set_set_index_hint_map(" << vk_utils::print_pointer(set_index_hint_map) << ")");
     m_set_index_hint_map = set_index_hint_map;
   }
+
+  // Called from CharacteristicRange_fill_or_terminate.
+  void pre_fill_state() override;
+
   // Called from CharacteristicRange_preprocess.
   void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory) override;
+
   // Called from CharacteristicRange_compile.
-  void build_shaders(task::PipelineFactory* pipeline_factory) override;
+  void start_build_shaders() override { m_compiler.initialize(); m_shaders_that_need_compiling_index = 0; }
+  bool build_shaders(task::CharacteristicRange* characteristic_range,
+      task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked) override;
 
   // Called from the top of the first call to preprocess1.
   void prepare_shader_resource_declarations();
@@ -178,47 +183,46 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const;
 
   void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      shader_builder::ShaderIndex shader_index,
+      shader_builder::ShaderInfoCache& shader_info_cache,
+      shader_builder::ShaderCompiler const& compiler,
       shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      shader_builder::ShaderIndex shader_index,
+      shader_builder::ShaderInfoCache& shader_info_cache,
+      shader_builder::ShaderCompiler const& compiler,
       descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
-    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
+    build_shader(owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map COMMA_CWDEBUG_ONLY(ambifix));
   }
 
 #ifdef CWDEBUG
   void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
-      shader_builder::SPIRVCache& spirv_cache, descriptor::SetIndexHintMap const* set_index_hint_map
+      shader_builder::ShaderIndex shader_index,
+      shader_builder::ShaderInfoCache& shader_info_cache,
+      shader_builder::ShaderCompiler const& compiler,
+      shader_builder::SPIRVCache& spirv_cache,
+      descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(std::string prefix))
   {
-    build_shader(owning_window, shader_index, compiler, spirv_cache, set_index_hint_map
+    build_shader(owning_window, shader_index, shader_info_cache, compiler, spirv_cache, set_index_hint_map
         COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
   }
 
   void build_shader(task::SynchronousWindow const* owning_window,
-      shader_builder::ShaderIndex const& shader_index, shader_builder::ShaderCompiler const& compiler,
+      shader_builder::ShaderIndex shader_index,
+      shader_builder::ShaderInfoCache& shader_info_cache,
+      shader_builder::ShaderCompiler const& compiler,
       descriptor::SetIndexHintMap const* set_index_hint_map
       COMMA_CWDEBUG_ONLY(std::string prefix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
-    build_shader(owning_window, shader_index, compiler, tmp_spirv_cache, set_index_hint_map
+    build_shader(owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map
         COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
-  }
-#endif
-
-#if 0
-  // Not used at the moment: we destruct them when AddShaderStage::m_per_stage_shader_module is destructed, which are vk::UniqueShaderModule.
-  void destroy_shader_module_handles() override
-  {
-    DoutEntering(dc::always, "destroy_shader_module_handles() [" << this << "]");
-    for (ShaderStageIndex i = m_per_stage_shader_module.ibegin(); i != m_per_stage_shader_module.iend(); ++i)
-      m_per_stage_shader_module[i].reset();
   }
 #endif
 };

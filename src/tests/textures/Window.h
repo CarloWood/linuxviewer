@@ -400,13 +400,16 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
           Dout(dc::notice, "fill_index = " << fill_index());
 
-          using namespace vulkan::shader_builder;
-          ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-          compile(vertex_shader_index);
+          if (fill_index() == 0)
+          {
+            using namespace vulkan::shader_builder;
+            ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
+            compile(vertex_shader_index);
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
-          ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-          compile(fragment_shader_index);
+            ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
+            compile(fragment_shader_index);
 #endif
+          }
           // Preprocess and build the shaders that were just passed to compile()
           // and then generate the next pipeline from the current state.
           run_state = CharacteristicRange_filled;
@@ -521,7 +524,8 @@ void main()
           Dout(dc::notice, "fill_index = " << fill_index());
           Window const* window = static_cast<Window const*>(m_owning_window);
           ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-          compile(fragment_shader_index);
+          if (fill_index() == 0)
+            compile(fragment_shader_index);
           // Preprocess and build the shaders that were just passed to compile()
           // and then generate the next pipeline from the current state.
           run_state = CharacteristicRange_filled;

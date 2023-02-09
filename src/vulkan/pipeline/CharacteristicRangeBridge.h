@@ -2,12 +2,14 @@
 
 #include "VertexBufferBindingIndex.h"
 #include "descriptor/SetIndex.h"
+#include "statefultask/AIStatefulTask.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include "debug.h"
 
 namespace vulkan::task {
 class PipelineFactory;
+class CharacteristicRange;
 } // namespace vulkan::task
 
 namespace vulkan::descriptor {
@@ -44,12 +46,23 @@ struct CharacteristicRangeBridge
     ASSERT(false);
     AI_NEVER_REACHED
   }
+  virtual void pre_fill_state()
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
   virtual void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
   {
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual void build_shaders(task::PipelineFactory* pipeline_factory)
+  virtual void start_build_shaders()
+  {
+    ASSERT(false);
+    AI_NEVER_REACHED
+  }
+  virtual bool build_shaders(task::CharacteristicRange* characteristic_range,
+      task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked)
   {
     ASSERT(false);
     AI_NEVER_REACHED
