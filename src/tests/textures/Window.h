@@ -48,7 +48,7 @@ class Window : public vulkan::task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_pipeline_factories = 1;
+  static constexpr int number_of_pipeline_factories = 2;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
@@ -346,7 +346,7 @@ void main()
     static constexpr state_type state_end = VertexPipelineCharacteristicRange_fill + 1;
 
     VertexPipelineCharacteristicRange(vulkan::task::SynchronousWindow const* owning_window, int pipeline_factory COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::task::CharacteristicRange(owning_window, 0, 1 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
+      vulkan::task::CharacteristicRange(owning_window, 0, 2 COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline_factory)
     {
       DoutEntering(dc::notice, "VertexPipelineCharacteristicRange::VertexPipelineCharacteristicRange(" << owning_window << ", " << pipeline_factory << ") [" << this << "]");
     }
@@ -404,13 +404,13 @@ void main()
           {
             using namespace vulkan::shader_builder;
             ShaderIndex vertex_shader_index = window->m_shader_indices[LocalShaderIndex::vertex0];
-            compile(vertex_shader_index);
+            add_shader(vertex_shader_index);
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
             ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
-            compile(fragment_shader_index);
+            add_shader(fragment_shader_index);
 #endif
           }
-          // Preprocess and build the shaders that were just passed to compile()
+          // Preprocess and build the shaders that were just passed to add_shader()
           // and then generate the next pipeline from the current state.
           run_state = CharacteristicRange_filled;
           break;
@@ -525,8 +525,8 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
           ShaderIndex fragment_shader_index = window->m_shader_indices[m_pipeline_factory == 0 ? LocalShaderIndex::frag0 : LocalShaderIndex::frag1];
           if (fill_index() == 0)
-            compile(fragment_shader_index);
-          // Preprocess and build the shaders that were just passed to compile()
+            add_shader(fragment_shader_index);
+          // Preprocess and build the shaders that were just passed to add_shader()
           // and then generate the next pipeline from the current state.
           run_state = CharacteristicRange_filled;
           break;

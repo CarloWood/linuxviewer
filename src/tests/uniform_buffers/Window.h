@@ -322,8 +322,8 @@ void main()
         (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
       vulkan::shader_builder::ShaderIndex fragment_shader_index =
         (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
-      compile(vertex_shader_index);
-      compile(fragment_shader_index);
+      add_shader(vertex_shader_index);
+      add_shader(fragment_shader_index);
     }
 
    public:

@@ -169,7 +169,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
 
  protected:
   // Called from *UserCode*PipelineCharacteristic_fill.
-  void compile(shader_builder::ShaderIndex shader_index) { m_shaders_that_need_compiling.push_back(shader_index); }
+  void add_shader(shader_builder::ShaderIndex shader_index);
 
   // Called from *UserCode*PipelineCharacteristic_initialize.
   void preprocess1(shader_builder::ShaderInfo const& shader_info);

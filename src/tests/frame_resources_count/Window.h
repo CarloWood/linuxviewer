@@ -321,8 +321,8 @@ void main()
       for (int t = 0; t < number_of_combined_image_samplers; ++t)
         add_combined_image_sampler(window->combined_image_samplers()[t]);
 
-      compile(window->m_vertex_shader_index);
-      compile(window->m_fragment_shader_index);
+      add_shader(window->m_vertex_shader_index);
+      add_shader(window->m_fragment_shader_index);
     }
 
 #ifdef CWDEBUG
