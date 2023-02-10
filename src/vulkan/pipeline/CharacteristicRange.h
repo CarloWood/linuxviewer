@@ -30,18 +30,20 @@ namespace descriptor {
 class SetKeyPreference;
 } // namespace descriptor
 
+namespace task {
+class CharacteristicRange;
+class PipelineFactory;
+class SynchronousWindow;
+} // namespace task
+
 namespace pipeline {
 class FlatCreateInfo;
 struct IndexCategory;
 using Index = utils::VectorIndex<IndexCategory>;
+using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
 } // namespace pipeline
 
 namespace task {
-
-class PipelineFactory;
-class SynchronousWindow;
-class CharacteristicRange;
-using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
 
 class CharacteristicRange : public AIStatefulTask, public virtual pipeline::CharacteristicRangeBridge
 {
@@ -62,7 +64,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   SynchronousWindow const* m_owning_window;
   pipeline::FlatCreateInfo* m_flat_create_info{};
   bool m_terminate{false};                      // Set to true when the task must terminate.
-  CharacteristicRangeIndex m_characteristic_range_index;
+  pipeline::CharacteristicRangeIndex m_characteristic_range_index;
 
  private:
   index_type const m_begin;
@@ -81,10 +83,10 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   void set_needs_signals() { if (get_add_shader_stage()) m_needs_signals |= do_preprocess|do_compile; }
   void register_with_the_flat_create_info() const
   {
-    register_AddShaderStage_with(m_owning_factory);
-    register_AddVertexShader_with(m_owning_factory);
-    register_AddFragmentShader_with(m_owning_factory);
-    register_AddPushConstant_with(m_owning_factory);
+    register_AddShaderStage_with(m_owning_factory, *this);
+    register_AddVertexShader_with(m_owning_factory, *this);
+    register_AddFragmentShader_with(m_owning_factory, *this);
+    register_AddPushConstant_with(m_owning_factory, *this);
   }
   void set_owner(PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
 
@@ -135,7 +137,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   }
 
   // Accessor.
-  CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
+  pipeline::CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
   index_type fill_index() const { return m_fill_index; }
   condition_type needs_signals() const { return m_needs_signals; }
 
@@ -173,7 +175,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
 
   void set_flat_create_info(pipeline::FlatCreateInfo* flat_create_info) { m_flat_create_info = flat_create_info; }
   bool set_fill_index(index_type fill_index) { bool changed = m_fill_index != fill_index; m_fill_index = fill_index; return changed; }
-  void set_characteristic_range_index(CharacteristicRangeIndex characteristic_range_index) { m_characteristic_range_index = characteristic_range_index; }
+  void set_characteristic_range_index(pipeline::CharacteristicRangeIndex characteristic_range_index) { m_characteristic_range_index = characteristic_range_index; }
   void terminate() { m_terminate = true; signal(do_terminate); }
 
  protected:
@@ -194,9 +196,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   virtual void print_on(std::ostream& os) const = 0;
 #endif
 };
-
-// Index used for pipeline characteristic ranges.
-using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
 
 } // namespace task
 } // namespace vulkan

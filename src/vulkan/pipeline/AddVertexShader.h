@@ -36,7 +36,7 @@ class AddVertexShader : public virtual AddShaderStage
   // Implementation of virtual functions of AddShaderStage.
   void copy_shader_variables() final;
   void update_vertex_input_descriptions() final;
-  void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const final;
+  void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const final;
 
  public:
   AddVertexShader() = default;

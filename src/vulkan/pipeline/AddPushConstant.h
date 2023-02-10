@@ -59,7 +59,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
 
   // Override of CharacteristicRangeBridge.
   void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) final;
-  void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const final;
+  void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const final;
 
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.

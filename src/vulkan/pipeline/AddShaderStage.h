@@ -162,9 +162,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   AddShaderStage* get_add_shader_stage() final { return this; }
 
   // Override of CharacteristicRangeBridge.
-  void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const final
+  void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const final
   {
-    pipeline_factory->add_to_flat_create_info(&m_shader_stage_create_infos);
+    pipeline_factory->add_to_flat_create_info(&m_shader_stage_create_infos, characteristic_range);
   }
 
  protected:

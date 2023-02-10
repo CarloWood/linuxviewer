@@ -102,13 +102,13 @@ void AddVertexShader::update_vertex_input_descriptions()
   }
 }
 
-void AddVertexShader::register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const
+void AddVertexShader::register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const
 {
-  DoutEntering(dc::vulkan, "AddVertexShader::register_AddVertexShader_with(" << pipeline_factory << ")");
+  DoutEntering(dc::vulkan, "AddVertexShader::register_AddVertexShader_with(" << pipeline_factory << ", @" << &characteristic_range << ")");
   if (m_use_vertex_buffers)
   {
-    pipeline_factory->add_to_flat_create_info(&m_vertex_input_binding_descriptions);
-    pipeline_factory->add_to_flat_create_info(&m_vertex_input_attribute_descriptions);
+    pipeline_factory->add_to_flat_create_info(&m_vertex_input_binding_descriptions, characteristic_range);
+    pipeline_factory->add_to_flat_create_info(&m_vertex_input_attribute_descriptions, characteristic_range);
   }
 }
 

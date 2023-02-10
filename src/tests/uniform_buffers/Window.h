@@ -248,8 +248,8 @@ void main()
       Window const* window = static_cast<Window const*>(m_owning_window);
 
       // Register the vectors that we will fill.
-      m_flat_create_info->add(&m_pipeline_color_blend_attachment_states);
-      m_flat_create_info->add(&m_dynamic_states);
+      add_to_flat_create_info(m_pipeline_color_blend_attachment_states);
+      add_to_flat_create_info(m_dynamic_states);
 
       // Add default color blend.
       m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});

@@ -4,8 +4,9 @@
 
 namespace vulkan::pipeline {
 
-void AddFragmentShader::register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory) const
+void AddFragmentShader::register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const
 {
+  DoutEntering(dc::vulkan, "AddFragmentShader::register_AddFragmentShader_with(" << pipeline_factory << ", @" << &characteristic_range << ")");
   // Register vectors here of they're ever added.
   // FIXME: does AddFragmentShader every have such vectors? And if not, shouldn't AddFragmentShader be removed?
   //pipeline_factory->add_to_flat_create_info(...);

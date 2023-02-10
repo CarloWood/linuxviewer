@@ -19,9 +19,16 @@
 namespace vulkan {
 class LogicalDevice;
 
+namespace task {
+class CombinedImageSamplerUpdater;
+class PipelineCache;
+class CharacteristicRange;
+} // namespace task
+
 namespace pipeline {
 class FactoryCharacteristicId;
 class AddShaderStage;
+using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
 } // namespace pipeline
 
 namespace shader_builder::shader_resource {
@@ -29,11 +36,6 @@ class CombinedImageSampler;
 } // namespace shader_builder::shader_resource
 
 namespace task {
-
-class CombinedImageSamplerUpdater;
-class PipelineCache;
-class CharacteristicRange;
-using CharacteristicRangeIndex = utils::VectorIndex<CharacteristicRange>;
 
 namespace synchronous {
 class MoveNewPipelines;
@@ -43,7 +45,7 @@ class PipelineFactory : public AIStatefulTask
 {
  public:
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
-  using characteristics_container_t = utils::Vector<boost::intrusive_ptr<CharacteristicRange>, CharacteristicRangeIndex>;
+  using characteristics_container_t = utils::Vector<boost::intrusive_ptr<CharacteristicRange>, pipeline::CharacteristicRangeIndex>;
   // The same as CharacteristicRange::pipeline_index_t.
   using pipeline_index_t = aithreadsafe::Wrapper<pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
@@ -74,7 +76,7 @@ class PipelineFactory : public AIStatefulTask
   boost::intrusive_ptr<synchronous::MoveNewPipelines> m_move_new_pipelines_synchronously;
   // State PipelineFactory_initialized.
   pipeline::FlatCreateInfo m_flat_create_info;
-  utils::Vector<unsigned int, CharacteristicRangeIndex> m_range_shift;
+  utils::Vector<unsigned int, pipeline::CharacteristicRangeIndex> m_range_shift;
   MultiLoop m_range_counters;
 #if CW_DEBUG
   bool m_debug_reached_characteristics_initialized;     // Set to true when PipelineFactory_characteristics_initialized was reached.
@@ -84,7 +86,7 @@ class PipelineFactory : public AIStatefulTask
   std::atomic<size_t> m_number_of_running_characteristic_tasks;
   // A bit mask of tasks that did ran the fill state because their fill_index changed.
   uint64_t m_running_characteristic_tasks;
-  static uint64_t to_bit_mask(CharacteristicRangeIndex index) { return uint64_t{1} << index.get_value(); }
+  static uint64_t to_bit_mask(pipeline::CharacteristicRangeIndex index) { return uint64_t{1} << index.get_value(); }
   // State PipelineFactory_top_multiloop_while_loop
   descriptor::SetIndexHintMap m_set_index_hint_map;
   // PipelineFactory_characteristics_preprocessed.
@@ -284,7 +286,10 @@ class PipelineFactory : public AIStatefulTask
   SynchronousWindow* owning_window() const { return m_owning_window; }
 
   template<typename T>
-  void add_to_flat_create_info(std::vector<T> const* list) { m_flat_create_info.add(list); }
+  void add_to_flat_create_info(std::vector<T> const* list, task::CharacteristicRange const& owning_characteristic_range)
+  {
+    m_flat_create_info.add(list, owning_characteristic_range);
+  }
 
   pipeline::FactoryCharacteristicId add_characteristic(boost::intrusive_ptr<CharacteristicRange> characteristic_range);
   void generate() { signal(fully_initialized); }
@@ -295,7 +300,7 @@ class PipelineFactory : public AIStatefulTask
 
   // Called from CharacteristicRange::multiplex_impl.
   void characteristic_range_initialized();
-  void characteristic_range_filled(CharacteristicRangeIndex index);
+  void characteristic_range_filled(pipeline::CharacteristicRangeIndex index);
   void characteristic_range_preprocessed();
   void characteristic_range_compiled();
 

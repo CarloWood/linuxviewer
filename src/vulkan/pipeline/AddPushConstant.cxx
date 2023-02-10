@@ -18,9 +18,9 @@ void AddPushConstant::copy_push_constant_ranges(task::PipelineFactory* pipeline_
   }
 }
 
-void AddPushConstant::register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const
+void AddPushConstant::register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const
 {
-  pipeline_factory->add_to_flat_create_info(&m_push_constant_ranges);
+  pipeline_factory->add_to_flat_create_info(&m_push_constant_ranges, characteristic_range);
 }
 
 } // namespace vulkan::pipeline

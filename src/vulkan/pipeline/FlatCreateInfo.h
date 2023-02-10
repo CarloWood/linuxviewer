@@ -15,6 +15,7 @@ namespace vulkan {
 
 namespace task {
 class PipelineFactory;
+class CharacteristicRange;
 } // namespace vulkan::task
 
 namespace pipeline {
@@ -120,7 +121,7 @@ class FlatCreateInfo
   };
 
  public:
-  int add(std::vector<vk::PipelineShaderStageCreateInfo> const* pipeline_shader_stage_create_infos)
+  int add(std::vector<vk::PipelineShaderStageCreateInfo> const* pipeline_shader_stage_create_infos, task::CharacteristicRange const& owning_characteristic_range)
   {
     pipeline_shader_stage_create_infos_list_t::wat pipeline_shader_stage_create_infos_list_w(m_pipeline_shader_stage_create_infos_list);
     pipeline_shader_stage_create_infos_list_w->push_back(pipeline_shader_stage_create_infos);
@@ -132,7 +133,7 @@ class FlatCreateInfo
     return merge(m_pipeline_shader_stage_create_infos_list);
   }
 
-  int add(std::vector<vk::VertexInputBindingDescription> const* vertex_input_binding_descriptions)
+  int add(std::vector<vk::VertexInputBindingDescription> const* vertex_input_binding_descriptions, task::CharacteristicRange const& owning_characteristic_range)
   {
     vertex_input_binding_descriptions_list_t::wat vertex_input_binding_descriptions_list_w(m_vertex_input_binding_descriptions_list);
     vertex_input_binding_descriptions_list_w->push_back(vertex_input_binding_descriptions);
@@ -144,7 +145,7 @@ class FlatCreateInfo
     return merge(m_vertex_input_binding_descriptions_list);
   }
 
-  int add(std::vector<vk::VertexInputAttributeDescription> const* vertex_input_attribute_descriptions)
+  int add(std::vector<vk::VertexInputAttributeDescription> const* vertex_input_attribute_descriptions, task::CharacteristicRange const& owning_characteristic_range)
   {
     vertex_input_attribute_descriptions_list_t::wat vertex_input_attribute_descriptions_list_w(m_vertex_input_attribute_descriptions_list);
     vertex_input_attribute_descriptions_list_w->push_back(vertex_input_attribute_descriptions);
@@ -156,7 +157,7 @@ class FlatCreateInfo
     return merge(m_vertex_input_attribute_descriptions_list);
   }
 
-  int add(std::vector<vk::PipelineColorBlendAttachmentState> const* pipeline_color_blend_attachment_states)
+  int add(std::vector<vk::PipelineColorBlendAttachmentState> const* pipeline_color_blend_attachment_states, task::CharacteristicRange const& owning_characteristic_range)
   {
     pipeline_color_blend_attachment_states_list_t::wat pipeline_color_blend_attachment_states_list_w(m_pipeline_color_blend_attachment_states_list);
     pipeline_color_blend_attachment_states_list_w->push_back(pipeline_color_blend_attachment_states);
@@ -177,7 +178,7 @@ class FlatCreateInfo
     return pipeline_color_blend_attachment_states;
   }
 
-  int add(std::vector<vk::DynamicState> const* dynamic_states)
+  int add(std::vector<vk::DynamicState> const* dynamic_states, task::CharacteristicRange const& owning_characteristic_range)
   {
     dynamic_states_list_t::wat dynamic_states_list_w(m_dynamic_states_list);
     dynamic_states_list_w->push_back(dynamic_states);
@@ -189,7 +190,7 @@ class FlatCreateInfo
     return merge(m_dynamic_states_list);
   }
 
-  int add(std::vector<vulkan::PushConstantRange> const* push_constant_ranges)
+  int add(std::vector<vulkan::PushConstantRange> const* push_constant_ranges, task::CharacteristicRange const& owning_characteristic_range)
   {
     push_constant_ranges_list_t::wat push_constant_ranges_list_w(m_push_constant_ranges_list);
     push_constant_ranges_list_w->push_back(push_constant_ranges);

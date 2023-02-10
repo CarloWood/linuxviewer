@@ -133,9 +133,9 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
 {
   DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::add_characteristic(" << vk_utils::print_pointer(characteristic_range) << ") [" << this << "]");
   characteristic_range->set_owner(this);
-  characteristic_range->register_with_the_flat_create_info();
   CharacteristicRangeIndex characteristic_range_index{m_characteristics.iend()};
   characteristic_range->set_characteristic_range_index(characteristic_range_index);
+  characteristic_range->register_with_the_flat_create_info();
   int end = characteristic_range->iend();
   // Is this characteristic an AddVertexShader?
   AddShaderStage* add_shader_stage = dynamic_cast<AddShaderStage*>(characteristic_range.get());

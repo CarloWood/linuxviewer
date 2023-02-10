@@ -40,7 +40,7 @@ struct CharacteristicRangeBridge
 
   // Implemented by AddShaderStage.
   virtual AddShaderStage* get_add_shader_stage() { return nullptr; }
-  virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory) const { }
+  virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range_index) const { }
   virtual void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
   {
     ASSERT(false);
@@ -72,10 +72,10 @@ struct CharacteristicRangeBridge
   // Implemented by AddVertexShader.
   virtual void copy_shader_variables() { }
   virtual void update_vertex_input_descriptions() { }
-  virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory) const { }
+  virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
 
   // Implemented by AddFragmentShader.
-  virtual void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory) const { }
+  virtual void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
 
   // Implemented by CharacteristicRange.
   virtual shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) = 0;
@@ -84,7 +84,7 @@ struct CharacteristicRangeBridge
 
   // Implemented by AddPushConstant.
   virtual void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) { }
-  virtual void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory) const { }
+  virtual void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
 };
 
 } // namespace vulkan::pipeline

@@ -131,6 +131,13 @@ class Characteristic : private CharacteristicBase
 
  public:
   using CharacteristicBase::CharacteristicBase;
+
+ protected:
+  template<typename T>
+  void add_to_flat_create_info(std::vector<T> const& list)
+  {
+    m_flat_create_info->add(&list, *this);
+  }
 };
 
 } // namespace pipeline
