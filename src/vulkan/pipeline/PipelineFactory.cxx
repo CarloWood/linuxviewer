@@ -15,6 +15,8 @@
 #include "utils/at_scope_end.h"
 #include "utils/almost_equal.h"
 
+#include "FlatCreateInfo.inl.h"
+
 namespace vulkan::task {
 using namespace pipeline;
 
@@ -135,6 +137,7 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
   characteristic_range->set_owner(this);
   CharacteristicRangeIndex characteristic_range_index{m_characteristics.iend()};
   characteristic_range->set_characteristic_range_index(characteristic_range_index);
+  m_flat_create_info.increment_number_of_characteristics();
   characteristic_range->register_with_the_flat_create_info();
   int end = characteristic_range->iend();
   // Is this characteristic an AddVertexShader?
@@ -730,7 +733,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // and store that in m_vh_pipeline_layout.
         {
           // These are the inputs.
-          std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.get_sorted_push_constant_ranges();
+          std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.realize_sorted_push_constant_ranges(m_characteristics);
           sorted_descriptor_set_layouts_t::wat sorted_descriptor_set_layouts_w(m_sorted_descriptor_set_layouts);
 
           // Clear the m_set_index_hint_map of a previous fill.
@@ -830,14 +833,14 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           // Merge the results of all characteristics into local vectors.
           // All these vectors need to be kept until after the pipeline is created.
           std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions =
-            m_flat_create_info.get_vertex_input_binding_descriptions();
+            m_flat_create_info.realize_vertex_input_binding_descriptions(m_characteristics);
           std::vector<vk::VertexInputAttributeDescription>   const vertex_input_attribute_descriptions =
-            m_flat_create_info.get_vertex_input_attribute_descriptions();
+            m_flat_create_info.realize_vertex_input_attribute_descriptions(m_characteristics);
           std::vector<vk::PipelineShaderStageCreateInfo>     const pipeline_shader_stage_create_infos =
-            m_flat_create_info.get_pipeline_shader_stage_create_infos();
+            m_flat_create_info.realize_pipeline_shader_stage_create_infos(m_characteristics);
           std::vector<vk::PipelineColorBlendAttachmentState> const pipeline_color_blend_attachment_states =
-            m_flat_create_info.get_pipeline_color_blend_attachment_states();
-          std::vector<vk::DynamicState>                      const dynamic_state = m_flat_create_info.get_dynamic_states();
+            m_flat_create_info.realize_pipeline_color_blend_attachment_states(m_characteristics);
+          std::vector<vk::DynamicState>                      const dynamic_state = m_flat_create_info.realize_dynamic_states(m_characteristics);
 
           vk::PipelineVertexInputStateCreateInfo pipeline_vertex_input_state_create_info{
             .vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_input_binding_descriptions.size()),
