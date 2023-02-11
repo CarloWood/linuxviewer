@@ -84,6 +84,8 @@ class PipelineFactory : public AIStatefulTask
   int m_start_of_next_loop;
   // Keep track of tasks that we have to wait for (to do a callback when they finish their current state).
   std::atomic<size_t> m_number_of_running_characteristic_tasks;
+  // A bit mask of tasks that already completed all fill_index values at least once.
+  uint64_t m_completed_characteristic_tasks;
   // A bit mask of tasks that did ran the fill state because their fill_index changed.
   uint64_t m_running_characteristic_tasks;
   static uint64_t to_bit_mask(pipeline::CharacteristicRangeIndex index) { return uint64_t{1} << index.get_value(); }

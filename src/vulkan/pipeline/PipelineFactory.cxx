@@ -614,6 +614,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
         // Start as many for loops as there are characteristics.
         m_range_counters.initialize(m_characteristics.size(), (*m_characteristics.begin())->ibegin());
+        m_completed_characteristic_tasks = 0;
         // Enter the multi-loop.
         set_state(PipelineFactory_top_multiloop_for_loop);
         [[fallthrough]];
@@ -667,7 +668,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         m_number_of_running_characteristic_tasks = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
           if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_fill) &&
-              m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]))
+              m_characteristics[i]->set_fill_index(m_range_counters[i.get_value()]) &&
+              !(m_completed_characteristic_tasks & to_bit_mask(i)))
           {
             ++m_number_of_running_characteristic_tasks;
             m_running_characteristic_tasks |= to_bit_mask(i);
@@ -687,7 +689,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
                 m_characteristics[i]->signal(CharacteristicRange::do_fill);
               }
             }
-            else
+            else if (!(m_completed_characteristic_tasks & to_bit_mask(i)))
               // Characteristic tasks that do not need a fill state still need to run preprocess/compile (once);
               // they are just not a CharacteristicRange.
               m_running_characteristic_tasks |= to_bit_mask(i);
@@ -920,6 +922,28 @@ multiloop_magic_footer:
         }
         [[fallthrough]];
       case PipelineFactory_bottom_multiloop_for_loop:
+        if (int i{m_range_counters.end_of_loop()}; i >= 0)
+        {
+          // We are now at the end of loop code for loop 'i'.
+
+          // for (...)                    // i = 0
+          // {
+          //   for (...)                  // i = 1
+          //   {
+          //     for (inner loop)         // i = 2
+          //     {
+          //     }
+          //     /* end of loop code for loop 1 */
+          //   }
+          //   /* end of loop code for loop 0 */
+          // }
+
+          // Set i to the loop number of the loop that we just left.
+          ++i;
+
+          // Immediately after the for loop 'i'; so that loop has completed now.
+          m_completed_characteristic_tasks |= to_bit_mask(CharacteristicRangeIndex{static_cast<size_t>(i)});
+        }
         m_range_counters.next_loop();
         if (!m_range_counters.finished())
         {
