@@ -140,6 +140,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   pipeline::CharacteristicRangeIndex characteristic_range_index() const { return m_characteristic_range_index; }
   index_type fill_index() const { return m_fill_index; }
   condition_type needs_signals() const { return m_needs_signals; }
+  void begin_new_pipeline() { reset_push_constant_ranges(); reset_vertex_shader_location_contex(); }
 
  protected:
   inline void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,

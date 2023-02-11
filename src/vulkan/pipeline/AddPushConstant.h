@@ -24,9 +24,12 @@ namespace vulkan::pipeline {
 class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
-  AddPushConstant* convert_to_add_push_constant() override { return this; }
-
   std::vector<vulkan::PushConstantRange> m_push_constant_ranges;
+
+  // Override CharacteristicRangeBridge virtual function.
+  void reset_push_constant_ranges() override { m_sorted_push_constant_ranges.clear(); }
+  // Override AddShaderStageBridge virtual function.
+  AddPushConstant* convert_to_add_push_constant() override { return this; }
 
   //---------------------------------------------------------------------------
   // Push constants.

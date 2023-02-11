@@ -37,6 +37,7 @@ class AddVertexShader : public virtual AddShaderStage
   void copy_shader_variables() final;
   void update_vertex_input_descriptions() final;
   void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const final;
+  void reset_vertex_shader_location_contex() final { m_vertex_shader_location_context.reset(); }
 
  public:
   AddVertexShader() = default;

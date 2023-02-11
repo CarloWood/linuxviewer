@@ -73,6 +73,7 @@ struct CharacteristicRangeBridge
   virtual void copy_shader_variables() { }
   virtual void update_vertex_input_descriptions() { }
   virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
+  virtual void reset_vertex_shader_location_contex() { }
 
   // Implemented by AddFragmentShader.
   virtual void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
@@ -85,6 +86,7 @@ struct CharacteristicRangeBridge
   // Implemented by AddPushConstant.
   virtual void copy_push_constant_ranges(task::PipelineFactory* pipeline_factory) { }
   virtual void register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
+  virtual void reset_push_constant_ranges() { }
 };
 
 } // namespace vulkan::pipeline

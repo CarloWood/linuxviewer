@@ -25,6 +25,12 @@ struct VertexAttributeDeclarationContext final : DeclarationContext
 
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
 
+  void reset()
+  {
+    m_next_location = 0;
+    m_locations.clear();
+  }
+
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
 #endif

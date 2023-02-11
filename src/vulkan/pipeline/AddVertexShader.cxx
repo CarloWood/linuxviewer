@@ -27,8 +27,8 @@ void AddVertexShader::copy_shader_variables()
 {
   DoutEntering(dc::vulkan, "AddVertexShader::copy_shader_variables() [" << this << "]");
 
-  // Call AddVertexShader::add_vertex_input_bindings with a compatible VertexBuffer.
-  //FIXME: add a comment about where to call add_vertex_input_bindings from.
+  // Call AddVertexShader::add_vertex_input_bindings with a vulkan::VertexBuffers object
+  // from the initialization state of the Characteristic responsible for the vertex shader.
   ASSERT(m_current_vertex_buffers_object);
 
   auto const& glsl_id_full_to_vertex_attribute = m_current_vertex_buffers_object->glsl_id_full_to_vertex_attribute();

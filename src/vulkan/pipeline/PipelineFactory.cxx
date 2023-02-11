@@ -684,7 +684,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             {
               if (m_running_characteristic_tasks & to_bit_mask(i))
               {
-                // Do not accidently delete the parent task while still running a child task.
+                // Reset state that is per-pipeline.
+                m_characteristics[i]->begin_new_pipeline();
                 // Call fill with its current range index.
                 m_characteristics[i]->signal(CharacteristicRange::do_fill);
               }

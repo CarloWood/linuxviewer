@@ -16,20 +16,46 @@ void AddShaderStage::pre_fill_state()
   m_shader_stage_create_infos.clear();
 }
 
-void AddShaderStage::add_shader(shader_builder::ShaderIndex shader_index)
+void AddShaderStage::add_shader(shader_builder::ShaderIndex add_shader_index)
 {
 #ifdef CWDEBUG
-  shader_builder::ShaderInfo const& shader_info = Application::instance().get_shader_info(shader_index);
+  shader_builder::ShaderInfo const& add_shader_info = Application::instance().get_shader_info(add_shader_index);
   for (shader_builder::ShaderIndex existing_shader_index : m_shaders_that_need_compiling)
   {
     // Don't add the same shader_index twice.
-    ASSERT(shader_index != existing_shader_index);
+    ASSERT(add_shader_index != existing_shader_index);
     shader_builder::ShaderInfo const& existing_shader_info = Application::instance().get_shader_info(existing_shader_index);
     // Can't add more than one shader for a given stage.
-    ASSERT(shader_info.stage() != existing_shader_info.stage());
+    ASSERT(add_shader_info.stage() != existing_shader_info.stage());
   }
 #endif
-  m_shaders_that_need_compiling.push_back(shader_index);
+  m_shaders_that_need_compiling.push_back(add_shader_index);
+}
+
+void AddShaderStage::replace_shader(shader_builder::ShaderIndex remove_shader_index, shader_builder::ShaderIndex add_shader_index)
+{
+#ifdef CWDEBUG
+  shader_builder::ShaderInfo const& remove_shader_info = Application::instance().get_shader_info(remove_shader_index);
+  shader_builder::ShaderInfo const& add_shader_info = Application::instance().get_shader_info(add_shader_index);
+  // Only use this function to replace a shader of a given stage.
+  ASSERT(remove_shader_info.stage() == add_shader_info.stage());
+  bool found = false;
+#endif
+  for (auto shader =  m_shaders_that_need_compiling.begin(); shader != m_shaders_that_need_compiling.end(); ++shader)
+  {
+    shader_builder::ShaderIndex existing_shader_index = *shader;
+    // Don't add the same shader_index twice.
+    ASSERT(add_shader_index != existing_shader_index);
+    if (existing_shader_index == remove_shader_index)
+    {
+      *shader = add_shader_index;
+      Debug(found = true);
+    }
+  }
+#ifdef CWDEBUG
+  // remove_shader_index does not exist.
+  ASSERT(found);
+#endif
 }
 
 void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)

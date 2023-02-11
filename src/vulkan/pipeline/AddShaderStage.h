@@ -71,14 +71,14 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   friend struct StaticCheckLookUpTable;
 #endif
 
-  // Fill by user characteristic object to indicate that these shader are needed
+  // Filled by user characteristic object to indicate that these shaders are needed
   // for the next pipeline (of the current fill index).
   std::vector<shader_builder::ShaderIndex> m_shaders_that_need_compiling;       // The shaders that need preprocessing and building,
                                                                                 // filled by calls to compile.
   // PipelineFactory::m_set_index_hint_map is generated, during PipelineFactory_characteristics_preprocessed,
   // by passing it to LogicalDevice::realize_pipeline_layout, with either an identity map (when a new layout
   // is created) or a map that maps a found existing layout to the one requested, and subsequently, as this
-  // ponter, passed to all characteristics that need a do_compile signal and just had their fill index changed
+  // pointer, passed to all characteristics that need a do_compile signal and just had their fill index changed
   // (including first time calls of non-range characteristics). Those characteristics that also need do_preprocess
   // then have the CharacteristicRange_preprocess state run followed by CharacteristicRange_compile that calls
   // build_shaders passing this m_set_index_hint_map pointer to build_shader which passes it to preprocess2
@@ -170,6 +170,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
  protected:
   // Called from *UserCode*PipelineCharacteristic_fill.
   void add_shader(shader_builder::ShaderIndex shader_index);
+  void replace_shader(shader_builder::ShaderIndex remove_shader_index, shader_builder::ShaderIndex add_shader_index);
 
   // Called from *UserCode*PipelineCharacteristic_initialize.
   void preprocess1(shader_builder::ShaderInfo const& shader_info);
