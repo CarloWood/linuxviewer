@@ -384,7 +384,7 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
 
           // Define the pipeline.
-          add_push_constant<PushConstant>();
+          add_push_constant<PushConstant>(window->m_push_constant_range_x_position);
           add_vertex_input_bindings(window->m_vertex_buffers);        // Filled in create_vertex_buffers
 #if !SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC
           add_combined_image_sampler(window->m_combined_image_samplers[0]);
@@ -484,7 +484,7 @@ void main()
           Window const* window = static_cast<Window const*>(m_owning_window);
 
           // Define the pipeline.
-          add_push_constant<PushConstant>();
+          add_push_constant<PushConstant>(window->m_push_constant_range_texture_index);
 #if 1
           // Below we use 1 + m_pipeline_factory as index into the array of combined image samplers.
           ASSERT(number_of_combined_image_samplers >= number_of_pipeline_factories);
@@ -710,18 +710,16 @@ else
       command_buffer.setScissor(0, { scissor });
       command_buffer.bindVertexBuffers(m_vertex_buffers);
 
+      glsl::Int texture_index = 1;
       for (int pl = 0; pl < number_of_pipeline_factories; ++pl)
       {
         command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipelines[pl].handle()));
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_graphics_pipelines[pl].layout(), 0 /* uint32_t first_set */,
             m_graphics_pipelines[pl].vhv_descriptor_sets(m_current_frame.m_resource_index), {});
 
-        PushConstant pc = {
-          pl - 0.5f,
-          1
-        };
-        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_x_position, pc.m_x_position);
-        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_texture_index, pc.m_texture_index);
+        glsl::Float x_position = pl - 0.5f;
+        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_x_position, x_position);
+        command_buffer.pushConstants(m_graphics_pipelines[pl].layout(), m_push_constant_range_texture_index, texture_index);
         command_buffer.draw(6 * square_steps * square_steps, 2, 0, 0);
       }
 

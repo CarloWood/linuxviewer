@@ -72,7 +72,7 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
   static state_type constexpr state_end = CombinedImageSamplerUpdater_done + 1;
 
  private:
-  SynchronousWindow const* m_owning_window{};                             // The owning window.
+  SynchronousWindow const* m_owning_window{};                                   // The owning window.
   std::unique_ptr<detail::CombinedImageSamplerShaderResourceMember> m_member;   // A CombinedImageSamplerUpdater only has a single "member".
   std::atomic<vk::DescriptorBindingFlags> m_binding_flags{};                    // Optional binding flags to use for this descriptor.
   std::atomic<int32_t> m_descriptor_array_size{1};                              // Array size or one if this is not an array, negative when unbounded.

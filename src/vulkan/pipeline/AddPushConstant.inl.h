@@ -75,7 +75,7 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
 
 template<typename ENTRY>
 requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-void AddPushConstant::add_push_constant()
+void AddPushConstant::add_push_constant(PushConstantRange& push_constant_range_out)
 {
   DoutEntering(dc::vulkan, "AddPushConstant::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shader_builder;

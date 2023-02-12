@@ -84,7 +84,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
  protected:
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-  void add_push_constant();
+  void add_push_constant(PushConstantRange& push_constant_range_out);
 };
 
 } // namespace vulkan::pipeline
