@@ -10,17 +10,10 @@
 #include <iosfwd>
 #include <bit>
 
-//FIXME: Are these still needed after deleting the proxy calls that needed them?
 namespace vulkan {
-class AddVertexShader;
-class AmbifixOwner;
 
 namespace shader_builder {
-class ShaderInfo;
-class ShaderCompiler;
-class SPIRVCache;
 class UniformBufferBase;
-class ShaderResourceBase;
 namespace shader_resource {
 class CombinedImageSampler;
 } // namespace shader_resource
