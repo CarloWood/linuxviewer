@@ -399,8 +399,8 @@ VkBool32 DebugUtilsMessenger::debugCallback(
 
   if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
   {
-    if (NAMESPACE_DEBUG::being_traced())
-      DoutFatal(dc::core, "Trap point");
+//    if (NAMESPACE_DEBUG::being_traced())
+//      DoutFatal(dc::core, "Trap point");
 
     libcwd::libcw_do.pop_marker();
     libcwd::libcw_do.set_indent(indent);

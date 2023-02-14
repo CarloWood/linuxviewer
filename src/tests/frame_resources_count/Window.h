@@ -71,8 +71,7 @@ class Window : public vulkan::task::SynchronousWindow
   RandomPositions m_random_positions;           // Instance buffer.
 
   // Push constant ranges.
-  //FIXME: the shader stage flags should be filled in automatically by the vulkan engine.
-  vulkan::PushConstantRange m_push_constant_range_aspect_scale{typeid(PushConstant), vk::ShaderStageFlagBits::eVertex|vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, aspect_scale), sizeof(float)};
+  vulkan::PushConstantRange m_push_constant_range_aspect_scale{typeid(PushConstant), offsetof(PushConstant, aspect_scale), sizeof(float)};
 
   vulkan::Texture m_background_texture;
   vulkan::Texture m_benchmark_texture;
@@ -316,7 +315,7 @@ void main()
       Window const* window = static_cast<Window const*>(m_owning_window);
 
       // Define the pipeline.
-      add_push_constant<PushConstant>();
+      add_push_constant<PushConstant>(window->m_push_constant_range_aspect_scale);
       add_vertex_input_bindings(window->vertex_buffers());        // Filled in create_vertex_buffers
       for (int t = 0; t < number_of_combined_image_samplers; ++t)
         add_combined_image_sampler(window->combined_image_samplers()[t]);

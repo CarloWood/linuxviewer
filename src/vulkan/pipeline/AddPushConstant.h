@@ -24,7 +24,8 @@ namespace vulkan::pipeline {
 class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual AddShaderStageBridge
 {
  private:
-  std::vector<vulkan::PushConstantRange> m_push_constant_ranges;
+  std::vector<PushConstantRange const*> m_user_push_constant_ranges;    // As passed by the user to add_push_constant.
+  std::vector<PushConstantRange> m_push_constant_ranges;                // The output vector registered with the FlatCreateInfo object.
 
   // Override CharacteristicRangeBridge virtual function.
   void reset_push_constant_ranges() override { m_sorted_push_constant_ranges.clear(); }
@@ -39,7 +40,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
   using glsl_id_full_to_push_constant_container_t = std::map<std::string, shader_builder::PushConstant, std::less<>>;
   glsl_id_full_to_push_constant_container_t m_glsl_id_full_to_push_constant;                    // Map PushConstant::m_glsl_id_full to the PushConstant object that contains it.
 
-  std::set<vulkan::PushConstantRange> m_sorted_push_constant_ranges;
+  std::set<PushConstantRange> m_sorted_push_constant_ranges;
   bool m_sorted_push_constant_ranges_changed{false};
 
   // Add shader variable (PushConstant) to m_glsl_id_full_to_push_constant (and a pointer to that to m_shader_variables),
@@ -66,12 +67,24 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
 
  public:
   // Called from PushConstantDeclarationContext::glsl_id_full_is_used_in.
-  void insert_push_constant_range(vulkan::PushConstantRange const& push_constant_range)
+  void insert_push_constant_range(PushConstantRange const& push_constant_range)
   {
     auto range = m_sorted_push_constant_ranges.equal_range(push_constant_range);
     m_sorted_push_constant_ranges.erase(range.first, range.second);
     m_sorted_push_constant_ranges.insert(push_constant_range);
     m_sorted_push_constant_ranges_changed = true;
+
+    // Also update the stage flags on the user PushConstantRange objects.
+    for (PushConstantRange const* user_push_constant_range : m_user_push_constant_ranges)
+    {
+      // If the user objects range (partially) overlaps with the range that we found to be used in
+      // in the shader stage `push_constant_range.shader_stage_flags()` then set that shader stage
+      // bit also in the user object. Note: different types never overlap.
+      if (user_push_constant_range->type_index() == push_constant_range.type_index() &&
+          !(user_push_constant_range->offset() + user_push_constant_range->size() <= push_constant_range.offset() ||
+            push_constant_range.offset() + push_constant_range.size() <= user_push_constant_range->offset()))
+        user_push_constant_range->set_shader_bit(push_constant_range.shader_stage_flags());
+    }
   }
 
   // Used by PushConstant::is_used_in to look up the declaration context.
@@ -84,7 +97,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
  protected:
   template<typename ENTRY>
   requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-  void add_push_constant(PushConstantRange& push_constant_range_out);
+  void add_push_constant(PushConstantRange const& push_constant_range_out);
 };
 
 } // namespace vulkan::pipeline

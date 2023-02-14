@@ -8,6 +8,7 @@
 #include "PushConstant.h"
 #include "Pipeline.h"
 #include "VertexBuffers.h"
+#include "PushConstantRange.h"
 #include "queues/CopyDataToImage.h"
 #include "queues/CopyDataToBuffer.h"
 #include "descriptor/SetKeyPreference.h"
@@ -31,7 +32,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 1
+#define ENABLE_IMGUI 0
 #define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 1
 
 class Window : public vulkan::task::SynchronousWindow
@@ -48,7 +49,7 @@ class Window : public vulkan::task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_pipeline_factories = 2;
+  static constexpr int number_of_pipeline_factories = 1;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
@@ -70,11 +71,10 @@ class Window : public vulkan::task::SynchronousWindow
   TopBottomPositions m_top_bottom_positions;    // Instance buffer.
 
   // Push constant ranges.
-  //FIXME: the shader stage flags should be filled in automatically by the vulkan engine.
   vulkan::PushConstantRange m_push_constant_range_x_position{
-    typeid(PushConstant), vk::ShaderStageFlagBits::eVertex, offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position)};
+    typeid(PushConstant), offsetof(PushConstant, m_x_position), sizeof(PushConstant::m_x_position)};
   vulkan::PushConstantRange m_push_constant_range_texture_index{
-    typeid(PushConstant), vk::ShaderStageFlagBits::eFragment, offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index)};
+    typeid(PushConstant), offsetof(PushConstant, m_texture_index), sizeof(PushConstant::m_texture_index)};
 
   std::array<vulkan::Pipeline, number_of_pipeline_factories> m_graphics_pipelines;
 

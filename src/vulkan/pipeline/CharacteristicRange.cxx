@@ -100,7 +100,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       // to AddPushConstant::m_push_constant_ranges.
       copy_push_constant_ranges(m_owning_factory);
       // If this is a AddVertexShader then ...
-      //   copy AddVertexShader::m_vertex_shader_input_sets to to AddVertexShader::m_vertex_input_binding_descriptions.
+      //   copy AddVertexShader::m_vertex_shader_input_sets to AddVertexShader::m_vertex_input_binding_descriptions.
       //   copy AddVertexShader::m_glsl_id_full_to_vertex_attribute to AddVertexShader::m_vertex_input_attribute_descriptions.
       update_vertex_input_descriptions();
       // If this asserts then this characteristic isn't derived from AddShaderStage,

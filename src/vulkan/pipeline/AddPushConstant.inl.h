@@ -73,9 +73,12 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   }
 }
 
+// Note: push_constant_range_out is passed as a const&, but we DO change it (in a thread-safe way)!
+// The atomic PushConstantRange::m_shader_stage_flags is updated with a RMW operation during
+// preprocessing of the shader(s) that use it.
 template<typename ENTRY>
 requires (std::same_as<typename shader_builder::ShaderVariableLayouts<ENTRY>::tag_type, glsl::push_constant_std430>)
-void AddPushConstant::add_push_constant(PushConstantRange& push_constant_range_out)
+void AddPushConstant::add_push_constant(PushConstantRange const& push_constant_range_out)
 {
   DoutEntering(dc::vulkan, "AddPushConstant::add_push_constant<" << libcwd::type_info_of<ENTRY>().demangled_name() << ">(...)");
   using namespace shader_builder;
@@ -95,6 +98,13 @@ void AddPushConstant::add_push_constant(PushConstantRange& push_constant_range_o
       }
     }(), ...);
   }(typename decltype(ShaderVariableLayouts<ENTRY>::struct_layout)::members_tuple{});
+
+  // Don't add the same PushConstantRange object twice.
+  ASSERT(std::count_if(m_user_push_constant_ranges.begin(), m_user_push_constant_ranges.end(),
+        [&](PushConstantRange const* ptr){ return ptr == &push_constant_range_out; }) == 0);
+  // Keep a list of PushConstantRange objects that the user wants to use.
+  // We need to call set_shader_bit on those later on.
+  m_user_push_constant_ranges.push_back(&push_constant_range_out);
 }
 
 } // namespace vulkan::pipeline

@@ -47,7 +47,7 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
   struct Compare { bool operator()(PushConstant const* pc1, PushConstant const* pc2) { return pc1->offset() < pc2->offset(); } };
   std::sort(push_constants_in_range.begin(), push_constants_in_range.end(), Compare{});
 
-  vulkan::PushConstantRange push_constant_range{type_index, shader_stage, minimum_offset, offset_end - minimum_offset};
+  PushConstantRange push_constant_range{type_index, minimum_offset, offset_end - minimum_offset, shader_stage};
   // This possibly replaces ranges that were added before, if they have the same stageFlags
   // and push_constant_range completely overlaps them.
   add_push_constant->insert_push_constant_range(push_constant_range);
