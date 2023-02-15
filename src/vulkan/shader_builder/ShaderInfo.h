@@ -7,6 +7,7 @@
 #include <string>
 #include <filesystem>
 #include <concepts>
+#include <atomic>
 #ifdef CWDEBUG
 #include "debug/vulkan_print_on.h"
 #endif
@@ -28,6 +29,7 @@ class ShaderInfo
   std::string m_name;                                   // Shader name, used for diagnostics.
   std::string m_glsl_template_code;                     // GLSL template source code; loaded with load().
   ShaderCompilerOptions m_compiler_options;             // Compile options to use.
+  std::atomic_bool m_compiled{false};                   // Set to true iff the shader was compiled.
 
  public:
   // Construct an empty ShaderInfo object to be used for the specified stage.
@@ -39,6 +41,29 @@ class ShaderInfo
   ShaderInfo(vk::ShaderStageFlagBits stage) : m_stage(stage) { }
   ShaderInfo(vk::ShaderStageFlagBits stage, ShaderCompilerOptions const& options) : m_stage(stage), m_compiler_options(options) { }
   ShaderInfo(vk::ShaderStageFlagBits stage, ShaderCompilerOptions&& options) : m_stage(stage), m_compiler_options(std::move(options)) { }
+
+  // Moving is done during pre-initialization, like from register_shader_templates;
+  // therefore we can ignore m_compiled (which will be false anyway).
+  ShaderInfo(ShaderInfo&& shader_info) :
+    m_stage(shader_info.m_stage),
+    m_name(std::move(shader_info.m_name)),
+    m_glsl_template_code(std::move(shader_info.m_glsl_template_code)),
+    m_compiler_options(std::move(shader_info.m_compiler_options))
+  {
+    // Paranoia check: see comment above.
+    ASSERT(!shader_info.is_compiled());
+  }
+
+  // Same.
+  ShaderInfo(ShaderInfo const& shader_info) :
+    m_stage(shader_info.m_stage),
+    m_name(shader_info.m_name),
+    m_glsl_template_code(shader_info.m_glsl_template_code),
+    m_compiler_options(shader_info.m_compiler_options)
+  {
+    // Paranoia check: see comment above.
+    ASSERT(!shader_info.is_compiled());
+  }
 
   // Set name of this object (for diagnostics).
   ShaderInfo& set_name(std::string name)
@@ -82,9 +107,18 @@ class ShaderInfo
   std::string const& name() const { return m_name; }
   std::string_view glsl_template_code() const { return m_glsl_template_code; }
   ShaderCompilerOptions const& compiler_options() const { return m_compiler_options; }
+  bool is_compiled() const { return m_compiled.load(std::memory_order::acquire); }
 
   // Called by ShaderCompiler.
   shaderc_shader_kind get_shader_kind() const;
+
+  // Mark this shader as compiled.
+  void set_compiled()
+  {
+    // Paranoia check: we only should compile a shader once.
+    ASSERT(!is_compiled());
+    m_compiled.store(true, std::memory_order::release);
+  }
 
   // Clean up resources.
   void cleanup_source_code();

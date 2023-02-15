@@ -58,16 +58,22 @@ void AddShaderStage::replace_shader(shader_builder::ShaderIndex remove_shader_in
 #endif
 }
 
-void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
+vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
 {
   DoutEntering(dc::vulkan, "AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(" << pipeline_factory << ") [" << this << "]");
+
+  vk::ShaderStageFlags preprocessed_stages;
 
   task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
   for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
   {
+    shader_builder::ShaderInfoCache const& shader_info = owning_window->application().get_shader_info(shader_index);
+    if (shader_info.is_compiled())
+      continue;
     // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
     // (in the order that they are found in the shader template code).
-    preprocess1(owning_window->application().get_shader_info(shader_index));
+    preprocess1(shader_info);
+    preprocessed_stages |= shader_info.stage();
   }
 
   // Realize the descriptor set layouts: if a layout already exists then use the existing
@@ -75,6 +81,8 @@ void AddShaderStage::preprocess_shaders_and_realize_descriptor_set_layouts(task:
   // Otherwise, if it does not already exist, create a new descriptor set layout using the
   // provided binding values as-is.
   pipeline_factory->realize_descriptor_set_layouts({});
+
+  return preprocessed_stages;
 }
 
 bool AddShaderStage::build_shaders(
@@ -250,7 +258,7 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
-  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::build_shader(" << owning_window << ", " << shader_index << ", compiler, spirv_cache, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::build_shader(" << owning_window << ", " << shader_index << " [" << shader_info_cache.name() << "], compiler, spirv_cache, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
 
   // It should be ok to get a reference to the ShaderInfo element like this,
   // since we could also get it by calling Application::instance().get_shader_info(shader_index).
@@ -267,6 +275,13 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
 
     shader_info_cache.m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
         COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
+
+    // Set an atomic boolean for the sake of optimizing preprocessing away.
+    // We can't use m_shader_module for that because preprocess1 is called outside of the
+    // critical area of ShaderInfoCache::m_task_mutex. As such there is a race condition,
+    // but that will at most to an unnecessary preprocess of the same shader, without
+    // compiling it afterwards.
+    shader_info_cache.set_compiled();
   }
 
   m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{

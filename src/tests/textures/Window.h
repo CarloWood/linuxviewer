@@ -32,7 +32,7 @@
 #include "tracy/SourceLocationDataIterator.h"
 #endif
 
-#define ENABLE_IMGUI 0
+#define ENABLE_IMGUI 1
 #define SEPARATE_FRAGMENT_SHADER_CHARACTERISTIC 1
 
 class Window : public vulkan::task::SynchronousWindow
@@ -49,7 +49,7 @@ class Window : public vulkan::task::SynchronousWindow
   RenderPass  main_pass{this, "main_pass"};
   Attachment      depth{this, "depth", s_depth_image_view_kind};
 
-  static constexpr int number_of_pipeline_factories = 1;
+  static constexpr int number_of_pipeline_factories = 2;
   static constexpr int number_of_combined_image_samplers = 3;
   static constexpr std::array<char const*, number_of_combined_image_samplers> glsl_id_postfixes{ "top", "bottom0", "bottom1" };
   using combined_image_samplers_t = std::array<vulkan::shader_builder::shader_resource::CombinedImageSampler, 3>;
@@ -596,6 +596,8 @@ void main()
       }
 
       m_pipeline_factory[pipeline_factory].generate(this);
+
+      std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   }
 

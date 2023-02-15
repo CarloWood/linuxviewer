@@ -51,7 +51,7 @@ struct CharacteristicRangeBridge
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
+  virtual vk::ShaderStageFlags preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
   {
     ASSERT(false);
     AI_NEVER_REACHED

@@ -14,6 +14,8 @@ struct ShaderInfoCache : ShaderInfo
   AIStatefulTaskMutex m_task_mutex;                     // A task mutex that should be locked while accessing m_shader_module.
   vk::UniqueShaderModule m_shader_module;               // The shader module that corresponds to the ShaderIndex at which it is stored.
 
+  // Moving is done during pre-initialization, like from register_shader_templates;
+  // therefore we can ignore the mutex as well as m_shader_module (which will be NULL anyway).
   ShaderInfoCache(ShaderInfo&& shader_info) : ShaderInfo(std::move(shader_info)) { }
 };
 

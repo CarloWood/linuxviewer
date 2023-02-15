@@ -94,15 +94,20 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         finish();
         break;
       }
-      // This should be an AddShaderStage. Call that to preprocess shader(s).
-      preprocess_shaders_and_realize_descriptor_set_layouts(m_owning_factory);
-      // If this is a AddPushConstant then now we can copy AddPushConstant::m_sorted_push_constant_ranges
-      // to AddPushConstant::m_push_constant_ranges.
-      copy_push_constant_ranges(m_owning_factory);
-      // If this is a AddVertexShader then ...
-      //   copy AddVertexShader::m_vertex_shader_input_sets to AddVertexShader::m_vertex_input_binding_descriptions.
-      //   copy AddVertexShader::m_glsl_id_full_to_vertex_attribute to AddVertexShader::m_vertex_input_attribute_descriptions.
-      update_vertex_input_descriptions();
+      {
+        // This should be an AddShaderStage. Call that to preprocess shader(s).
+        vk::ShaderStageFlags preprocessed_stages = preprocess_shaders_and_realize_descriptor_set_layouts(m_owning_factory);
+        // If this is a AddPushConstant then now we can copy AddPushConstant::m_sorted_push_constant_ranges
+        // to AddPushConstant::m_push_constant_ranges.
+        copy_push_constant_ranges(m_owning_factory);
+        if ((preprocessed_stages & vk::ShaderStageFlagBits::eVertex))
+        {
+          // If this is a AddVertexShader then ...
+          //   copy AddVertexShader::m_vertex_shader_input_sets to AddVertexShader::m_vertex_input_binding_descriptions.
+          //   copy AddVertexShader::m_glsl_id_full_to_vertex_attribute to AddVertexShader::m_vertex_input_attribute_descriptions.
+          update_vertex_input_descriptions();
+        }
+      }
       // If this asserts then this characteristic isn't derived from AddShaderStage,
       // therefore we shouldn't have just "finished preprocessing".
       ASSERT((m_needs_signals & do_preprocess));

@@ -142,7 +142,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   void pre_fill_state() override;
 
   // Called from CharacteristicRange_preprocess.
-  void preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory) override;
+  vk::ShaderStageFlags preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory) override;
 
   // Called from CharacteristicRange_compile.
   void start_build_shaders() override { m_compiler.initialize(); m_shaders_that_need_compiling_index = 0; }
