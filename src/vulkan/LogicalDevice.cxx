@@ -1646,6 +1646,7 @@ void LogicalDevice::multiplex_impl(state_type run_state)
       m_root_window.reset();
       // This task is done.
       set_state(LogicalDevice_done);
+      Dout(dc::statefultask(mSMDebug), "Falling through to LogicalDevice_done.");
       [[fallthrough]];
     case LogicalDevice_done:
       finish();

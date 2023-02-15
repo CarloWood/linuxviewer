@@ -164,6 +164,7 @@ void ImmediateSubmitQueue::multiplex_impl(state_type run_state)
       if (producer_not_finished())
         break;
       set_state(ImmediateSubmitQueue_done);
+      Dout(dc::statefultask(mSMDebug), "Falling through to ImmediateSubmitQueue_done.");
       [[fallthrough]];
     }
     case ImmediateSubmitQueue_done:

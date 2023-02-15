@@ -257,6 +257,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       set_logical_device_index(m_logical_device_task->get_index());
       // Create the swapchain.
       set_state(SynchronousWindow_acquire_queues);
+      Dout(dc::statefultask(mSMDebug), "Falling through to SynchronousWindow_acquire_queues.");
       [[fallthrough]];
     case SynchronousWindow_acquire_queues:
       // At this point the logical_device_index is available, which means we can call get_logical_device().
@@ -281,6 +282,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         }
       }
       set_state(SynchronousWindow_initialize_vulkan);
+      Dout(dc::statefultask(mSMDebug), "Falling through to SynchronousWindow_initialize_vulkan.");
       [[fallthrough]];
     case SynchronousWindow_initialize_vulkan:
       copy_graphics_settings();
@@ -313,6 +315,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
         wait(imgui_font_texture_ready);
         break;
       }
+      Dout(dc::statefultask(mSMDebug), "Falling through to SynchronousWindow_imgui_font_texture_ready.");
       [[fallthrough]];
     case SynchronousWindow_imgui_font_texture_ready:
       set_state(SynchronousWindow_render_loop);
@@ -320,6 +323,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
       vulkan::SynchronousEngine::have_swapchain();
       // Turn off debug output for this statefultask while processing the render loop.
       Debug(mSMDebug = false);
+      Dout(dc::statefultask(mSMDebug), "Falling through to SynchronousWindow_render_loop.");
       [[fallthrough]];
     case SynchronousWindow_render_loop:
     {
@@ -421,6 +425,7 @@ void SynchronousWindow::multiplex_impl(state_type run_state)
           return;
       }
       set_state(SynchronousWindow_close);
+      Dout(dc::statefultask(mSMDebug), "Falling through to SynchronousWindow_close.");
       [[fallthrough]];
     }
     case SynchronousWindow_close:

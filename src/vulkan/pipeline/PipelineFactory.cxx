@@ -98,6 +98,7 @@ void MoveNewPipelines::multiplex_impl(state_type run_state)
       if (producer_not_finished())      // This calls wait(need_action) if not finished.
         break;
       set_state(MoveNewPipelines_done);
+      Dout(dc::statefultask(mSMDebug), "Falling through to MoveNewPipelines_done.");
       [[fallthrough]];
     case MoveNewPipelines_done:
       owning_window()->pipeline_factory_done({}, m_factory_index);
@@ -617,6 +618,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         m_completed_characteristic_tasks = 0;
         // Enter the multi-loop.
         set_state(PipelineFactory_top_multiloop_for_loop);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_top_multiloop_for_loop.");
         [[fallthrough]];
       }
       // The first time we enter from the top, m_range_counters.finished() should be false.
@@ -638,6 +640,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           break;
         }
         set_state(PipelineFactory_top_multiloop_while_loop);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_top_multiloop_while_loop.");
         [[fallthrough]];
       case PipelineFactory_top_multiloop_while_loop: // Having multiple for loops inside eachother.
         // We are now at the top of the while loop.
@@ -701,6 +704,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             return;
           }
         }
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_characteristics_filled.");
         [[fallthrough]];
       case PipelineFactory_characteristics_filled:
         // The number of characteristic tasks that we need to wait for finishing do_preprocess.
@@ -726,6 +730,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             return;
           }
         }
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_characteristics_preprocessed.");
         [[fallthrough]];
       case PipelineFactory_characteristics_preprocessed:
         //-----------------------------------------------------------------
@@ -790,6 +795,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             return;
           }
         }
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_characteristics_compiled.");
         [[fallthrough]];
       case PipelineFactory_characteristics_compiled:
         // All Characteristic(Range) tasks have finished their work for this pipeline at
@@ -804,6 +810,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           break;
         }
         set_state(PipelineFactory_create_shader_resources);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_create_shader_resources.");
         [[fallthrough]];
       case PipelineFactory_create_shader_resources:
         if (!handle_shader_resource_creation_requests())
@@ -813,11 +820,13 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           return;
         }
         set_state(PipelineFactory_initialize_shader_resources_per_set_index);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_initialize_shader_resources_per_set_index.");
         [[fallthrough]];
       case PipelineFactory_initialize_shader_resources_per_set_index:
         m_have_lock = false;
         initialize_shader_resources_per_set_index();
         set_state(PipelineFactory_update_missing_descriptor_sets);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_update_missing_descriptor_sets.");
         [[fallthrough]];
       case PipelineFactory_update_missing_descriptor_sets:
         if (!update_missing_descriptor_sets())
@@ -921,6 +930,7 @@ multiloop_magic_footer:
           set_state(PipelineFactory_top_multiloop_while_loop);
           break;
         }
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_bottom_multiloop_for_loop.");
         [[fallthrough]];
       case PipelineFactory_bottom_multiloop_for_loop:
         if (int i{m_range_counters.end_of_loop()}; i >= 0)
@@ -953,6 +963,7 @@ multiloop_magic_footer:
           break;
         }
         set_state(PipelineFactory_done);
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_done.");
         [[fallthrough]];
       case PipelineFactory_done:
         finish();
