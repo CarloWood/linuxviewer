@@ -1,4 +1,10 @@
 #include "sys.h"
+
+#ifdef CWDEBUG
+// This must be included as one of the first header files.
+#include "debug/xml_serialize.h"
+#endif
+
 #include "pipeline/CharacteristicRange.h"
 
 namespace vulkan::pipeline {
@@ -245,5 +251,14 @@ std::vector<vk::PushConstantRange> FlatCreateInfo::realize_sorted_push_constant_
 
   return merged_result;
 }
+
+#ifdef CWDEBUG
+void FlatCreateInfo::xml(xml::Bridge& xml)
+{
+  xml.node_name("FlatCreateInfo");
+//  xml.children_stream("pipeline_shader_stage_create_infos_list", m_pipeline_shader_stage_create_infos_list);
+  xml.child(m_pipeline_input_assembly_state_create_info);
+}
+#endif
 
 } // namespace vulkan::pipeline

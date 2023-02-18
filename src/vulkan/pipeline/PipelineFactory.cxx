@@ -14,6 +14,10 @@
 #include "threadsafe/aithreadsafe.h"
 #include "utils/at_scope_end.h"
 #include "utils/almost_equal.h"
+#ifdef CWDEBUG
+#include "xml/Writer.h"
+#include "xml/Reader.h"
+#endif
 
 #include "FlatCreateInfo.inl.h"
 
@@ -842,6 +846,24 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // At this point all Characteristics must have finished.
         // Create the (next) pipeline...
         {
+#ifdef CWDEBUG
+          {
+            std::stringstream ss;
+            xml::Writer writer(ss);
+
+            writer.write(m_flat_create_info);
+
+            Dout(dc::debug, "m_flat_create_info: " << ss.str());
+
+            xml::Reader reader;
+            reader.parse(ss, 0);
+            FlatCreateInfo flat_create_info;
+            flat_create_info.xml(reader);
+
+            Dout(dc::always, flat_create_info.m_pipeline_input_assembly_state_create_info.topology);
+          }
+#endif
+
           // Merge the results of all characteristics into local vectors.
           // All these vectors need to be kept until after the pipeline is created.
           std::vector<vk::VertexInputBindingDescription>     const vertex_input_binding_descriptions =

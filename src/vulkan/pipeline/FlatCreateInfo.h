@@ -11,6 +11,10 @@
 #include <algorithm>
 #include "debug.h"
 
+namespace xml {
+class Bridge;
+} // namespace xml
+
 namespace vulkan {
 
 namespace task {
@@ -160,6 +164,12 @@ class FlatCreateInfo
   void add(std::vector<vulkan::PushConstantRange> const* push_constant_ranges, task::CharacteristicRange const& owning_characteristic_range);
 
   std::vector<vk::PushConstantRange> realize_sorted_push_constant_ranges(characteristics_container_t const& characteristics);
+
+#ifdef CWDEBUG
+ public:
+  // Add support for serializing to and from xml.
+  void xml(xml::Bridge& xml);
+#endif
 };
 
 } // namespace pipeline

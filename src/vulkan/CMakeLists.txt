@@ -9,13 +9,29 @@ find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Boost REQUIRED COMPONENTS serialization)
 
 find_package(PkgConfig REQUIRED)
+find_package(magic_enum REQUIRED)
+
 # Prepend shaderc_ROOT in case this package was installed by gitache.
 set(stored_CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")
 list(PREPEND CMAKE_PREFIX_PATH "${shaderc_ROOT}")
 pkg_check_modules(Shaderc REQUIRED IMPORTED_TARGET shaderc)
 set(CMAKE_PREFIX_PATH "${stored_CMAKE_PREFIX_PATH}")
 
-find_package(magic_enum REQUIRED)
+if (OptionEnableLibcwd)
+  pkg_check_modules(Libxmlpp30 libxml++-3.0 IMPORTED_TARGET)
+  if (Libxmlpp30_FOUND)
+    set(LIBXMLPP PkgConfig::Libxmlpp30)
+    set(LIBXMLPP_VERSION 30)
+  else ()
+    pkg_check_modules(Libxmlpp26 libxml++-2.6 IMPORTED_TARGET)
+    if (Libxmlpp26_FOUND)
+      set(LIBXMLPP PkgConfig::Libxmlpp26)
+      set(LIBXMLPP_VERSION 26)
+    else ()
+      message(FATAL_ERROR "Neither libxml++-3.0 nor libxml++-2.6 could be found!")
+    endif ()
+  endif ()
+endif ()
 
 #==============================================================================
 # BUILD PROJECT
@@ -106,6 +122,35 @@ target_compile_features(vulkan_ObjLib
   PUBLIC cxx_std_20
 )
 
+# Find where vulkan_enums.hpp resides.
+get_target_property(VULKAN_INCLUDE_DIRS Vulkan::Vulkan INTERFACE_INCLUDE_DIRECTORIES)
+find_path(VULKAN_ENUMS_DIR "vulkan/vulkan_enums.hpp" PATHS ${VULKAN_INCLUDE_DIRS})
+
+# Define the input and output files.
+set(INPUT_FILE "${VULKAN_ENUMS_DIR}/vulkan/vulkan_enums.hpp")
+set(OUTPUT_FILE "${CMAKE_CURRENT_BINARY_DIR}/debug/vk_enums.h")
+
+# Add a custom command to generate the output file.
+add_custom_command(
+  OUTPUT ${OUTPUT_FILE}
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/debug"
+  COMMAND awk -f '${CMAKE_SOURCE_DIR}/scripts/enum_converter.awk' '${INPUT_FILE}' > '${OUTPUT_FILE}'
+  DEPENDS "${INPUT_FILE}" "${CMAKE_SOURCE_DIR}/scripts/enum_converter.awk"
+  COMMENT "Generating Vulkan enums header"
+)
+
+# Custom target for vk_enums.h.
+add_custom_target(generate_vk_enums DEPENDS ${OUTPUT_FILE})
+
+# Make sure that vk_enums.h is generated whenever building vulkan_ObjLib.
+add_dependencies(vulkan_ObjLib generate_vk_enums)
+
+# Needed in order to include debug/vk_enums.h.
+target_include_directories(vulkan_ObjLib PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+# Add a custom target that depends on the output file.
+#add_custom_target(vulkan_enums DEPENDS ${OUTPUT_FILE})
+
 # Set link dependencies.
 target_link_libraries(vulkan_ObjLib
   PUBLIC
@@ -122,6 +167,7 @@ target_link_libraries(vulkan_ObjLib
     Eigen3::Eigen
     Boost::serialization
     Tracy::TracyClient
+    ${LIBXMLPP}
 )
 
 # Create an ALIAS target.
