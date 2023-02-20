@@ -67,7 +67,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
     case CharacteristicRange_filled:
       // This characteristic isn't derived from CharacteristicRange!?
       ASSERT((m_needs_signals & do_fill));
-      m_owning_factory->characteristic_range_filled(m_characteristic_range_index);
+      m_owning_factory->characteristic_range_filled();
       if ((m_needs_signals & do_preprocess))
       {
         set_state(CharacteristicRange_preprocess);

@@ -1,4 +1,11 @@
 #include "sys.h"
+
+#ifdef CWDEBUG
+// This must be included as one of the first header files.
+#include "debug/xml_serialize.h"
+#include "xml/Bridge.h"
+#endif
+
 #include "PushConstantRange.h"
 #include "vk_utils/print_flags.h"
 
@@ -34,6 +41,51 @@ void PushConstantRange::print_on(std::ostream& os) const
       ", m_size:" << m_size;
   os << '}';
 }
+
+void PushConstantRange::xml(xml::Bridge& xml)
+{
+  xml.node_name("push_constant_range");
+
+  xml.child(m_type_index);
+  xml.child_stream("offset", m_offset);
+  xml.child_stream("size", m_size);
+
+  vk::ShaderStageFlags flags{m_shader_stage_flags.load(std::memory_order::relaxed)};
+  xml.child_stream("flags", flags);
+
+  if (!xml.writing())
+  {
+    m_shader_stage_flags.store(static_cast<vk::ShaderStageFlags::MaskType>(flags), std::memory_order::relaxed);
+  }
+}
 #endif
 
 } // namespace vulkan
+
+//  mutable std::atomic<vk::ShaderStageFlags::MaskType> m_shader_stage_flags;     // The shader stages that use this range.
+
+#ifdef CWDEBUG
+namespace xml {
+
+template<>
+void serialize(std::type_index& type_index, xml::Bridge& xml)
+{
+  xml.node_name("type_index");
+
+  if (xml.writing())
+  {
+    std::string name = type_index.name();
+    xml.text_stream(name);
+  }
+}
+
+template
+void serialize(std::type_index& type_index, xml::Bridge& xml);
+
+} // namespace xml
+
+namespace vulkan {
+
+} // namespace vulkan
+
+#endif // CWDEBUG

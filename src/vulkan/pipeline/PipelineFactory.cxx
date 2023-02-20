@@ -292,12 +292,9 @@ void PipelineFactory::characteristic_range_initialized()
     signal(characteristics_initialized);
 }
 
-void PipelineFactory::characteristic_range_filled(CharacteristicRangeIndex characteristic_range_index)
+void PipelineFactory::characteristic_range_filled()
 {
-  DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::characteristic_range_filled(" << characteristic_range_index << ") [" << this << "]");
-  // Calculate the m_pipeline_index.
-  size_t cr_index = characteristic_range_index.get_value();
-  m_characteristics[characteristic_range_index]->update(pipeline_index_t::wat{m_pipeline_index}, cr_index, m_range_counters[cr_index], m_range_shift[characteristic_range_index]);
+  DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::characteristic_range_filled() [" << this << "]");
   if (m_number_of_running_characteristic_tasks.fetch_sub(1, std::memory_order::acq_rel) == 1)
     signal(characteristics_filled);
 }
@@ -714,9 +711,15 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // The number of characteristic tasks that we need to wait for finishing do_preprocess.
         m_number_of_running_characteristic_tasks = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
+        {
+          // Calculate the m_pipeline_index.
+          size_t characteristic_range_index = i.get_value();
+          m_characteristics[i]->update(pipeline_index_t::wat{m_pipeline_index}, characteristic_range_index, m_range_counters[characteristic_range_index], m_range_shift[i]);
+
           if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_preprocess) &&
               (m_running_characteristic_tasks & (1ULL << i.get_value())))
             ++m_number_of_running_characteristic_tasks;
+        }
         // Send the do_preprocess signal to the Characteristic tasks, if any.
         {
           bool sent_do_preprocess_signal = m_number_of_running_characteristic_tasks > 0;
@@ -849,18 +852,28 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 #ifdef CWDEBUG
           {
             std::stringstream ss;
-            xml::Writer writer(ss);
+            ss << "FlatCreateInfo_" << m_pipeline_factory_index.get_value() << '_' <<
+              pipeline_index_t::rat{m_pipeline_index}->get_value() << '_';
+            for (auto i = m_characteristics.iend(); i != m_characteristics.ibegin(); --i)
+            {
+              int fi = m_characteristics[i - 1]->fill_index();
+              if (fi == -1)
+                ss << 'x';
+              else
+                ss << m_characteristics[i - 1]->fill_index();
+            }
+            ss << ".xml";
+            std::ofstream fs;
+            fs.open(ss.str());
+            xml::Writer writer(fs);
 
             writer.write(m_flat_create_info);
-
-            Dout(dc::debug, "m_flat_create_info: " << ss.str());
-
+#if 0
             xml::Reader reader;
             reader.parse(ss, 0);
             FlatCreateInfo flat_create_info;
             flat_create_info.xml(reader);
-
-            Dout(dc::always, flat_create_info.m_pipeline_input_assembly_state_create_info.topology);
+#endif
           }
 #endif
 

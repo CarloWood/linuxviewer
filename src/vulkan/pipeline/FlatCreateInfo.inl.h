@@ -1,4 +1,5 @@
 #include "CharacteristicRange.h"
+#include "xml/Bridge.h"
 
 namespace vulkan::pipeline {
 
@@ -50,6 +51,20 @@ std::vector<T> FlatCreateInfo::merge(aithreadsafe::Wrapper<utils::Vector<Charact
     }
   }
   return result;
+}
+
+template<typename T>
+void CharacteristicDataCache<T>::xml(xml::Bridge& xml)
+{
+  xml.node_name("CharacteristicDataCache");
+  if (xml.writing())
+  {
+    if (m_characteristic_data)
+    {
+      xml.children("m_characteristic_data", *const_cast<std::vector<T>*>(m_characteristic_data));
+      xml.children("m_per_fill_index_cache", m_per_fill_index_cache);
+    }
+  }
 }
 
 } // namespace vulkan::pipeline

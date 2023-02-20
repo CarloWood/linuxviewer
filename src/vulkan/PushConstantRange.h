@@ -6,6 +6,12 @@
 #include <atomic>
 #include "debug.h"
 
+#ifdef CWDEBUG
+namespace xml {
+class Bridge;
+} // namespace xml
+#endif
+
 namespace vulkan {
 
 class PushConstantRange
@@ -76,6 +82,10 @@ class PushConstantRange
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
+
+  // Required for xml serialization.
+  PushConstantRange() : m_type_index(typeid(int)) { }
+  void xml(xml::Bridge& xml);
 #endif
 };
 

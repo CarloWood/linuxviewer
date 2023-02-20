@@ -33,6 +33,10 @@ struct CharacteristicDataCache
 {
   std::vector<T> const* m_characteristic_data{};
   std::vector<std::vector<T>> m_per_fill_index_cache;
+
+#ifdef CWDEBUG
+  void xml(xml::Bridge& xml);
+#endif
 };
 
 class FlatCreateInfo
@@ -66,6 +70,7 @@ class FlatCreateInfo
  public:
   vk::PipelineInputAssemblyStateCreateInfo m_pipeline_input_assembly_state_create_info;
 
+  // pViewports and pScissors are nullptr because they are ignored anyway since our viewport and scissor state is dynamic.
   vk::PipelineViewportStateCreateInfo m_viewport_state_create_info{
     .viewportCount = 1,                                 // uint32_t
     .pViewports = nullptr,                              // vk::Viewport const*
@@ -158,7 +163,11 @@ class FlatCreateInfo
 
   std::vector<vk::DynamicState> realize_dynamic_states(characteristics_container_t const& characteristics)
   {
-    return merge(m_dynamic_states_list, characteristics);
+    std::vector<vk::DynamicState> result = merge(m_dynamic_states_list, characteristics);
+    // FlatCreateInfo currently assumes that these exist, see m_viewport_state_create_info.
+    ASSERT(std::count(result.begin(), result.end(), vk::DynamicState::eViewport) == 1);
+    ASSERT(std::count(result.begin(), result.end(), vk::DynamicState::eScissor) == 1);
+    return result;
   }
 
   void add(std::vector<vulkan::PushConstantRange> const* push_constant_ranges, task::CharacteristicRange const& owning_characteristic_range);
@@ -168,6 +177,7 @@ class FlatCreateInfo
 #ifdef CWDEBUG
  public:
   // Add support for serializing to and from xml.
+  // Implemented in xml_serialize.cxx.
   void xml(xml::Bridge& xml);
 #endif
 };

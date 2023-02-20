@@ -302,7 +302,7 @@ class PipelineFactory : public AIStatefulTask
 
   // Called from CharacteristicRange::multiplex_impl.
   void characteristic_range_initialized();
-  void characteristic_range_filled(pipeline::CharacteristicRangeIndex index);
+  void characteristic_range_filled();
   void characteristic_range_preprocessed();
   void characteristic_range_compiled();
 

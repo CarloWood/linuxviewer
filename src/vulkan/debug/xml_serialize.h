@@ -27,6 +27,8 @@ concept ConceptVkEnumWithToString =
 template<ConceptVkEnumWithToString T>
 void write_to_stream(std::ostream& os, T& value)
 {
+  // Even though we checked that T has a to_string, we don't use it because
+  // the output must exactly match what works with the read_from_stream below.
   os << vk_enums::enum_name(value);
 }
 
@@ -58,27 +60,17 @@ void write_to_stream(std::ostream& os, vk::Flags<T>& flags)
 template<typename T>
 void read_from_stream(std::istream& is, vk::Flags<T>& flags)
 {
+  static_assert(std::is_enum_v<T>, "T must be an enum.");
   std::string flags_str;
   std::getline(is, flags_str);
   flags = vk::Flags<T>{};
   utils::split(flags_str, '|', [&](std::string_view sv){
-      std::optional<T> flag{vk_enums::enum_cast<T>(sv)};
-      flags |= flag.value();
+      if (!sv.empty())
+      {
+        std::optional<T> flag{vk_enums::enum_cast<T>(sv)};
+        flags |= flag.value();
+      }
   });
-}
-
-} // namespace xml
-
-#include "xml/Bridge.h"
-
-namespace xml {
-
-void serialize(vk::PipelineInputAssemblyStateCreateInfo& obj, Bridge& xml)
-{
-  xml.node_name("PipelineInputAssemblyStateCreateInfo");
-//  xml.child_stream("flags", obj.flags);
-  xml.child_stream("topology", obj.topology);
-  xml.child_stream("primitiveRestartEnable", obj.primitiveRestartEnable);
 }
 
 } // namespace xml
