@@ -72,6 +72,15 @@ class PushConstantRange
   {
   }
 
+  PushConstantRange& operator=(PushConstantRange const& orig)
+  {
+    m_type_index = orig.m_type_index;
+    m_shader_stage_flags = orig.m_shader_stage_flags.load(std::memory_order::relaxed);
+    m_offset = orig.m_offset;
+    m_size = orig.m_size;
+    return *this;
+  }
+
   // Accessors.
   std::type_index type_index() const { return m_type_index; }
   vk::ShaderStageFlags shader_stage_flags() const { return vk::ShaderStageFlags{m_shader_stage_flags}; }
@@ -82,6 +91,8 @@ class PushConstantRange
 
 #ifdef CWDEBUG
   void print_on(std::ostream& os) const;
+
+  friend bool operator==(PushConstantRange const& lhs, PushConstantRange const& rhs);
 
   // Required for xml serialization.
   PushConstantRange() : m_type_index(typeid(int)) { }

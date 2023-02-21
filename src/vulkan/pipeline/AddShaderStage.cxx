@@ -67,13 +67,17 @@ vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_s
   task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
   for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
   {
-    shader_builder::ShaderInfoCache const& shader_info = owning_window->application().get_shader_info(shader_index);
-    if (shader_info.is_compiled())
+    shader_builder::ShaderInfoCache const& shader_info_cache = owning_window->application().get_shader_info(shader_index);
+    if (shader_info_cache.is_compiled())
+    {
+      // Restore additional flat create info vectors from the shader_info_cache, in case we never called preprocess1 even once.
+      restore_from_cache(shader_info_cache);
       continue;
+    }
     // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
     // (in the order that they are found in the shader template code).
-    preprocess1(shader_info);
-    preprocessed_stages |= shader_info.stage();
+    preprocess1(shader_info_cache);
+    preprocessed_stages |= shader_info_cache.stage();
   }
 
   // Realize the descriptor set layouts: if a layout already exists then use the existing
@@ -275,6 +279,10 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
 
     shader_info_cache.m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
         COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
+
+    // Add data to shader_info_cache that might be needed by other pipeline factories
+    // because they will no longer call preprocess* after the shader module handle is set.
+    update(shader_info_cache);
 
     // Set an atomic boolean for the sake of optimizing preprocessing away.
     // We can't use m_shader_module for that because preprocess1 is called outside of the

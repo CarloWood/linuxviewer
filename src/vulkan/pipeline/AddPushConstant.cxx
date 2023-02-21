@@ -1,10 +1,16 @@
 #include "sys.h"
 #include "AddPushConstant.h"
 #include "PipelineFactory.h"
+#include "shader_builder/ShaderInfos.h"
 #include <algorithm>
 #include <iterator>
 
 namespace vulkan::pipeline {
+
+void AddPushConstant::register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const
+{
+  pipeline_factory->add_to_flat_create_info(&m_push_constant_ranges, characteristic_range);
+}
 
 void AddPushConstant::copy_push_constant_ranges(task::PipelineFactory* pipeline_factory)
 {
@@ -18,9 +24,22 @@ void AddPushConstant::copy_push_constant_ranges(task::PipelineFactory* pipeline_
   }
 }
 
-void AddPushConstant::register_AddPushConstant_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const
+void AddPushConstant::cache_push_constant_ranges(shader_builder::ShaderInfoCache& shader_info_cache)
 {
-  pipeline_factory->add_to_flat_create_info(&m_push_constant_ranges, characteristic_range);
+  shader_info_cache.copy(m_push_constant_ranges);
+}
+
+void AddPushConstant::restore_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache)
+{
+  if (m_push_constant_ranges.empty())
+    m_push_constant_ranges = shader_info_cache.m_push_constant_ranges;
+#if CW_DEBUG
+  else
+  {
+    // If we DID already call preprocess1, then we should have gotten the same push constant ranges as another pipeline factory of course!
+    ASSERT(m_push_constant_ranges == shader_info_cache.m_push_constant_ranges);
+  }
+#endif
 }
 
 } // namespace vulkan::pipeline

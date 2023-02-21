@@ -15,9 +15,13 @@
 #include <set>
 #include <concepts>
 
-namespace vukan::task {
+namespace vulkan::task {
 class PipelineFactory;
 } // namespace vulkan::task
+
+namespace vulkan::shader_builder {
+class ShaderInfoCache;
+} // namespace vulkan::shader_builder
 
 namespace vulkan::pipeline {
 
@@ -31,6 +35,8 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
   void reset_push_constant_ranges() override { m_sorted_push_constant_ranges.clear(); }
   // Override AddShaderStageBridge virtual function.
   AddPushConstant* convert_to_add_push_constant() override { return this; }
+  void cache_push_constant_ranges(shader_builder::ShaderInfoCache& shader_info_cache) override;
+  void restore_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache) override;
 
   //---------------------------------------------------------------------------
   // Push constants.

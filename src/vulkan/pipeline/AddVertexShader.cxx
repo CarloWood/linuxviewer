@@ -112,6 +112,17 @@ void AddVertexShader::register_AddVertexShader_with(task::PipelineFactory* pipel
   }
 }
 
+void AddVertexShader::cache_vertex_input_descriptions(shader_builder::ShaderInfoCache& shader_info_cache)
+{
+  shader_info_cache.copy(m_vertex_input_binding_descriptions, m_vertex_input_attribute_descriptions);
+}
+
+void AddVertexShader::restore_vertex_input_descriptions(shader_builder::ShaderInfoCache const& shader_info_cache)
+{
+  m_vertex_input_binding_descriptions = shader_info_cache.m_vertex_input_binding_descriptions;
+  m_vertex_input_attribute_descriptions = shader_info_cache.m_vertex_input_attribute_descriptions;
+}
+
 void AddVertexShader::add_vertex_input_bindings(VertexBuffers const& vertex_buffers)
 {
   DoutEntering(dc::vulkan, "AddVertexShader::add_vertex_input_bindings(" << vertex_buffers << ")");

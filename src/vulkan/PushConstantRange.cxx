@@ -29,6 +29,14 @@ bool operator<(PushConstantRange const& lhs, PushConstantRange const& rhs)
 }
 
 #ifdef CWDEBUG
+bool operator==(PushConstantRange const& lhs, PushConstantRange const& rhs)
+{
+  return lhs.m_type_index == rhs.m_type_index &&
+    lhs.m_shader_stage_flags == rhs.m_shader_stage_flags &&
+    lhs.m_offset == rhs.m_offset &&
+    lhs.m_size == rhs.m_size;
+}
+
 void PushConstantRange::print_on(std::ostream& os) const
 {
   os << '{';
@@ -36,7 +44,7 @@ void PushConstantRange::print_on(std::ostream& os) const
   std::type_info* ptr;
   std::memcpy(&ptr, &m_type_index, sizeof(ptr));
   os << "m_type_index:" << ptr->name() <<
-      ", m_shader_stage_flags:" << m_shader_stage_flags <<
+      ", m_shader_stage_flags:" << vk::ShaderStageFlags{m_shader_stage_flags.load(std::memory_order::relaxed)} <<
       ", m_offset:" << m_offset <<
       ", m_size:" << m_size;
   os << '}';
