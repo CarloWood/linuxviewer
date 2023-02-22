@@ -35,6 +35,7 @@ struct CharacteristicDataCache
   std::vector<std::vector<T>> m_per_fill_index_cache;
 
 #ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
   void xml(xml::Bridge& xml);
 #endif
 };
@@ -181,6 +182,17 @@ class FlatCreateInfo
   void xml(xml::Bridge& xml);
 #endif
 };
+
+#ifdef CWDEBUG
+template<typename T>
+void CharacteristicDataCache<T>::print_on(std::ostream& os) const
+{
+  os << '{';
+  os << "m_characteristic_data:" << vk_utils::print_pointer(m_characteristic_data) <<
+      ", m_per_fill_index_cache:" << m_per_fill_index_cache;
+  os << '}';
+}
+#endif
 
 } // namespace pipeline
 } // namespace vulkan
