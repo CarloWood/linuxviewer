@@ -144,12 +144,9 @@ FactoryCharacteristicId PipelineFactory::add_characteristic(boost::intrusive_ptr
   characteristic_range->set_characteristic_range_index(characteristic_range_index);
   m_flat_create_info.increment_number_of_characteristics();
   characteristic_range->register_with_the_flat_create_info();
-  int end = characteristic_range->iend();
-  // Is this characteristic an AddVertexShader?
-  AddShaderStage* add_shader_stage = dynamic_cast<AddShaderStage*>(characteristic_range.get());
-  //FIXME: use add_shader_stage.
+  int characteristic_range_size = characteristic_range->iend();
   m_characteristics.push_back(std::move(characteristic_range));
-  return FactoryCharacteristicId{ m_pipeline_factory_index, characteristic_range_index, end };
+  return FactoryCharacteristicId{m_pipeline_factory_index, characteristic_range_index, characteristic_range_size};
 }
 
 // Called from CharacteristicRange::add_combined_image_sampler which is
