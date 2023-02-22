@@ -596,8 +596,6 @@ void main()
       }
 
       m_pipeline_factory[pipeline_factory].generate(this);
-
-      std::this_thread::sleep_for(std::chrono::seconds(2));
     }
   }
 
