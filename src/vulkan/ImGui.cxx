@@ -175,7 +175,7 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
  private:
   shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) final
   {
-    //FIXME: Is this being called?
+    // Should never be called (imgui is not using a pipeline factory).
     ASSERT(false);
     return {};
   }
