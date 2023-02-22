@@ -369,7 +369,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
       if (producer_not_finished())
         break;
       set_state(CombinedImageSamplerUpdater_done);
-      Dout(dc::statefultask(mSMDebug), "Falling through to CombinedImageSamplerUpdater_done.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to CombinedImageSamplerUpdater_done [" << this << "]");
       [[fallthrough]];
     case CombinedImageSamplerUpdater_done:
       finish();

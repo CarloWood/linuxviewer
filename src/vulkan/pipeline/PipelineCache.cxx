@@ -106,7 +106,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
         break;
       }
       set_state(PipelineCache_load_from_disk);
-      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_load_from_disk.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_load_from_disk [" << this << "]");
       [[fallthrough]];
     }
     case PipelineCache_load_from_disk:
@@ -134,7 +134,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
         break;
       }
       set_state(PipelineCache_ready);
-      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_ready.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_ready [" << this << "]");
       [[fallthrough]];
     }
     case PipelineCache_ready:
@@ -151,7 +151,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
         break;
       }
       set_state(PipelineCache_factory_merge);
-      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_merge.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_merge [" << this << "]");
       [[fallthrough]];
     case PipelineCache_factory_merge:
       {
@@ -173,7 +173,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
       if (producer_not_finished())
         break;
       set_state(PipelineCache_save_to_disk);
-      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_save_to_disk.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_save_to_disk [" << this << "]");
       [[fallthrough]];
     case PipelineCache_save_to_disk:
     {
@@ -186,7 +186,7 @@ void PipelineCache::multiplex_impl(state_type run_state)
       else
         Dout(dc::warning, "Not saving pipeline cache because m_pipeline_cache is nul?!");
       set_state(PipelineCache_done);
-      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_done.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to PipelineCache_done [" << this << "]");
       [[fallthrough]];
     }
     case PipelineCache_done:

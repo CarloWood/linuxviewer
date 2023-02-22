@@ -123,7 +123,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
       }
       start_build_shaders();
       set_state(CharacteristicRange_build_shaders);
-      Dout(dc::statefultask(mSMDebug), "Falling through to state CharacteristicRange_build_shaders.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to CharacteristicRange_build_shaders [" << this << "]");
       [[fallthrough]];
     case CharacteristicRange_build_shaders:
       // If build_shaders returns false we must reenter it when signal(do_build_shaders) is received.
@@ -134,7 +134,7 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         break;
       }
       set_state(CharacteristicRange_compiled);
-      Dout(dc::statefultask(mSMDebug), "Falling through to state CharacteristicRange_compiled.");
+      Dout(dc::statefultask(mSMDebug), "Falling through to CharacteristicRange_compiled [" << this << "]");
       [[fallthrough]];
     case CharacteristicRange_compiled:
       // If this asserts then this characteristic isn't derived from AddShaderStage,

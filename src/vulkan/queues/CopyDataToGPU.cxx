@@ -63,7 +63,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
           COMMA_CWDEBUG_ONLY(debug_name_prefix("m_staging_buffer")));
       set_state(CopyDataToGPU_write);
     }
-    Dout(dc::statefultask(mSMDebug), "Falling through to CopyDataToGPU_write.");
+    Dout(dc::statefultask(mSMDebug), "Falling through to CopyDataToGPU_write [" << this << "]");
     [[fallthrough]];
     case CopyDataToGPU_write:
     {
@@ -81,7 +81,7 @@ void CopyDataToGPU::multiplex_impl(state_type run_state)
       }
       set_state(CopyDataToGPU_flush);
     }
-    Dout(dc::statefultask(mSMDebug), "Falling through to CopyDataToGPU_flush.");
+    Dout(dc::statefultask(mSMDebug), "Falling through to CopyDataToGPU_flush [" << this << "]");
     [[fallthrough]];
     case CopyDataToGPU_flush:
     {
