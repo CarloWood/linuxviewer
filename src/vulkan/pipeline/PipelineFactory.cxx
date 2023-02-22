@@ -849,7 +849,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         // At this point all Characteristics must have finished.
         // Create the (next) pipeline...
         {
-#ifdef CWDEBUG
+#if -0
+          // Dump the FlatCreateInfo object to a file.
           {
             std::stringstream ss;
             ss << "FlatCreateInfo_" << m_pipeline_factory_index.get_value() << '_' <<
@@ -868,12 +869,6 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             xml::Writer writer(fs);
 
             writer.write(m_flat_create_info);
-#if 0
-            xml::Reader reader;
-            reader.parse(ss, 0);
-            FlatCreateInfo flat_create_info;
-            flat_create_info.xml(reader);
-#endif
           }
 #endif
 
