@@ -216,6 +216,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
             }
             else
               m_owning_window->update_descriptor_set_with_loading_texture(descriptor_set, binding, { 0, descriptor_update_info->descriptor_array_size() });
+            // The PipelineFactory is informed that this update has been executed from the destructor of the descriptor::DescriptorUpdateInfo.
           }
           else
           {

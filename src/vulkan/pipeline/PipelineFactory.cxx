@@ -250,6 +250,7 @@ char const* PipelineFactory::condition_str_impl(condition_type condition) const
     AI_CASE_RETURN(characteristics_compiled);
     AI_CASE_RETURN(obtained_create_lock);
     AI_CASE_RETURN(obtained_set_layout_binding_lock);
+    AI_CASE_RETURN(combined_image_samplers_updated);
   }
   return direct_base_type::condition_str_impl(condition);
 }
@@ -270,6 +271,7 @@ char const* PipelineFactory::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(PipelineFactory_create_shader_resources);
     AI_CASE_RETURN(PipelineFactory_initialize_shader_resources_per_set_index);
     AI_CASE_RETURN(PipelineFactory_update_missing_descriptor_sets);
+    AI_CASE_RETURN(PipelineFactory_move_new_pipeline);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_while_loop);
     AI_CASE_RETURN(PipelineFactory_bottom_multiloop_for_loop);
     AI_CASE_RETURN(PipelineFactory_done);
@@ -308,6 +310,22 @@ void PipelineFactory::characteristic_range_compiled()
   DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::characteristic_range_compiled() [" << this << "]");
   if (m_number_of_running_characteristic_tasks.fetch_sub(1, std::memory_order::acq_rel) == 1)
     signal(characteristics_compiled);
+}
+
+void PipelineFactory::descriptor_set_update_start()
+{
+  DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::descriptor_set_update_start() [" << this << "]");
+  [[maybe_unused]] size_t prev = m_number_of_running_combined_image_sampler_updaters.fetch_add(1, std::memory_order::relaxed);
+  Dout(dc::vulkan(mSMDebug), "m_number_of_running_combined_image_sampler_updaters is now " << (prev + 1));
+}
+
+void PipelineFactory::descriptor_set_updated()
+{
+  DoutEntering(dc::vulkan(mSMDebug), "PipelineFactory::descriptor_set_updated() [" << this << "]");
+  [[maybe_unused]] size_t prev = m_number_of_running_combined_image_sampler_updaters.fetch_sub(1, std::memory_order::acq_rel);
+  Dout(dc::vulkan(mSMDebug), "m_number_of_running_combined_image_sampler_updaters is now " << (prev - 1));
+  if (prev == 1)
+    signal(combined_image_samplers_updated);
 }
 
 // Called from prepare_shader_resource_declarations.
@@ -824,28 +842,38 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           return;
         }
         set_state(PipelineFactory_initialize_shader_resources_per_set_index);
-        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_initialize_shader_resources_per_set_index.");
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_initialize_shader_resources_per_set_index [" << this << "]");
         [[fallthrough]];
       case PipelineFactory_initialize_shader_resources_per_set_index:
         m_have_lock = false;
         initialize_shader_resources_per_set_index();
         set_state(PipelineFactory_update_missing_descriptor_sets);
-        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_update_missing_descriptor_sets.");
+        // Increment m_number_of_running_combined_image_sampler_updaters in order to avoid receiving
+        // a signal while we are not running but waiting for obtained_set_layout_binding_lock (which
+        // would cause that signal to be lost). This can happen when update_missing_descriptor_sets
+        // returns false.
+        descriptor_set_update_start();
+        Dout(dc::statefultask(mSMDebug), "Falling through to PipelineFactory_update_missing_descriptor_sets [" << this << "]");
         [[fallthrough]];
       case PipelineFactory_update_missing_descriptor_sets:
-        if (!update_missing_descriptor_sets())
         {
-          m_have_lock = true;   // Next time we're woken up (by signal obtained_set_layout_binding_lock) we'll have the lock.
-          wait(obtained_set_layout_binding_lock);
-          return;
-        }
+          if (!update_missing_descriptor_sets())
+          {
+            m_have_lock = true;   // Next time we're woken up (by signal obtained_set_layout_binding_lock) we'll have the lock.
+            wait(obtained_set_layout_binding_lock);
+            return;
+          }
+          // Balance the call to descriptor_set_update_start above.
+          // This might cause a call to signal(combined_image_samplers_updated)
+          // but that is OK since that means that all descriptor sets, if any,
+          // have already been updated.
+          descriptor_set_updated();
 
-        // End pipeline layout creation
-        //-----------------------------------------------------------------
+          // End pipeline layout creation
+          //-----------------------------------------------------------------
 
-        // At this point all Characteristics must have finished.
-        // Create the (next) pipeline...
-        {
+          // At this point all Characteristics must have finished.
+          // Create the (next) pipeline...
 #if -0
           // Dump the FlatCreateInfo object to a file.
           {
@@ -924,19 +952,27 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 #endif
 
           // Create and then store the graphics pipeline.
-          vk::UniquePipeline pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
-              COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("pipeline")));
+          m_pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
+              COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("PipelineFactory::m_pipeline")));
 
 #if CW_DEBUG
           // Reset these in order to avoid an assert in FlatCreateInfo::get_pipeline_color_blend_attachment_states.
           m_flat_create_info.m_color_blend_state_create_info.attachmentCount = 0;
           m_flat_create_info.m_color_blend_state_create_info.pAttachments = nullptr;
 #endif
-
-          // Inform the SynchronousWindow.
-          m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_descriptor_set_per_set_index, m_owning_window->max_number_of_frame_resources()
-              COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(pipeline)});
+          // Wait for the combined image samplers, that do not have the DescriptorBindingFlagBits::eUpdateAfterBind bit set,
+          // to have been updated before passing the created pipeline to the SynchronousWindow because otherwise it is
+          // theoretically possible that the combined imagine sampler will be bound before updating.
+          set_state(PipelineFactory_move_new_pipeline);
+          // We *always* wait, because we faked an 'update' ourselves, see the calls to descriptor_set_update_start and
+          // descriptor_set_updated above.
+          wait(combined_image_samplers_updated);
+          return;
         }
+      case PipelineFactory_move_new_pipeline:
+        // Inform the SynchronousWindow.
+        m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_descriptor_set_per_set_index, m_owning_window->max_number_of_frame_resources()
+            COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(m_pipeline)});
 
         //
         // End of MultiLoop inner loop.

@@ -343,10 +343,6 @@ void main()
     {
       // This is what the descriptor is recognized by in the shader code.
       m_combined_image_samplers[t].set_glsl_id_postfix(glsl_id_postfixes[t]);
-      // This is needed if you want to change the texture again after using it.
-      //FIXME: this shouldn't be needed when just setting the texture once. However, it turns out that
-      // if there is a delay somewhere (e.g. a breakpoint in gdb) then it IS still required :/
-      m_combined_image_samplers[t].set_bindings_flags(vk::DescriptorBindingFlagBits::eUpdateAfterBind);
     }
 
     auto pipeline_factory = create_pipeline_factory(m_graphics_pipeline, main_pass.vh_render_pass() COMMA_CWDEBUG_ONLY(true));

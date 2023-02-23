@@ -49,14 +49,15 @@ class PipelineFactory : public AIStatefulTask
   // The same as CharacteristicRange::pipeline_index_t.
   using pipeline_index_t = aithreadsafe::Wrapper<pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
 
-  static constexpr condition_type pipeline_cache_set_up = 1;
-  static constexpr condition_type fully_initialized = 2;
-  static constexpr condition_type characteristics_initialized = 4;
-  static constexpr condition_type characteristics_filled = 8;
-  static constexpr condition_type characteristics_preprocessed = 16;
-  static constexpr condition_type characteristics_compiled = 32;
-  static constexpr condition_type obtained_create_lock = 64;
-  static constexpr condition_type obtained_set_layout_binding_lock = 128;
+  static constexpr condition_type pipeline_cache_set_up = 0x1;
+  static constexpr condition_type fully_initialized = 0x2;
+  static constexpr condition_type characteristics_initialized = 0x4;
+  static constexpr condition_type characteristics_filled = 0x8;
+  static constexpr condition_type characteristics_preprocessed = 0x10;
+  static constexpr condition_type characteristics_compiled = 0x20;
+  static constexpr condition_type obtained_create_lock = 0x40;
+  static constexpr condition_type obtained_set_layout_binding_lock = 0x80;
+  static constexpr condition_type combined_image_samplers_updated = 0x100;
 
  private:
   // Constructor.
@@ -93,6 +94,10 @@ class PipelineFactory : public AIStatefulTask
   descriptor::SetIndexHintMap m_set_index_hint_map;
   // PipelineFactory_characteristics_preprocessed.
   descriptor::SetIndexHint m_largest_set_index_hint;
+  // Keep track of the number of combined image samplers that need updating before starting to render to the next pipeline.
+  std::atomic<size_t> m_number_of_running_combined_image_sampler_updaters;
+  // Temporary storage of a newly created pipeline before it is moved to the SynchronousWindow.
+  vk::UniquePipeline m_pipeline;
   // State MoveNewPipelines_need_action (which calls set_pipeline).
   Pipeline& m_pipeline_out;
   // Index into SynchronousWindow::m_pipelines, enumerating the current pipeline being generated inside the MultiLoop.
@@ -262,6 +267,7 @@ class PipelineFactory : public AIStatefulTask
     PipelineFactory_create_shader_resources,
     PipelineFactory_initialize_shader_resources_per_set_index,
     PipelineFactory_update_missing_descriptor_sets,
+    PipelineFactory_move_new_pipeline,
     PipelineFactory_bottom_multiloop_while_loop,
     PipelineFactory_bottom_multiloop_for_loop,
     PipelineFactory_done
@@ -305,6 +311,8 @@ class PipelineFactory : public AIStatefulTask
   void characteristic_range_filled();
   void characteristic_range_preprocessed();
   void characteristic_range_compiled();
+  void descriptor_set_update_start();
+  void descriptor_set_updated();
 
   // Called by SynchronousWindow::pipeline_factory_done to rescue the cache, immediately before deleting this task.
   inline boost::intrusive_ptr<PipelineCache> detach_pipeline_cache_task();

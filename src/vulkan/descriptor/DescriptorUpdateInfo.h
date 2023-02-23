@@ -30,19 +30,21 @@ class DescriptorUpdateInfo : public Update
  public:
   // Construct an uninitialized DescriptorUpdateInfo (required for use in a TaskToTaskDeque - we'll move-assign to it shortly after).
   DescriptorUpdateInfo() { }
+  ~DescriptorUpdateInfo();
 
   DescriptorUpdateInfo(
       task::SynchronousWindow const* owning_window,
       pipeline::FactoryCharacteristicId const& factory_characteristic_id, int fill_index, int32_t descriptor_array_size,
-      FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource) :
-    m_owning_window(owning_window),
-    m_factory_characteristic_id(factory_characteristic_id), m_fill_index(fill_index), m_descriptor_array_size(descriptor_array_size),
-    m_descriptor_set(&descriptor_set), m_binding(binding), m_has_frame_resource(has_frame_resource) { }
+      FrameResourceCapableDescriptorSet const& descriptor_set, uint32_t binding, bool has_frame_resource);
 
   DescriptorUpdateInfo(DescriptorUpdateInfo&& rhs) :
     m_owning_window(rhs.m_owning_window),
     m_factory_characteristic_id(rhs.m_factory_characteristic_id), m_fill_index(rhs.m_fill_index), m_descriptor_array_size(rhs.m_descriptor_array_size),
-    m_descriptor_set(rhs.m_descriptor_set), m_binding(rhs.m_binding), m_has_frame_resource(rhs.m_has_frame_resource) { }
+    m_descriptor_set(rhs.m_descriptor_set), m_binding(rhs.m_binding), m_has_frame_resource(rhs.m_has_frame_resource)
+  {
+    // Make sure the destructor won't call PipelineFactory::descriptor_set_updated.
+    rhs.m_factory_characteristic_id = {};
+  }
 
   // Accessors.
   task::SynchronousWindow const* owning_window() const { return m_owning_window; }
@@ -69,6 +71,8 @@ class DescriptorUpdateInfo : public Update
     m_descriptor_set = rhs.m_descriptor_set;
     m_binding = rhs.m_binding;
     m_has_frame_resource = rhs.m_has_frame_resource;
+    // Make sure the destructor won't call PipelineFactory::descriptor_set_updated.
+    rhs.m_factory_characteristic_id = {};
     return *this;
   }
 

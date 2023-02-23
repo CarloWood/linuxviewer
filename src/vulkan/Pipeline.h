@@ -35,6 +35,7 @@ class Pipeline
       COMMA_CWDEBUG_ONLY(LogicalDevice const* logical_device)) :
     m_vh_layout(vh_layout), m_handle(handle)
   {
+    DoutEntering(dc::vulkan, "vulkan::Pipeline::Pipeline(" << vh_layout << ", " << handle << ", " << descriptor_sets << ", " << max_number_of_frame_resources << ")");
     size_t const number_of_frame_resources = max_number_of_frame_resources.get_value();
     descriptor::SetIndex const set_index_end{descriptor_sets.size()};
     // Reorder the descriptor sets in memory for fast binding.
