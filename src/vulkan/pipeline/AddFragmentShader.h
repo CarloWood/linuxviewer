@@ -5,17 +5,9 @@
 
 namespace vulkan::pipeline {
 
+// The fragment shader has no extra data involved that not already be derived from the shader code.
 class AddFragmentShader : public virtual AddShaderStage
 {
- private:
-  void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const final;
-
- public:
-  AddFragmentShader() = default;
-
-#ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
-#endif
 };
 
 } // namespace vulkan::pipeline

@@ -75,9 +75,6 @@ struct CharacteristicRangeBridge
   virtual void register_AddVertexShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
   virtual void reset_vertex_shader_location_contex() { }
 
-  // Implemented by AddFragmentShader.
-  virtual void register_AddFragmentShader_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range) const { }
-
   // Implemented by CharacteristicRange.
   virtual shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) = 0;
 

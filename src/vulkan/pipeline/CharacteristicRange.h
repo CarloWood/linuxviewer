@@ -78,7 +78,6 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   {
     register_AddShaderStage_with(m_owning_factory, *this);
     register_AddVertexShader_with(m_owning_factory, *this);
-    register_AddFragmentShader_with(m_owning_factory, *this);
     register_AddPushConstant_with(m_owning_factory, *this);
   }
   void set_owner(PipelineFactory* owning_factory) { m_owning_factory = owning_factory; }
