@@ -19,7 +19,7 @@ class ShaderResourcePlusCharacteristic
 {
  private:
   shader_builder::ShaderResourceBase const* m_shader_resource;  // Added shader resource.
-  task::CharacteristicRange* m_characteristic_range;        // The CharacteristicRange from which it was added.
+  task::CharacteristicRange* m_characteristic_range;            // The CharacteristicRange from which it was added.
   int m_fill_index;                                             // The CharacteristicRange value from which it was added.
 
  public:

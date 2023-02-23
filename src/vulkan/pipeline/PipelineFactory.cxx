@@ -1315,8 +1315,8 @@ bool PipelineFactory::update_missing_descriptor_sets()
 
     // Isn't this ALWAYS the case? Note that it might take a complex application that is skipping
     // shader resources that are in a given descriptor set but aren't used in this pipeline; hence
-    // leave this assert here for a very long time.
-    // FIXME: I don't think this is true anymore. Probably should just be deleted.
+    // leave this assert here for a very long time (till 2025).
+    // Note: I don't think this is true anymore. Probably should just be deleted -- 2023-01-09
     ASSERT(m_set_index_end == vhv_descriptor_set_layouts.iend());
 
     // Descriptor sets: { U1, T1 }, { U2, T2 }, { T1, T2 }, { T2, T1 }, { U1, U2 }, { U2, U1 }, { U1, T2 }, { U2, T1 }
