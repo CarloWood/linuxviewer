@@ -764,16 +764,16 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         {
           // These are the inputs.
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.realize_sorted_push_constant_ranges(m_characteristics);
-          sorted_descriptor_set_layouts_t::wat sorted_descriptor_set_layouts_w(m_sorted_descriptor_set_layouts);
+          sorted_descriptor_set_layouts_t::rat sorted_descriptor_set_layouts_r(m_sorted_descriptor_set_layouts);
 
           // Clear the m_set_index_hint_map of a previous fill.
           m_set_index_hint_map.clear();
 
           vulkan::descriptor::SetIndexHint largest_set_index_hint{0};
           // Can this ever happen?
-          ASSERT(!sorted_descriptor_set_layouts_w->empty());
-          for (auto realized_descriptor_set_layout = sorted_descriptor_set_layouts_w->begin();
-              realized_descriptor_set_layout != sorted_descriptor_set_layouts_w->end();
+          ASSERT(!sorted_descriptor_set_layouts_r->empty());
+          for (auto realized_descriptor_set_layout = sorted_descriptor_set_layouts_r->begin();
+              realized_descriptor_set_layout != sorted_descriptor_set_layouts_r->end();
               ++realized_descriptor_set_layout)
           {
             vulkan::descriptor::SetIndexHint set_index_hint = realized_descriptor_set_layout->set_index_hint();
@@ -787,7 +787,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
           // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
-              sorted_descriptor_set_layouts_w, m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
+              sorted_descriptor_set_layouts_r, m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
         }
 
         // Now that we have (re)initialized m_set_index_hint_map, run the code that needs it.

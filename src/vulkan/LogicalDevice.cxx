@@ -1403,18 +1403,18 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
 //   1.1 --> 0.0
 //
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
-    sorted_descriptor_set_layouts_t::rat const& realized_descriptor_set_layouts_w,
+    sorted_descriptor_set_layouts_t::rat const& realized_descriptor_set_layouts_r,
     descriptor::SetIndexHint largest_set_index_hint,
     descriptor::SetIndexHintMap& set_index_hint_map_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::shaderresource|dc::vulkan|dc::setindexhint, "LogicalDevice::realize_pipeline_layout(" <<
-      *realized_descriptor_set_layouts_w << ", " << largest_set_index_hint << ", set_index_hint_map_out, " <<
+      *realized_descriptor_set_layouts_r << ", " << largest_set_index_hint << ", set_index_hint_map_out, " <<
       sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
   descriptor::SetLayoutCompare set_layout_compare;
-  for (descriptor::SetLayout const& set_layout : *realized_descriptor_set_layouts_w)
+  for (descriptor::SetLayout const& set_layout : *realized_descriptor_set_layouts_r)
   {
     // realized_descriptor_set_layouts must be sorted.
     ASSERT(!prev_set_layout || !set_layout_compare(set_layout, *prev_set_layout));
@@ -1430,17 +1430,17 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     {
       using pipeline_layouts_t = LogicalDevice::pipeline_layouts_t;
       pipeline_layouts_t::rat pipeline_layouts_r(m_pipeline_layouts);
-      auto key = std::make_pair(*realized_descriptor_set_layouts_w, sorted_push_constant_ranges);
+      auto key = std::make_pair(*realized_descriptor_set_layouts_r, sorted_push_constant_ranges);
       auto iter = pipeline_layouts_r->find(key);
       if (iter == pipeline_layouts_r->end())
       {
-        // It is possible that set_index_hint is larger than or equal to realized_descriptor_set_layouts_w->size()
+        // It is possible that set_index_hint is larger than or equal to realized_descriptor_set_layouts_r->size()
         // if not all add_*-ed shader resources are used in the shaders of the current pipeline.
         // In that case we must pass m_empty_descriptor_set_layout for the unused elements.
         // So, begin with initializing largest_set_index_hint DescriptorSetLayout handles equal to m_empty_descriptor_set_layout
         // in case we only partially overwrite this vector with new values.
         utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts(largest_set_index_hint.get_value() + 1, *m_empty_descriptor_set_layout);
-        for (vulkan::descriptor::SetLayout const& layout : *realized_descriptor_set_layouts_w)
+        for (vulkan::descriptor::SetLayout const& layout : *realized_descriptor_set_layouts_r)
         {
           vulkan::descriptor::SetIndexHint set_index_hint = layout.set_index_hint();
           // This can't happen if largest_set_index_hint was initialized correctly.
@@ -1463,10 +1463,10 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
       {
         sorted_descriptor_set_layouts_container_t const& sorted_descriptor_set_layouts = iter->first.first;
         // This should always be the case: they compared equal as key!?
-        ASSERT(realized_descriptor_set_layouts_w->size() == sorted_descriptor_set_layouts.size());
-        auto set_layout_in = realized_descriptor_set_layouts_w->begin();
+        ASSERT(realized_descriptor_set_layouts_r->size() == sorted_descriptor_set_layouts.size());
+        auto set_layout_in = realized_descriptor_set_layouts_r->begin();
         auto set_layout_out = sorted_descriptor_set_layouts.begin();
-        while (set_layout_in != realized_descriptor_set_layouts_w->end())
+        while (set_layout_in != realized_descriptor_set_layouts_r->end())
         {
           // Same.
           ASSERT(set_layout_in->sorted_bindings_and_flags().size() == set_layout_out->sorted_bindings_and_flags().size());
