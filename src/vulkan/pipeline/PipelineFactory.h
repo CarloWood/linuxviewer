@@ -216,7 +216,7 @@ class PipelineFactory : public AIStatefulTask
   void push_back_descriptor_set_layout_binding(descriptor::SetIndexHint set_index_hint,
       vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding,
       vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size,
-      utils::Badge<shader_builder::ShaderResourceDeclarationContext>);
+      utils::Badge<shader_builder::DescriptorSetLayoutBinding>);
 
  private:
   // Called by add_combined_image_sampler and/or add_uniform_buffer (at the end), requesting to be created

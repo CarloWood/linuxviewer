@@ -272,7 +272,7 @@ void main()
     public vulkan::pipeline::AddFragmentShader
   {
    private:
-    int m_pipeline;
+    int m_pipeline_factory;
     vulkan::VertexBuffers m_empty_vertex_buffers;
 
    protected:
@@ -283,7 +283,7 @@ void main()
 
    public:
     UniformBuffersTestPipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window, int pipeline COMMA_CWDEBUG_ONLY(bool debug)) :
-      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline(pipeline)
+      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug)), m_pipeline_factory(pipeline)
     {
       // We do not have vertex buffers.
       m_use_vertex_buffers = false;
@@ -299,7 +299,7 @@ void main()
       vulkan::descriptor::SetKeyPreference top_set_key_preference(window->m_top_buffer.descriptor_set_key(), 1.0);
       vulkan::descriptor::SetKeyPreference left_set_key_preference(window->m_left_buffer.descriptor_set_key(), 1.0);
 
-      if (m_pipeline == 0)
+      if (m_pipeline_factory == 0)
       {
         // This assigns top to descriptor set 0 and left to 1.
         add_uniform_buffer(window->m_top_buffer);
@@ -319,9 +319,9 @@ void main()
       add_vertex_input_bindings(m_empty_vertex_buffers);
 
       vulkan::shader_builder::ShaderIndex vertex_shader_index =
-        (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
+        (m_pipeline_factory == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
       vulkan::shader_builder::ShaderIndex fragment_shader_index =
-        (m_pipeline == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
+        (m_pipeline_factory == 0) ? window->m_shader_indices[LocalShaderIndex::frag0] : window->m_shader_indices[LocalShaderIndex::frag1];
       add_shader(vertex_shader_index);
       add_shader(fragment_shader_index);
     }

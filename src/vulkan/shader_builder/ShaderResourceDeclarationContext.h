@@ -13,6 +13,7 @@ class PipelineFactory;
 
 namespace vulkan::shader_builder {
 class ShaderResourceDeclaration;
+class ShaderInfoCache;
 
 struct ShaderResourceDeclarationContext final : DeclarationContext
 {
@@ -23,7 +24,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   task::PipelineFactory* const m_owning_factory;
   descriptor::SetIndexHintMap const* m_set_index_hint_map;
 
-  int m_changed_generation{0};                                          // The last AddShaderStage::m_context_changed_generation as passed to generate1.
+  int m_changed_generation{0};  // The last AddShaderStage::m_context_changed_generation as passed to generate_descriptor_set_layout_bindings.
 
  public:
   ShaderResourceDeclarationContext(task::PipelineFactory* owning_factory) : m_owning_factory(owning_factory) { }
@@ -38,7 +39,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
 
   void glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource, int context_changed_generation);
 
-  void generate1(vk::ShaderStageFlagBits shader_stage);
+  void generate_descriptor_set_layout_bindings(vk::ShaderStageFlagBits shader_stage);
   void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
 

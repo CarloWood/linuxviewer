@@ -49,26 +49,21 @@ void ShaderResourceDeclarationContext::glsl_id_prefix_is_used_in(std::string gls
 }
 
 // Called from AddShaderStage::preprocess1.
-void ShaderResourceDeclarationContext::generate1(vk::ShaderStageFlagBits shader_stage)
+void ShaderResourceDeclarationContext::generate_descriptor_set_layout_bindings(vk::ShaderStageFlagBits shader_stage)
 {
-  DoutEntering(dc::vulkan|dc::setindexhint, "ShaderResourceDeclarationContext::generate1(" << shader_stage << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "ShaderResourceDeclarationContext::generate_descriptor_set_layout_bindings(" << shader_stage << ") [" << this << "]");
 
   Dout(dc::vulkan, "m_bindings contains:");
   for (auto&& shader_resource_binding_pair : m_bindings)
   {
     ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
     Dout(dc::vulkan, "--> " << *shader_resource_declaration);
+    // Paranoia check: these should be equal.
+    ASSERT(shader_resource_declaration->binding() == shader_resource_binding_pair.second);
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
-    uint32_t binding = shader_resource_binding_pair.second;
-    int32_t descriptor_array_size = shader_resource_declaration->descriptor_array_size();
-    m_owning_factory->push_back_descriptor_set_layout_binding(shader_resource_declaration->set_index_hint(), {
-        .binding = binding,
-        .descriptorType = shader_resource_declaration->descriptor_type(),
-        .descriptorCount = (uint32_t)std::abs(descriptor_array_size),
-        .stageFlags = shader_resource_declaration->stage_flags(),
-        .pImmutableSamplers = nullptr
-    }, shader_resource_declaration->binding_flags(), descriptor_array_size, {});
+    descriptor::SetIndexHint set_index_hint = shader_resource_declaration->set_index_hint();
+    shader_resource_declaration->push_back_descriptor_set_layout_binding(m_owning_factory, set_index_hint);
   }
 }
 

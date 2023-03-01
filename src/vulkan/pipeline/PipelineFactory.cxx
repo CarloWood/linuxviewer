@@ -1094,10 +1094,10 @@ bool PipelineFactory::sort_required_shader_resources_list()
   return false;
 }
 
-// Called by ShaderResourceDeclarationContext::generate1 which is
+// Called by ShaderResourceDeclarationContext::generate_descriptor_set_layout_bindings which is
 // called from preprocess1.
 void PipelineFactory::push_back_descriptor_set_layout_binding(vulkan::descriptor::SetIndexHint set_index_hint, vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size,
-    utils::Badge<ShaderResourceDeclarationContext>)
+    utils::Badge<shader_builder::DescriptorSetLayoutBinding>)
 {
   DoutEntering(dc::vulkan(mSMDebug)|dc::setindexhint(mSMDebug), "PipelineFactory::push_back_descriptor_set_layout_binding(" << set_index_hint << ", " << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ") [" << this << "]");
   Dout(dc::vulkan(mSMDebug)|dc::setindexhint(mSMDebug), "Adding " << descriptor_set_layout_binding << " to m_sorted_descriptor_set_layouts[" << set_index_hint << "].m_sorted_bindings_and_flags:");
@@ -1106,10 +1106,13 @@ void PipelineFactory::push_back_descriptor_set_layout_binding(vulkan::descriptor
   auto set_layout = std::find_if(sorted_descriptor_set_layouts_w->begin(), sorted_descriptor_set_layouts_w->end(), descriptor::CompareHint{set_index_hint});
   if (set_layout == sorted_descriptor_set_layouts_w->end())
   {
+    // This is a previous unseen set_index_hint; add it to m_sorted_descriptor_set_layouts.
     sorted_descriptor_set_layouts_w->emplace_back(set_index_hint);
     Dout(dc::setindexhint(mSMDebug), "Could not find " << set_index_hint << " in m_sorted_descriptor_set_layouts; added new SetLayout:" << sorted_descriptor_set_layouts_w->back());
     set_layout = sorted_descriptor_set_layouts_w->end() - 1;
   }
+  // Update the set_layout for this set_index_hint by adding the vk::DescriptorSetLayoutBinding, vk::DescriptorBindingFlags
+  // and descriptor_array_size that were passed to this function.
   set_layout->insert_descriptor_set_layout_binding(descriptor_set_layout_binding, binding_flags, descriptor_array_size);
   // set_layout is an element of m_sorted_descriptor_set_layouts and it was just changed.
   // We need to re-sort m_sorted_descriptor_set_layouts to keep it sorted.
@@ -1522,7 +1525,7 @@ bool PipelineFactory::update_missing_descriptor_sets()
       {
         m_descriptor_set_per_set_index[set_index] = existing_descriptor_set;
         // It should not be possible to get here without locking a set_layout_binding on a shader_resource.
-        ASSERT(!m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].empty() && locked_set_layout_binding.descriptor_set_layout());
+        ASSERT(!m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].empty() && locked_set_layout_binding.vh_descriptor_set_layout());
         m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].begin()->shader_resource()->unlock_set_layout_binding(locked_set_layout_binding
             COMMA_CWDEBUG_ONLY(this));
       }

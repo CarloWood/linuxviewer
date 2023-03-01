@@ -74,7 +74,7 @@ void PushConstantDeclarationContext::add_declarations_for_stage(DeclarationsStri
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::generate(declarations_out, " << shader_stage << ")");
 
-  // No declaration if this stage uses any push constants.
+  // No declaration if this stage doesn't use any push constants.
   if (!m_stage_data.contains(shader_stage))
     return;
 

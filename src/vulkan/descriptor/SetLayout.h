@@ -37,6 +37,12 @@ class SetLayout
   void insert_descriptor_set_layout_binding(vk::DescriptorSetLayoutBinding const& descriptor_set_layout_binding, vk::DescriptorBindingFlags binding_flags, int32_t descriptor_array_size)
   {
     DoutEntering(dc::vulkan, "SetLayout::insert_descriptor_set_layout_binding(" << descriptor_set_layout_binding << ", " << binding_flags << ", " << descriptor_array_size << ") [" << this << "]");
+    // Paranoia check: we shouldn't be trying to insert something with the same stage flags and binding.
+    ASSERT(std::find_if(m_sorted_bindings_and_flags.sorted_bindings().begin(), m_sorted_bindings_and_flags.sorted_bindings().end(),
+          [&](vk::DescriptorSetLayoutBinding const& element){
+            return element.binding == descriptor_set_layout_binding.binding &&
+                   (element.stageFlags & descriptor_set_layout_binding.stageFlags);
+          }) == m_sorted_bindings_and_flags.sorted_bindings().end());
     m_sorted_bindings_and_flags.insert(descriptor_set_layout_binding, binding_flags, descriptor_array_size);
   }
 

@@ -172,10 +172,10 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
         dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
       if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
         continue;
-      // Don't call generate1 if the context wasn't changed.
+      // Don't call generate_descriptor_set_layout_bindings if the context wasn't changed.
       if (shader_resource_declaration_context->changed_generation() != m_context_changed_generation)
         continue;
-      shader_resource_declaration_context->generate1(shader_info.stage());
+      shader_resource_declaration_context->generate_descriptor_set_layout_bindings(shader_info.stage());
     }
   }
 }

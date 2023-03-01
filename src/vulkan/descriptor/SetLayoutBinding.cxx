@@ -11,7 +11,7 @@ namespace vulkan::descriptor {
 void SetLayoutBinding::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "m_descriptor_set_layout:" << m_descriptor_set_layout <<
+  os << "m_vh_descriptor_set_layout:" << m_vh_descriptor_set_layout <<
       ", m_binding:" << m_binding;
   os << '}';
 }
