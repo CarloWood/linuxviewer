@@ -167,6 +167,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
     pipeline_factory->add_to_flat_create_info(&m_shader_stage_create_infos, characteristic_range);
   }
 
+  void cache_descriptor_set_layout_bindings(shader_builder::ShaderInfoCache& shader_info_cache);
+  void restore_descriptor_set_layout_bindings(shader_builder::ShaderInfoCache const& shader_info_cache, task::PipelineFactory* pipeline_factory);
+
  protected:
   // Called from *UserCode*PipelineCharacteristic_fill.
   void add_shader(shader_builder::ShaderIndex shader_index);

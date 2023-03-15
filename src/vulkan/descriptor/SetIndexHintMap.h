@@ -43,6 +43,22 @@ class SetIndexHintMap
     return result;
   }
 
+  SetIndexHint reverse_convert(SetIndex set_index) const
+  {
+    DoutEntering(dc::setindexhint|continued_cf, "SetIndexHintMap::reverse_convert(" << set_index << ") = ");
+    SetIndexHint result;
+    for (SetIndexHint set_index_hint = m_set_index_map.ibegin(); set_index_hint != m_set_index_map.iend(); ++set_index_hint)
+      if (m_set_index_map[set_index_hint] == set_index)
+      {
+        result = set_index_hint;
+        break;
+      }
+    Dout(dc::finish, result);
+    //FIXME: what if we don't find it?
+    ASSERT(!result.undefined());
+    return result;
+  }
+
   // Accessor.
   bool empty() const { return m_set_index_map.empty(); }
 

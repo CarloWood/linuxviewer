@@ -72,6 +72,7 @@ vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_s
     {
       // Restore additional flat create info vectors from the shader_info_cache, in case we never called preprocess1 even once.
       restore_from_cache(shader_info_cache);
+      restore_descriptor_set_layout_bindings(shader_info_cache, pipeline_factory);
       continue;
     }
     // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
@@ -283,6 +284,7 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     // Add data to shader_info_cache that might be needed by other pipeline factories
     // because they will no longer call preprocess* after the shader module handle is set.
     update(shader_info_cache);
+    cache_descriptor_set_layout_bindings(shader_info_cache);
 
     // Set an atomic boolean for the sake of optimizing preprocessing away.
     // We can't use m_shader_module for that because preprocess1 is called outside of the
@@ -298,6 +300,39 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     .module = *shader_info_cache.m_shader_module,
     .pName = "main"
   });
+}
+
+void AddShaderStage::cache_descriptor_set_layout_bindings(shader_builder::ShaderInfoCache& shader_info_cache)
+{
+  declaration_contexts_container_t const& declaration_contexts =
+    m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info_cache.stage())];
+
+  for (shader_builder::DeclarationContext* declaration_context : declaration_contexts)
+  {
+    shader_builder::ShaderResourceDeclarationContext* shader_resource_declaration_context =
+      dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
+    if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
+      continue;
+    shader_resource_declaration_context->cache_descriptor_set_layout_bindings(shader_info_cache);
+  }
+}
+
+void AddShaderStage::restore_descriptor_set_layout_bindings(shader_builder::ShaderInfoCache const& shader_info_cache, task::PipelineFactory* pipeline_factory)
+{
+  DoutEntering(dc::vulkan, "AddShaderStage::restore_descriptor_set_layout_bindings(shader_info_cache, " << pipeline_factory << ") [" << this << "]");
+  Dout(dc::vulkan, "Restoring:");
+  vk::ShaderStageFlags shader_stage{shader_info_cache.stage()};
+  for (shader_builder::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : shader_info_cache.m_descriptor_set_layout_bindings)
+  {
+    Dout(dc::vulkan, "--> " << descriptor_set_layout_binding);
+    // Does this ever happen??
+    ASSERT((descriptor_set_layout_binding.stage_flags() & shader_stage));
+    if (!(descriptor_set_layout_binding.stage_flags() & shader_stage))
+      continue;
+    descriptor::SetIndex set_index = descriptor_set_layout_binding.cached_set_index();
+    descriptor::SetIndexHint set_index_hint = m_set_index_hint_map->reverse_convert(set_index);
+    descriptor_set_layout_binding.push_back_descriptor_set_layout_binding(pipeline_factory, set_index_hint);
+  }
 }
 
 // Called from prepare_combined_image_sampler_declaration and prepare_uniform_buffer_declaration.

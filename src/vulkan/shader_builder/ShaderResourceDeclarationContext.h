@@ -42,6 +42,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   void generate_descriptor_set_layout_bindings(vk::ShaderStageFlagBits shader_stage);
   void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
+  void cache_descriptor_set_layout_bindings(ShaderInfoCache& shader_info_cache);
 
   int changed_generation() const { return m_changed_generation; }
 
