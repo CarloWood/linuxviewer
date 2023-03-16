@@ -329,7 +329,7 @@ void main()
 
    private:
     // Implementation of pure virtual member functions of AddShaderStage.
-    vulkan::shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, vulkan::descriptor::SetIndexHint set_index_hint)
+    vulkan::shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, vulkan::shader_builder::ShaderResourceBase const& shader_resource, vulkan::descriptor::SetIndexHint set_index_hint) final
     {
       //When do we get here?
       ASSERT(false);

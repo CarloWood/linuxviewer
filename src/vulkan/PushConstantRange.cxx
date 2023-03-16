@@ -87,9 +87,6 @@ void serialize(std::type_index& type_index, xml::Bridge& xml)
   }
 }
 
-template
-void serialize(std::type_index& type_index, xml::Bridge& xml);
-
 } // namespace xml
 
 namespace vulkan {

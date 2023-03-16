@@ -11,8 +11,8 @@ struct WriteLockOnly : aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<
   using aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::Wrapper;
 
  private:
-  using aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::crat;
-  using aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::rat;
+  using typename aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::crat;
+  using typename aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::rat;
 };
 
 } // namespace vk_utils

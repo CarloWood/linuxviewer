@@ -72,9 +72,6 @@ void serialize(vk::StencilOpState& obj, Bridge& xml)
   xml.child_stream("reference",   obj.reference,   {},                    false);
 }
 
-template
-void serialize(vk::StencilOpState& obj, Bridge& xml);
-
 template<>
 void serialize(vk::PipelineInputAssemblyStateCreateInfo& obj, Bridge& xml)
 {
@@ -86,9 +83,6 @@ void serialize(vk::PipelineInputAssemblyStateCreateInfo& obj, Bridge& xml)
   xml.child_stream("topology",               obj.topology);
   xml.child_stream("primitiveRestartEnable", obj.primitiveRestartEnable, {}, false);
 }
-
-template
-void serialize(vk::PipelineInputAssemblyStateCreateInfo& obj, Bridge& xml);
 
 template<>
 void serialize(vk::PipelineViewportStateCreateInfo& obj, Bridge& xml)
@@ -105,9 +99,6 @@ void serialize(vk::PipelineViewportStateCreateInfo& obj, Bridge& xml)
   // Not implemented, we're assuming dynamic state.
   ASSERT(!obj.pScissors);
 }
-
-template
-void serialize(vk::PipelineViewportStateCreateInfo& obj, Bridge& xml);
 
 template<>
 void serialize(vk::PipelineRasterizationStateCreateInfo& obj, Bridge& xml)
@@ -126,9 +117,6 @@ void serialize(vk::PipelineRasterizationStateCreateInfo& obj, Bridge& xml)
   xml.child_stream("lineWidth",                   obj.lineWidth,               1.0f,                             false);
 }
 
-template
-void serialize(vk::PipelineRasterizationStateCreateInfo& obj, Bridge& xml);
-
 template<>
 void serialize(vk::PipelineMultisampleStateCreateInfo& obj, Bridge& xml)
 {
@@ -142,9 +130,6 @@ void serialize(vk::PipelineMultisampleStateCreateInfo& obj, Bridge& xml)
   xml.child_stream("alphaToCoverageEnable", obj.alphaToCoverageEnable, VK_FALSE,                    false);
   xml.child_stream("alphaToOneEnable",      obj.alphaToOneEnable,      VK_FALSE,                    false);
 }
-
-template<>
-void serialize(vk::PipelineMultisampleStateCreateInfo& obj, Bridge& xml);
 
 template<>
 void serialize(vk::PipelineDepthStencilStateCreateInfo& obj, Bridge& xml)
@@ -162,9 +147,6 @@ void serialize(vk::PipelineDepthStencilStateCreateInfo& obj, Bridge& xml)
   xml.child_stream("maxDepthBounds",        obj.maxDepthBounds,        {},                          false);
 }
 
-template
-void serialize(vk::PipelineDepthStencilStateCreateInfo& obj, Bridge& xml);
-
 template<>
 void serialize(vk::PipelineColorBlendStateCreateInfo& obj, Bridge& xml)
 {
@@ -173,9 +155,6 @@ void serialize(vk::PipelineColorBlendStateCreateInfo& obj, Bridge& xml)
   xml.child_stream("logicOp",           obj.logicOp,       vk::LogicOp::eCopy, false);
   xml.children_stream("blendConstants", obj.blendConstants, assign);
 }
-
-template
-void serialize(vk::PipelineColorBlendStateCreateInfo& obj, Bridge& xml);
 
 template<>
 void serialize(vk::PipelineShaderStageCreateInfo& obj, Bridge& xml)
@@ -200,9 +179,6 @@ void serialize(vk::PipelineShaderStageCreateInfo& obj, Bridge& xml)
   ASSERT(!obj.pSpecializationInfo);
 }
 
-template
-void serialize(vk::PipelineShaderStageCreateInfo& obj, Bridge& xml);
-
 template<>
 void serialize(vk::VertexInputBindingDescription& obj, Bridge& xml)
 {
@@ -212,9 +188,6 @@ void serialize(vk::VertexInputBindingDescription& obj, Bridge& xml)
   xml.child_stream("stride",    obj.stride);
   xml.child_stream("inputRate", obj.inputRate);
 }
-
-template
-void serialize(vk::VertexInputBindingDescription& obj, Bridge& xml);
 
 template<>
 void serialize(vk::VertexInputAttributeDescription& obj, Bridge& xml)
@@ -226,9 +199,6 @@ void serialize(vk::VertexInputAttributeDescription& obj, Bridge& xml)
   xml.child_stream("format",   obj.format);
   xml.child_stream("offset",   obj.offset);
 }
-
-template
-void serialize(vk::VertexInputAttributeDescription& obj, Bridge& xml);
 
 template<>
 void serialize(vk::PipelineColorBlendAttachmentState& obj, Bridge& xml)
@@ -244,9 +214,6 @@ void serialize(vk::PipelineColorBlendAttachmentState& obj, Bridge& xml)
   xml.child_stream("alphaBlendOp",        obj.alphaBlendOp,        vk::BlendOp::eAdd,      false);
   xml.child_stream("colorWriteMask",      obj.colorWriteMask,      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA, false);
 }
-
-template
-void serialize(vk::PipelineColorBlendAttachmentState& obj, Bridge& xml);
 
 } // namespace xml
 

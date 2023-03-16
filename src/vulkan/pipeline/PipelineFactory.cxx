@@ -235,7 +235,11 @@ void PipelineFactory::add_shader_resource(
 #endif
   // Add a thread-safe pointer to the shader resource (ShaderResourceBase) to a list of required shader resources.
   // The shader_resource should point to a member of the Window class.
-  added_shader_resource_plus_characteristic_list_w->emplace_back(ShaderResourcePlusCharacteristic{shader_resource, adding_characteristic_range, adding_characteristic_range->fill_index()}, preferred_descriptor_sets, undesirable_descriptor_sets);
+  added_shader_resource_plus_characteristic_list_w->push_back(
+      // clang++ <= 15 doesn't compile when passing the members of an aggregate initialized class to emplace_back.
+      // Therefore we use the work-around of constructing the object as a temporary here, before passing it to push_back.
+      {ShaderResourcePlusCharacteristic{shader_resource, adding_characteristic_range, adding_characteristic_range->fill_index()},
+       preferred_descriptor_sets, undesirable_descriptor_sets});
 }
 
 char const* PipelineFactory::condition_str_impl(condition_type condition) const

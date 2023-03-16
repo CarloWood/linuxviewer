@@ -39,8 +39,6 @@ struct UniformBuffer : Buffer
   }
 
  public:
-  UniformBuffer() = default;
-
   UniformBuffer(LogicalDevice const* logical_device, vk::DeviceSize size
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix),
       MemoryCreateInfo memory_create_info = {},

@@ -169,7 +169,7 @@ void CombinedImageSamplerUpdater::multiplex_impl(state_type run_state)
                     // Now curr points to the entry that we added the new descriptor too.
                     // For all remaining entries with the same factory_characteristic_id make sure
                     // that the descriptors are different.
-                    while (++curr != m_factory_characteristic_key_to_descriptor.end());
+                    while (++curr != m_factory_characteristic_key_to_descriptor.end())
                     {
                       if (curr->first.id() != descriptor_update_info->factory_characteristic_id())
                         break;

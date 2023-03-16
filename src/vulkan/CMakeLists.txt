@@ -117,6 +117,11 @@ target_compile_definitions(vulkan_ObjLib
     VULKAN_HPP_NO_UNION_CONSTRUCTORS
 )
 
+if (OptionEnableLibcwd AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+  # Required for vk_enums_reflection.cxx.
+  set_source_files_properties(debug/vk_enums_reflection.cxx PROPERTIES COMPILE_FLAGS "-fbracket-depth=1024")
+endif ()
+
 # Require support for C++20.
 target_compile_features(vulkan_ObjLib
   PUBLIC cxx_std_20

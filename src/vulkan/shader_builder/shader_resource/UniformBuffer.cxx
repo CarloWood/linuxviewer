@@ -30,7 +30,8 @@ void UniformBufferBase::update_descriptor_set(descriptor::DescriptorUpdateInfo d
   for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
   {
     // Information about the buffer we want to point at in the descriptor.
-    buffer_infos.emplace_back(m_uniform_buffers[frame_index].m_vh_buffer, 0, size());
+    // clang++ <= 15 doesn't compile when passing plain arguments to emplace_back.
+    buffer_infos.push_back({vk::DescriptorBufferInfo{m_uniform_buffers[frame_index].m_vh_buffer, 0, size()}});
   }
   logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set(), vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos, 1 /*array_size*/, max_number_of_frame_resources);
 }

@@ -221,7 +221,7 @@ std::vector<vk::PushConstantRange> FlatCreateInfo::realize_sorted_push_constant_
       // Please group the members of your PushConstant structs so that those that are used in the same stage(s) are together.
       ASSERT(unused_gap < 50);
 #endif
-      merged_result.emplace_back(in->shader_stage_flags(), in->offset(), in->size());
+      merged_result.push_back({in->shader_stage_flags(), in->offset(), in->size()});
       last_type_index = in->type_index();
       last_shader_stage_flags = in->shader_stage_flags();
 #ifdef CWDEBUG

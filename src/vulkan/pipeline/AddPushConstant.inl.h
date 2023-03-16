@@ -67,7 +67,7 @@ void AddPushConstant::add_push_constant_member(shader_builder::MemberLayout<Cont
   {
     std::size_t const hash = std::hash<std::string>{}(push_constant.prefix());
     DEBUG_ONLY(auto ibp2 =)
-      m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::DeclarationContext>(push_constant.prefix(), hash));
+      m_glsl_id_full_to_push_constant_declaration_context.try_emplace(push_constant.prefix(), std::make_unique<shader_builder::PushConstantDeclarationContext>(push_constant.prefix(), hash));
     // We just used find() and it wasn't there?!
     ASSERT(ibp2.second);
   }

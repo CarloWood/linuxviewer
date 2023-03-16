@@ -95,9 +95,6 @@ class CombinedImageSamplerUpdater : public vk_utils::TaskToTaskDeque<AIStatefulT
     m_member = detail::CombinedImageSamplerShaderResourceMember::create(glsl_id_full);
   }
 
-  // Probably not used.
-  CombinedImageSamplerUpdater(CombinedImageSamplerUpdater&&) = default;
-
   void set_bindings_flags(vk::DescriptorBindingFlags binding_flags)
   {
     DoutEntering(dc::vulkan(mSMDebug), "CombinedImageSamplerUpdater::set_bindings_flags(" << binding_flags << ") [" << this << "]");

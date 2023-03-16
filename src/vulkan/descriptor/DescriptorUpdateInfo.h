@@ -82,7 +82,7 @@ class DescriptorUpdateInfo : public Update
   }
 
 #ifdef CWDEBUG
-  void print_on(std::ostream& os) const;
+  void print_on(std::ostream& os) const override;
 #endif
 };
 
