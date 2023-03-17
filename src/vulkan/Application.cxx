@@ -343,12 +343,12 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
   ShaderIndex first_new_index{0};
   int duplicates = 0;
   {
-    shader_builder::ShaderInfos::rat shader_infos_r(m_shader_infos);
-    first_new_index += shader_infos_r->deque.size();  // Initialize first_new_index to the next free index.
+    shader_builder::ShaderInfos::wat shader_infos_w(m_shader_infos);
+    first_new_index += shader_infos_w->deque.size();  // Initialize first_new_index to the next free index.
     ShaderIndex next_index = first_new_index;
     for (size_t i = 0; i < number_of_new_shaders; ++i)
     {
-      auto ibp = shader_infos_r->hash_to_index.insert({ hashes[i], next_index });
+      auto ibp = shader_infos_w->hash_to_index.insert({ hashes[i], next_index });
       // Fill new_indices with a new index or the one that belongs to this hash.
       new_indices[i] = ibp.second ? next_index++ : ibp.first->second;
       duplicates += ibp.second;
