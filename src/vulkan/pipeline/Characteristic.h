@@ -114,7 +114,14 @@ class CharacteristicBase : protected task::CharacteristicRange
   }
 };
 
-class Characteristic : private CharacteristicBase
+class Characteristic :
+#ifdef __clang__
+  // Bug work around. Without this clang <= 15 things that the destructor of the virtual base class is private too.
+  protected
+#else
+  private
+#endif
+  CharacteristicBase
 {
   friend task::PipelineFactory;
   friend FactoryHandle;

@@ -62,7 +62,7 @@ PartitionTask::PartitionTask(int8_t number_of_elements, LogicalDevice const* log
   m_logical_device(logical_device),
   m_number_of_elements(number_of_elements),
   m_max_number_of_sets(std::min(static_cast<uint32_t>(number_of_elements), logical_device->max_bound_descriptor_sets())),
-  m_scores(64 * (number_of_elements - 1) + number_of_elements)
+  m_scores(64 * (number_of_elements - 2) + number_of_elements)  // Largest index belongs to the pair with indexes (N - 2, N - 1).
 {
 }
 
@@ -187,7 +187,7 @@ Partition PartitionTask::random()
 void PartitionTask::print_on(std::ostream& os) const
 {
   os << '{';
-  os << "m_number_of_elements:" << m_number_of_elements <<
+  os << "m_number_of_elements:" << static_cast<int>(m_number_of_elements) <<
       ", m_set23_to_score:" << m_set23_to_score <<
       ", m_set23_to_score_initialized:" << std::boolalpha << m_set23_to_score_initialized <<
       ", m_scores:" << m_scores;

@@ -20,6 +20,9 @@ class ElementPair
   ElementPair(ElementIndex element1, ElementIndex element2) : m_element1(element1), m_element2(element2)
   {
     ASSERT(element1 != element2);
+    // Make sure that score_index() returns a single, canonical, value for any pair.
+    if (m_element2 < m_element1)
+      std::swap(m_element1, m_element2);
   }
 
   Score const& score(PartitionTask const& partition_task) const;

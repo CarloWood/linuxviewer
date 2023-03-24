@@ -235,7 +235,11 @@ void PipelineFactory::add_shader_resource(
 #endif
   // Add a thread-safe pointer to the shader resource (ShaderResourceBase) to a list of required shader resources.
   // The shader_resource should point to a member of the Window class.
-  added_shader_resource_plus_characteristic_list_w->emplace_back(ShaderResourcePlusCharacteristic{shader_resource, adding_characteristic_range, adding_characteristic_range->fill_index()}, preferred_descriptor_sets, undesirable_descriptor_sets);
+  added_shader_resource_plus_characteristic_list_w->push_back(
+      // clang++ <= 15 doesn't compile when passing the members of an aggregate initialized class to emplace_back.
+      // Therefore we use the work-around of constructing the object as a temporary here, before passing it to push_back.
+      {ShaderResourcePlusCharacteristic{shader_resource, adding_characteristic_range, adding_characteristic_range->fill_index()},
+       preferred_descriptor_sets, undesirable_descriptor_sets});
 }
 
 char const* PipelineFactory::condition_str_impl(condition_type condition) const
@@ -787,7 +791,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
           // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
-              sorted_descriptor_set_layouts_r, m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
+              aithreadsafe::wat_cast(sorted_descriptor_set_layouts_r),
+              m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
         }
 
         // Now that we have (re)initialized m_set_index_hint_map, run the code that needs it.

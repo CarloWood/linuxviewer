@@ -136,12 +136,12 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
 
  protected:
   inline void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
-      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
-      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
+      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 
   inline void add_uniform_buffer(shader_builder::UniformBufferBase const& uniform_buffer,
-      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
-      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {});
+      std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
+      std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets);
 
   //---------------------------------------------------------------------------
   // Task specific code
@@ -198,6 +198,9 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
 #ifndef PIPELINE_PIPELINE_FACTORY_H
 #include "PipelineFactory.h"
 #endif
+#ifndef DESCRIPTOR_SET_KEY_PREFERENCE_H
+#include "descriptor/SetKeyPreference.h"
+#endif
 
 #ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H_definitions
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H_definitions
@@ -205,16 +208,16 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
 namespace vulkan::task {
 
 void CharacteristicRange::add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
-    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
-    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {})
 {
   m_owning_factory->add_combined_image_sampler({},
       combined_image_sampler, this, preferred_descriptor_sets, undesirable_descriptor_sets);
 }
 
 void CharacteristicRange::add_uniform_buffer(shader_builder::UniformBufferBase const& uniform_buffer,
-    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets,
-    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets)
+    std::vector<descriptor::SetKeyPreference> const& preferred_descriptor_sets = {},
+    std::vector<descriptor::SetKeyPreference> const& undesirable_descriptor_sets = {})
 {
   m_owning_factory->add_uniform_buffer({},
       uniform_buffer, this, preferred_descriptor_sets, undesirable_descriptor_sets);

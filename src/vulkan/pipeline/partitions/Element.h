@@ -12,8 +12,6 @@ class Element;
 using ElementIndex = elements_t::Index;
 using ElementIndexPOD = utils::bitset::IndexPOD;
 
-std::ostream& operator<<(std::ostream& os, ElementIndex index);
-
 class Element
 {
  private:

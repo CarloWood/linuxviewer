@@ -22,7 +22,8 @@ void PushConstantDeclarationContext::glsl_id_full_is_used_in(char const* glsl_id
 {
   DoutEntering(dc::vulkan, "PushConstantDeclarationContext::glsl_id_full_is_used_in(" << glsl_id_full << ", " << shader_stage << ", " << push_constant << " (\"" << push_constant->glsl_id_full() << "\"), " << (void*)add_push_constant << ")");
 
-  auto ibp = m_stage_data.try_emplace(shader_stage, 0xffffffff, 0x0);
+  // clang++ <= 15 doesn't compile when passing plain arguments to try_emplace.
+  auto ibp = m_stage_data.try_emplace(shader_stage, StageData{0xffffffff, 0x0});
   uint32_t& minimum_offset = ibp.first->second.minimum_offset;
   uint32_t& maximum_offset = ibp.first->second.maximum_offset;
   std::vector<std::string>& member_declarations = ibp.first->second.member_declarations;
