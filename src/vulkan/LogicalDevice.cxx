@@ -1114,6 +1114,10 @@ vk::UniquePipelineLayout LogicalDevice::create_pipeline_layout(
   DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::create_pipeline_layout(" <<
       vhv_sorted_descriptor_set_layouts << ", " << push_constant_ranges << ", \"" << debug_name.object_name() << "\")");
 
+  // The layout of descriptor set i (layout(set = i, ...) in the shader code), must be passed in pSetLayouts[i].
+  // Note that this function is only called (from LogicalDevice::realize_pipeline_layout) when the set_index_hint_map
+  // is the identity map - therefore we can pass vhv_sorted_descriptor_set_layouts as-is (which uses SetIndexHint
+  // as index, not SetIndex).
   vk::PipelineLayoutCreateInfo layout_create_info{
     .flags = {},
     .setLayoutCount = static_cast<uint32_t>(vhv_sorted_descriptor_set_layouts.size()),
