@@ -23,7 +23,7 @@ struct ShaderInfoCache : ShaderInfo
   std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
   // Cache of AddShaderStage::m_per_stage_declaration_contexts[AddShaderStage::ShaderStageFlag_to_ShaderStageIndex(m_stage)]
   //FIXME: finish this comment...
-  std::vector<DescriptorSetLayoutBinding> m_descriptor_set_layout_bindings;
+  std::vector<DescriptorSetLayoutBinding> m_descriptor_set_layouts;
 
   // Moving is done during pre-initialization, like from register_shader_templates;
   // therefore we can ignore the mutex as well as m_shader_module (which will be NULL anyway).
