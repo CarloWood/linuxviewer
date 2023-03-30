@@ -1,0 +1,15 @@
+aside.sidebar {
+  background: #272525;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.nav-logo span {
+  transform: translate(-8px, -4px);
+}

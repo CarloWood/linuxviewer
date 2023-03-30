@@ -42,6 +42,10 @@ struct ShaderInfoCache : ShaderInfo
     m_vertex_input_binding_descriptions = vertex_input_binding_descriptions;
     m_vertex_input_attribute_descriptions = vertex_input_attribute_descriptions;
   }
+
+#ifdef CWDEBUG
+  void print_on(std::ostream& os) const;
+#endif
 };
 
 // Helper class used by Application to store all ShaderInfo instances.

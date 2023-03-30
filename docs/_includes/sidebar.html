@@ -1,0 +1,58 @@
+<div id="sub-nav-collapse" class="sub-nav-collapse">
+  <div class="nav-logo">
+    <span>{{ site.header_title }}</span>
+  </div>
+  <aside class="sidebar">
+    <ul class='Nav'>
+      {% assign chapters = site.pages | sort: "path" -%}
+      {% assign prev_depth = 0 -%}
+      {% assign close_count = 0 -%}
+      {% for page in chapters -%}
+        {% if page.url contains "/chapters/" -%}
+          {% assign url_parts = page.url | split: "/" -%}
+          {% assign depth = url_parts | size -%}
+          {% assign intermediate_close_count = close_count -%}
+          {% for current_depth in (3..depth) -%}
+            {% if current_depth == depth %}
+      <li class="Nav__item Nav__item--active">
+        <a href="{{ page.url }}">{{ page.title }}</a>
+      </li>
+            {% else -%}
+              {% assign depth_index = current_depth | minus: 1 -%}
+              {% if current_depth <= prev_depth and url_parts[depth_index] == prev_url_parts[depth_index] -%}
+                {% assign intermediate_close_count = intermediate_close_count | minus: 1 -%}
+                {% continue -%}
+              {% endif -%}
+              {% assign label = url_parts[depth_index] | replace: "_", " " -%}
+              {% assign last_index = label | size | minus: 1 -%}
+              {% for i in (0..last_index) -%}
+                {% assign char = label | slice: i -%}
+                {% if char != '0' and char != '1' and char != '2' and char != '3' and char != '4' and char != '5' and char != '6' and char != '7' and char != '8' and char != '9' and char != ' ' -%}
+                  {% assign label = label | slice: i, last_index -%}
+                  {% break -%}
+                {% endif -%}
+              {% endfor -%}
+              {% for i in (1..intermediate_close_count) %}
+        </ul>
+      </li>
+              {% endfor -%}
+              {% assign close_count = close_count | minus: intermediate_close_count %}
+      <li class="Nav__item Nav__item--open has-children">
+        <a href="{{ page.url }}" class="folder">
+          <i class="Nav__arrow">&nbsp;</i>{{ label }}
+        </a>
+        <ul class="Nav">
+              {% assign close_count = close_count | plus: 1 -%}
+            {% endif -%}
+          {% endfor -%}
+          {% assign prev_depth = depth -%}
+          {% assign prev_url_parts = url_parts -%}
+        {% endif -%}
+      {% endfor -%}
+      {% for i in (1..close_count) %}
+        </ul>
+      </li>
+      {% endfor %}
+    </ul>
+  </aside>
+</div>

@@ -129,6 +129,7 @@ set(BUILD_GMOCK OFF CACHE BOOL "")
 # Disable installation of googletest.
 set(INSTALL_GTEST OFF CACHE BOOL "")
 
+add_subdirectory(docs)
 add_subdirectory(external)
 #add_subdirectory(helloworld-task)
 #add_subdirectory(filelock-task)

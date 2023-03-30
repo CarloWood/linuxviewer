@@ -319,7 +319,7 @@ void AddShaderStage::cache_descriptor_set_layouts(shader_builder::ShaderInfoCach
 
 void AddShaderStage::restore_descriptor_set_layouts(shader_builder::ShaderInfoCache const& shader_info_cache, task::PipelineFactory* pipeline_factory)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::restore_descriptor_set_layouts(shader_info_cache, " << pipeline_factory << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::restore_descriptor_set_layouts(" << shader_info_cache << ", " << pipeline_factory << ") [" << this << "]");
   Dout(dc::vulkan, "Restoring:");
   vk::ShaderStageFlags shader_stage{shader_info_cache.stage()};
   for (shader_builder::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : shader_info_cache.m_descriptor_set_layouts)
