@@ -57,6 +57,7 @@
 [submodule "external/imgui"]
 	path = external/imgui
 	url = https://github.com/CarloWood/imgui.git
+	branch = master
 [submodule "external/peelo-xdg"]
 	path = external/peelo-xdg
 	url = https://github.com/peelonet/peelo-xdg.git
@@ -68,4 +69,5 @@
 	url = https://github.com/wolfpld/tracy.git
 [submodule "block-task"]
 	path = block-task
-	url = github-carlo:CarloWood/block-task.git
+	url = https://github.com/CarloWood/block-task.git
+	branch = master
