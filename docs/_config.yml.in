@@ -11,7 +11,7 @@ email: ${GIT_AUTHOR_EMAIL}
 description: >- # this means to ignore newlines until "baseurl:"
   Linuxviewer is a high-performance, Linux-only Vulkan engine written in C++.
   Built on top of the robust "aicxx" core modules, it combines speed, flexibility, and reliability.
-baseurl: "" # the subpath of your site, e.g. /blog
+baseurl: "/linuxviewer" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 github_username: CarloWood
 

@@ -20,7 +20,7 @@
             {% assign nav_class = nav_class | append: " Nav__item--active" -%}
           {% endif %}
       <li class="{{ nav_class }}">
-        <a href="{{ chapter.url }}">{{ chapter.title }}</a>
+        <a href="{{ chapter.url | relative_url }}">{{ chapter.title }}</a>
       </li>
             {% else -%}
               {% assign depth_index = current_depth | minus: 1 -%}
@@ -50,7 +50,7 @@
                 {% assign nav_class = nav_class | append: " Nav__item--open" -%}
               {% endif %}
       <li class="{{ nav_class }}">
-        <a href="{{ chapter.url }}" class="folder">
+        <a href="{{ chapter.url | relative_url }}" class="folder">
           <i class="Nav__arrow">&nbsp;</i>{{ label }}
         </a>
         <ul class="Nav">
