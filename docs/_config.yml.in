@@ -21,9 +21,16 @@ theme: minima
 plugins:
   - jekyll-feed
 cache_dir: .generated/jekyll-cache
+use_directory_urls: true
+
 kramdown:
   input: GFM
-use_directory_urls: true
+  toc_levels: 1..6
+  auto_ids: true
+  html_to_native: true
+  auto_id_stripping: true
+  auto_id_prefix: page_
+  syntax_highlighter: rouge
 
 # Exclude from processing.
 # The following items will not be processed, by default.

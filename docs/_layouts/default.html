@@ -5,80 +5,24 @@
   <meta name="description" content="{{ site.description }}" />
   <meta name="author" content="{{ site.author }}" />
   <meta charset="UTF-8">
-  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+  <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
   <!-- Mobile -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Font -->
   <link href='//fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700&subset=latin,cyrillic-ext,cyrillic' rel='stylesheet' type='text/css'>
   <!-- CSS -->
-  <link rel="stylesheet" href="/assets/css/main.css" type="text/css">
   <link rel="stylesheet" href="/assets/css/theme.min.css" type="text/css">
   <link rel="stylesheet" href="/assets/css/theme-blue.min.css" type="text/css">
+  <link rel="stylesheet" href="/assets/css/main.css" type="text/css">
+  <link rel="stylesheet" href="/assets/css/prism.css" type="text/css">
+  <!-- Navigation script -->
+  <script src="/assets/js/navigation.js" defer></script>
+  <script src="/assets/js/prism.js" defer></script>
 </head>
 <body>
   <div class="container-fluid fluid-height wrapper">
     {{ content }}
   </div>
-
-  <script>
-{% comment %}
-  console.log("Script is running");
-
-  document.addEventListener("DOMContentLoaded", function() {
-    console.log("Page loaded or reloaded");
-
-    var links = document.getElementsByTagName("a");
-
-    for (var i = 0; i < links.length; i++) {
-      links[i].addEventListener("click", function(e) {
-        console.log("Link clicked:", e.target.href);
-      });
-    }
-  });
-{% endcomment %}
-
-  function collapseAllExcept(parentNodes, navFolders) {
-    for (let i = 0; i < navFolders.length; i++) {
-      const currentNavFolder = navFolders[i];
-
-      if (currentNavFolder.classList.contains("Nav__item--open") && parentNodes.every(parentFolder => parentFolder !== currentNavFolder)) {
-        currentNavFolder.classList.remove("Nav__item--open");
-        currentNavFolder.querySelector(".Nav__arrow").innerHTML = "&rsaquo;";
-      }
-    }
-  }
-
-  document.addEventListener("DOMContentLoaded", function() {
-    const navArrows = document.querySelectorAll("ul.Nav > li.has-children > a > .Nav__arrow");
-    const navFolders = Array.from(navArrows)
-      .map(arrow => arrow.closest('li.has-children'))
-      .filter(folder => folder);
-
-    for (let i = 0; i < navArrows.length; i++) {
-      navArrows[i].addEventListener("click", function(e) {
-        e.preventDefault();
-
-        const listItem = e.target.closest(".Nav__item");
-
-        const upTreeParents = [];
-        let currentTarget = listItem;
-        while(currentTarget !== null) {
-          upTreeParents.push(currentTarget);
-          currentTarget = currentTarget.parentElement.closest('li.Nav__item.has-children');
-        }
-
-        listItem.classList.toggle("Nav__item--open");
-
-        if (listItem.classList.contains("Nav__item--open")) {
-          e.target.innerHTML = "&nbsp;";
-          collapseAllExcept(upTreeParents, navFolders);
-        } else {
-          e.target.innerHTML = "&rsaquo;";
-        }
-      });
-    }
-  });
-  </script>
 </body>
 </html>

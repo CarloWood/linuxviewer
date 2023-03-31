@@ -7,22 +7,30 @@
       {% assign chapters = site.pages | sort: "path" -%}
       {% assign prev_depth = 0 -%}
       {% assign close_count = 0 -%}
-      {% for page in chapters -%}
-        {% if page.url contains "/chapters/" -%}
-          {% assign url_parts = page.url | split: "/" -%}
+      {% for chapter in chapters -%}
+        {% if chapter.url contains "/chapters/" -%}
+          {% assign url_parts = chapter.url | split: "/" -%}
           {% assign depth = url_parts | size -%}
           {% assign intermediate_close_count = close_count -%}
+          {% assign partial_path = "/chapters/" -%}
           {% for current_depth in (3..depth) -%}
             {% if current_depth == depth %}
-      <li class="Nav__item Nav__item--active">
-        <a href="{{ page.url }}">{{ page.title }}</a>
+          {% assign nav_class = "Nav__item" -%}
+          {% if chapter.url == page.url -%}
+            {% assign nav_class = nav_class | append: " Nav__item--active" -%}
+          {% endif %}
+      <li class="{{ nav_class }}">
+        <a href="{{ chapter.url }}">{{ chapter.title }}</a>
       </li>
             {% else -%}
               {% assign depth_index = current_depth | minus: 1 -%}
+              {% assign partial_path = partial_path | append: url_parts[depth_index] | append: '/' -%}
               {% if current_depth <= prev_depth and url_parts[depth_index] == prev_url_parts[depth_index] -%}
                 {% assign intermediate_close_count = intermediate_close_count | minus: 1 -%}
                 {% continue -%}
               {% endif -%}
+              {% assign partial_path_length = partial_path | size -%}
+              {% assign leading_part_page_url = page.url | slice: 0, partial_path_length -%}
               {% assign label = url_parts[depth_index] | replace: "_", " " -%}
               {% assign last_index = label | size | minus: 1 -%}
               {% for i in (0..last_index) -%}
@@ -36,9 +44,13 @@
         </ul>
       </li>
               {% endfor -%}
-              {% assign close_count = close_count | minus: intermediate_close_count %}
-      <li class="Nav__item Nav__item--open has-children">
-        <a href="{{ page.url }}" class="folder">
+              {% assign close_count = close_count | minus: intermediate_close_count -%}
+              {% assign nav_class = "Nav__item has-children" -%}
+              {% if leading_part_page_url == partial_path -%}
+                {% assign nav_class = nav_class | append: " Nav__item--open" -%}
+              {% endif %}
+      <li class="{{ nav_class }}">
+        <a href="{{ chapter.url }}" class="folder">
           <i class="Nav__arrow">&nbsp;</i>{{ label }}
         </a>
         <ul class="Nav">

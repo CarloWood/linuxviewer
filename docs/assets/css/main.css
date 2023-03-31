@@ -1,15 +1,45 @@
-aside.sidebar {
-  background: #272525;
-  padding-top: 20px;
-  padding-bottom: 20px;
+body,
+html {
+  color: #ccc7c0
 }
 
 .nav-logo {
   display: flex;
   align-items:center;
   justify-content:center;
+  background: #83181b;
+  color: #fff;
 }
 
 .nav-logo span {
   transform: translate(-8px, -4px);
+}
+
+aside.sidebar {
+  background-color: #1d1f20;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.Nav {
+  background-color: #1d1f20;
+}
+
+#markdown-toc {
+  font-size: 16px;
+  padding-left: 28px;
+  border-left: 6px solid #5e4011;
+  padding-bottom: 4px;
+}
+
+.content {
+  background-color: #202325
+}
+
+.columns .right-column .content-page {
+  background-color: #181a1b
+}
+
+code {
+  border: 1px solid #606060
 }

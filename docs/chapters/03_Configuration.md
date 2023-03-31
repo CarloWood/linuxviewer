@@ -3,6 +3,8 @@ layout: chapter
 title: Configuration
 ---
 
-# This is the header.
+# Configuration
+
+This is a paragraph.
 
 Here is another paragraph.
