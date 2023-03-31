@@ -25,7 +25,8 @@ if [ -e "${CONFIG}" ] && cmp -s "${CONFIG}" .generated/_config.temp.yml ; then
   #FIXME: uncomment this ...   INCREMENTAL="--incremental"
   true
 else
-  grep -v '^destination' .generated/_config.temp.yml > "${CONFIG}"
+  cp .generated/_config.temp.yml "${CONFIG}"
+  #grep -v '^destination' .generated/_config.temp.yml > "${CONFIG}"
 fi
 
 # Run Jekyll with the temporary configuration file until control-C is pressed.

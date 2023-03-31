@@ -1,8 +1,8 @@
 # Site settings.
 title: Linuxviewer Vulkan Engine
 header_title: Linuxviewer           # A shorter title, used to put above the TOC.
-author: Carlo Wood
-email: carlo@alinoe.com
+author: ${GIT_AUTHOR_NAME}
+email: ${GIT_AUTHOR_EMAIL}
 description: >-
   Linuxviewer is a high-performance, Linux-only Vulkan engine written in C++.
   Built on top of the robust "aicxx" core modules, it combines speed, flexibility, and reliability.
