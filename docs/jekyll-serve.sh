@@ -18,7 +18,7 @@ fi
 envsubst < _config.yml.in > .generated/_config.temp.yml
 
 INCREMENTAL=
-CONFIG="$REPOBASE/docs/config.yml"
+CONFIG="$REPOBASE/docs/_config.yml"
 
 if [ -e "${CONFIG}" ] && cmp -s "${CONFIG}" .generated/_config.temp.yml ; then
   #FIXME: uncomment this ...   INCREMENTAL="--incremental"
