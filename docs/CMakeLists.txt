@@ -6,7 +6,7 @@ set(JEKYLL_CLEAN_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/jekyll-clean.sh")
 
 # Create a custom target for running the build-jekyll.sh script.
 add_custom_target(jekyll_serve
-    COMMAND ${JEKYLL_SERVE_SCRIPT}
+    COMMAND ${JEKYLL_SERVE_SCRIPT} ${CMAKE_BINARY_DIR}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Running Jekyll serve..."
     USES_TERMINAL

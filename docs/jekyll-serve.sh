@@ -15,7 +15,8 @@ if [ ! -e _config.yml.in ]; then
 fi
 
 # Generate a temporary _config.yml file with the environment variables replaced
-envsubst < _config.yml.in > .generated/_config.temp.yml
+BINARY_DIR="$1"
+sed -e 's/\${CMAKE_BINARY_DIR}/'"${BINARY_DIR//\//\\/}"'/' _config.yml.in > .generated/_config.temp.yml
 
 INCREMENTAL=
 CONFIG="$REPOBASE/docs/_config.yml"
