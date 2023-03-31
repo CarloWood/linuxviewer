@@ -1,0 +1,60 @@
+# Site settings
+# These are used to personalize your new site. If you look in the HTML files,
+# you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
+# You can create any custom variable you would like, and they will be accessible
+# in the templates via {{ site.myvariable }}.
+
+title: Linuxviewer Vulkan Engine
+header_title: Linuxviewer           # A shorter title, used to put above the TOC.
+author: Carlo Wood
+email: carlo@alinoe.com
+description: >- # this means to ignore newlines until "baseurl:"
+  Linuxviewer is a high-performance, Linux-only Vulkan engine written in C++.
+  Built on top of the robust "aicxx" core modules, it combines speed, flexibility, and reliability.
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site, e.g. http://example.com
+github_username: CarloWood
+
+# Build settings
+destination: /home/carlo/projects/aicxx/linuxviewer/linuxviewer-objdir/linuxviewer-docs
+theme: minima
+plugins:
+  - jekyll-feed
+cache_dir: .generated/jekyll-cache
+use_directory_urls: true
+
+kramdown:
+  input: GFM
+  toc_levels: 1..6
+  auto_ids: true
+  html_to_native: true
+  auto_id_stripping: true
+  auto_id_prefix: page_
+  syntax_highlighter: rouge
+
+# Exclude from processing.
+# The following items will not be processed, by default.
+# Any item listed under the `exclude:` key here will be automatically added to
+# the internal "default list".
+#
+# Excluded items can be processed by explicitly listing the directories or
+# their entries' file path in the `include:` list.
+#
+exclude:
+    - jekyll-serve.sh
+    - jekyll-clean.sh
+    - CMakeLists.txt
+    - Gemfile
+    - Gemfile.lock
+    - .sass-cache/
+    - .jekyll-cache/
+#   - gemfiles/
+#   - node_modules/
+#   - vendor/bundle/
+#   - vendor/cache/
+#   - vendor/gems/
+#   - vendor/ruby/
+
+# Suppress annoying warnings in minima, see https://github.com/jekyll/minima/issues/709#issuecomment-1439967963
+sass:
+  quiet_deps: true
