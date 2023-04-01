@@ -11,10 +11,10 @@ with [OpenSimulator](http://opensimulator.org/) grids and [SecondLife](https://s
 
  On Archlinux:
 
-    sudo pacman -Sy base-devel git cmake ninja
-    sudo pacman -Sy boost sparsehash eigen systemd
-    sudo pacman -Sy blas lapack libxml++ libxcb libxkbcommon-x11 xorgproto xcb-proto
-    sudo pacman -Sy shaderc vulkan-headers vulkan-icd-loader vulkan-validation-layers
+    sudo pacman -Syu --needed base-devel git cmake ninja
+    sudo pacman -Syu --needed boost sparsehash eigen systemd
+    sudo pacman -Syu --needed blas lapack libxml++ libxcb libxkbcommon-x11 xorgproto xcb-proto
+    sudo pacman -Syu --needed shaderc vulkan-headers vulkan-icd-loader vulkan-validation-layers
 
  Note that ninja is an alternative make and is only required if you intend to
  configure with -GNinja (see below).
@@ -74,7 +74,7 @@ of the different types.
 
 ### Building ###
 
-    NUMBER_OF_CPUS=$(($(grep '^cpu cores' /proc/cpuinfo | wc --lines) - 2))
+    NUMBER_OF_CPUS=$((`nproc` - 2))
     cmake --build ${BUILD_DIR} --config ${CMAKE_CONFIG} --parallel ${NUMBER_OF_CPUS}
 
 Just set `NUMBER_OF_CPUS` to whatever you want, of course.
