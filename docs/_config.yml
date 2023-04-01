@@ -1,14 +1,15 @@
 # Site settings.
 title: Linuxviewer Vulkan Engine
-header_title: Linuxviewer           # A shorter title, used to put above the TOC.
-author: ${GIT_AUTHOR_NAME}
-email: ${GIT_AUTHOR_EMAIL}
+header_title: Linuxviewer         # A shorter title, used to put above the TOC.
+author: Carlo Wood
+email: carlo@alinoe.com
 description: >-
   Linuxviewer is a high-performance, Linux-only Vulkan engine written in C++.
   Built on top of the robust "aicxx" core modules, it combines speed, flexibility, and reliability.
+github_username: CarloWood
+github_projectname: linuxviewer
 baseurl: "/linuxviewer"
 url: ""
-github_username: CarloWood
 
 # Build settings.
 destination: /home/carlo/projects/aicxx/linuxviewer/linuxviewer-objdir/linuxviewer-docs
@@ -34,6 +35,8 @@ exclude:
     - CMakeLists.txt
     - Gemfile
     - Gemfile.lock
+    - assets/css/find_color.py
+    - assets/css/*.bak
     - .sass-cache/
     - .generated/
 

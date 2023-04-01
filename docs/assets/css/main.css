@@ -40,6 +40,14 @@ aside.sidebar {
   background-color: #181a1b
 }
 
+.columns .left-column {
+  background-color: #26292b
+}
+
+.sidebar-links a {
+  color: #a0a0a0
+}
+
 code {
   border: 1px solid #606060
 }
