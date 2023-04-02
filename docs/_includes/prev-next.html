@@ -1,0 +1,31 @@
+{%- assign content_pages = site.pages | where_exp: "page", "page.url contains '/chapters/'" | sort: "path" -%}
+{%- assign current_index = 0 -%}
+{%- for p in content_pages -%}
+  {%- if p.url == page.url -%}
+    {%- assign current_index = forloop.index0 -%}
+    {%- break -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- if current_index > 0 -%}
+  {%- assign prev_index = current_index | minus: 1 -%}
+  {%- assign prev_page = content_pages[prev_index] -%}
+{%- endif -%}
+
+{%- assign last_index = content_pages.size | minus: 1 -%}
+{%- if current_index < last_index -%}
+  {%- assign next_index = current_index | plus: 1 -%}
+  {%- assign next_page = content_pages[next_index] -%}
+{%- endif -%}
+
+<nav>
+  <ul class="pager">
+    {%- if prev_page -%}
+    <li><a href="{{ prev_page.url | relative_url }}" class="prev">Prev : <span>{{ prev_page.title }}</span></a></li>
+    {%- endif -%}
+    {%- if next_page -%}
+    <li><a href="{{ next_page.url | relative_url }}" class="next">Next : <span>{{ next_page.title }}</span></a></li>
+    {%- endif -%}
+  </ul>
+</nav>
+

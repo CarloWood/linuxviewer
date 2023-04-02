@@ -7,7 +7,7 @@ html {
   display: flex;
   align-items:center;
   justify-content:center;
-  background: #83181b;
+  background: #c66a19;
   color: #fff;
 }
 
@@ -44,10 +44,34 @@ aside.sidebar {
   background-color: #26292b
 }
 
+a {
+  color: #c66a19;
+}
+
+.pager li>a:focus,
+.pager li>a:hover {
+  background-color: #c66a19
+}
+
+.pager li>a>span {
+  color: #a0a0a0
+}
+
 .sidebar-links a {
   color: #a0a0a0
 }
 
 code {
   border: 1px solid #606060
+}
+
+.pager li {
+  margin-right: 0.5em;
+  margin-left: 0.5em
+}
+
+.pager li>a,
+.pager li>span {
+  background-color: #222222;
+  border: 1px solid #777;
 }
