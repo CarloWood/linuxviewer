@@ -1,6 +1,7 @@
 ---
 layout: chapter
 title: Vertex buffer creation
+utterance_id: vertex_buffer_creation_draft
 ---
 * TOC
 {:toc}

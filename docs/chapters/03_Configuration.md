@@ -1,6 +1,7 @@
 ---
 layout: chapter
 title: Configuration
+utterance_id: configuration_draft
 ---
 
 # Configuration
