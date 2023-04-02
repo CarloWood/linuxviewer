@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>{{ page.title }} - {{ site.title }}</title>
-  <meta name="description" content="{{ site.description }}" />
-  <meta name="author" content="{{ site.author }}" />
+  <title>{{ page.title | escape }} - {{ site.title | escape }}</title>
+  <meta name="description" content="{{ site.description | escape }}" />
+  <meta name="author" content="{{ site.author | escape }}" />
   <meta charset="UTF-8">
   <meta property="og:title" content="{{ page.utterance_id }}" />
   <link rel="icon" type="image/x-icon" href="{{ '/assets/favicon.ico' | relative_url }}">

@@ -21,10 +21,10 @@
 <nav>
   <ul class="pager">
     {%- if prev_page -%}
-    <li><a href="{{ prev_page.url | relative_url }}" class="prev">Prev : <span>{{ prev_page.title }}</span></a></li>
+    <li><a href="{{ prev_page.url | relative_url }}" class="prev">Prev : <span>{{ prev_page.title | escape }}</span></a></li>
     {%- endif -%}
     {%- if next_page -%}
-    <li><a href="{{ next_page.url | relative_url }}" class="next">Next : <span>{{ next_page.title }}</span></a></li>
+    <li><a href="{{ next_page.url | relative_url }}" class="next">Next : <span>{{ next_page.title | escape }}</span></a></li>
     {%- endif -%}
   </ul>
 </nav>
