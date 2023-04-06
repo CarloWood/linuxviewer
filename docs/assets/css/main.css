@@ -122,3 +122,18 @@ code {
   font-size: 75%;
   color: #aa00ff
 }
+
+.doc_content article {
+  border-bottom: 1px solid #eee;
+}
+
+/* Introduction */
+
+#bigbook {
+  display: block;
+  width: 25%; /* Adjust the scaling factor by changing the percentage */
+  height: auto;
+  margin: 1em;
+  margin-left: auto;
+  margin-right: auto;
+}
