@@ -1,7 +1,10 @@
 <div id="sub-nav-collapse" class="sub-nav-collapse">
-  <div class="nav-logo">
-    <span>{{ site.header_title }}</span>
-  </div>
+  <a href="{{ '/' | relative_url }}/" class="nav-logo-wrapper">
+    <div class="nav-logo">
+      <img src="{{ '/assets/linuxviewer_64x64.png' | relative_url }}" alt="Logo image" class="logo-image">
+      <span>{{ site.header_title }}</span>
+    </div>
+  </a>
   <aside class="sidebar">
     <ul class='Nav'>
       {% assign chapters = site.pages | sort: "path" -%}

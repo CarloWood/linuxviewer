@@ -7,18 +7,9 @@ layout: sidebar
   <div class="doc_content">
     <article>
       <div class="page-header">
-        <h1>{{ page.title | escape }}</h1>
+        <h1>{{ page.title | escape }}<span>{{ page.subtitle | escape }}</span></h1>
       </div>
       {{ content }}
     </article>
-    {% include prev-next.html %}
   </div>
-  <script src="https://utteranc.es/client.js"
-          repo="CarloWood/linuxviewer-utterances"
-          issue-term="og:title"
-          label="comment"
-          theme="github-dark"
-          crossorigin="anonymous"
-          async>
-  </script>
 </div>

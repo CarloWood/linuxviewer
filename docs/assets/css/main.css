@@ -1,8 +1,20 @@
+/* Override the default color. */
 body,
 html {
   color: #ccc7c0
 }
 
+/* Make sure that the anchor tag wraps tightly around the div that it contains. */
+a.nav-logo-wrapper {
+  display: block;
+  text-decoration: none;
+  border: none; /* Remove the underlining when hovering over the sidebar logo/title. */
+  color: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+/* The logo/title bar at the top of the sidebar. */
 .nav-logo {
   display: flex;
   align-items:center;
@@ -11,8 +23,16 @@ html {
   color: #fff;
 }
 
+/* Adjust the position of the title inside the nav-logo div a bit. */
 .nav-logo span {
-  transform: translate(-8px, -4px);
+  transform: translate(-8px, -2px);
+  padding-right: 50px
+}
+
+/* Position the logo image. */
+.logo-image {
+  vertical-align: middle;
+  margin-right: 20px;
 }
 
 aside.sidebar {
@@ -32,21 +52,36 @@ aside.sidebar {
   padding-bottom: 4px;
 }
 
+/* Override the content color. */
 .content {
   background-color: #202325
 }
 
-.columns .right-column .content-page {
-  background-color: #181a1b
-}
-
+/* Override the background color of the sidebar. */
 .columns .left-column {
   background-color: #26292b
 }
 
+/* Override the background color of the content. */
+.columns .right-column .content-page {
+  background-color: #181a1b
+}
+
+/* Override the default anchor color. */
 a {
   color: #c66a19;
 }
+
+.sidebar-links a {
+  color: #a0a0a0
+}
+
+/* Override color of box around inline code. */
+code {
+  border: 1px solid #606060
+}
+
+/* Prev / Next buttons at bottom of chapters. */
 
 .pager li>a:focus,
 .pager li>a:hover {
@@ -55,14 +90,6 @@ a {
 
 .pager li>a>span {
   color: #a0a0a0
-}
-
-.sidebar-links a {
-  color: #a0a0a0
-}
-
-code {
-  border: 1px solid #606060
 }
 
 .pager li {
@@ -74,4 +101,24 @@ code {
 .pager li>span {
   background-color: #222222;
   border: 1px solid #777;
+}
+
+/* Chapter header */
+
+.page-header h1 {
+  font-family: Alkatra
+}
+
+.page-header h1 span:before {
+  content: " (";
+}
+
+.page-header h1 span:after {
+  content: ")";
+}
+
+.page-header h1 span {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 75%;
+  color: #aa00ff
 }
