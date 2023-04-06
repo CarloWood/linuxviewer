@@ -27,21 +27,19 @@ and efficient concurrency management to harness the full potential of multicore 
 
 Besides building on top of more than 10 years of development that went into `aicxx`,
 for things like multi-threading, I/O, locking, debug support, memory management and
-so on, the aim of this Vulkan Engine project is to make it much easier to use Vulkan.
-
-The motto of `aicxx` is "if it compiles, it works". Linuxviewer tries to up hold that promise
-even for Vulkan applications.
+so on, the aim of linuxviewer is to make it much easier to use Vulkan.
+The motto of `aicxx` is "if it compiles, it works".
+Linuxviewer tries to up hold that promise even for Vulkan applications.
 
 ## Linux only
 
-The main reason linuxviewer is linux-only is because I have decades of experience with
-Linux and zero with Windows (or Mac). I don't even own a Windows box, so I wouldn't be able
-to test anything.
+The primary reason Linuxviewer is Linux-only is that I have decades of experience with Linux
+and none with Windows (or Mac). I don't even own a Windows machine, so I wouldn't be able to test anything.
 
-However, once having submitted to not be portable, this opened the door to writing faster code,
-specifically tuned for linux. Note that mainly, if not only, it's the `aicxx` modules that are linux-specific.
-Most important being the use of `epoll` for socket I/O and `futex` for the thread pool.
-But there are other optimizations like "guessing" how `malloc` allocates memory (to avoid extra overhead)
-specifics of mutex timings, costs of system calls, and the linux scheduler.
-None of those things would be in the way of a straight-forward porting to another operating system,
-but might not give the fine-tuning anymore that was aimed for.
+However, after committing to a non-portable design, this opened the door to writing faster code specifically optimized for Linux.
+It's worth noting that mainly, if not exclusively, the `aicxx` modules are Linux-specific.
+The most significant aspects include the use of `epoll` for socket I/O and `futex` for the thread pool.
+Additionally, there are other optimizations such as "guessing" how malloc allocates memory (to avoid extra overhead),
+mutex timing specifics, system call costs, and the Linux scheduler.
+None of these factors would impede a straightforward port to another operating system,
+but they might not provide the fine-tuning that was originally aimed for.
