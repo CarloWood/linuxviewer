@@ -19,7 +19,7 @@ Nonetheless, although Vulkan offers greater control and performance, it comes wi
 steeper learning curve compared to OpenGL. This may make it harder to begin working with
 and results in longer development times, particularly for smaller projects or prototypes.
 
-<img src="{{ '/assets/VulkanMemeBigBook.png' | relative_url }}" alt="Drawing a triangle with Vulkan - Meme" id="bigbook" />
+<img src="{{ '/assets/VulkanMemeBigBook.png' | relative_url }}" alt="Drawing a triangle with Vulkan - Meme" id="img_bigbook" />
 
 Linuxviewer is build on top of the `aicxx` git submodules, roughly developed between 2010 and 2021.
 These submodules provide building blocks for C++ applications, focusing on speed, robustness,
@@ -38,7 +38,7 @@ and none with Windows (or Mac). I don't even own a Windows machine, so I wouldn'
 
 However, after committing to a non-portable design, this opened the door to writing faster code specifically optimized for Linux.
 It's worth noting that mainly, if not exclusively, the `aicxx` modules are Linux-specific.
-The most significant aspects include the use of `epoll` for socket I/O and `futex` for the thread pool.
+The most significant aspects include the use of `epoll` for I/O and `futex` thread pool scheduling.
 Additionally, there are other optimizations such as "guessing" how malloc allocates memory (to avoid extra overhead),
 mutex timing specifics, system call costs, and the Linux scheduler.
 None of these factors would impede a straightforward port to another operating system,

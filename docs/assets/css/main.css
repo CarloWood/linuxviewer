@@ -1,7 +1,16 @@
+:root {
+  --linuxviewer-color: #c66a19;
+  --default-text-color: #ccc7c0;
+  --header-color: #ccc7c0;
+  --navigation-color: #a0a0a0;
+  --inline-command-color: #8f8fdd;
+  --lightgray-background-color: #26292b;        /* Used at bottom of sidebar and for h2 headers. */
+}
+
 /* Override the default color. */
 body,
 html {
-  color: #ccc7c0
+  color: var(--default-text-color);
 }
 
 /* Make sure that the anchor tag wraps tightly around the div that it contains. */
@@ -19,14 +28,15 @@ a.nav-logo-wrapper {
   display: flex;
   align-items:center;
   justify-content:center;
-  background: #c66a19;
-  color: #fff;
+  background: var(--linuxviewer-color);
+  color: var(--header-color);
+  text-shadow: 2px 2px 2px #008080;    /* Text shadow. */
 }
 
 /* Adjust the position of the title inside the nav-logo div a bit. */
 .nav-logo span {
   transform: translate(-8px, -2px);
-  padding-right: 50px
+  padding-right: 50px;
 }
 
 /* Position the logo image. */
@@ -54,47 +64,47 @@ aside.sidebar {
 
 /* Override the content color. */
 .content {
-  background-color: #202325
+  background-color: #202325;
 }
 
 /* Override the background color of the sidebar. */
 .columns .left-column {
-  background-color: #26292b
+  background-color: var(--lightgray-background-color);
 }
 
 /* Override the background color of the content. */
 .columns .right-column .content-page {
-  background-color: #181a1b
+  background-color: #181a1b;
 }
 
 /* Override the default anchor color. */
 a {
-  color: #c66a19;
+  color: var(--linuxviewer-color);
 }
 
 .sidebar-links a {
-  color: #a0a0a0
+  color: var(--navigation-color);
 }
 
 /* Override color of box around inline code. */
 code {
-  border: 1px solid #606060
+  border: 1px solid #606060;
 }
 
 /* Prev / Next buttons at bottom of chapters. */
 
 .pager li>a:focus,
 .pager li>a:hover {
-  background-color: #c66a19
+  background-color: var(--linuxviewer-color);
 }
 
 .pager li>a>span {
-  color: #a0a0a0
+  color: var(--navigation-color);
 }
 
 .pager li {
   margin-right: 0.5em;
-  margin-left: 0.5em
+  margin-left: 0.5em;
 }
 
 .pager li>a,
@@ -103,10 +113,12 @@ code {
   border: 1px solid #777;
 }
 
-/* Chapter header */
+/* Chapter header. */
 
 .page-header h1 {
-  font-family: Alkatra
+  font-family: Alkatra;
+  font-size: 40px;
+  color: var(--header-color);
 }
 
 .page-header h1 span:before {
@@ -118,20 +130,56 @@ code {
 }
 
 .page-header h1 span {
-  font-family: 'Times New Roman', Times, serif;
+  font-family: 'Times New Roman', 'Times', serif;
   font-size: 75%;
-  color: #aa00ff
+  color: #aa00ff;
+}
+
+.doc_content article h2 {
+  background: var(--lightgray-background-color);
+  color: var(--header-color);
+  text-shadow: 2px 2px 2px #008080;    /* Text shadow. */
+  border-top: 2px solid #555;       /* Solid, 2-pixel-wide, dark gray border. */
+  padding-top: 5px;
+  padding-bottom: 4px;
 }
 
 .doc_content article {
   border-bottom: 1px solid #eee;
 }
 
-/* Introduction */
+/* Inline style. */
 
-#bigbook {
+span.command {
+  font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+  font-size: 1em;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  tab-size: 4;
+  color: var(--inline-command-color);
+  padding-left: 0.25em;
+  padding-right: 0.25em;
+}
+
+/* Introduction. */
+
+#img_bigbook {
   display: block;
-  width: 25%; /* Adjust the scaling factor by changing the percentage */
+  width: 25%; /* Adjust the scaling factor by changing the percentage. */
+  height: auto;
+  margin: 1em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Getting Started. */
+
+#img_hellotriangle {
+  display: block;
+  width: 25%;
   height: auto;
   margin: 1em;
   margin-left: auto;

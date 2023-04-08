@@ -22,14 +22,15 @@
   <link rel="stylesheet" href="{{ '/assets/css/prism.css' | relative_url }}" type="text/css">
   <!-- Navigation script -->
   <script src="{{ '/assets/js/navigation.js' | relative_url }}" defer></script>
+  <!-- Syntax highlighting -->
   <script src="{{ '/assets/js/prism.js' | relative_url }}" defer></script>
-  <!-- script>
-    window.onload = function() {
-      setTimeout(function() {
-        location.reload();
-      }, 500);
-    };
-  </script -->
+  <!-- Reload page every 500 ms if on localhost and requested (for debugging colors) -->
+  <script>
+    const currentUrl = new URL(window.location.href);
+    const isLocalhost = currentUrl.hostname === 'localhost';
+    const hasReloadParam = currentUrl.searchParams.has('reload');
+    if (isLocalhost && hasReloadParam) { window.onload = function() { setTimeout(function() { location.reload(); }, 500); }; }
+  </script>
 </head>
 <body>
   <div class="container-fluid fluid-height wrapper">
