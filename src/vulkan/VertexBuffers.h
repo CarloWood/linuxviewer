@@ -83,3 +83,5 @@ class VertexBuffers
 };
 
 } // namespace vulkan
+
+#define LV_NEEDS_VERTEX_BUFFERS_INL_H

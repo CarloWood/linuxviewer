@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PushConstantRange.h"
-#include "descriptor/SetLayout.h"
-#include "descriptor/SetIndexHintMap.h"
+#include "../PushConstantRange.h"
+#include "../descriptor/SetLayout.h"
+#include "../descriptor/SetIndexHintMap.h"
 #include "threadsafe/aithreadsafe.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
@@ -196,3 +196,5 @@ void CharacteristicDataCache<T>::print_on(std::ostream& os) const
 
 } // namespace pipeline
 } // namespace vulkan
+
+#define LV_NEEDS_FLAT_CREATE_INFO_INL_H

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../vk_utils/print_flags.h"
 #include <vk_mem_alloc.h>
-#include "vk_utils/print_flags.h"
 #include <vulkan/vulkan.hpp>
 #include "debug.h"
 

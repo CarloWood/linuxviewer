@@ -2,7 +2,7 @@
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
 #include "CharacteristicRangeBridge.h"
-#include "shader_builder/ShaderIndex.h"
+#include "../shader_builder/ShaderIndex.h"
 #include "utils/AIRefCount.h"
 #include "utils/Vector.h"
 #include "statefultask/AIStatefulTask.h"

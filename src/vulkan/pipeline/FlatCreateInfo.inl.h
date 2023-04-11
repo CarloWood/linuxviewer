@@ -1,3 +1,6 @@
+#pragma once
+#undef LV_NEEDS_FLAT_CREATE_INFO_INL_H
+
 #include "CharacteristicRange.h"
 #include "xml/Bridge.h"
 
@@ -38,6 +41,7 @@ std::vector<T> FlatCreateInfo::merge(aithreadsafe::Wrapper<utils::Vector<Charact
         per_fill_index_cache.emplace_back(vec_ptr->begin(), vec_ptr->end());
       }
 
+#if CW_DEBUG
       // You called add(std::vector<T> const&) but never filled the passed vector with data.
       //
       // For example,
@@ -45,8 +49,23 @@ std::vector<T> FlatCreateInfo::merge(aithreadsafe::Wrapper<utils::Vector<Charact
       // T = vk::VertexInputBindingDescription:
       // if you do not have any vertex buffers then you should set m_use_vertex_buffers = false; in
       // the constructor of the pipeline factory characteristic derived from AddVertexShader.
-      ASSERT(vec_ptr->size() != 0);
-
+      if (vec_ptr->empty())
+      {
+        if constexpr (std::is_same_v<T, vk::VertexInputBindingDescription>)
+          DoutFatal(dc::core, "If you do not have any vertex buffers then you should set m_use_vertex_buffers = false; in the constructor of the pipeline factory characteristic derived from AddVertexShader.");
+        else if constexpr (std::is_same_v<T, vk::VertexInputBindingDescription>)
+          DoutFatal(dc::core, "The factory characteristic is derived from AddVertexShader, but m_vertex_input_binding_descriptions was never filled.");
+        else if constexpr (std::is_same_v<T, vk::VertexInputAttributeDescription>)
+          DoutFatal(dc::core, "The factory characteristic is derived from AddVertexShader, but m_vertex_input_attribute_descriptions was never filled.");
+        else if constexpr (std::is_same_v<T, PushConstantRange>)
+          DoutFatal(dc::core, "The factory characteristic is derived from AddPushConstant, but m_push_constant_ranges was never filled.");
+        else if constexpr (std::is_same_v<T, vk::PipelineShaderStageCreateInfo>)
+          DoutFatal(dc::core, "The factory characteristic is derived from AddShaderStage, but m_shader_stage_create_infos was never filled. Did you forget to call add_shader() in your factory characteristic class?");
+        else
+          DoutFatal(dc::core, "You called FlatCreateInfo::add(std::vector<" <<
+            libcwd::type_info_of<T>().demangled_name() << "> const&) but never filled the passed vector with data.");
+      }
+#endif
       result.insert(result.end(), vec_ptr->begin(), vec_ptr->end());
     }
   }

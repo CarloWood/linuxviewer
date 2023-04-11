@@ -2,7 +2,7 @@
 
 #include "InstanceData.h"
 #include "SampleParameters.h"
-#include "vulkan/shader_builder/VertexShaderInputSet.h"
+#include <vulkan/shader_builder/VertexShaderInputSet.h>
 #include <random>
 
 // Generate SampleParameters::s_max_object_count InstanceData objects.

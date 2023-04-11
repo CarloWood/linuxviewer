@@ -1,8 +1,8 @@
 #pragma once
 
 #include "SetKey.h"
-#include "ShaderResourceDeclaration.h"
-#include "vk_utils/print_pointer.h"
+#include "../shader_builder/ShaderResourceDeclaration.h"
+#include "../vk_utils/print_pointer.h"
 #include <map>
 
 namespace vulkan::descriptor {

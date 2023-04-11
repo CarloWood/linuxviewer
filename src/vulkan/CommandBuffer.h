@@ -99,4 +99,5 @@ static_assert(sizeof(CommandBuffer) == sizeof(vk::CommandBuffer), "handle::Comma
 } // namespace handle
 } // namespace vulkan
 
+#define LV_NEEDS_COMMAND_BUFFER_INL_H
 #endif // COMMAND_BUFFER_H

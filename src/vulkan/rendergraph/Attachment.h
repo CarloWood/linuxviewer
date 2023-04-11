@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ImageKind.h"
+#include "../ImageKind.h"
 #include "ClearValue.h"
 #include "utils/UniqueID.h"
 #include "utils/Vector.h"

@@ -5,30 +5,29 @@
 #include "PushConstant.h"
 #include "SampleParameters.h"
 #include "FrameResourcesCount.h"
-#include "VertexBuffers.h"
-#include "Pipeline.h"
-#include "PushConstantRange.h"
-#include "SynchronousWindow.h"
-#include "pipeline/AddVertexShader.h"
-#include "pipeline/AddFragmentShader.h"
-#include "pipeline/AddPushConstant.h"
-#include "pipeline/Characteristic.h"
-#include "queues/CopyDataToBuffer.h"
-#include "queues/CopyDataToImage.h"
-#include "shader_builder/ShaderIndex.h"
-#include "shader_builder/shader_resource/CombinedImageSampler.h"
-#include "vk_utils/ImageData.h"
-#include "utils/threading/aithreadid.h"
-
-#include "pipeline/AddPushConstant.inl.h"
-#include "CommandBuffer.inl.h"
+#include <vulkan/VertexBuffers.h>
+#include <vulkan/Pipeline.h>
+#include <vulkan/PushConstantRange.h>
+#include <vulkan/SynchronousWindow.h>
+#include <vulkan/pipeline/AddVertexShader.h>
+#include <vulkan/pipeline/AddFragmentShader.h>
+#include <vulkan/pipeline/AddPushConstant.h>
+#include <vulkan/pipeline/Characteristic.h>
+#include <vulkan/queues/CopyDataToBuffer.h>
+#include <vulkan/queues/CopyDataToImage.h>
+#include <vulkan/shader_builder/ShaderIndex.h>
+#include <vulkan/shader_builder/shader_resource/CombinedImageSampler.h>
+#include <vulkan/vk_utils/ImageData.h>
+#include <utils/threading/aithreadid.h>
 
 #include <imgui.h>
 #include "debug.h"
-#include "tracy/CwTracy.h"
+#include <vulkan/tracy/CwTracy.h>
 #ifdef TRACY_ENABLE
-#include "tracy/SourceLocationDataIterator.h"
+#include <vulkan/tracy/SourceLocationDataIterator.h>
 #endif
+
+#include <vulkan/lv_inline_definitions.h>
 
 #define ENABLE_IMGUI 1
 

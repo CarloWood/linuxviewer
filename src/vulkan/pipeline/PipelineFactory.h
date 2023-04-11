@@ -2,12 +2,12 @@
 #define PIPELINE_PIPELINE_FACTORY_H
 
 #include "FlatCreateInfo.h"
-#include "Pipeline.h"
+#include "../Pipeline.h"
 #include "ShaderResourcePlusCharacteristic.h"
 #include "ShaderResourcePlusCharacteristicIndex.h"
-#include "descriptor/SetKeyPreference.h"
-#include "descriptor/SetKeyToShaderResourceDeclaration.h"
-#include "shader_builder/shader_resource/UniformBuffer.h"
+#include "../descriptor/SetKeyPreference.h"
+#include "../descriptor/SetKeyToShaderResourceDeclaration.h"
+#include "../shader_builder/shader_resource/UniformBuffer.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
 #include "threadsafe/aithreadsafe.h"

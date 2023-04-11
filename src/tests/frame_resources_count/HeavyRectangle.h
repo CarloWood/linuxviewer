@@ -2,7 +2,7 @@
 
 #include "VertexData.h"
 #include "SampleParameters.h"
-#include "vulkan/shader_builder/VertexShaderInputSet.h"
+#include <vulkan/shader_builder/VertexShaderInputSet.h>
 #include <Eigen/Geometry>
 
 class HeavyRectangle final : public vulkan::shader_builder::VertexShaderInputSet<VertexData>

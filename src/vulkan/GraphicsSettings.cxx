@@ -3,6 +3,5 @@
 
 namespace vulkan {
 
-
 } // namespace vulkan
 

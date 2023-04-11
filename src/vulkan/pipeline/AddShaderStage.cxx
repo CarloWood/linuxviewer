@@ -18,6 +18,7 @@ void AddShaderStage::pre_fill_state()
 
 void AddShaderStage::add_shader(shader_builder::ShaderIndex add_shader_index)
 {
+  DoutEntering(dc::vulkan, "AddShaderStage::add_shader(add_shader_index) [" << this << "]");
 #ifdef CWDEBUG
   shader_builder::ShaderInfo const& add_shader_info = Application::instance().get_shader_info(add_shader_index);
   for (shader_builder::ShaderIndex existing_shader_index : m_shaders_that_need_compiling)

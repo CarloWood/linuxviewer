@@ -1,15 +1,18 @@
+#pragma once
+#undef LV_NEEDS_ADD_PUSH_CONSTANT_INL_H
+
 #ifndef VULKAN_PIPELINE_ADD_PUSH_CONSTANT_H
 #include "AddPushConstant.h"
 #endif
+#ifndef VULKAN_PIPELINE_ADD_VERTEX_SHADER_H
+#include "AddVertexShader.h"
+#endif
 
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
-#include "shader_builder/VertexShaderInputSet.h"
+#include "../shader_builder/VertexShaderInputSet.h"
 #endif
 #ifndef VULKAN_SHADERBUILDER_VERTEX_ATTRIBUTE_ENTRY_H
-#include "shader_builder/VertexAttribute.h"
-#endif
-#ifndef VULKAN_PIPELINE_ADD_VERTEX_SHADER_H
-#include "pipeline/AddVertexShader.h"
+#include "../shader_builder/VertexAttribute.h"
 #endif
 
 #ifndef VULKAN_PIPELINE_ADD_PUSH_CONSTANT_H_definitions

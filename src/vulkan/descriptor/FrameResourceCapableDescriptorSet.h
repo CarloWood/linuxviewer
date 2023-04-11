@@ -1,10 +1,10 @@
 #pragma once
 
-#include "FrameResourceIndex.h"
+#include "../FrameResourceIndex.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
-#include "debug/vulkan_print_on.h"
+#include "../debug/vulkan_print_on.h"
 #endif
 #include "debug.h"
 

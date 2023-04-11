@@ -1,7 +1,7 @@
 #pragma once
 
-#include "VertexBufferBindingIndex.h"
-#include "descriptor/SetIndex.h"
+#include "../VertexBufferBindingIndex.h"
+#include "../descriptor/SetIndex.h"
 #include "statefultask/AIStatefulTask.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>

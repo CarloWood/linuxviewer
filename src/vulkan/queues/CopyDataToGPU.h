@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ImmediateSubmit.h"
-#include "memory/StagingBuffer.h"
-#include "memory/DataFeeder.h"
+#include "../memory/StagingBuffer.h"
+#include "../memory/DataFeeder.h"
 #include "statefultask/RunningTasksTracker.h"
 #include <vector>
 

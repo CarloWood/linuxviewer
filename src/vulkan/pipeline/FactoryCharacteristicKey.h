@@ -1,7 +1,7 @@
 #pragma once
 
 #include "FactoryCharacteristicId.h"
-#include "vk_utils/ConsecutiveRange.h"
+#include "../vk_utils/ConsecutiveRange.h"
 
 namespace vulkan::pipeline {
 using utils::has_print_on::operator<<;

@@ -3,7 +3,7 @@
 #ifndef PIPELINE_PIPELINE_CACHE_H
 #define PIPELINE_PIPELINE_CACHE_H
 
-#include "vk_utils/TaskToTaskDeque.h"
+#include "../vk_utils/TaskToTaskDeque.h"
 #include "statefultask/AIStatefulTask.h"
 #include "threadsafe/aithreadsafe.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
@@ -15,7 +15,7 @@
 #include <filesystem>
 #include <cstdlib>
 #ifdef CWDEBUG
-#include "debug/DebugSetName.h"
+#include "../debug/DebugSetName.h"
 #endif
 #include "debug.h"
 

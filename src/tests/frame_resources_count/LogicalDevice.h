@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vulkan/LogicalDevice.h"
-#include "vulkan/infos/DeviceCreateInfo.h"
+#include <vulkan/LogicalDevice.h>
+#include <vulkan/infos/DeviceCreateInfo.h>
 
 class LogicalDevice : public vulkan::LogicalDevice
 {

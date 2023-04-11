@@ -1,4 +1,5 @@
 #pragma once
+#undef LV_NEEDS_VERTEX_BUFFERS_INL_H
 
 #include "SynchronousWindow.h"
 #include "CommandBuffer.h"

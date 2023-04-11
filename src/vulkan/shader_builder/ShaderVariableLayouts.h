@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/glsl.h"
-#include "utils/TemplateStringLiteral.h"
+#include "../math/glsl.h"
+#include "../utils/TemplateStringLiteral.h"
 #include <vulkan/vulkan.hpp>
 #include <boost/preprocessor/stringize.hpp>
 #include <functional>

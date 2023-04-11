@@ -2,7 +2,7 @@
 
 #include "ShaderInfo.h"
 #include "ShaderIndex.h"
-#include "PushConstantRange.h"
+#include "../PushConstantRange.h"
 #include "ShaderResourceDeclaration.h"
 #include "threadsafe/aithreadsafe.h"
 #include "statefultask/AIStatefulTaskMutex.h"

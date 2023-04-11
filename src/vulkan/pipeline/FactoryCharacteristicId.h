@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vk_utils/ConsecutiveRange.h"
+#include "../vk_utils/ConsecutiveRange.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"

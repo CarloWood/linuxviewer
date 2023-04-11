@@ -2,7 +2,7 @@
 #define DEBUG_SET_NAME_DECLARATION_H
 
 #ifdef CWDEBUG
-#include "Concepts.h"
+#include "../Concepts.h"
 #include <string>
 #include <cstddef>
 
@@ -99,7 +99,7 @@ void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifi
 
 #ifdef CWDEBUG
 #ifndef VULKAN_LOGICAL_DEVICE_H
-#include "LogicalDevice.h"
+#include "../LogicalDevice.h"
 #endif
 
 #ifndef DEBUG_SET_NAME_DEFINITIONS_H

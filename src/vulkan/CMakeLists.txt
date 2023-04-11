@@ -104,12 +104,13 @@ get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INC
 target_include_directories(vulkan_ObjLib
   PRIVATE
     "${CMAKE_SOURCE_DIR}/external/peelo-xdg/include"
-  PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}" # For sys.h and debug.h.
 )
 
 target_compile_definitions(vulkan_ObjLib
+  PRIVATE
+    LV_COMPILING_VULKAN_ENGINE
   PUBLIC
     VK_USE_PLATFORM_XCB_KHR
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1

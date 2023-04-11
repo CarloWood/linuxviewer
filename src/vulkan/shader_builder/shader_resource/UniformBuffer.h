@@ -1,20 +1,19 @@
 #ifndef SHADER_RESOURCE_UNIFORM_BUFFER_H
 #define SHADER_RESOURCE_UNIFORM_BUFFER_H
 
-#include "FrameResourceIndex.h"
-#include "descriptor/SetKey.h"
-#include "descriptor/SetKeyContext.h"
-#include "shader_builder/ShaderResourceBase.h"
-#include "shader_builder/ShaderVariableLayouts.h"
-#include "shader_builder/ShaderResourceMember.h"
-#include "shader_resource/UniformBuffer.h"
-#include "memory/UniformBuffer.h"
+#include "../../FrameResourceIndex.h"
+#include "../../descriptor/SetKey.h"
+#include "../../descriptor/SetKeyContext.h"
+#include "../ShaderResourceBase.h"
+#include "../ShaderVariableLayouts.h"
+#include "../ShaderResourceMember.h"
+#include "UniformBuffer.h"
+#include "../../memory/UniformBuffer.h"
 #include "utils/Vector.h"
 #include "debug.h"
 #ifdef CWDEBUG
-#include "debug/vulkan_print_on.h"
+#include "../../debug/vulkan_print_on.h"
 #include <cxxabi.h>
-#include "src/tests/uniform_buffers/TopPosition.h"
 #endif
 
 namespace vulkan::task {

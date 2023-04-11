@@ -27,8 +27,14 @@ void AddVertexShader::copy_shader_variables()
 {
   DoutEntering(dc::vulkan, "AddVertexShader::copy_shader_variables() [" << this << "]");
 
+  // If we do not have vertex buffers then m_current_vertex_buffers_object will be NULL.
+  if (!m_use_vertex_buffers)
+    return;
+
   // Call AddVertexShader::add_vertex_input_bindings with a vulkan::VertexBuffers object
   // from the initialization state of the Characteristic responsible for the vertex shader.
+  // If you are not using any VertexBuffers, then set m_use_vertex_buffers to true in the
+  // constructor of the pipeline factory characteristic derived from this class.
   ASSERT(m_current_vertex_buffers_object);
 
   auto const& glsl_id_full_to_vertex_attribute = m_current_vertex_buffers_object->glsl_id_full_to_vertex_attribute();
@@ -47,11 +53,18 @@ void AddVertexShader::copy_shader_variables()
   }
 }
 
+// Clear and then fill m_vertex_input_binding_descriptions and m_vertex_input_attribute_descriptions.
 void AddVertexShader::update_vertex_input_descriptions()
 {
   DoutEntering(dc::vulkan, "AddVertexShader::update_vertex_input_descriptions() [" << this << "]");
 
   m_vertex_input_binding_descriptions.clear();
+  m_vertex_input_attribute_descriptions.clear();
+
+  // If we didn't add m_vertex_input_binding_descriptions to the flat create info, so it makes no sense to fill them.
+  if (!m_use_vertex_buffers)
+    return;
+
   auto const& vertex_shader_input_sets = m_current_vertex_buffers_object->vertex_shader_input_sets();
   for (VertexBufferBindingIndex binding = vertex_shader_input_sets.ibegin(); binding != vertex_shader_input_sets.iend(); ++binding)
   {
@@ -61,7 +74,6 @@ void AddVertexShader::update_vertex_input_descriptions()
         .inputRate = vertex_shader_input_sets[binding]->input_rate()});
   }
 
-  m_vertex_input_attribute_descriptions.clear();
   auto const& glsl_id_full_to_vertex_attribute = m_current_vertex_buffers_object->glsl_id_full_to_vertex_attribute();
   for (auto vertex_attribute_iter = glsl_id_full_to_vertex_attribute.begin();
       vertex_attribute_iter != glsl_id_full_to_vertex_attribute.end(); ++vertex_attribute_iter)
@@ -119,8 +131,19 @@ void AddVertexShader::cache_vertex_input_descriptions(shader_builder::ShaderInfo
 
 void AddVertexShader::restore_vertex_input_descriptions(shader_builder::ShaderInfoCache const& shader_info_cache)
 {
-  m_vertex_input_binding_descriptions = shader_info_cache.m_vertex_input_binding_descriptions;
-  m_vertex_input_attribute_descriptions = shader_info_cache.m_vertex_input_attribute_descriptions;
+  if (m_vertex_input_binding_descriptions.empty() && m_vertex_input_attribute_descriptions.empty())
+  {
+    m_vertex_input_binding_descriptions = shader_info_cache.m_vertex_input_binding_descriptions;
+    m_vertex_input_attribute_descriptions = shader_info_cache.m_vertex_input_attribute_descriptions;
+  }
+#if CW_DEBUG
+  else
+  {
+    // If we DID already call preprocess1, then we should have gotten the same vertex input descriptions as another pipeline factory of course!
+    ASSERT(m_vertex_input_binding_descriptions == shader_info_cache.m_vertex_input_binding_descriptions);
+    ASSERT(m_vertex_input_attribute_descriptions == shader_info_cache.m_vertex_input_attribute_descriptions);
+  }
+#endif
 }
 
 void AddVertexShader::add_vertex_input_bindings(VertexBuffers const& vertex_buffers)

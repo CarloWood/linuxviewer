@@ -1,13 +1,13 @@
 #pragma once
 
-#include "ShaderResourceMember.h"
 #include "Update.h"
 #include "SetKeyContext.h"
-#include "TextureArrayRange.h"
-#include "shader_builder/ShaderResourceBase.h"
-#include "pipeline/FactoryCharacteristicKey.h"
-#include "pipeline/FactoryCharacteristicData.h"
-#include "vk_utils/TaskToTaskDeque.h"
+#include "../TextureArrayRange.h"
+#include "../shader_builder/ShaderResourceBase.h"
+#include "../shader_builder/ShaderResourceMember.h"
+#include "../pipeline/FactoryCharacteristicKey.h"
+#include "../pipeline/FactoryCharacteristicData.h"
+#include "../vk_utils/TaskToTaskDeque.h"
 #include "cwds/debug_ostream_operators.h"
 #include <boost/container/flat_map.hpp>
 

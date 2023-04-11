@@ -670,3 +670,8 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
 } // namespace vulkan
 
 #endif // VULKAN_LOGICAL_DEVICE_H_definitions
+
+#ifndef LV_COMPILING_VULKAN_ENGINE
+// If we're not compiling the vulkan engine itself, then include the definition of classes used for the virtual functions.
+#include <vulkan/infos/DeviceCreateInfo.h>
+#endif

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Defaults.h"
-#include "Application.h"
+#include "../Defaults.h"
+#include "../Application.h"
 
 namespace vulkan {
 

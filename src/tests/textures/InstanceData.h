@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader_builder/VertexAttribute.h"
+#include <vulkan/shader_builder/VertexAttribute.h>
 
 struct InstanceData;
 

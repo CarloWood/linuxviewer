@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Defaults.h"           // For its print_on capability.
-#include "vk_utils/print_pointer.h"
+#include "../Defaults.h"           // For its print_on capability.
+#include "../vk_utils/print_pointer.h"
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
 #include <iostream>

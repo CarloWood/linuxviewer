@@ -1,6 +1,6 @@
 #pragma once
 
-#include "memory/DataFeeder.h"
+#include "../memory/DataFeeder.h"
 #include <cstring>
 
 namespace vk_utils {

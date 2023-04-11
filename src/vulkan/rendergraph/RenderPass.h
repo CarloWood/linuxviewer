@@ -5,9 +5,9 @@
 #define RENDER_PASS_H
 
 #include "AttachmentNode.h"
-#include "Attachment.h"
+#include "../Attachment.h"
 #include "RenderPassSubpassData.h"
-#include "FrameResourceIndex.h"
+#include "../FrameResourceIndex.h"
 #include <string>
 #include <functional>
 #include <set>

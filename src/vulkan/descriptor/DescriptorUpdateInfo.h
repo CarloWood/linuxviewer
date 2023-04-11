@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Update.h"
-#include "pipeline/FactoryCharacteristicKey.h"
-#include "pipeline/FactoryCharacteristicData.h"
+#include "../pipeline/FactoryCharacteristicKey.h"
+#include "../pipeline/FactoryCharacteristicData.h"
 #include <cstdint>
 #ifdef CWDEBUG
 #include <iosfwd>

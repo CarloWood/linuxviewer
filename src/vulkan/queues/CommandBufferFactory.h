@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ImmediateSubmitRequest.h"
-#include "CommandBuffer.h"
-#include "CommandPool.h"
+#include "../CommandBuffer.h"
+#include "../CommandPool.h"
 #include "statefultask/ResourcePool.h"
 
 namespace vulkan {

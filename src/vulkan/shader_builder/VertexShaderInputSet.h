@@ -2,7 +2,7 @@
 #define VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
 #include "ShaderVariableLayouts.h"
-#include "memory/DataFeeder.h"
+#include "../memory/DataFeeder.h"
 #include <vulkan/vulkan.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <vector>
@@ -99,7 +99,7 @@ class VertexShaderInputSet : public VertexShaderInputSetBase
 #endif // VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H
 
 #ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
-#include "pipeline/CharacteristicRange.h"
+#include "../pipeline/CharacteristicRange.h"
 #endif
 
 #ifndef VULKAN_SHADERBUILDER_VERTEX_SHADER_INPUT_SET_H_definitions

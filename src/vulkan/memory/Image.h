@@ -73,7 +73,7 @@ struct Image
 #endif // VULKAN_MEMORY_IMAGE_H
 
 #ifndef VULKAN_LOGICAL_DEVICE_H
-#include "LogicalDevice.h"
+#include "../LogicalDevice.h"
 #endif
 
 #ifndef VULKAN_MEMORY_IMAGE_H_definitions

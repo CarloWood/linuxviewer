@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Defaults.h"
-#include "LogicalDevice.h"
+#include "../Defaults.h"
+#include "../LogicalDevice.h"
 #include "utils/Vector.h"
 #include <vector>
 #ifdef CWDEBUG

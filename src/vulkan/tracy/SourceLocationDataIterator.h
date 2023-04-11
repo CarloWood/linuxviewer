@@ -1,8 +1,8 @@
 #pragma once
 
 #include "colors.h"
-#include "FrameResourceIndex.h"
-#include "SwapchainIndex.h"
+#include "../FrameResourceIndex.h"
+#include "../SwapchainIndex.h"
 #include <server/TracyEvent.hpp>
 #include <client/TracyProfiler.hpp>
 #include <iterator>

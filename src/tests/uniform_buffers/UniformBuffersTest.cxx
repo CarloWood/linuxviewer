@@ -1,11 +1,12 @@
 #include "sys.h"
-#include "Application.inl.h"
 #include "UniformBuffersTest.h"
 #include "Window.h"
 #include "LogicalDevice.h"
 #include "../SingleButtonWindow.h"
-#include "utils/debug_ostream_operators.h"
+#include <utils/debug_ostream_operators.h>
 #include "debug.h"
+
+#include <vulkan/lv_inline_definitions.h>
 
 int main(int argc, char* argv[])
 {

@@ -59,3 +59,6 @@ add_subdirectory(vulkan)
 
 # Test applications.
 add_subdirectory(tests)
+
+# Examples.
+add_subdirectory(examples)

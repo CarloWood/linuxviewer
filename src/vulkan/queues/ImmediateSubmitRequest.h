@@ -1,7 +1,7 @@
 #pragma once
 
-#include "LogicalDevice.h"
-#include "CommandBuffer.h"
+#include "../LogicalDevice.h"
+#include "../CommandBuffer.h"
 #include "QueueRequestKey.h"
 #include <functional>
 

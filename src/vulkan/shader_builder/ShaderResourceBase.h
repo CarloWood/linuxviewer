@@ -1,16 +1,16 @@
 #pragma once
 
-#include "FrameResourceIndex.h"
-#include "descriptor/FrameResourceCapableDescriptorSet.h"
-#include "descriptor/SetLayout.h"
-#include "descriptor/SetLayoutBinding.h"
-#include "descriptor/DescriptorUpdateInfo.h"
-#include "pipeline/ShaderResourcePlusCharacteristicIndex.h"
+#include "../FrameResourceIndex.h"
+#include "../descriptor/FrameResourceCapableDescriptorSet.h"
+#include "../descriptor/SetLayout.h"
+#include "../descriptor/SetLayoutBinding.h"
+#include "../descriptor/DescriptorUpdateInfo.h"
+#include "../pipeline/ShaderResourcePlusCharacteristicIndex.h"
 #include "threadsafe/aithreadsafe.h"
 #include "threadsafe/AIReadWriteMutex.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
-#include "debug/DebugSetName.h"
+#include "../debug/DebugSetName.h"
 #endif
 #include "debug.h"
 

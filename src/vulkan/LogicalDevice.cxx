@@ -1443,12 +1443,14 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
         // In that case we must pass m_empty_descriptor_set_layout for the unused elements.
         // So, begin with initializing largest_set_index_hint DescriptorSetLayout handles equal to m_empty_descriptor_set_layout
         // in case we only partially overwrite this vector with new values.
-        utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts(largest_set_index_hint.get_value() + 1, *m_empty_descriptor_set_layout);
+        size_t largest_set_index_hint_plus_one = largest_set_index_hint.undefined() ? 0 : largest_set_index_hint.get_value() + 1;
+        utils::Vector<vk::DescriptorSetLayout, descriptor::SetIndexHint> vhv_realized_descriptor_set_layouts(largest_set_index_hint_plus_one,
+            *m_empty_descriptor_set_layout);
         for (vulkan::descriptor::SetLayout const& layout : *realized_descriptor_set_layouts_w)
         {
           vulkan::descriptor::SetIndexHint set_index_hint = layout.set_index_hint();
-          // This can't happen if largest_set_index_hint was initialized correctly.
-          ASSERT(set_index_hint <= largest_set_index_hint);
+          // This must always be true if largest_set_index_hint was initialized correctly.
+          ASSERT(set_index_hint.get_value() < largest_set_index_hint_plus_one);
           vhv_realized_descriptor_set_layouts[set_index_hint] = layout.handle();
           // Create an identity set index hint map.
           set_index_hint_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());

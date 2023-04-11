@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VertexData.h"
-#include "vulkan/shader_builder/VertexShaderInputSet.h"
+#include <vulkan/shader_builder/VertexShaderInputSet.h>
 #include <Eigen/Geometry>
 
 static constexpr int square_steps = 4;

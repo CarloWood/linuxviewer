@@ -1,9 +1,10 @@
 #pragma once
 
-#include "shader_builder/VertexShaderInputSet.h"
 #include "AddShaderStage.h"
-#include "shader_builder/VertexAttribute.h"
-#include "shader_builder/VertexAttributeDeclarationContext.h"
+#include "AddVertexShader.h"
+#include "../shader_builder/VertexShaderInputSet.h"
+#include "../shader_builder/VertexAttribute.h"
+#include "../shader_builder/VertexAttributeDeclarationContext.h"
 #include "utils/Vector.h"
 #include "utils/Badge.h"
 #include "utils/log2.h"

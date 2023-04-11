@@ -1,7 +1,7 @@
 #ifndef VULKAN_PIPELINE_FACTORY_HANDLE_H
 #define VULKAN_PIPELINE_FACTORY_HANDLE_H
 
-#include "Concepts.h"
+#include "../Concepts.h"
 #include "FactoryCharacteristicId.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
@@ -44,7 +44,7 @@ class FactoryHandle
 #endif // VULKAN_PIPELINE_FACTORY_HANDLE_H
 
 #ifndef VULKAN_SYNCHRONOUS_WINDOW_H
-#include "SynchronousWindow.h"
+#include "../SynchronousWindow.h"
 #endif
 
 #ifndef PIPELINE_PIPELINE_FACTORY_H

@@ -3,7 +3,7 @@
 #include "ShaderVariableLayouts.h"      // standards::vertex_attributes
 #include "ShaderVariable.h"
 #include "BasicType.h"
-#include "VertexBufferBindingIndex.h"
+#include "../VertexBufferBindingIndex.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <cstdint>

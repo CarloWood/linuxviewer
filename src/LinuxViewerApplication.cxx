@@ -1,12 +1,11 @@
 #include "sys.h"
 #include "LinuxViewerApplication.h"
 #include "LinuxViewerMenuBar.h"
-#include "vulkan/FrameResourcesData.h"
-#include "vulkan/SynchronousWindow.h"
-#include "vulkan/infos/DeviceCreateInfo.h"
-#include "vulkan/shader_builder/ShaderIndex.h"
-#include "vulkan/pipeline/AddShaderStage.h"
-#include "vulkan/Application.inl.h"
+#include <vulkan/FrameResourcesData.h>
+#include <vulkan/SynchronousWindow.h>
+#include <vulkan/infos/DeviceCreateInfo.h>
+#include <vulkan/shader_builder/ShaderIndex.h>
+#include <vulkan/pipeline/AddShaderStage.h>
 #include "protocols/xmlrpc/response/LoginResponse.h"
 #include "protocols/xmlrpc/request/LoginToSimulator.h"
 #include "protocols/GridInfoDecoder.h"
@@ -28,6 +27,8 @@
 #include <regex>
 #include <iterator>
 #include <TracyVulkan.hpp>
+
+#include <vulkan/lv_inline_definitions.h>
 
 namespace utils { using namespace threading; }
 namespace http = evio::protocol::http;

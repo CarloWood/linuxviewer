@@ -1,15 +1,15 @@
 #pragma once
 
-#include "shader_builder/ShaderResourceDeclarationContext.h"
-#include "descriptor/SetLayoutBindingsAndFlags.h"
+#include "../shader_builder/ShaderResourceDeclarationContext.h"
+#include "../descriptor/SetLayoutBindingsAndFlags.h"
 #include "utils/VectorCompare.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
 #include <algorithm>
 #ifdef CWDEBUG
-#include "shader_builder/ShaderResourceDeclaration.h"
-#include "debug/debug_ostream_operators.h"
-#include "vk_utils/print_flags.h"
+#include "../shader_builder/ShaderResourceDeclaration.h"
+#include "../debug/debug_ostream_operators.h"
+#include "../vk_utils/print_flags.h"
 #endif
 #include "debug.h"
 

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "PushConstantRange.h"
+#include "../PushConstantRange.h"
 #include "CharacteristicRangeBridge.h"
 #include "AddShaderStageBridge.h"
-#include "shader_builder/PushConstant.h"
-#include "shader_builder/ShaderVariableLayouts.h"
-#include "shader_builder/PushConstantDeclarationContext.h"
+#include "../shader_builder/PushConstant.h"
+#include "../shader_builder/ShaderVariableLayouts.h"
+#include "../shader_builder/PushConstantDeclarationContext.h"
 #include "utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 #include <memory>
@@ -107,3 +107,5 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
 };
 
 } // namespace vulkan::pipeline
+
+#define LV_NEEDS_ADD_PUSH_CONSTANT_INL_H

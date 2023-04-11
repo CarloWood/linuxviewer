@@ -1,6 +1,6 @@
 #pragma once
 
-#include "descriptor/FrameResourceCapableDescriptorSet.h"
+#include "../descriptor/FrameResourceCapableDescriptorSet.h"
 
 namespace vulkan::pipeline {
 

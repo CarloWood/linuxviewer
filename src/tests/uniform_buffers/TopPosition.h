@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader_builder/ShaderVariableLayouts.h"
+#include <vulkan/shader_builder/ShaderVariableLayouts.h>
 #include "SomeStruct.h"
 #include "debug.h"
 

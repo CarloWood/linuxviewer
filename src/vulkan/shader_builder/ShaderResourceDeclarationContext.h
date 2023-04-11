@@ -1,9 +1,9 @@
 #pragma once
 
 #include "DeclarationContext.h"
-#include "descriptor/SetIndex.h"
-#include "descriptor/SetKey.h"
-#include "descriptor/SetIndexHintMap.h"
+#include "../descriptor/SetIndex.h"
+#include "../descriptor/SetKey.h"
+#include "../descriptor/SetIndexHintMap.h"
 #include <cstdint>
 #include <map>
 

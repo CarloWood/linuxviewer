@@ -72,7 +72,7 @@ struct Buffer
 #endif // VULKAN_MEMORY_BUFFER_H
 
 #ifndef VULKAN_LOGICAL_DEVICE_H
-#include "LogicalDevice.h"
+#include "../LogicalDevice.h"
 #endif
 
 #ifndef VULKAN_MEMORY_BUFFER_H_definitions

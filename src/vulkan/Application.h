@@ -44,7 +44,6 @@ class SynchronousWindow;
 } // namespace task
 
 class InstanceCreateInfo;
-class DeviceCreateInfo;
 class ImGui;
 
 class Application
@@ -359,4 +358,11 @@ class Application
 };
 
 } // namespace vulkan
+
+#define LV_NEEDS_APPLICATION_INL_H
 #endif // VULKAN_APPLICATION_H
+
+#ifndef LV_COMPILING_VULKAN_ENGINE
+// If we're not compiling the vulkan engine itself, then include the definition of classes used for the virtual functions.
+#include <vulkan/infos/InstanceCreateInfo.h>
+#endif

@@ -5,7 +5,7 @@
 #include "vk_enums_reflection.h"
 #include <vulkan/vulkan.hpp>
 #include <type_traits>
-#include "vk_utils/print_flags.h"
+#include "../vk_utils/print_flags.h"
 #include "utils/BitSet.h"
 #include "utils/split.h"
 #include "debug.h"

@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Update.h"
-#include "TextureArrayRange.h"
-#include "pipeline/FactoryCharacteristicId.h"
-#include "pipeline/FactoryCharacteristicKey.h"
-#include "vk_utils/ConsecutiveRange.h"
+#include "../TextureArrayRange.h"
+#include "../pipeline/FactoryCharacteristicId.h"
+#include "../pipeline/FactoryCharacteristicKey.h"
+#include "../vk_utils/ConsecutiveRange.h"
 
 namespace vulkan::descriptor {
 

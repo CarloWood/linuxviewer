@@ -1,4 +1,5 @@
 #pragma once
+#undef LV_NEEDS_COMMAND_BUFFER_INL_H
 
 #include "VertexBuffers.h"
 #include "PushConstantRange.h"

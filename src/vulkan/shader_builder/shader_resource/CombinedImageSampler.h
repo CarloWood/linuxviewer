@@ -1,8 +1,8 @@
 #ifndef SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER_H
 #define SHADER_RESOURCE_COMBINED_IMAGE_SAMPLER_H
 
-#include "descriptor/CombinedImageSamplerUpdater.h"
-#include "descriptor/TextureUpdateRequest.h"
+#include "../../descriptor/CombinedImageSamplerUpdater.h"
+#include "../../descriptor/TextureUpdateRequest.h"
 
 namespace vulkan::shader_builder::shader_resource {
 

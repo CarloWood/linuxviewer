@@ -1,4 +1,5 @@
 #pragma once
+#undef LV_NEEDS_APPLICATION_INL_H
 
 #include "Application.h"
 #include "SynchronousWindow.h"

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "math/glsl.h"
+#include "../math/glsl.h"
 #include <bit>
 #ifdef CWDEBUG
-#include "debug/vulkan_print_on.h"
+#include "../debug/vulkan_print_on.h"
 #endif
 #include "debug.h"
 

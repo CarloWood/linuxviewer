@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Concepts.h"
-#include "Application.h"
+#include "../Concepts.h"
+#include "../Application.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/AIStatefulTask.h"
 #include "utils/DequeAllocator.h"

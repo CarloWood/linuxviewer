@@ -4,32 +4,32 @@
 #include "Square.h"
 #include "TopBottomPositions.h"
 #include "InstanceData.h"
-#include "SynchronousWindow.h"
 #include "PushConstant.h"
-#include "Pipeline.h"
-#include "VertexBuffers.h"
-#include "PushConstantRange.h"
-#include "queues/CopyDataToImage.h"
-#include "queues/CopyDataToBuffer.h"
-#include "descriptor/SetKeyPreference.h"
-#include "shader_builder/ShaderIndex.h"
-#include "shader_builder/shader_resource/UniformBuffer.h"
-#include "shader_builder/shader_resource/CombinedImageSampler.h"
-#include "pipeline/FactoryCharacteristicId.h"
-#include "pipeline/AddVertexShader.h"
-#include "pipeline/AddFragmentShader.h"
-#include "pipeline/Characteristic.h"
-#include "vk_utils/ImageData.h"
-#include "statefultask/AITimer.h"
+#include <vulkan/SynchronousWindow.h>
+#include <vulkan/Pipeline.h>
+#include <vulkan/VertexBuffers.h>
+#include <vulkan/PushConstantRange.h>
+#include <vulkan/queues/CopyDataToImage.h>
+#include <vulkan/queues/CopyDataToBuffer.h>
+#include <vulkan/descriptor/SetKeyPreference.h>
+#include <vulkan/shader_builder/ShaderIndex.h>
+#include <vulkan/shader_builder/shader_resource/UniformBuffer.h>
+#include <vulkan/shader_builder/shader_resource/CombinedImageSampler.h>
+#include <vulkan/pipeline/FactoryCharacteristicId.h>
+#include <vulkan/pipeline/AddVertexShader.h>
+#include <vulkan/pipeline/AddFragmentShader.h>
+#include <vulkan/pipeline/AddPushConstant.h>
+#include <vulkan/pipeline/Characteristic.h>
+#include <vulkan/vk_utils/ImageData.h>
+#include <statefultask/AITimer.h>
 
-#include "pipeline/AddPushConstant.inl.h"
-#include "CommandBuffer.inl.h"
+#include <vulkan/lv_inline_definitions.h>
 
 #include <imgui.h>
 #include "debug.h"
-#include "tracy/CwTracy.h"
+#include <vulkan/tracy/CwTracy.h>
 #ifdef TRACY_ENABLE
-#include "tracy/SourceLocationDataIterator.h"
+#include <vulkan/tracy/SourceLocationDataIterator.h>
 #endif
 
 #define ENABLE_IMGUI 1

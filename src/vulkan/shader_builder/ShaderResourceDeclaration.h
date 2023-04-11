@@ -4,11 +4,11 @@
 #include "ShaderResourceMember.h"
 #include "ShaderResourceVariable.h"
 #include "BasicType.h"
-#include "descriptor/SetIndex.h"
+#include "../descriptor/SetIndex.h"
 #include <map>
 #ifdef CWDEBUG
-#include "vk_utils/print_pointer.h"
-#include "vk_utils/print_flags.h"
+#include "../vk_utils/print_pointer.h"
+#include "../vk_utils/print_flags.h"
 #endif
 #include "debug.h"
 #include "cwds/UsageDetector.h"

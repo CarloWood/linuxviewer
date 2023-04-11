@@ -1,7 +1,7 @@
 #pragma once
 
-#include "FrameResourceIndex.h"
-#include "SwapchainIndex.h"
+#include "../FrameResourceIndex.h"
+#include "../SwapchainIndex.h"
 #include "IndexPair.h"
 #include <concepts>
 #include <type_traits>

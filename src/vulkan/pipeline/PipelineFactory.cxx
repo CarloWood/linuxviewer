@@ -773,9 +773,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           // Clear the m_set_index_hint_map of a previous fill.
           m_set_index_hint_map.clear();
 
-          vulkan::descriptor::SetIndexHint largest_set_index_hint{0};
-          // Can this ever happen?
-          ASSERT(!sorted_descriptor_set_layouts_r->empty());
+          vulkan::descriptor::SetIndexHint largest_set_index_hint;
           for (auto realized_descriptor_set_layout = sorted_descriptor_set_layouts_r->begin();
               realized_descriptor_set_layout != sorted_descriptor_set_layouts_r->end();
               ++realized_descriptor_set_layout)
@@ -783,7 +781,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             vulkan::descriptor::SetIndexHint set_index_hint = realized_descriptor_set_layout->set_index_hint();
             // This should never happen.
             ASSERT(!set_index_hint.undefined());
-            if (set_index_hint > largest_set_index_hint)
+            if (largest_set_index_hint.undefined() || set_index_hint > largest_set_index_hint)
               largest_set_index_hint = set_index_hint;
           }
           // Keep track of the currently largest set_index_hint.

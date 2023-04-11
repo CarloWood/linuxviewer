@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader_builder/BasicType.h"
+#include "../shader_builder/BasicType.h"
 #include <vulkan/vulkan.hpp>
 
 namespace vk_utils {

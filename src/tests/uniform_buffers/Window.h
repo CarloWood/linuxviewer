@@ -1,27 +1,26 @@
 #pragma once
 
 #include "UniformBuffersTest.h"
-#include "SynchronousWindow.h"
 #include "TopPosition.h"
 #include "LeftPosition.h"
 #include "BottomPosition.h"
-#include "VertexBuffers.h"
-#include "SynchronousWindow.h"
-#include "Pipeline.h"
-#include "pipeline/AddVertexShader.h"
-#include "pipeline/AddFragmentShader.h"
-#include "pipeline/Characteristic.h"
-#include "queues/CopyDataToImage.h"
-#include "shader_builder/ShaderIndex.h"
-#include "shader_builder/shader_resource/UniformBuffer.h"
-#include "shader_builder/shader_resource/CombinedImageSampler.h"
-#include "descriptor/SetKeyPreference.h"
-#include "vk_utils/ImageData.h"
+#include <vulkan/VertexBuffers.h>
+#include <vulkan/SynchronousWindow.h>
+#include <vulkan/Pipeline.h>
+#include <vulkan/pipeline/AddVertexShader.h>
+#include <vulkan/pipeline/AddFragmentShader.h>
+#include <vulkan/pipeline/Characteristic.h>
+#include <vulkan/queues/CopyDataToImage.h>
+#include <vulkan/shader_builder/ShaderIndex.h>
+#include <vulkan/shader_builder/shader_resource/UniformBuffer.h>
+#include <vulkan/shader_builder/shader_resource/CombinedImageSampler.h>
+#include <vulkan/descriptor/SetKeyPreference.h>
+#include <vulkan/vk_utils/ImageData.h>
 #include <imgui.h>
 #include "debug.h"
-#include "tracy/CwTracy.h"
+#include <vulkan/tracy/CwTracy.h>
 #ifdef TRACY_ENABLE
-#include "tracy/SourceLocationDataIterator.h"
+#include <vulkan/tracy/SourceLocationDataIterator.h>
 #endif
 
 #define ENABLE_IMGUI 1

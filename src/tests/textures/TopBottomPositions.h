@@ -1,7 +1,7 @@
 #pragma once
 
 #include "InstanceData.h"
-#include "vulkan/shader_builder/VertexShaderInputSet.h"
+#include <vulkan/shader_builder/VertexShaderInputSet.h>
 
 // Generate 2 InstanceData objects.
 //
