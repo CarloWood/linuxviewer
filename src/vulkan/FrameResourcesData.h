@@ -23,7 +23,7 @@ struct FrameResourcesData
   vk::UniqueFence         m_command_buffers_completed;          // This fence should be signaled when the last command buffer used for this frame completed.
 
   // Overlapping descriptor set handles.
-  vk::UniqueDescriptorSet m_overlapping_descriptor_set;         // Used for resources that need to changed during rendering (e.g. uniform buffers).
+  vk::UniqueDescriptorSet m_overlapping_descriptor_set;         // Used for resources that need to be changed during rendering (e.g. uniform buffers).
 
   FrameResourcesData(
       size_t number_of_attachments,

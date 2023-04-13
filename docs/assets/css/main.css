@@ -55,6 +55,10 @@ aside.sidebar {
   background-color: #1d1f20;
 }
 
+.Nav li a:hover {
+  background-color: #5d5d5d;
+}
+
 #markdown-toc {
   font-size: 16px;
   padding-left: 28px;
@@ -84,6 +88,14 @@ a {
 
 .sidebar-links a {
   color: var(--navigation-color);
+}
+
+h2 a {
+  color: var(--header-color);
+  border-bottom: none;
+  font-size: 80%;
+  position: relative;
+  top: -3px;
 }
 
 /* Override color of box around inline code. */
@@ -148,6 +160,33 @@ code {
   border-bottom: 1px solid #eee;
 }
 
+/* Tip block */
+
+.tip, .lv_note, .info_note {
+  border: 5px solid var(--linuxviewer-color);
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 20px;
+}
+
+.tip-title, .lv_note {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.tip-content, .lv_note-content, .info_note {
+  margin-top: 5px;
+}
+
+.info_note {
+  margin-top: 20px;
+  border: 5px solid gray;
+}
+
+.info_note-title {
+  display: none;
+}
+
 /* Inline style. */
 
 span.command {
@@ -164,7 +203,7 @@ span.command {
   padding-right: 0.25em;
 }
 
-/* Introduction. */
+/* Introduction */
 
 #img_bigbook {
   display: block;
@@ -175,11 +214,22 @@ span.command {
   margin-right: auto;
 }
 
-/* Getting Started. */
+/* Getting Started */
 
 #img_hellotriangle {
   display: block;
   width: 25%;
+  height: auto;
+  margin: 1em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Overview */
+
+#img_multimonitor {
+  display: block;
+  width: 50%; /* Adjust the scaling factor by changing the percentage. */
   height: auto;
   margin: 1em;
   margin-left: auto;

@@ -195,3 +195,8 @@ cmake --build ${BUILD_DIR} --config ${CMAKE_CONFIG} --parallel ${NUMBER_OF_CPUS}
 ```
 
 Just set <span class="command">NUMBER_OF_CPUS</span> to whatever you want, of course.
+
+After this successfully finished you should find an executable in
+<span class="command">${BUILD_DIR}/src/examples/hello_triangle/hello_triangle</span>
+that will draw a triangle. The next chapter goes over the source code used and
+describes in detail how it is built up.
