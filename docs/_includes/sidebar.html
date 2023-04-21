@@ -23,7 +23,7 @@
             {% assign nav_class = nav_class | append: " Nav__item--active" -%}
           {% endif %}
       <li class="{{ nav_class }}">
-        <a href="{{ chapter.url | relative_url }}">{{ chapter.title | escape }}</a>
+        <a href="{{ chapter.url | relative_url }}">{{ chapter.toc_title | default: chapter.title | escape }}</a>
       </li>
             {% else -%}
               {% assign depth_index = current_depth | minus: 1 -%}
