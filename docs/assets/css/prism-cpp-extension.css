@@ -1,0 +1,96 @@
+:root {
+  /* Generated with: ~/projects/github/neovim-true-color-scheme-editor/dot_config_nvim/colors>grep '^hi ' cwcolors.vim | grep -B 1000 'cVulkanHandle' | grep guifg | grep -v guibg | sed -r -e 's%hi c?(\w+)\s+guifg=(#[A-Fa-f0-9]*).*%  --hicolor-\L\1: \2;%g' | sort */
+/*  --hicolor-character: #fcff00;
+  --hicolor-comment: #6f5674;
+  --hicolor-commentstart: #bc95d8;
+  --hicolor-conditional: #0462ff; */
+  --hicolor-constant: #607ffc;
+  --hicolor-cppaccess: #b07626;
+/*  --hicolor-cppoutif2: #a1a591; */
+  --hicolor-debug: #c23eff;
+/*  --hicolor-define: #bf81fa;
+  --hicolor-doxygencomment: #dfbccb;
+  --hicolor-doxygencommentlead: #ff78b9; */
+  --hicolor-function: #90cbf1;
+  --hicolor-identifier: #b5ff6f;
+  --hicolor-include: #c3cf25;           /* Changed from #ffa50a - in order not to clash with --linuxviewer-color-bright */
+  --hicolor-included: #d4bb7f;
+  --hicolor-keyword: #ffee68;
+/*  --hicolor-label: #ffee68; */
+  --hicolor-number: #8ea3ff;
+/*  --hicolor-operator: #fc6984;
+  --hicolor-cppboolean: #0e56ff;
+  --hicolor-cppexceptions: #fc4234;
+  --hicolor-precondit: #bf81fa; */
+  --hicolor-preproc: #bb70e0;
+/*  --hicolor-repeat: #ffa304; */
+  --hicolor-statement: #00ffea;
+/*  --hicolor-storageclass: #ffee68; */
+  --hicolor-string: #ffa0a0;
+  --hicolor-structure: #8c8fd9;
+  --hicolor-type: #19b30b;
+/*  --hicolor-userlabel: #ff1f1f;
+  --hicolor-vulkanhandle: #ffb3be; */
+
+  --linuxviewer-color-bright: #ffa50a;
+}
+
+.token.enum {
+  color: var(--hicolor-constant);
+}
+
+.token.cpp-access {
+  color: var(--hicolor-cppaccess);
+}
+
+.token.debug-macro {
+  color: var(--hicolor-debug);
+}
+
+.token.function {
+  color: var(--hicolor-function);
+}
+
+.token.variable {
+  color: var(--hicolor-identifier);
+}
+
+.token.directive-include {
+  color: var(--hicolor-include);
+}
+
+.token.directive-included {
+  color: var(--hicolor-included);
+}
+
+.token.keyword {
+  color: var(--hicolor-keyword);
+}
+
+.token.number {
+  color: var(--hicolor-number);
+}
+
+.token.directive, .token.directive-hash, .token.macro, .token.macro-name {
+  color: var(--hicolor-preproc);
+}
+
+.token.pseudo-statement {
+  color: var(--hicolor-statement);
+}
+
+.token.string {
+  color: var(--hicolor-string);
+}
+
+.token.structure {
+  color: var(--hicolor-structure);
+}
+
+.token.class-name, .token.namespace, .token.other-namespace, .token.builtin-type, .token.cpp-modifier, .token.namespace-vk-type, .token.std-container {
+  color: var(--hicolor-type);
+}
+
+.token.namespace-vulkan, .token.namespace-vulkan-nested {
+  color: var(--linuxviewer-color-bright);
+}

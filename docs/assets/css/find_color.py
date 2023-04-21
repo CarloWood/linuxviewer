@@ -91,7 +91,7 @@ def binary_search(file, backup_file, L1, L2, L3=None, clicked_red=False):
 
     root = Tk()
     root.title("Binary search")
-    
+
     # Set window size.
     window_width = 400
     window_height = 200
@@ -137,7 +137,7 @@ def main():
 
     with open(file) as f:
         num_lines = sum(1 for line in f)
-    
+
     try:
         binary_search(file, backup_file, 0, num_lines - 1)
     except KeyboardInterrupt:

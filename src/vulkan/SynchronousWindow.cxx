@@ -170,7 +170,7 @@ void SynchronousWindow::initialize_impl()
     return;
   }
 
-  m_frame_rate_interval = get_frame_rate_interval();
+  m_frame_rate_interval = frame_rate_interval();
   set_state(SynchronousWindow_xcb_connection);
 }
 
@@ -624,7 +624,7 @@ void SynchronousWindow::wait_for_all_fences() const
 
   vk::Result res;
   {
-    CwZoneScopedN("wait for all_fences", max_number_of_frame_resources(), m_current_frame.m_resource_index);
+    CwZoneScopedN("wait for all_fences", number_of_frame_resources(), m_current_frame.m_resource_index);
     res = m_logical_device->wait_for_fences(all_fences, VK_TRUE, 1000000000);
   }
   if (res != vk::Result::eSuccess)
@@ -798,7 +798,7 @@ void SynchronousWindow::start_frame()
 
 void SynchronousWindow::wait_command_buffer_completed()
 {
-  CwZoneScopedN("m_command_buffers_completed", max_number_of_frame_resources(), m_current_frame.m_resource_index);
+  CwZoneScopedN("m_command_buffers_completed", number_of_frame_resources(), m_current_frame.m_resource_index);
 #if defined(CWDEBUG) && defined(NON_FATAL_LONG_FENCE_DELAY)
   // You might want to use this if a time out happens while debugging (for example stepping through code with a debugger).
   while (m_logical_device->wait_for_fences({ *m_current_frame.m_frame_resources->m_command_buffers_completed }, VK_FALSE, 1000000000) != vk::Result::eSuccess)
@@ -830,7 +830,7 @@ void SynchronousWindow::finish_frame()
   vk::Result res;
   {
     Dout(dc::vkframe, "Calling presentKHR with .pWaitSemaphores = " << present_info.pWaitSemaphores[0]);
-    CwZoneScopedN("presentKHR", max_number_of_swapchain_images(), m_swapchain.current_index());
+    CwZoneScopedN("presentKHR", number_of_swapchain_images(), m_swapchain.current_index());
     res = m_presentation_surface.vh_presentation_queue().presentKHR(&present_info);
   }
 #ifdef TRACY_ENABLE
@@ -903,7 +903,7 @@ void SynchronousWindow::acquire_image()
   vulkan::SwapchainIndex swapchain_index = m_swapchain.current_index();
   ASSERT(!tracy_acquired_image_busy[swapchain_index]);
   //Dout(dc::vulkan, "Calling TracyCZone(ctx, \"acquire_next_image<---presentKHR<\") while in fiber \"" << s_tl_tracy_fiber_name << "\".");
-  CwTracyCZoneN(ctx, "acquire_next_image<---presentKHR<", 1, max_number_of_swapchain_images(), m_swapchain.current_index());
+  CwTracyCZoneN(ctx, "acquire_next_image<---presentKHR<", 1, number_of_swapchain_images(), m_swapchain.current_index());
   //Dout(dc::vulkan, "Storing ctx with id " << ctx.id << " in " << this << "->tracy_acquired_image_tracy_context[" << swapchain_index << "]");
   tracy_acquired_image_tracy_context[swapchain_index] = ctx;
   tracy_acquired_image_busy[swapchain_index] = true;
@@ -953,7 +953,7 @@ void SynchronousWindow::finish_impl()
 }
 
 //virtual
-threadpool::Timer::Interval SynchronousWindow::get_frame_rate_interval() const
+threadpool::Timer::Interval SynchronousWindow::frame_rate_interval() const
 {
   return threadpool::Interval<10, std::chrono::milliseconds>{};
 }
@@ -1013,16 +1013,16 @@ void SynchronousWindow::on_window_size_changed_post()
 
 //virtual
 // Override this function to change this value.
-vulkan::FrameResourceIndex SynchronousWindow::max_number_of_frame_resources() const
+vulkan::FrameResourceIndex SynchronousWindow::number_of_frame_resources() const
 {
-  return s_default_max_number_of_frame_resources;
+  return s_default_number_of_frame_resources;
 }
 
 //virtual
 // Override this function to change this value.
-vulkan::SwapchainIndex SynchronousWindow::max_number_of_swapchain_images() const
+vulkan::SwapchainIndex SynchronousWindow::number_of_swapchain_images() const
 {
-  return s_default_max_number_of_swapchain_images;
+  return s_default_number_of_swapchain_images;
 }
 
 //virtual
@@ -1050,7 +1050,7 @@ void SynchronousWindow::create_frame_resources()
 {
   DoutEntering(dc::vulkan, "SynchronousWindow::create_frame_resources() [" << this << "]");
 
-  vulkan::FrameResourceIndex const number_of_frame_resources = this->max_number_of_frame_resources();
+  vulkan::FrameResourceIndex const number_of_frame_resources = this->number_of_frame_resources();
 
 #if 0 //FIXME: is this how I want to do this? Overlapping as in "overlapping frames", or "frames in flight".
   // Create all overlapping descriptor sets.
@@ -1106,14 +1106,14 @@ void SynchronousWindow::create_frame_resources()
 void SynchronousWindow::submit(vulkan::handle::CommandBuffer command_buffer)
 {
 #ifdef TRACY_ENABLE
-  tracy::IndexPair const current_index_pair(m_current_frame.m_resource_index, m_swapchain.current_index(), max_number_of_swapchain_images());
+  tracy::IndexPair const current_index_pair(m_current_frame.m_resource_index, m_swapchain.current_index(), number_of_swapchain_images());
 #if 0
   CwZoneScopedN("submit",
-          tracy::IndexPair(max_number_of_frame_resources(), vulkan::SwapchainIndex{0}, max_number_of_swapchain_images()),
+          tracy::IndexPair(number_of_frame_resources(), vulkan::SwapchainIndex{0}, number_of_swapchain_images()),
           current_index_pair);
 #endif
-  CwZoneNamedN(__submit1, "submit", true, max_number_of_frame_resources(), m_current_frame.m_resource_index);
-  CwZoneNamedN(__submit2, "submit", true, max_number_of_swapchain_images(), m_swapchain.current_index());
+  CwZoneNamedN(__submit1, "submit", true, number_of_frame_resources(), m_current_frame.m_resource_index);
+  CwZoneNamedN(__submit2, "submit", true, number_of_swapchain_images(), m_swapchain.current_index());
 #endif
 
   vk::PipelineStageFlags wait_dst_stage_mask = vk::PipelineStageFlagBits::eColorAttachmentOutput;

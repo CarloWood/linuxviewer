@@ -53,7 +53,7 @@ void Window::create_render_graph()
   auto& output = swapchain().presentation_attachment();
 
   // Define the render graph.
-  m_render_graph = main_pass[~depth]->stores(~output);
+  m_render_graph = main_pass->stores(~output);
 
   // Generate everything.
   m_render_graph.generate(this);
@@ -62,8 +62,7 @@ void Window::create_render_graph()
 void Window::register_shader_templates()
 {
   DoutEntering(dc::notice, "Window::register_shader_templates() [" << this << "]");
-  using namespace vulkan::shader_builder;
-  std::vector<ShaderInfo> shader_info = {
+  std::vector<vulkan::shader_builder::ShaderInfo> shader_info = {
     { vk::ShaderStageFlagBits::eVertex,   "triangle.vert.glsl" },
     { vk::ShaderStageFlagBits::eFragment, "triangle.frag.glsl" }
   };
@@ -106,9 +105,8 @@ void Window::render_frame()
 void Window::draw_frame()
 {
   vulkan::FrameResourcesData* frame_resources = m_current_frame.m_frame_resources;
-
-  auto swapchain_extent = swapchain().extent();
   main_pass.update_image_views(swapchain(), frame_resources);
+  auto swapchain_extent = swapchain().extent();
 
   vk::Viewport viewport{
     .x = 0,
@@ -132,13 +130,13 @@ void Window::draw_frame()
   command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
   {
     command_buffer.beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
+    command_buffer.setViewport(0, { viewport });
+    command_buffer.setScissor(0, { scissor });
 
     // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
     // For now we must make sure that the pipeline was created before drawing to it.
     if (m_graphics_pipeline.handle())
     {
-      command_buffer.setViewport(0, { viewport });
-      command_buffer.setScissor(0, { scissor });
       command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, vh_graphics_pipeline(m_graphics_pipeline.handle()));
       command_buffer.draw(3, 1, 0, 0);
     }

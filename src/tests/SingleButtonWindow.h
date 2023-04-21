@@ -42,7 +42,7 @@ class SingleButtonWindow : public vulkan::task::SynchronousWindow
   //
   // Called from initialize_impl.
   //
-  threadpool::Timer::Interval get_frame_rate_interval() const override
+  threadpool::Timer::Interval frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 11.111 frames per second.
     return threadpool::Interval<90, std::chrono::milliseconds>{};

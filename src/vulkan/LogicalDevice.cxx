@@ -341,6 +341,11 @@ bool LogicalDevice::verify_presentation_support(vulkan::PresentationSurface cons
   return presentation_support;
 }
 
+void LogicalDevice::prepare_logical_device(DeviceCreateInfo& device_create_info) const
+{
+  device_create_info.set_default_queue_requests();
+}
+
 void LogicalDevice::prepare(
     vk::Instance vh_instance,
     DispatchLoader& dispatch_loader,
@@ -432,7 +437,7 @@ void LogicalDevice::prepare(
   //
   // on the device_create_info that was pass to prepare_logical_device
   // (if more than one request specifies eTransfer then the first one is used).
-  ASSERT(m_transfer_request_cookie);
+//  ASSERT(m_transfer_request_cookie);
 
   if (device_create_info.has_queue_flag(QueueFlagBits::ePresentation))
     device_create_info.addDeviceExtentions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME });
@@ -681,7 +686,7 @@ Queue LogicalDevice::acquire_queue(QueueRequestKey queue_request_key) const
 {
   DoutEntering(dc::vulkan, "LogicalDevice::acquire_queue(" << queue_request_key << ")");
   // cookie is a bit mask and must represent a single window.
-  ASSERT(utils::is_power_of_two(queue_request_key.request_cookie()));
+  ASSERT(queue_request_key.request_cookie() == QueueRequest::any_cookie || utils::is_power_of_two(queue_request_key.request_cookie()));
 
   // Accumulate the combined queue flags.
   utils::Vector<QueueFlags, QueueRequestIndex> combined_queue_flags(m_queue_replies.size());
@@ -1540,7 +1545,7 @@ void LogicalDevice::initialize_number_of_partitions() /*threadsafe-*/const
 }
 
 #ifdef TRACY_ENABLE
-utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue const& queue, FrameResourceIndex max_number_of_frame_resources
+utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue const& queue, FrameResourceIndex number_of_frame_resources
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix)) const
 {
   static constexpr vk::CommandPoolCreateFlags::MaskType pool_type = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -1549,7 +1554,7 @@ utils::Vector<TracyVkCtx, FrameResourceIndex> LogicalDevice::tracy_context(Queue
   vk::CommandBuffer tmp_command_buffer = tmp_command_pool.allocate_buffer(//);
       CWDEBUG_ONLY("-tracy_context()::tmp_command_buffer" + ambifix));
   utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_contexts;
-  for (FrameResourceIndex i{0}; i != max_number_of_frame_resources; ++i)
+  for (FrameResourceIndex i{0}; i != number_of_frame_resources; ++i)
   {
     TracyVkCtx context = TracyVkContextCalibrated(m_vh_physical_device, *m_device, static_cast<vk::Queue>(queue), tmp_command_buffer,
         VULKAN_HPP_DEFAULT_DISPATCHER.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT, VULKAN_HPP_DEFAULT_DISPATCHER.vkGetCalibratedTimestampsEXT);

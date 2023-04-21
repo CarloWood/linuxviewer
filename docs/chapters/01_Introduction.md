@@ -1,7 +1,7 @@
 ---
 layout: chapter
 title: Introduction
-utterance_id: introduction_draft
+utterance_id: introduction
 ---
 
 ## About

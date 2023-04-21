@@ -32,6 +32,7 @@ class LogicalDevice : public vulkan::LogicalDevice
     features10.setDepthClamp(true);
   }
 
+#if 1 //FIXME: shouldn't it work when this is commented out too?
   void prepare_logical_device(vulkan::DeviceCreateInfo& device_create_info) const override
   {
     using vulkan::QueueFlagBits;
@@ -56,4 +57,5 @@ class LogicalDevice : public vulkan::LogicalDevice
 #endif
     ;
   }
+#endif
 };

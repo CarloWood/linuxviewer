@@ -974,7 +974,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         }
       case PipelineFactory_move_new_pipeline:
         // Inform the SynchronousWindow.
-        m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_descriptor_set_per_set_index, m_owning_window->max_number_of_frame_resources()
+        m_move_new_pipelines_synchronously->have_new_datum({vulkan::Pipeline{m_vh_pipeline_layout, {m_pipeline_factory_index, *pipeline_index_t::rat{m_pipeline_index}}, m_descriptor_set_per_set_index, m_owning_window->number_of_frame_resources()
             COMMA_CWDEBUG_ONLY(m_owning_window->logical_device())}, std::move(m_pipeline)});
 
         //
@@ -1589,7 +1589,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
   std::vector<FrameResourceCapableDescriptorSet> missing_descriptor_sets;
   if (!missing_descriptor_set_layouts.empty())
     missing_descriptor_sets = logical_device->allocate_descriptor_sets(
-        m_owning_window->max_number_of_frame_resources(),
+        m_owning_window->number_of_frame_resources(),
         missing_descriptor_set_layouts, missing_descriptor_set_unbounded_descriptor_array_sizes,
         set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
         COMMA_CWDEBUG_ONLY(Ambifix{"PipelineFactory::m_descriptor_set_per_set_index", as_postfix(this)}));

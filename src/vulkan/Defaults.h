@@ -141,9 +141,11 @@ VK_DEFAULTS_DECLARE(DebugUtilsObjectNameInfoEXT)
 
 VK_DEFAULTS_DECLARE(DeviceCreateInfo)
 {
-  static constexpr utils::Array<vulkan::QueueRequest, 2> default_queue_requests = {{
+  static constexpr utils::Array<vulkan::QueueRequest, 3> default_queue_requests = {{
     { .queue_flags = vulkan::QueueFlagBits::eGraphics, .max_number_of_queues = 1 },
-    { .queue_flags = vulkan::QueueFlagBits::ePresentation, .max_number_of_queues = 1 }
+    { .queue_flags = vulkan::QueueFlagBits::ePresentation, .max_number_of_queues = 1,
+      .combined_with = vulkan::QueueRequestIndex{static_cast<size_t>(0)} },
+    { .queue_flags = vulkan::QueueFlagBits::eTransfer, .max_number_of_queues = 1 }
   }};
 #ifdef CWDEBUG
   // There can be multiple logical devices, so you are encouraged to override

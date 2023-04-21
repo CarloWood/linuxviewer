@@ -249,7 +249,7 @@ class Window : public vulkan::task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  vulkan::FrameResourceIndex max_number_of_frame_resources() const override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
     return vulkan::FrameResourceIndex{3};
   }
@@ -505,7 +505,7 @@ void main()
   //
   // Called from initialize_impl.
   //
-  threadpool::Timer::Interval get_frame_rate_interval() const override
+  threadpool::Timer::Interval frame_rate_interval() const override
   {
     // Limit the frame rate of this window to 10 frames per second.
     return threadpool::Interval<100, std::chrono::milliseconds>{};

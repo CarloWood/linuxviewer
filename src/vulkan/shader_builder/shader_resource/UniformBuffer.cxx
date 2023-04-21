@@ -10,8 +10,8 @@ void UniformBufferBase::instantiate(task::SynchronousWindow const* owning_window
 {
   DoutEntering(dc::shaderresource|dc::vulkan, "UniformBufferBase::create(" << owning_window << ")");
   // You must use at least 2 frame resources.
-  ASSERT(owning_window->max_number_of_frame_resources().get_value() > 1);
-  for (vulkan::FrameResourceIndex i{0}; i != owning_window->max_number_of_frame_resources(); ++i)
+  ASSERT(owning_window->number_of_frame_resources().get_value() > 1);
+  for (vulkan::FrameResourceIndex i{0}; i != owning_window->number_of_frame_resources(); ++i)
   {
     m_uniform_buffers.emplace_back(owning_window->logical_device(), size()
       COMMA_CWDEBUG_ONLY(".m_uniform_buffers[" + to_string(i) + "]" + ambifix));
@@ -22,18 +22,18 @@ void UniformBufferBase::update_descriptor_set(descriptor::DescriptorUpdateInfo d
 {
   DoutEntering(dc::shaderresource, "UniformBufferBase::update_descriptor_set(" << descriptor_update_info << ")");
 
-  FrameResourceIndex const max_number_of_frame_resources = descriptor_update_info.owning_window()->max_number_of_frame_resources();
+  FrameResourceIndex const number_of_frame_resources = descriptor_update_info.owning_window()->number_of_frame_resources();
   LogicalDevice const* logical_device = descriptor_update_info.owning_window()->logical_device();
 
   std::vector<vk::DescriptorBufferInfo> buffer_infos;
-  buffer_infos.reserve(max_number_of_frame_resources.get_value());
-  for (FrameResourceIndex frame_index{0}; frame_index < max_number_of_frame_resources; ++frame_index)
+  buffer_infos.reserve(number_of_frame_resources.get_value());
+  for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
   {
     // Information about the buffer we want to point at in the descriptor.
     // clang++ <= 15 doesn't compile when passing plain arguments to emplace_back.
     buffer_infos.push_back({vk::DescriptorBufferInfo{m_uniform_buffers[frame_index].m_vh_buffer, 0, size()}});
   }
-  logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set(), vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos, 1 /*array_size*/, max_number_of_frame_resources);
+  logical_device->update_descriptor_sets(descriptor_update_info.descriptor_set(), vk::DescriptorType::eUniformBuffer, descriptor_update_info.binding(), 0 /*array_element*/, buffer_infos, 1 /*array_size*/, number_of_frame_resources);
 }
 
 std::string UniformBufferBase::glsl_id() const

@@ -17,7 +17,9 @@ class TrianglePipelineCharacteristic :
     vk::DynamicState::eScissor
   };
 
-  std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states;
+  std::vector<vk::PipelineColorBlendAttachmentState> m_pipeline_color_blend_attachment_states = {
+    vk_defaults::PipelineColorBlendAttachmentState{}
+  };
 
  public:
   TrianglePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
@@ -36,8 +38,6 @@ class TrianglePipelineCharacteristic :
     add_to_flat_create_info(m_dynamic_states);
     add_to_flat_create_info(m_pipeline_color_blend_attachment_states);
 
-    // Add default color blend.
-    m_pipeline_color_blend_attachment_states.push_back(vk_defaults::PipelineColorBlendAttachmentState{});
     // Add default topology.
     m_flat_create_info->m_pipeline_input_assembly_state_create_info.topology = vk::PrimitiveTopology::eTriangleList;
 

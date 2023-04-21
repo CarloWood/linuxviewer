@@ -4,8 +4,6 @@
 
 class HelloTriangle : public vulkan::Application
 {
-  using vulkan::Application::Application;
-
  public:
   std::u8string application_name() const override
   {

@@ -405,7 +405,7 @@ class LogicalDevice
   // API for access for Tracy.
   //
 
-  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(Queue const& queue, FrameResourceIndex max_number_of_frame_resources
+  utils::Vector<TracyVkCtx, FrameResourceIndex> tracy_context(Queue const& queue, FrameResourceIndex number_of_frame_resources
       COMMA_CWDEBUG_ONLY(Ambifix const& debug_name)) const;
 
   TracyVkCtx tracy_context(Queue const& queue
@@ -449,8 +449,9 @@ class LogicalDevice
       vk::PhysicalDeviceVulkan12Features& features12,
       vk::PhysicalDeviceVulkan13Features& features13) const { }
 
-  // Override this function to add QueueRequest objects. The default will create a graphics and presentation queue.
-  virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const { }
+  // Override this function to add QueueRequest objects manually.
+  // The default will create one graphics, presentation and transfer queue.
+  virtual void prepare_logical_device(DeviceCreateInfo& device_create_info) const;
 };
 
 namespace task {

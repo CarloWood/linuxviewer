@@ -2,9 +2,15 @@
   --linuxviewer-color: #c66a19;
   --default-text-color: #ccc7c0;
   --header-color: #ccc7c0;
+  --inline-code-color: #ccc7c0;
   --navigation-color: #a0a0a0;
   --inline-command-color: #8f8fdd;
   --lightgray-background-color: #26292b;        /* Used at bottom of sidebar and for h2 headers. */
+  --content-background-color: #181a1b;
+  --code-background-color: #272822;
+
+  --content-page-padding: 20px;                 /* The padding used for .content-page, see theme-blue.min.css:273 */
+  --extended-hr-top: 5px;                       /* Distance between an extended hr and the text above it. */
 }
 
 /* Override the default color. */
@@ -78,7 +84,7 @@ aside.sidebar {
 
 /* Override the background color of the content. */
 .columns .right-column .content-page {
-  background-color: #181a1b;
+  background-color: var(--content-background-color);
 }
 
 /* Override the default anchor color. */
@@ -152,39 +158,116 @@ code {
   color: var(--header-color);
   text-shadow: 2px 2px 2px #008080;    /* Text shadow. */
   border-top: 2px solid #555;       /* Solid, 2-pixel-wide, dark gray border. */
+  padding-left: var(--content-page-padding);
   padding-top: 5px;
   padding-bottom: 4px;
+  width: calc(100% + 2 * var(--content-page-padding));
+  transform: translateX(calc(var(--content-page-padding) * -1));
 }
 
 .doc_content article {
   border-bottom: 1px solid #eee;
 }
 
+/* Separation between previous text and a new piece of code. */
+
+div.extended-hr {
+  height: var(--extended-hr-top);
+}
+
+div.extended-hr hr {
+  position: absolute;
+  width: 100%;
+  transform: translate(calc(var(--content-page-padding) * -1), calc(var(--extended-hr-top) + 6px));
+  border-top: 2px solid #555;
+  margin: 0;
+}
+
+/* C++ syntax highlighting. */
+
+/* Inline code. The !important is required because this overrides CSS from prism.css with is loaded using defer. */
+code:not(pre.debug_output > code) {
+  background-color: var(--code-background-color) !important;
+  color: var(--inline-code-color) !important;
+}
+
 /* Tip block */
 
-.tip, .lv_note, .info_note {
-  border: 5px solid var(--linuxviewer-color);
+.tip, .lv_note, .lv_important, .info_note {
   padding: 10px;
   margin: 10px 0;
   border-radius: 20px;
+  margin-top: 20px;
 }
 
-.tip-title, .lv_note {
+.lv_important {
+  margin-top: 10px;
+}
+
+.tip .content, .lv_note .content, .lv_important .content, .info_note .content {
+  background-color: inherit;
+  margin-top: 5px;
+}
+
+.tip .title, .lv_important .title, .info_note .title {
   font-weight: bold;
   margin-bottom: 5px;
 }
 
-.tip-content, .lv_note-content, .info_note {
-  margin-top: 5px;
+.lv_note {
+  border: 5px solid var(--linuxviewer-color);
 }
 
 .info_note {
-  margin-top: 20px;
   border: 5px solid gray;
 }
 
-.info_note-title {
-  display: none;
+.lv_important {
+  border: 5px solid red;
+}
+
+/* Indented comments for bullet points. */
+li p span.bullet_point_description {
+  display: block;
+  padding-left: 1em;
+  padding-top: 2px;
+  font-size: 90%;
+  background-color: var(--content-background-color);
+}
+
+ul li pre {
+  display: inline-block;
+  vertical-align: top;
+  margin-top: calc(9px - 0.75em);
+  padding: 0;
+  margin: 0;
+  border-radius: 0.3em;
+  border: 1px solid #606060;
+  background-color: var(--code-background-color);
+}
+
+ul > li > pre > code {
+  padding: 0;
+  padding-left: 0.25em;
+  padding-right: 0.25em;
+}
+
+/* Debug output. */
+
+.debug_output {
+  padding-left: 4ch;
+  margin: 0;
+}
+
+pre.debug_output {
+  background-image: url('/linuxviewer/assets/double-bubble-dark.png');
+  background-repeat: repeat;
+}
+
+pre.debug_output > code {
+  overflow-x: auto;             /* Enables horizontal scrolling */
+  white-space: pre;             /* Prevent wrapping */
+  color: var(--inline-code-color);
 }
 
 /* Inline style. */
@@ -225,13 +308,35 @@ span.command {
   margin-right: auto;
 }
 
-/* Overview */
+/* The Vulkan API */
 
 #img_multimonitor {
   display: block;
   width: 50%; /* Adjust the scaling factor by changing the percentage. */
   height: auto;
   margin: 1em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* linuxviewer API */
+
+#img_hellotriangle_large {
+  display: block;
+  height: auto;
+  margin: 1em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#img_render_graph {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#img_hello_triangle_render_graph {
+  display: block;
   margin-left: auto;
   margin-right: auto;
 }

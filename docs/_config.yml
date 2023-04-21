@@ -14,8 +14,7 @@ url: ""
 # Build settings.
 destination: /home/carlo/projects/aicxx/linuxviewer/linuxviewer-objdir/linuxviewer-docs
 theme: minima
-plugins:
-  - jekyll-feed
+highlighter: none
 cache_dir: .generated/jekyll-cache
 use_directory_urls: true
 
@@ -27,7 +26,8 @@ kramdown:
   html_to_native: true
   auto_id_stripping: true
   auto_id_prefix: page_
-  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    disable : true
 
 exclude:
     - jekyll-serve.sh

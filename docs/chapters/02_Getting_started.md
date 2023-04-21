@@ -1,7 +1,7 @@
 ---
 layout: chapter
 title: Getting started
-utterance_id: getting_started_draft
+utterance_id: getting_started
 ---
 * TOC
 {:toc}
@@ -143,6 +143,7 @@ or <span class="command">RelWithDebug</span> will stop with the message:
 COREDUMP      : vkerror must be turned on from .libcwdrc (and so do all other vk* debug channels).
 ```
 
+<a id="libcwdrc" />
 To fix that please create a file <span class="command">~/.libcwdrc</span> with the following content:
 
 ```

@@ -1,0 +1,26 @@
+digraph G {
+  bgcolor = "#333333";
+  edge [color="#CCCCCC"];
+  node [fontcolor="#CCCCCC", fontname="Helvetica", fontsize="12"];
+
+  subgraph clusterMain {
+      graph [labelloc="b" labeljust="r" label=<
+      <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0"><TR>
+      <TD><FONT POINT-SIZE="10" COLOR="#FF9933">&#x25A1;</FONT></TD>
+      <TD ALIGN="left"><FONT COLOR="#CCCCCC">:&nbsp;Render pass</FONT></TD></TR>
+      <TR>
+      <TD><FONT POINT-SIZE="10" COLOR="#33CCFF">&#x25CB;</FONT></TD>
+      <TD ALIGN="left"><FONT COLOR="#CCCCCC">:&nbsp;Attachment</FONT></TD></TR>
+      </TABLE>>];
+
+    // Node shapes and labels.
+    node [shape=rectangle, color="#FF9933"];
+    main_pass [label="main_pass"];
+
+    node [shape=ellipse, color="#33CCFF", fontsize=10, penwidth=0.5];
+    output [label="output"];
+
+    // Edges between nodes.
+    main_pass -> output
+  }
+}

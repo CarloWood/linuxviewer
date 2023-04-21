@@ -224,8 +224,8 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
 
  protected:
   static constexpr vk::Format s_default_depth_format = vk::Format::eD16Unorm;
-  static constexpr FrameResourceIndex s_default_max_number_of_frame_resources{2};       // Default size of m_frame_resources_list.
-  static constexpr SwapchainIndex s_default_max_number_of_swapchain_images{3};          // The default number of maximum number of swapchain images
+  static constexpr FrameResourceIndex s_default_number_of_frame_resources{2};       // Default size of m_frame_resources_list.
+  static constexpr SwapchainIndex s_default_number_of_swapchain_images{3};          // The default number of maximum number of swapchain images
                                                                                         // that the application has to take into account (for example,
                                                                                         // used for static creation of Tracy GPU zone labels).
   // Render graph nodes.
@@ -493,7 +493,7 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
   // Optionally overridden by derived class.
 
   // Called by initialize_impl():
-  virtual threadpool::Timer::Interval get_frame_rate_interval() const;
+  virtual threadpool::Timer::Interval frame_rate_interval() const;
   // Called by handle_window_size_changed():
   virtual void on_window_size_changed_pre();
   // Called by create_frame_resources() and handle_window_size_changed():
@@ -501,10 +501,10 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
 
  public:
   // Called by create_frame_resources() (and PresentationSurface::set_queues when TRACY_ENABLE).
-  virtual FrameResourceIndex max_number_of_frame_resources() const;
+  virtual FrameResourceIndex number_of_frame_resources() const;
 
   // Called by ... when TRACY_ENABLE.
-  virtual SwapchainIndex max_number_of_swapchain_images() const;
+  virtual SwapchainIndex number_of_swapchain_images() const;
 
   // Override this function to give a Window its own (or shared) pipeline cache ID.
   // Windows with the same pipeline_cache_name will share the same cache file.

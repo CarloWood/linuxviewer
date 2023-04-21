@@ -1,7 +1,7 @@
 ---
 layout: chapter
 title: The Vulkan API
-utterance_id: the_vulkan_api_draft
+utterance_id: the_vulkan_api
 ---
 * TOC
 {:toc}
@@ -56,7 +56,7 @@ that will be utilized primarily depends on the desired monitor for display.
 
 Once the GPU has been established one
 needs to create a so called [Logical Device](https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Logical_device_and_queues)
-which involves specifying which Vulkan features are required and which queues will be needed.
+which involves specifying which Vulkan features are required and which command queues will be needed.
 
 ## {% include link_to_spec_1.3 name="VkSwapchainKHR" %}
 
@@ -103,6 +103,7 @@ One of these VkImageViews will be created from a swapchain image,
 which serves as the final color output target where the rendered scene will be stored.
 In this context, the swapchain image is used as an (output) color attachment.
 
+<a id="imageless-framebuffer"></a>
 {% capture tip_content %}
 The `vk::Framebuffer` that is used rendering by Linuxviewer is encapsulated by `vulkan::RenderPass`
 that stores a unique pointer to an
@@ -140,6 +141,7 @@ shader resources such as textures, samplers, and uniform buffers.
 On top of that it can have several stages that are programmable with shader code, in Vulkan referenced with a
 {% include link_to_spec_1.3 name="VkShaderModule" %} handle, corresponding to a memory image containing SPIR-V code.
 
+<a id="dynamic-state"></a>
 Both types of state together, with the exception of a few dynamically configurable states (independent of the VkPipeline)
 like the viewport and scissors - or, in the case of an imageless framebuffer, the actual images used for the attachments -
 are referenced with a {% include link_to_spec_1.3 name="VkPipeline" %} handle,
@@ -184,6 +186,7 @@ Since VkPipelines consist of a collection of static data detailing input process
 it's common to create numerous VkPipeline objects for use as building blocks in describing the rendering of a complete frame.
 After all, each minor variation in configuration necessitates the creation of a new VkPipeline.
 
+<a id="dynamic-recording"></a>
 Those building blocks are combined with "dynamic" data every frame when recording a
 [command buffer](https://vulkan-tutorial.com/Drawing_a_triangle/Drawing/Command_buffers).
 There are several dynamic data components used, besides VkPipeline, VkFramebuffer and VkRenderPass objects.

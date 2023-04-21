@@ -82,12 +82,12 @@ class Window : public vulkan::task::SynchronousWindow
     m_render_graph.generate(this);
   }
 
-  vulkan::FrameResourceIndex max_number_of_frame_resources() const override
+  vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
     return vulkan::FrameResourceIndex{10};
   }
 
-  vulkan::SwapchainIndex max_number_of_swapchain_images() const override
+  vulkan::SwapchainIndex number_of_swapchain_images() const override
   {
     return vulkan::SwapchainIndex{4};
   }
@@ -362,9 +362,9 @@ void main()
   //
   // Called from initialize_impl.
   //
-  threadpool::Timer::Interval get_frame_rate_interval() const override
+  threadpool::Timer::Interval frame_rate_interval() const override
   {
-    DoutEntering(dc::vulkan, "Window::get_frame_rate_interval() [" << this << "]");
+    DoutEntering(dc::vulkan, "Window::frame_rate_interval() [" << this << "]");
     // Limit the frame rate of this window to 1000 frames per second.
     return threadpool::Interval<100, std::chrono::milliseconds>{};
   }
@@ -448,9 +448,9 @@ void main()
     command_buffer.begin({ .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
     {
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass1, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
-          max_number_of_frame_resources(), m_current_frame.m_resource_index);
+          number_of_frame_resources(), m_current_frame.m_resource_index);
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __main_pass2, static_cast<vk::CommandBuffer>(command_buffer), main_pass.name(), true,
-          max_number_of_swapchain_images(), swapchain_index);
+          number_of_swapchain_images(), swapchain_index);
 
       command_buffer.beginRenderPass(main_pass.begin_info(), vk::SubpassContents::eInline);
 // FIXME: this is a hack - what we really need is a vector with RenderProxy objects.
@@ -479,9 +479,9 @@ else
 #if ENABLE_IMGUI
     {
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass1, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
-          max_number_of_frame_resources(), m_current_frame.m_resource_index);
+          number_of_frame_resources(), m_current_frame.m_resource_index);
       CwTracyVkNamedZone(presentation_surface().tracy_context(), __imgui_pass2, static_cast<vk::CommandBuffer>(command_buffer), imgui_pass.name(), true,
-          max_number_of_swapchain_images(), swapchain_index);
+          number_of_swapchain_images(), swapchain_index);
       command_buffer.beginRenderPass(imgui_pass.begin_info(), vk::SubpassContents::eInline);
       m_imgui.render_frame(command_buffer, m_current_frame.m_resource_index COMMA_CWDEBUG_ONLY(debug_name_prefix("m_imgui")));
       command_buffer.endRenderPass();

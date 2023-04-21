@@ -1,8 +1,6 @@
 #pragma once
 
-#include "HelloTriangle.h"
 #include <vulkan/SynchronousWindow.h>
-#include "debug.h"
 
 class Window : public vulkan::task::SynchronousWindow
 {
@@ -12,7 +10,6 @@ class Window : public vulkan::task::SynchronousWindow
  private:
   // Define renderpass / attachment objects.
   RenderPass  main_pass{this, "main_pass"};
-  Attachment      depth{this, "depth", s_depth_image_view_kind};
 
   // We have two shaders. One for the vertex stage and one for the fragment stage of the pipeline.
   // Initialized by register_shader_templates.

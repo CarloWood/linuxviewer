@@ -350,7 +350,7 @@ class Application
   virtual void prepare_instance_info(vulkan::InstanceCreateInfo& instance_create_info) const { }
 
  public:
-  // Override this function to change the default ApplicatioInfo values.
+  // Override this function to change the default ApplicationInfo values.
   virtual std::u8string application_name() const;
 
   // Override this function to change the default application version. The result should be a value returned by vk_utils::encode_version.
