@@ -33,9 +33,10 @@ void AddVertexShader::copy_shader_variables()
 
   // Call AddVertexShader::add_vertex_input_bindings with a vulkan::VertexBuffers
   // object from the initialization state of the Characteristic responsible for
-  // the vertex shader. If you are not using any VertexBuffers, then set
-  // m_use_vertex_buffers to false in the constructor of the pipeline factory
-  // characteristic derived from this class.
+  // the vertex shader.
+  //
+  // If you are not using any VertexBuffers, then set m_use_vertex_buffers to false in the
+  // constructor of the pipeline factory characteristic derived from this class.
   ASSERT(m_current_vertex_buffers_object);
 
   auto const& glsl_id_full_to_vertex_attribute = m_current_vertex_buffers_object->glsl_id_full_to_vertex_attribute();

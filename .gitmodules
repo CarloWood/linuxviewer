@@ -74,3 +74,4 @@
 [submodule "src/examples"]
 	path = src/examples
 	url = https://github.com/CarloWood/linuxviewer-examples.git
+	branch = hello_triangle

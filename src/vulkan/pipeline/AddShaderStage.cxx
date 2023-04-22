@@ -154,7 +154,24 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
     // They may occur zero or more times.
     //
     // This is very unexpected; m_shader_variables should not be empty.
-    // If it really should be empty then please add a '#version' line at the top of the template code to turn off preprocessing.
+    // Not having *any* shader variables means you don't have push constants, vertex buffers, textures or uniform buffers.
+    // Nothing. The only reason for that is when you are trying to build the HelloTriangle application, or
+    // when you are beginning all your shaders with '#version' (not using the automatic generation of shader variable
+    // declarations) and on top of that don't have vertex buffers.
+    //
+    // Missing vertex buffer:
+    //
+    //   Perhaps you (still) have `m_use_vertex_buffers = false;` in the constructor of
+    //   (one of) your pipeline Characteristic? If so, start with removing that line.
+    //
+    //   If that didn't help then make sure to override vulkan::task::SynchronousWindow::create_vertex_buffers
+    //   in your Window class and call `m_your_vertex_buffers.create_vertex_buffer(this, m_your_vertex_shader_input_set)` from it,
+    //   where, m_your_vertex_buffers and m_your_vertex_shader_input_set are members of the Window class
+    //   of types vulkan::VertexBuffers and some custom class derived from vulkan::shader_builder::VertexShaderInputSet<>
+    //   respectively (see the hello_vertex_buffer example for more information).
+    //
+    // If m_shader_variables really *should* be empty then please make sure that added a '#version' line at the top
+    // of the template code of all your shaders, in order to turn off preprocessing.
     ASSERT(!m_shader_variables.empty());
     for (shader_builder::ShaderVariable const* shader_variable : m_shader_variables)
     {

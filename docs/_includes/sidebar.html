@@ -8,33 +8,36 @@
   <aside class="sidebar">
     <ul class='Nav'>
       {% assign chapters = site.pages | sort: "path" -%}
-      {% assign prev_depth = 0 -%}
-      {% assign close_count = 0 -%}
+      {% assign prev_depth_end = -1 -%}
       {% for chapter in chapters -%}
         {% if chapter.url contains "/chapters/" -%}
           {% assign url_parts = chapter.url | split: "/" -%}
           {% assign depth = url_parts | size -%}
-          {% assign intermediate_close_count = close_count -%}
+          {% assign depth_end = depth | minus: 1 -%}
+          {% assign folder_close_count = prev_depth_end | minus: 2 -%}
+          {% assign is_same = true -%}
           {% assign partial_path = "/chapters/" -%}
-          {% for current_depth in (3..depth) -%}
-            {% if current_depth == depth %}
+          {% for current_depth in (2..depth_end) -%}
+            {% assign partial_path = partial_path | append: url_parts[current_depth] | append: '/' -%}
+            {% if is_same and current_depth < prev_depth_end and url_parts[current_depth] == prev_url_parts[current_depth] %}
+              {% assign folder_close_count = folder_close_count | minus: 1 -%}
+              {% continue -%}
+            {% elsif is_same -%}
+              {% assign is_same = false -%}
+              {% for i in (1..folder_close_count) %}
+                </ul></li>
+              {% endfor -%}
+            {% endif -%}
+            {% if current_depth == depth_end -%}
               {% assign nav_class = "Nav__item" -%}
               {% if chapter.url == page.url -%}
                 {% assign nav_class = nav_class | append: " Nav__item--active" -%}
               {% endif %}
-      <li class="{{ nav_class }}">
-        <a href="{{ chapter.url | relative_url }}">{{ chapter.toc_title | default: chapter.title | escape }}</a>
-      </li>
+              <li class="{{ nav_class }}">
+                <a href="{{ chapter.url | relative_url }}">{{ chapter.toc_title | default: chapter.title | escape }}</a>
+              </li>
             {% else -%}
-              {% assign depth_index = current_depth | minus: 1 -%}
-              {% assign partial_path = partial_path | append: url_parts[depth_index] | append: '/' -%}
-              {% if current_depth <= prev_depth and url_parts[depth_index] == prev_url_parts[depth_index] -%}
-                {% assign intermediate_close_count = intermediate_close_count | minus: 1 -%}
-                {% continue -%}
-              {% endif -%}
-              {% assign partial_path_length = partial_path | size -%}
-              {% assign leading_part_page_url = page.url | slice: 0, partial_path_length -%}
-              {% assign label = url_parts[depth_index] | replace: "_", " " -%}
+              {% assign label = url_parts[current_depth] | replace: "_", " " -%}
               {% assign last_index = label | size | minus: 1 -%}
               {% for i in (0..last_index) -%}
                 {% assign char = label | slice: i -%}
@@ -43,11 +46,8 @@
                   {% break -%}
                 {% endif -%}
               {% endfor -%}
-              {% for i in (1..intermediate_close_count) %}
-        </ul>
-      </li>
-              {% endfor -%}
-              {% assign close_count = close_count | minus: intermediate_close_count -%}
+              {% assign partial_path_length = partial_path | size -%}
+              {% assign leading_part_page_url = page.url | slice: 0, partial_path_length -%}
               {% assign nav_class = "Nav__item has-children" -%}
               {% if leading_part_page_url == partial_path -%}
                 {% assign nav_class = nav_class | append: " Nav__item--open" -%}
@@ -57,16 +57,14 @@
           <i class="Nav__arrow">&nbsp;</i>{{ label }}
         </a>
         <ul class="Nav">
-              {% assign close_count = close_count | plus: 1 -%}
             {% endif -%}
           {% endfor -%}
-          {% assign prev_depth = depth -%}
           {% assign prev_url_parts = url_parts -%}
+          {% assign prev_depth_end = depth_end -%}
         {% endif -%}
       {% endfor -%}
-      {% for i in (1..close_count) %}
-        </ul>
-      </li>
+      {% for i in (3..prev_depth_end) %}
+        </ul></li>
       {% endfor %}
     </ul>
   </aside>
