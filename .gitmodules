@@ -71,3 +71,6 @@
 	path = block-task
 	url = https://github.com/CarloWood/block-task.git
 	branch = master
+[submodule "src/examples"]
+	path = src/examples
+	url = https://github.com/CarloWood/linuxviewer-examples.git

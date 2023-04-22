@@ -18,10 +18,10 @@
           {% assign partial_path = "/chapters/" -%}
           {% for current_depth in (3..depth) -%}
             {% if current_depth == depth %}
-          {% assign nav_class = "Nav__item" -%}
-          {% if chapter.url == page.url -%}
-            {% assign nav_class = nav_class | append: " Nav__item--active" -%}
-          {% endif %}
+              {% assign nav_class = "Nav__item" -%}
+              {% if chapter.url == page.url -%}
+                {% assign nav_class = nav_class | append: " Nav__item--active" -%}
+              {% endif %}
       <li class="{{ nav_class }}">
         <a href="{{ chapter.url | relative_url }}">{{ chapter.toc_title | default: chapter.title | escape }}</a>
       </li>
