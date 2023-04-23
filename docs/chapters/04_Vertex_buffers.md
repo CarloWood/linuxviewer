@@ -1,7 +1,7 @@
 ---
 layout: chapter
 title: Vertex buffers
-utterance_id: vertex_buffers_draft
+utterance_id: vertex_buffers
 ---
 * TOC
 {:toc}
@@ -42,7 +42,9 @@ git branch
 to see an overview of all examples.
 {% endcapture %}{% include info_note.html %}
 
-## VertexData.h ##
+## hello_vertex_buffer ##
+
+### VertexData.h ###
 
 Our vertex buffer contains per-vertex data, and will replace the hardcoded
 values in the vertex shader: the position and color of each vertex.
@@ -106,7 +108,7 @@ two vertex buffers, one with the position and one with the
 colors; in which case it more closely resembles the layout
 used in <span class="command">hello_triangle</span>.
 
-## Triangle.h ##
+### Triangle.h ###
 
 The `Triangle` class is derived from `vulkan::shader_builder::VertexShaderInputSet`,
 which in turn is derived from `vulkan::DataFeeder`.
@@ -174,7 +176,7 @@ we'll fill all data in one go, hence that `next_batch()` returns the full amount
 This last function copies the data from the static tables into the `VertexData` objects
 of the vertex buffer.
 
-## Triangle.cxx ##
+### Triangle.cxx ###
 
 ```cpp
 #include "sys.h"
@@ -194,7 +196,7 @@ Eigen::Vector3f const Triangle::s_color[number_of_vertices] = {
 ```
 These are the [same values]({{ linuxviewer_api }}/07_Window_cxx.html#shaders) as we had hardcoded into the vertex shader at first.
 
-## Window.h ##
+### Window.h ###
 Add additional required headers:
 ```diff
  #pragma once
@@ -232,7 +234,7 @@ instead of leaving it empty:
 -  void create_vertex_buffers() override { }
 ```
 
-## Window.cxx ##
+### Window.cxx ###
 ```diff
  #include "Window.h"
  #include "TrianglePipelineCharacteristic.h"
@@ -345,7 +347,7 @@ Finally, change `Window::draw_frame` to bind the vertex buffer(s) to the pipelin
  
 ```
 
-## TrianglePipelineCharacteristic.h ##
+### TrianglePipelineCharacteristic.h ###
 ```diff
    TrianglePipelineCharacteristic(vulkan::task::SynchronousWindow const* owning_window COMMA_CWDEBUG_ONLY(bool debug)) :
      vulkan::pipeline::Characteristic(owning_window COMMA_CWDEBUG_ONLY(debug))
@@ -382,7 +384,7 @@ At the bottom of the `initialize()` member function add:
    }
 ```
 
-## HelloTriangle.h ##
+### HelloTriangle.h ###
 ```diff
    std::u8string application_name() const override
    {
@@ -391,3 +393,83 @@ At the bottom of the `initialize()` member function add:
    }
 ```
 That was the last change that we made. Added for completeness, as it is clearly not related to adding a vertex buffer.
+
+## hello_two_vertex_buffers ##
+
+Instead of using one vertex buffer, `VertexData` (remember: one type corresponds to one vertex buffer),
+we could have used --say-- `VertexPosition` and `VertexColor`, separating positions and colors into two vertex buffers:
+
+### VertexPosition.h ###
+
+```cpp
+#pragma once
+
+#include <vulkan/shader_builder/VertexAttribute.h>
+
+struct VertexPosition;
+
+LAYOUT_DECLARATION(VertexPosition, per_vertex_data)
+{
+  static constexpr auto struct_layout = make_struct_layout(
+    LAYOUT(vec2, m_position)
+  );
+};
+
+// Struct describing data type and format of vertex attributes.
+struct VertexPosition
+{
+  glsl::vec2 m_position;
+};
+```
+
+### VertexColor.h ###
+
+```cpp
+#pragma once
+
+#include <vulkan/shader_builder/VertexAttribute.h>
+
+struct VertexColor;
+
+LAYOUT_DECLARATION(VertexColor, per_vertex_data)
+{
+  static constexpr auto struct_layout = make_struct_layout(
+    LAYOUT(vec3, m_color)
+  );
+};
+
+// Struct describing data type and format of vertex attributes.
+struct VertexColor
+{
+  glsl::vec3 m_color;
+};
+```
+
+And then have two vertex buffer generators, for example `Position` and `Color`, instead of `Triangle`, that
+only fill respectively `m_position` and `m_color` of the above structs.
+
+Define both in your `Window` class:
+```diff
+   // Vertex buffer generators.
+-  Triangle m_triangle;                  // Vertex buffer.
++  Position m_position;
++  Color m_color;
+```
+and add both to `m_vertex_buffers`:
+```diff
+-  m_vertex_buffers.create_vertex_buffer(this, m_triangle);
++  m_vertex_buffers.create_vertex_buffer(this, m_position);
++  m_vertex_buffers.create_vertex_buffer(this, m_color);
+```
+
+And change the shader code to use `VertexPosition::m_position` and `VertexColor::m_color`
+instead of `VertexData::` for both:
+```diff
+ void main()
+ {
+-  gl_Position = vec4(VertexData::m_position, 0.0, 1.0);
+-  fragColor = VertexData::m_color;
++  gl_Position = vec4(VertexPosition::m_position, 0.0, 1.0);
++  fragColor = VertexColor::m_color;
+ }
+```
