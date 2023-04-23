@@ -48,7 +48,8 @@ How to create a more complicated render graph using linuxviewer will be document
   vulkan::shader_builder::ShaderIndex m_shader_frag;
 ```
 The `Window` stores handles/indices to the two shader templates
-(see [<span class="command">Window.cxx</span>]({{ page.path | remove:page.name | relative_url }}/07_Window_cxx.html) for their definition).
+(see [<span class="command">Window.cxx</span>]({{ page.path | remove:page.name | relative_url }}/07_Window_cxx.html#shaders)
+for their definition).
 
 <div class="extended-hr"><hr /></div>
 ```cpp

@@ -64,7 +64,7 @@ Prism.languages.cpp['generic-function'].inside = {
 
 Prism.languages.insertBefore('cpp', 'macro', {
   'macro-name': {
-    pattern: /\b(CWDEBUG)\b/
+    pattern: /\b(CWDEBUG|LAYOUT_DECLARATION|LAYOUT)\b/
   }
 });
 
@@ -98,7 +98,7 @@ Prism.languages.insertBefore('cpp', 'class-name', {
     alias: 'class-name'
   },
   'example-class-name': {
-    pattern: /\b(Triangle\w+|HelloTriangle|Window|SynchronousWindow|RenderPass|Attachment|LogicalDevice)\b/,
+    pattern: /\b(Triangle\w*|HelloTriangle|Window|SynchronousWindow|RenderPass|Attachment|LogicalDevice|VertexData)\b/,
     alias: 'class-name'
   },
   'class-name-std-nested': {
@@ -139,7 +139,7 @@ Prism.languages.insertBefore('cpp', 'class-name', {
     alias: 'class-name'
   },
   'member-variable': {
-    pattern: /\b(m_\w+|root_window_request_cookie|main_pass|depth)\b/,
+    pattern: /\b(m_\w+|s_\w+|root_window_request_cookie|main_pass|depth)\b/,
     alias: 'variable',
   },
   'pseudo-statement': {

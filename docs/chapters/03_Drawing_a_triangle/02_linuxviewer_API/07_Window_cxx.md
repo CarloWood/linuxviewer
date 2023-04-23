@@ -16,6 +16,7 @@ utterance_id: lv_API_Window_cxx_draft
 This is the file where it all comes together.
 As stated above, every compilation unit must begin with including `"sys.h"`.
 
+<a id="shaders" />
 <div class="extended-hr"><hr /></div>
 ```cpp
 namespace {
@@ -68,6 +69,7 @@ This will be documentated later.
 Our vertex shader doesn't have many variables: only `gl_VertexIndex` as input
 and `gl_Position` and `fragColor` as output.
 
+<a id="draw" />
 The vertex shader will be called three times per frame because we'll record
 `draw(3, 1, 0, 0)` (see {% include link_to_spec_1.3 name="vkCmdDraw" %}) to the command buffer, every frame.
 
