@@ -44,7 +44,7 @@ Compiler::Compiler(ShaderInfo const& shader_info, std::string_view glsl_source_c
 std::vector<uint32_t> ShaderCompiler::compile(utils::Badge<SPIRVCache>, ShaderInfo const& shader_info, std::string_view glsl_source_code) const
 {
   // Call initialize before calling compile.
-  // Did you forget to call initialize() on the compiler before passing it to build_shader?
+  // Did you forget to call initialize() on the compiler before passing it to realize_shader?
   ASSERT(m_compiler != nullptr);
   Compiler compiler(shader_info, glsl_source_code, m_compiler);
   // Cache resulting SPIR-V code in a vector.

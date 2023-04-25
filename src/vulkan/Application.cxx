@@ -370,7 +370,8 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
 shader_builder::ShaderInfoCache& Application::get_shader_info(shader_builder::ShaderIndex shader_index) const
 {
   shader_builder::ShaderInfos::wat shader_infos_w(m_shader_infos);
-  // We can return a reference because m_shader_infos_w->list is a deque for which references are not invalidated by inserting more elements at the end.
+  // We can return a reference because m_shader_infos_w->deque is a deque, for which
+  // references are not invalidated by inserting more elements at the end.
   return shader_infos_w->deque[shader_index];
 }
 

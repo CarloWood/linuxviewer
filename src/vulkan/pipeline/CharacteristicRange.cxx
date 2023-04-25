@@ -15,7 +15,7 @@ char const* CharacteristicRange::state_str_impl(state_type run_state) const
     AI_CASE_RETURN(CharacteristicRange_filled);
     AI_CASE_RETURN(CharacteristicRange_preprocess);
     AI_CASE_RETURN(CharacteristicRange_compile);
-    AI_CASE_RETURN(CharacteristicRange_build_shaders);
+    AI_CASE_RETURN(CharacteristicRange_realize_shaders);
     AI_CASE_RETURN(CharacteristicRange_compiled);
   }
   AI_NEVER_REACHED
@@ -28,7 +28,7 @@ char const* CharacteristicRange::condition_str_impl(condition_type condition) co
     AI_CASE_RETURN(do_fill);
     AI_CASE_RETURN(do_preprocess);
     AI_CASE_RETURN(do_compile);
-    AI_CASE_RETURN(do_build_shaders);
+    AI_CASE_RETURN(do_realize_shaders);
     AI_CASE_RETURN(do_terminate);
   }
   return direct_base_type::condition_str_impl(condition);
@@ -121,16 +121,16 @@ void CharacteristicRange::multiplex_impl(state_type run_state)
         finish();
         break;
       }
-      start_build_shaders();
-      set_state(CharacteristicRange_build_shaders);
-      Dout(dc::statefultask(mSMDebug), "Falling through to CharacteristicRange_build_shaders [" << this << "]");
+      start_realize_shaders();
+      set_state(CharacteristicRange_realize_shaders);
+      Dout(dc::statefultask(mSMDebug), "Falling through to CharacteristicRange_realize_shaders [" << this << "]");
       [[fallthrough]];
-    case CharacteristicRange_build_shaders:
-      // If build_shaders returns false we must reenter it when signal(do_build_shaders) is received.
+    case CharacteristicRange_realize_shaders:
+      // If realize_shaders returns false we must reenter it when signal(do_realize_shaders) is received.
       // Note that it keeps returning false until all shaders are compiled.
-      if (!build_shaders(this, m_owning_factory, do_build_shaders))
+      if (!realize_shaders(this, m_owning_factory, do_realize_shaders))
       {
-        wait(do_build_shaders);
+        wait(do_realize_shaders);
         break;
       }
       set_state(CharacteristicRange_compiled);

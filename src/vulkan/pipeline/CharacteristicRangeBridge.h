@@ -56,12 +56,12 @@ struct CharacteristicRangeBridge
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual void start_build_shaders()
+  virtual void start_realize_shaders()
   {
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual bool build_shaders(task::CharacteristicRange* characteristic_range,
+  virtual bool realize_shaders(task::CharacteristicRange* characteristic_range,
       task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked)
   {
     ASSERT(false);

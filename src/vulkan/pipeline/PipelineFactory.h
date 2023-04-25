@@ -8,13 +8,16 @@
 #include "../descriptor/SetKeyPreference.h"
 #include "../descriptor/SetKeyToShaderResourceDeclaration.h"
 #include "../shader_builder/shader_resource/UniformBuffer.h"
+#include "../shader_builder/ShaderIndex.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
 #include "threadsafe/aithreadsafe.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
 #include "utils/Badge.h"
+#include "utils/sorted_vector_insert.h"
 #include <vulkan/vulkan.hpp>
+#include <algorithm>
 
 namespace vulkan {
 class LogicalDevice;
@@ -170,6 +173,22 @@ class PipelineFactory : public AIStatefulTask
   Pipeline::descriptor_set_per_set_index_t m_descriptor_set_per_set_index;
 
   //---------------------------------------------------------------------------
+
+  // All shaders that were compiled by this factory, or whose flat create info was already retrieved by this factory.
+  std::vector<shader_builder::ShaderIndex> m_sorted_compiled_shaders_known_by_this_factory;
+
+ public:
+  void add_compiled_shader_known_by_this_factory(utils::Badge<pipeline::AddShaderStage>, shader_builder::ShaderIndex shader_index)
+  {
+    utils::sorted_vector_insert(m_sorted_compiled_shaders_known_by_this_factory, shader_index);
+  }
+
+  // Returns true of shader_index was passed to add_compiled_shader_known_by_this_factory before.
+  bool is_compiled_shader_known_by_this_factory(utils::Badge<pipeline::AddShaderStage>, shader_builder::ShaderIndex shader_index) const
+  {
+    return std::binary_search(m_sorted_compiled_shaders_known_by_this_factory.begin(),
+        m_sorted_compiled_shaders_known_by_this_factory.end(), shader_index);
+  }
 
  private:
   // Called from prepare_shader_resource_declarations.

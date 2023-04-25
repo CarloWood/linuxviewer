@@ -315,17 +315,18 @@ void main()
   class Characteristic : public vulkan::pipeline::AddShaderStage
   {
    public:
-    void build_shader(vulkan::task::SynchronousWindow const* owning_window,
+    void realize_shader(vulkan::task::PipelineFactory* pipeline_factory,
+        vulkan::task::SynchronousWindow const* owning_window,
         vulkan::shader_builder::ShaderIndex shader_index,
         vulkan::shader_builder::ShaderInfoCache& shader_info_cache,
         vulkan::shader_builder::ShaderCompiler const& compiler
         COMMA_CWDEBUG_ONLY(std::string prefix))
     {
-      vulkan::pipeline::AddShaderStage::build_shader(owning_window, shader_index, shader_info_cache, compiler, nullptr
+      vulkan::pipeline::AddShaderStage::realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, nullptr
           COMMA_CWDEBUG_ONLY(prefix));
     }
 
-    // Access base class vector that gets filled by build_shader. Needed because we're not using a pipeline factory.
+    // Access base class vector that gets filled by realize_shader. Needed because we're not using a pipeline factory.
     std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos() const { return m_shader_stage_create_infos; }
 
    private:
@@ -371,7 +372,7 @@ void main()
         auto blocking_task_mutex = statefultask::create<task::BlockingTaskMutex>(CWDEBUG_ONLY(false));
         blocking_task_mutex->set_mutex(shader_info_cache.m_task_mutex);
         blocking_task_mutex->lock();
-        shader_input_data.build_shader(this, shader_index, shader_info_cache, compiler
+        shader_input_data.realize_shader(nullptr, this, shader_index, shader_info_cache, compiler
             COMMA_CWDEBUG_ONLY("Window::create_graphics_pipelines()::shader_input_data"));
         blocking_task_mutex->unlock();
         if (shader == 1)

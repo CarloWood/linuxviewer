@@ -12,25 +12,29 @@ namespace vulkan::pipeline {
 void AddShaderStage::pre_fill_state()
 {
   DoutEntering(dc::vulkan, "AddShaderStage::pre_fill_state() [" << this << "]");
-  // build_shaders() must be called every fill_index to re-fill this vector.
+  // realize_shaders() must be called every fill_index to re-fill this vector.
   m_shader_stage_create_infos.clear();
 }
 
 void AddShaderStage::add_shader(shader_builder::ShaderIndex add_shader_index)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::add_shader(add_shader_index) [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::add_shader(" << add_shader_index << ") [" << this << "]");
 #ifdef CWDEBUG
   shader_builder::ShaderInfo const& add_shader_info = Application::instance().get_shader_info(add_shader_index);
-  for (shader_builder::ShaderIndex existing_shader_index : m_shaders_that_need_compiling)
+  for (shader_builder::ShaderIndex existing_shader_index : m_added_shaders)
   {
     // Don't add the same shader_index twice.
+    // If you need the same shader for the whole CharacteristicRange,
+    // add it in the initialize() function of the Characteristic; otherwise,
+    // only add it once (for fill_index() == 0) and then use replace_shader
+    // every time the shader index must change.
     ASSERT(add_shader_index != existing_shader_index);
     shader_builder::ShaderInfo const& existing_shader_info = Application::instance().get_shader_info(existing_shader_index);
     // Can't add more than one shader for a given stage.
     ASSERT(add_shader_info.stage() != existing_shader_info.stage());
   }
 #endif
-  m_shaders_that_need_compiling.push_back(add_shader_index);
+  m_added_shaders.push_back(add_shader_index);
 }
 
 void AddShaderStage::replace_shader(shader_builder::ShaderIndex remove_shader_index, shader_builder::ShaderIndex add_shader_index)
@@ -42,7 +46,7 @@ void AddShaderStage::replace_shader(shader_builder::ShaderIndex remove_shader_in
   ASSERT(remove_shader_info.stage() == add_shader_info.stage());
   bool found = false;
 #endif
-  for (auto shader =  m_shaders_that_need_compiling.begin(); shader != m_shaders_that_need_compiling.end(); ++shader)
+  for (auto shader =  m_added_shaders.begin(); shader != m_added_shaders.end(); ++shader)
   {
     shader_builder::ShaderIndex existing_shader_index = *shader;
     // Don't add the same shader_index twice.
@@ -66,14 +70,18 @@ vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_s
   vk::ShaderStageFlags preprocessed_stages;
 
   task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
-  for (shader_builder::ShaderIndex shader_index : m_shaders_that_need_compiling)
+  for (shader_builder::ShaderIndex shader_index : m_added_shaders)
   {
     shader_builder::ShaderInfoCache const& shader_info_cache = owning_window->application().get_shader_info(shader_index);
     if (shader_info_cache.is_compiled())
     {
-      // Restore additional flat create info vectors from the shader_info_cache, in case we never called preprocess1 even once.
-      restore_from_cache(shader_info_cache);
-      restore_descriptor_set_layouts(shader_info_cache, pipeline_factory);
+      if (!pipeline_factory->is_compiled_shader_known_by_this_factory({}, shader_index))
+      {
+        // Retrieve additional flat create info vectors from the shader_info_cache, in case we never called preprocess1 even once.
+        retrieve_from_cache(shader_info_cache);
+        retrieve_descriptor_set_layouts(shader_info_cache, pipeline_factory);
+        pipeline_factory->add_compiled_shader_known_by_this_factory({}, shader_index);
+      }
       continue;
     }
     // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
@@ -91,29 +99,29 @@ vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_s
   return preprocessed_stages;
 }
 
-bool AddShaderStage::build_shaders(
+bool AddShaderStage::realize_shaders(
     task::CharacteristicRange* characteristic_range, task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::build_shaders(" << pipeline_factory << ") with index = " <<
-      m_shaders_that_need_compiling_index << " [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::realize_shaders(" << pipeline_factory << ") with index = " <<
+      m_added_shaders_index << " [" << this << "]");
 
   task::SynchronousWindow const* owning_window = pipeline_factory->owning_window();
-  while (m_shaders_that_need_compiling_index != m_shaders_that_need_compiling.size())
+  while (m_added_shaders_index != m_added_shaders.size())
   {
-    // If m_shaders_that_need_compiling_index is negative then that means that we received
-    // the locked signal for the current m_shaders_that_need_compiling_index and now we have the lock.
-    bool have_lock = m_shaders_that_need_compiling_index < 0;
+    // If m_added_shaders_index is negative then that means that we received
+    // the locked signal for the current m_added_shaders_index and now we have the lock.
+    bool have_lock = m_added_shaders_index < 0;
     if (have_lock)
-      m_shaders_that_need_compiling_index = -m_shaders_that_need_compiling_index - 1;
+      m_added_shaders_index = -m_added_shaders_index - 1;
 
-    shader_builder::ShaderIndex shader_index = m_shaders_that_need_compiling[m_shaders_that_need_compiling_index];
+    shader_builder::ShaderIndex shader_index = m_added_shaders[m_added_shaders_index];
     shader_builder::ShaderInfoCache& shader_info_cache = Application::instance().get_shader_info(shader_index);
 
     if (!have_lock &&
         !shader_info_cache.m_task_mutex.lock(characteristic_range, locked))
     {
       // Make the index negative to signal that we're blocking on trying to get the task mutex.
-      m_shaders_that_need_compiling_index = -m_shaders_that_need_compiling_index - 1;
+      m_added_shaders_index = -m_added_shaders_index - 1;
       return false;
     }
 
@@ -123,12 +131,12 @@ bool AddShaderStage::build_shaders(
       // Now that we locked shader_info_cache.m_task_mutex we're allowed to access shader_info_cache.
       // The mutex mainly makes sure that only a single task will compile any given shader and assign
       // shader_info_cache.m_shader_module.
-      build_shader(owning_window, shader_index, shader_info_cache, m_compiler, m_set_index_hint_map
+      realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, m_compiler, m_set_index_hint_map
          COMMA_CWDEBUG_ONLY("AddShaderStage::"));
     }
 
     // Advance to the next shader, if any.
-    ++m_shaders_that_need_compiling_index;
+    ++m_added_shaders_index;
   }
 
   m_compiler.release();
@@ -199,7 +207,7 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
   }
 }
 
-// Called from build_shader.
+// Called from realize_shader.
 std::string_view AddShaderStage::preprocess2(
     shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
 {
@@ -273,7 +281,8 @@ std::string_view AddShaderStage::preprocess2(
   return glsl_source_code_buffer;
 }
 
-void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
+void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
+    task::SynchronousWindow const* owning_window,
     shader_builder::ShaderIndex shader_index,
     shader_builder::ShaderInfoCache& shader_info_cache,
     shader_builder::ShaderCompiler const& compiler,
@@ -281,7 +290,9 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     descriptor::SetIndexHintMap const* set_index_hint_map
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
-  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::build_shader(" << owning_window << ", " << shader_index << " [" << shader_info_cache.name() << "], compiler, spirv_cache, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::realize_shader(" << pipeline_factory << ", " << owning_window <<
+      ", " << shader_index << " [" << shader_info_cache.name() << "], compiler, spirv_cache, " <<
+      vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
 
   // It should be ok to get a reference to the ShaderInfo element like this,
   // since we could also get it by calling Application::instance().get_shader_info(shader_index).
@@ -299,15 +310,19 @@ void AddShaderStage::build_shader(task::SynchronousWindow const* owning_window,
     shader_info_cache.m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
         COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
 
-    // Add data to shader_info_cache that might be needed by other pipeline factories
-    // because they will no longer call preprocess* after the shader module handle is set.
-    update(shader_info_cache);
-    cache_descriptor_set_layouts(shader_info_cache);
+    if (pipeline_factory)
+    {
+      // Add data to shader_info_cache that might be needed by other pipeline factories
+      // because they will no longer call preprocess* after the shader module handle is set.
+      update(shader_info_cache);
+      cache_descriptor_set_layouts(shader_info_cache);
+      pipeline_factory->add_compiled_shader_known_by_this_factory({}, shader_index);
+    }
 
     // Set an atomic boolean for the sake of optimizing preprocessing away.
     // We can't use m_shader_module for that because preprocess1 is called outside of the
     // critical area of ShaderInfoCache::m_task_mutex. As such there is a race condition,
-    // but that will at most to an unnecessary preprocess of the same shader, without
+    // but that will at most lead to an unnecessary preprocess of the same shader, without
     // compiling it afterwards.
     shader_info_cache.set_compiled();
   }
@@ -335,9 +350,9 @@ void AddShaderStage::cache_descriptor_set_layouts(shader_builder::ShaderInfoCach
   }
 }
 
-void AddShaderStage::restore_descriptor_set_layouts(shader_builder::ShaderInfoCache const& shader_info_cache, task::PipelineFactory* pipeline_factory)
+void AddShaderStage::retrieve_descriptor_set_layouts(shader_builder::ShaderInfoCache const& shader_info_cache, task::PipelineFactory* pipeline_factory)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::restore_descriptor_set_layouts(" << shader_info_cache << ", " << pipeline_factory << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::retrieve_descriptor_set_layouts(" << shader_info_cache << ", " << pipeline_factory << ") [" << this << "]");
   Dout(dc::vulkan, "Restoring:");
   vk::ShaderStageFlags shader_stage{shader_info_cache.stage()};
   for (shader_builder::DescriptorSetLayoutBinding const& descriptor_set_layout_binding : shader_info_cache.m_descriptor_set_layouts)

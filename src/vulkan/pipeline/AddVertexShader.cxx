@@ -131,7 +131,7 @@ void AddVertexShader::cache_vertex_input_descriptions(shader_builder::ShaderInfo
   shader_info_cache.copy(m_vertex_input_binding_descriptions, m_vertex_input_attribute_descriptions);
 }
 
-void AddVertexShader::restore_vertex_input_descriptions(shader_builder::ShaderInfoCache const& shader_info_cache)
+void AddVertexShader::retrieve_vertex_input_descriptions(shader_builder::ShaderInfoCache const& shader_info_cache)
 {
   if (m_vertex_input_binding_descriptions.empty() && m_vertex_input_attribute_descriptions.empty())
   {

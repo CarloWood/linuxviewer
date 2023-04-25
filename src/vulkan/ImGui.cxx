@@ -204,7 +204,7 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
     preprocess1(owning_window->application().get_shader_info(vertex_shader_index));
     preprocess1(owning_window->application().get_shader_info(fragment_shader_index));
 
-    //build_shaders
+    //realize_shaders
     compiler.initialize();
     shader_builder::ShaderIndex shader_index = vertex_shader_index;
     for (int shader = 0;; ++shader)
@@ -214,7 +214,7 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
       auto blocking_task_mutex = statefultask::create<::task::BlockingTaskMutex>(CWDEBUG_ONLY(true));
       blocking_task_mutex->set_mutex(shader_info_cache.m_task_mutex);
       blocking_task_mutex->lock();
-      build_shader(owning_window, shader_index, shader_info_cache, compiler, spirv_cache, nullptr
+      realize_shader(nullptr, owning_window, shader_index, shader_info_cache, compiler, spirv_cache, nullptr
           COMMA_CWDEBUG_ONLY(ambifix));
       blocking_task_mutex->unlock();
       if (shader == 1)

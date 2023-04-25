@@ -29,7 +29,7 @@ void AddPushConstant::cache_push_constant_ranges(shader_builder::ShaderInfoCache
   shader_info_cache.copy(m_push_constant_ranges);
 }
 
-void AddPushConstant::restore_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache)
+void AddPushConstant::retrieve_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache)
 {
   if (m_push_constant_ranges.empty())
     m_push_constant_ranges = shader_info_cache.m_push_constant_ranges;

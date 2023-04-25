@@ -16,9 +16,19 @@ class SetLayoutBindingsAndFlags
 
  public:
   SetLayoutBindingsAndFlags() = default;
-  SetLayoutBindingsAndFlags(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings) : m_sorted_bindings(std::move(sorted_bindings)) { }
+  SetLayoutBindingsAndFlags(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings) :
+    m_sorted_bindings(std::move(sorted_bindings))
+  {
+    DoutEntering(dc::notice, "SetLayoutBindingsAndFlags(@" << (void*)&sorted_bindings << ":" << m_sorted_bindings << ") [" << this << "]");
+  }
 
-  SetLayoutBindingsAndFlags(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings, std::vector<vk::DescriptorBindingFlags>&& binding_flags) : m_sorted_bindings(std::move(sorted_bindings)), m_binding_flags(std::move(binding_flags)) { }
+  SetLayoutBindingsAndFlags(std::vector<vk::DescriptorSetLayoutBinding>&& sorted_bindings,
+      std::vector<vk::DescriptorBindingFlags>&& binding_flags) :
+    m_sorted_bindings(std::move(sorted_bindings)), m_binding_flags(std::move(binding_flags))
+  {
+    DoutEntering(dc::notice, "SetLayoutBindingsAndFlags(@" << (void*)&sorted_bindings << ":" << m_sorted_bindings <<
+        (void*)&sorted_bindings << ":" << m_sorted_bindings << ", @" << (void*)&binding_flags << ":" << m_binding_flags << ") [" << this << "]");
+  }
 
   // Accessors.
   std::vector<vk::DescriptorSetLayoutBinding>& sorted_bindings() { return m_sorted_bindings; }

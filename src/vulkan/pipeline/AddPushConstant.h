@@ -36,7 +36,7 @@ class AddPushConstant : public virtual CharacteristicRangeBridge, public virtual
   // Override AddShaderStageBridge virtual function.
   AddPushConstant* convert_to_add_push_constant() override { return this; }
   void cache_push_constant_ranges(shader_builder::ShaderInfoCache& shader_info_cache) override;
-  void restore_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache) override;
+  void retrieve_push_constant_ranges(shader_builder::ShaderInfoCache const& shader_info_cache) override;
 
   //---------------------------------------------------------------------------
   // Push constants.

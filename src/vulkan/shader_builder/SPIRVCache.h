@@ -42,7 +42,7 @@ class SPIRVCache
 
   // Create handle from cached SPIR-V code.
   vk::UniqueShaderModule create_module(
-      utils::Badge<vulkan::pipeline::AddShaderStage>, // Use vulkan::pipeline::AddShaderStage::build_shader(shader_info, compiler) instead of this function.
+      utils::Badge<vulkan::pipeline::AddShaderStage>, // Use vulkan::pipeline::AddShaderStage::realize_shader instead of this function.
       LogicalDevice const* logical_device
       COMMA_CWDEBUG_ONLY(vulkan::Ambifix const& ambifix)) const;
 
