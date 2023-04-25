@@ -79,7 +79,7 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
     ShaderResourceDeclaration const* shader_resource_declaration = shader_resource_binding_pair.first;
     if (!(shader_resource_declaration->stage_flags() & shader_stage))
       continue;
-    descriptor::SetIndex set_index = m_set_index_hint_map->convert(shader_resource_declaration->set_index_hint());
+    descriptor::SetIndex set_index = m_set_index_hint_map3->convert(shader_resource_declaration->set_index_hint());
     uint32_t binding = shader_resource_binding_pair.second;
 
     switch (shader_resource_declaration->descriptor_type())
@@ -143,7 +143,7 @@ void ShaderResourceDeclarationContext::cache_descriptor_set_layouts(ShaderInfoCa
       continue;
     shader_info_cache.m_descriptor_set_layouts.push_back(*shader_resource_declaration);
     // The SetIndexHint can be different between pipeline factories, therefore, store the SetIndex.
-    descriptor::SetIndex set_index = m_set_index_hint_map->convert(shader_resource_declaration->set_index_hint());
+    descriptor::SetIndex set_index = m_set_index_hint_map3->convert(shader_resource_declaration->set_index_hint());
     shader_info_cache.m_descriptor_set_layouts.back().set_set_index(set_index);
     Dout(dc::vulkan, "Cached " << shader_info_cache.m_descriptor_set_layouts.back());
   }

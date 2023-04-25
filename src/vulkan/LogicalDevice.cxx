@@ -1414,11 +1414,11 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
 vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     sorted_descriptor_set_layouts_t::wat const& realized_descriptor_set_layouts_w,
     descriptor::SetIndexHint largest_set_index_hint,
-    descriptor::SetIndexHintMap& set_index_hint_map_out,
+    descriptor::SetIndexHintMap& set_index_hint_map1_out,
     std::vector<vk::PushConstantRange> const& sorted_push_constant_ranges) /*threadsafe-*/const
 {
   DoutEntering(dc::shaderresource|dc::vulkan|dc::setindexhint, "LogicalDevice::realize_pipeline_layout(" <<
-      *realized_descriptor_set_layouts_w << ", " << largest_set_index_hint << ", set_index_hint_map_out, " <<
+      *realized_descriptor_set_layouts_w << ", " << largest_set_index_hint << ", set_index_hint_map1_out, " <<
       sorted_push_constant_ranges << ")");
 #ifdef CWDEBUG
   descriptor::SetLayout const* prev_set_layout = nullptr;
@@ -1430,7 +1430,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     prev_set_layout = &set_layout;
   }
   // This is an output variable and it should be empty at the beginning of this function.
-  ASSERT(set_index_hint_map_out.empty());
+  ASSERT(set_index_hint_map1_out.empty());
 #endif
   // So we can continue from the top when two threads try to convert the read-lock to a write-lock at the same time.
   for (;;)
@@ -1458,7 +1458,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ASSERT(set_index_hint.get_value() < largest_set_index_hint_plus_one);
           vhv_realized_descriptor_set_layouts[set_index_hint] = layout.handle();
           // Create an identity set index hint map.
-          set_index_hint_map_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
+          set_index_hint_map1_out.add_from_to(layout.set_index_hint(), layout.set_index_hint());
         }
         vk::UniquePipelineLayout layout = create_pipeline_layout(vhv_realized_descriptor_set_layouts, sorted_push_constant_ranges
             COMMA_CWDEBUG_ONLY(debug_name_prefix("m_pipeline_layouts[" + std::to_string(pipeline_layouts_r->size()) + "]")));
@@ -1468,7 +1468,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
         ASSERT(ibp.second);
         iter = ibp.first;
         Dout(dc::shaderresource, "Created vk::PipelineLayout " << *iter->second << " with key: " << key << ".");
-        Dout(dc::setindexhint, "Returning set_index_hint_map_out:" << set_index_hint_map_out);
+        Dout(dc::setindexhint, "Returning set_index_hint_map1_out:" << set_index_hint_map1_out);
       }
       else
       {
@@ -1483,7 +1483,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ASSERT(set_layout_in->sorted_bindings_and_flags().size() == set_layout_out->sorted_bindings_and_flags().size());
           auto binding_in = set_layout_in->sorted_bindings_and_flags().sorted_bindings().begin();
           auto binding_out = set_layout_out->sorted_bindings_and_flags().sorted_bindings().begin();
-          set_index_hint_map_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
+          set_index_hint_map1_out.add_from_to(set_layout_in->set_index_hint(), set_layout_out->set_index_hint());
           while (binding_in != set_layout_in->sorted_bindings_and_flags().sorted_bindings().end())
           {
             descriptor::SetIndexHint set_index_hint_in = set_layout_in->set_index_hint();
@@ -1495,7 +1495,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
           ++set_layout_in;
           ++set_layout_out;
         }
-        Dout(dc::shaderresource|dc::setindexhint, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_index_hint_map_out << ".");
+        Dout(dc::shaderresource|dc::setindexhint, "Found in cache (vk::PipelineLayout " << *iter->second << "). Using: " << key << " with translation: " << set_index_hint_map1_out << ".");
       }
       ASSERT(*iter->second);
       Dout(dc::shaderresource, "Leaving LogicalDevice::realize_pipeline_layout");
@@ -1505,7 +1505,7 @@ vk::PipelineLayout LogicalDevice::realize_pipeline_layout(
     {
       Dout(dc::shaderresource, "Another thread is also trying to convert read to write lock: dropping creation and trying again...");
       m_pipeline_layouts.rd2wryield();
-      set_index_hint_map_out.clear();
+      set_index_hint_map1_out.clear();
     }
   }
 }

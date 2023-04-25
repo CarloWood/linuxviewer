@@ -762,7 +762,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
         //-----------------------------------------------------------------
         // Begin pipeline layout creation
 
-        // (Re)generate m_set_index_hint_map and m_largest_set_index_hint,
+        // (Re)generate m_set_index_hint_map1 and m_largest_set_index_hint,
         // and either create a new pipeline layout or get an existing one from cache
         // and store that in m_vh_pipeline_layout.
         {
@@ -770,8 +770,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           std::vector<vk::PushConstantRange> const sorted_push_constant_ranges = m_flat_create_info.realize_sorted_push_constant_ranges(m_characteristics);
           sorted_descriptor_set_layouts_t::rat sorted_descriptor_set_layouts_r(m_sorted_descriptor_set_layouts);
 
-          // Clear the m_set_index_hint_map of a previous fill.
-          m_set_index_hint_map.clear();
+          // Clear the m_set_index_hint_map1 of a previous fill.
+          m_set_index_hint_map1.clear();
 
           vulkan::descriptor::SetIndexHint largest_set_index_hint;
           for (auto realized_descriptor_set_layout = sorted_descriptor_set_layouts_r->begin();
@@ -790,10 +790,10 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
               aithreadsafe::wat_cast(sorted_descriptor_set_layouts_r),
-              m_largest_set_index_hint, m_set_index_hint_map, sorted_push_constant_ranges);
+              m_largest_set_index_hint, m_set_index_hint_map1, sorted_push_constant_ranges);
         }
 
-        // Now that we have (re)initialized m_set_index_hint_map, run the code that needs it.
+        // Now that we have (re)initialized m_set_index_hint_map1, run the code that needs it.
         // The number of characteristic tasks that we need to wait for finishing do_compile.
         m_number_of_running_characteristic_tasks = 0;
         for (auto i = m_characteristics.ibegin(); i != m_characteristics.iend(); ++i)
@@ -809,7 +809,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
             if ((m_characteristics[i]->needs_signals() & CharacteristicRange::do_compile) &&
                 (m_running_characteristic_tasks & (1ULL << i.get_value())))
             {
-              m_characteristics[i]->set_set_index_hint_map(&m_set_index_hint_map);
+              m_characteristics[i]->set_set_index_hint_map2(&m_set_index_hint_map1);
               m_characteristics[i]->signal(CharacteristicRange::do_compile);
             }
           }
@@ -1166,7 +1166,7 @@ bool PipelineFactory::handle_shader_resource_creation_requests()
 //    Dout(dc::always, "  Processing shader_resource " << shader_resource->debug_name());
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
-    SetIndex set_index = m_set_index_hint_map.convert(set_index_hint);
+    SetIndex set_index = m_set_index_hint_map1.convert(set_index_hint);
     // Skip shader resources that aren't used in any of the shaders of the current pipeline.
     if (set_index.undefined())
     {
@@ -1243,7 +1243,7 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
     ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
-    SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
+    SetIndex const set_index = m_set_index_hint_map1.convert(set_index_hint);
     // Skip shader resources that aren't used in any of the shaders of the current pipeline.
     if (set_index.undefined())
       continue;
@@ -1258,7 +1258,7 @@ void PipelineFactory::initialize_shader_resources_per_set_index()
     ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.m_shader_resource_plus_characteristic.shader_resource();
     SetKey const set_key = shader_resource->descriptor_set_key();
     SetIndexHint const set_index_hint = get_set_index_hint(set_key);
-    SetIndex const set_index = m_set_index_hint_map.convert(set_index_hint);
+    SetIndex const set_index = m_set_index_hint_map1.convert(set_index_hint);
     // Skip shader resources that aren't used in any of the shaders of the current pipeline.
     if (set_index.undefined())
       continue;
@@ -1308,7 +1308,7 @@ bool PipelineFactory::update_missing_descriptor_sets()
 //    Dout(dc::always, "Running over the " << sorted_descriptor_set_layouts_r->size() << " elements of m_sorted_descriptor_set_layouts:");
     for (auto& descriptor_set_layout : *sorted_descriptor_set_layouts_r)
     {
-      descriptor::SetIndex set_index = m_set_index_hint_map.convert(descriptor_set_layout.set_index_hint());
+      descriptor::SetIndex set_index = m_set_index_hint_map1.convert(descriptor_set_layout.set_index_hint());
 //      Dout(dc::always, "  % set_index = " << set_index << "; m_set_index_end = " << m_set_index_end);
       // All set_index_hint's in m_sorted_descriptor_set_layouts belong to a shader resource that is used in the current pipeline.
       ASSERT(!set_index.undefined());
@@ -1619,7 +1619,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
       // However, if set_index isn't used then the corresponding vector
       // m_added_shader_resource_plus_characteristics_per_used_set_index[set_index] will be empty and this for loop was never entered.
       ASSERT(!set_index.undefined());
-      ASSERT(set_index == m_set_index_hint_map.convert(set_index_hint));
+      ASSERT(set_index == m_set_index_hint_map1.convert(set_index_hint));
 
       auto shader_resource_declaration_ptr = get_declaration(set_key);
       bool has_binding = shader_resource_declaration_ptr->has_binding();

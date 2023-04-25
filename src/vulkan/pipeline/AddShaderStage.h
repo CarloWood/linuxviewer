@@ -75,16 +75,19 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   // for the next pipeline (of the current fill index).
   std::vector<shader_builder::ShaderIndex> m_added_shaders;     // The shaders required for the next pipeline
                                                                 // (might be a function of the fill index).
-  // PipelineFactory::m_set_index_hint_map is generated, during PipelineFactory_characteristics_preprocessed,
-  // by passing it to LogicalDevice::realize_pipeline_layout, with either an identity map (when a new layout
-  // is created) or a map that maps a found existing layout to the one requested, and subsequently, as this
-  // pointer, passed to all characteristics that need a do_compile signal and just had their fill index changed
-  // (including first time calls of non-range characteristics). Those characteristics that also need do_preprocess
-  // then have the CharacteristicRange_preprocess state run followed by CharacteristicRange_compile that calls
-  // realize_shaders passing this m_set_index_hint_map pointer to realize_shader which passes it to preprocess2
-  // which uses it to initialize ShaderResourceDeclarationContext::m_set_index_hint_map so that generated
-  // declarations will use the correct descriptor set index.
-  descriptor::SetIndexHintMap const* m_set_index_hint_map{};
+  // PipelineFactory::m_set_index_hint_map1 is generated --during PipelineFactory_characteristics_preprocessed
+  // by passing it to LogicalDevice::realize_pipeline_layout-- with either an identity map (when a new layout
+  // is created) or a map that maps a found existing layout to the one requested. And then, still during
+  // PipelineFactory_characteristics_preprocessed, the pointer to m_set_index_hint_map1 is passed to all
+  // characteristics that need a do_compile signal and just had their fill index changed (including first
+  // time calls of non-range characteristics), by calling set_set_index_hint_map2.
+  //
+  // Those characteristics that also need do_preprocess then have the CharacteristicRange_preprocess state
+  // run followed by CharacteristicRange_compile that calls realize_shaders passing this m_set_index_hint_map2
+  // pointer to realize_shader which passes it to preprocess2 which uses it to initialize
+  // ShaderResourceDeclarationContext::m_set_index_hint_map3, so that generated declarations will use the
+  // correct descriptor set index.
+  descriptor::SetIndexHintMap const* m_set_index_hint_map2{};
 
   // Variables used by realize_shaders.
   int m_added_shaders_index;
@@ -132,10 +135,9 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   std::vector<vk::PipelineShaderStageCreateInfo> const& shader_stage_create_infos(utils::Badge<ImGui>) const { return m_shader_stage_create_infos; }
 
  private:
-  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) override
+  void set_set_index_hint_map2(descriptor::SetIndexHintMap const* set_index_hint_map1) override
   {
-    DoutEntering(dc::setindexhint, "AddShaderStage::set_set_index_hint_map(" << vk_utils::print_pointer(set_index_hint_map) << ")");
-    m_set_index_hint_map = set_index_hint_map;
+    m_set_index_hint_map2 = set_index_hint_map1;
   }
 
   // Called from CharacteristicRange_fill_or_terminate.
@@ -184,7 +186,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   // otherwise this function returns a string_view directly into the shader_info's source code.
   //
   // Hence, both shader_info and the string passed as glsl_source_code_buffer need to have a life time beyond the call to compile.
-  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const;
+  std::string_view preprocess2(shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map2) const;
 
   void realize_shader(task::PipelineFactory* pipeline_factory,
       task::SynchronousWindow const* owning_window,
@@ -192,7 +194,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
       shader_builder::ShaderInfoCache& shader_info_cache,
       shader_builder::ShaderCompiler const& compiler,
       shader_builder::SPIRVCache& spirv_cache,
-      descriptor::SetIndexHintMap const* set_index_hint_map
+      descriptor::SetIndexHintMap const* set_index_hint_map2
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix));
 
   void realize_shader(task::PipelineFactory* pipeline_factory,
@@ -200,11 +202,11 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
       shader_builder::ShaderIndex shader_index,
       shader_builder::ShaderInfoCache& shader_info_cache,
       shader_builder::ShaderCompiler const& compiler,
-      descriptor::SetIndexHintMap const* set_index_hint_map
+      descriptor::SetIndexHintMap const* set_index_hint_map2
       COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
-    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map
+    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map2
         COMMA_CWDEBUG_ONLY(ambifix));
   }
 
@@ -215,10 +217,10 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
       shader_builder::ShaderInfoCache& shader_info_cache,
       shader_builder::ShaderCompiler const& compiler,
       shader_builder::SPIRVCache& spirv_cache,
-      descriptor::SetIndexHintMap const* set_index_hint_map
+      descriptor::SetIndexHintMap const* set_index_hint_map2
       COMMA_CWDEBUG_ONLY(std::string prefix))
   {
-    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, spirv_cache, set_index_hint_map
+    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, spirv_cache, set_index_hint_map2
         COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
   }
 
@@ -227,11 +229,11 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
       shader_builder::ShaderIndex shader_index,
       shader_builder::ShaderInfoCache& shader_info_cache,
       shader_builder::ShaderCompiler const& compiler,
-      descriptor::SetIndexHintMap const* set_index_hint_map
+      descriptor::SetIndexHintMap const* set_index_hint_map2
       COMMA_CWDEBUG_ONLY(std::string prefix))
   {
     shader_builder::SPIRVCache tmp_spirv_cache;
-    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map
+    realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, compiler, tmp_spirv_cache, set_index_hint_map2
         COMMA_CWDEBUG_ONLY(AmbifixOwner{owning_window, std::move(prefix)}));
   }
 #endif

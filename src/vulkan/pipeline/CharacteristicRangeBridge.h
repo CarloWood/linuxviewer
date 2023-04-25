@@ -41,7 +41,7 @@ struct CharacteristicRangeBridge
   // Implemented by AddShaderStage.
   virtual AddShaderStage* get_add_shader_stage() { return nullptr; }
   virtual void register_AddShaderStage_with(task::PipelineFactory* pipeline_factory, task::CharacteristicRange const& characteristic_range_index) const { }
-  virtual void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map)
+  virtual void set_set_index_hint_map2(descriptor::SetIndexHintMap const* UNUSED_ARG(set_index_hint_map))
   {
     ASSERT(false);
     AI_NEVER_REACHED
@@ -51,7 +51,7 @@ struct CharacteristicRangeBridge
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual vk::ShaderStageFlags preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* pipeline_factory)
+  virtual vk::ShaderStageFlags preprocess_shaders_and_realize_descriptor_set_layouts(task::PipelineFactory* UNUSED_ARG(pipeline_factory))
   {
     ASSERT(false);
     AI_NEVER_REACHED
@@ -61,8 +61,8 @@ struct CharacteristicRangeBridge
     ASSERT(false);
     AI_NEVER_REACHED
   }
-  virtual bool realize_shaders(task::CharacteristicRange* characteristic_range,
-      task::PipelineFactory* pipeline_factory, AIStatefulTask::condition_type locked)
+  virtual bool realize_shaders(task::CharacteristicRange* UNUSED_ARG(characteristic_range),
+      task::PipelineFactory* UNUSED_ARG(pipeline_factory), AIStatefulTask::condition_type UNUSED_ARG(locked))
   {
     ASSERT(false);
     AI_NEVER_REACHED

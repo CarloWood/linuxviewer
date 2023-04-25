@@ -94,7 +94,7 @@ class PipelineFactory : public AIStatefulTask
   uint64_t m_running_characteristic_tasks;
   static uint64_t to_bit_mask(pipeline::CharacteristicRangeIndex index) { return uint64_t{1} << index.get_value(); }
   // State PipelineFactory_top_multiloop_while_loop
-  descriptor::SetIndexHintMap m_set_index_hint_map;
+  descriptor::SetIndexHintMap m_set_index_hint_map1;
   // PipelineFactory_characteristics_preprocessed.
   descriptor::SetIndexHint m_largest_set_index_hint;
   // Keep track of the number of combined image samplers that need updating before starting to render to the next pipeline.

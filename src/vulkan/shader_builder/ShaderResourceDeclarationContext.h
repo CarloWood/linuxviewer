@@ -22,7 +22,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   std::map<ShaderResourceDeclaration const*, uint32_t> m_bindings;
 
   task::PipelineFactory* const m_owning_factory;
-  descriptor::SetIndexHintMap const* m_set_index_hint_map;
+  descriptor::SetIndexHintMap const* m_set_index_hint_map3;
 
   int m_changed_generation{0};  // The last AddShaderStage::m_context_changed_generation as passed to generate_descriptor_set_layout_bindings.
 
@@ -40,7 +40,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
   void glsl_id_prefix_is_used_in(std::string glsl_id_prefix, vk::ShaderStageFlagBits shader_stage, ShaderResourceDeclaration const* shader_resource, int context_changed_generation);
 
   void generate_descriptor_set_layout_bindings(vk::ShaderStageFlagBits shader_stage);
-  void set_set_index_hint_map(descriptor::SetIndexHintMap const* set_index_hint_map) { m_set_index_hint_map = set_index_hint_map; }
+  void set_set_index_hint_map3(descriptor::SetIndexHintMap const* set_index_hint_map2) { m_set_index_hint_map3 = set_index_hint_map2; }
   void add_declarations_for_stage(DeclarationsString& declarations_out, vk::ShaderStageFlagBits shader_stage) const override;
   void cache_descriptor_set_layouts(ShaderInfoCache& shader_info_cache);
 

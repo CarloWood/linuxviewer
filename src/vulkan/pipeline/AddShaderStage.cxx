@@ -131,7 +131,7 @@ bool AddShaderStage::realize_shaders(
       // Now that we locked shader_info_cache.m_task_mutex we're allowed to access shader_info_cache.
       // The mutex mainly makes sure that only a single task will compile any given shader and assign
       // shader_info_cache.m_shader_module.
-      realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, m_compiler, m_set_index_hint_map
+      realize_shader(pipeline_factory, owning_window, shader_index, shader_info_cache, m_compiler, m_set_index_hint_map2
          COMMA_CWDEBUG_ONLY("AddShaderStage::"));
     }
 
@@ -209,9 +209,9 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
 
 // Called from realize_shader.
 std::string_view AddShaderStage::preprocess2(
-    shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map) const
+    shader_builder::ShaderInfo const& shader_info, std::string& glsl_source_code_buffer, descriptor::SetIndexHintMap const* set_index_hint_map2) const
 {
-  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::preprocess2(" << shader_info << ", glsl_source_code_buffer, " << vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
+  DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::preprocess2(" << shader_info << ", glsl_source_code_buffer, " << vk_utils::print_pointer(set_index_hint_map2) << ") [" << this << "]");
 
   std::string_view const source = shader_info.glsl_template_code();
 
@@ -227,7 +227,7 @@ std::string_view AddShaderStage::preprocess2(
       dynamic_cast<shader_builder::ShaderResourceDeclarationContext*>(declaration_context);
     if (!shader_resource_declaration_context)   // We're only interested in shader resources here (that have a set index and a binding).
       continue;
-    shader_resource_declaration_context->set_set_index_hint_map(set_index_hint_map);
+    shader_resource_declaration_context->set_set_index_hint_map3(set_index_hint_map2);
   }
 
   // Generate the declarations.
@@ -287,12 +287,12 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
     shader_builder::ShaderInfoCache& shader_info_cache,
     shader_builder::ShaderCompiler const& compiler,
     shader_builder::SPIRVCache& spirv_cache,
-    descriptor::SetIndexHintMap const* set_index_hint_map
+    descriptor::SetIndexHintMap const* set_index_hint_map2
     COMMA_CWDEBUG_ONLY(Ambifix const& ambifix))
 {
   DoutEntering(dc::vulkan|dc::setindexhint, "AddShaderStage::realize_shader(" << pipeline_factory << ", " << owning_window <<
       ", " << shader_index << " [" << shader_info_cache.name() << "], compiler, spirv_cache, " <<
-      vk_utils::print_pointer(set_index_hint_map) << ") [" << this << "]");
+      vk_utils::print_pointer(set_index_hint_map2) << ") [" << this << "]");
 
   // It should be ok to get a reference to the ShaderInfo element like this,
   // since we could also get it by calling Application::instance().get_shader_info(shader_index).
@@ -302,7 +302,7 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
   {
     std::string glsl_source_code_buffer;
     std::string_view glsl_source_code;
-    glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map);
+    glsl_source_code = preprocess2(shader_info, glsl_source_code_buffer, set_index_hint_map2);
 
     // Add a shader module to this pipeline.
     spirv_cache.compile(glsl_source_code, compiler, shader_info);
@@ -363,7 +363,9 @@ void AddShaderStage::retrieve_descriptor_set_layouts(shader_builder::ShaderInfoC
     if (!(descriptor_set_layout_binding.stage_flags() & shader_stage))
       continue;
     descriptor::SetIndex set_index = descriptor_set_layout_binding.cached_set_index();
-    descriptor::SetIndexHint set_index_hint = m_set_index_hint_map->reverse_convert(set_index);
+    // Paranoia check: it's easier to assert here then to crash later.
+    ASSERT(m_set_index_hint_map2);
+    descriptor::SetIndexHint set_index_hint = m_set_index_hint_map2->reverse_convert(set_index);
     descriptor_set_layout_binding.push_back_descriptor_set_layout_binding(pipeline_factory, set_index_hint);
   }
 }
