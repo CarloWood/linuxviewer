@@ -10,7 +10,7 @@ utterance_id: lv_API_introduction_draft
 
 Drawing our first triangle is the *Hello World* of Vulkan.
 
-Linuxviewer comes with an [example application](https://github.com/CarloWood/linuxviewer/tree/master/src/examples/hello_triangle)
+Linuxviewer comes with an [example application](https://github.com/CarloWood/linuxviewer-examples/tree/hello_triangle/hello_triangle)
 that opens a window with a size of 400x400 and draws a triangle in it.
 <span class="command">Hello_triangle</span> is made up of the following files:
 
