@@ -272,7 +272,6 @@ void main()
   {
    private:
     int m_pipeline_factory;
-    vulkan::VertexBuffers m_empty_vertex_buffers;
 
    protected:
     ~UniformBuffersTestPipelineCharacteristic() override
@@ -314,8 +313,6 @@ void main()
       add_uniform_buffer(window->m_bottom_buffer, {}, { top_set_key_preference, left_set_key_preference });
       // The texture must go into the same set as top.
       add_combined_image_sampler(window->m_combined_image_sampler, { top_set_key_preference });
-      // Add an empty VertexBuffers in order to avoid an ASSERT in AddVertexShader::copy_shader_variables.
-      add_vertex_input_bindings(m_empty_vertex_buffers);
 
       vulkan::shader_builder::ShaderIndex vertex_shader_index =
         (m_pipeline_factory == 0) ? window->m_shader_indices[LocalShaderIndex::vertex0] : window->m_shader_indices[LocalShaderIndex::vertex1];
