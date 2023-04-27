@@ -64,7 +64,7 @@ Prism.languages.cpp['generic-function'].inside = {
 
 Prism.languages.insertBefore('cpp', 'macro', {
   'macro-name': {
-    pattern: /\b(CWDEBUG|LAYOUT_DECLARATION|LAYOUT)\b/
+    pattern: /\b(CWDEBUG|LAYOUT_DECLARATION|LAYOUT|STRUCT_DECLARATION|MEMBER)\b/
   }
 });
 

@@ -76,8 +76,24 @@ LAYOUT_DECLARATION(VertexData, per_vertex_data)
 ```
 This teaches the vulkan engine the layout of the struct `VertexData`, which is defined below.
 
-The types used, `vec2` and `vec3` are equivalent to the types
-used in that C++ struct, but without the `glsl` namespace.
+The types used, `vec2` and `vec3`, are equivalent to the types used in the `STRUCT_DECLARATION`
+although defined by the base class which is hidden by the macros. In the case of `LAYOUT_DECLARATION`
+they are types that specify size, alignment, stride, etc. type-traits as function of the used standard,
+while in the case of `STRUCT_DECLARATION` they are complex types derived from the actual C++
+type that you'd normally use. Completely different types thus.
+Never use a namespace in front of these types.
+
+{% capture tip_content %}
+The possible names for the first argument of the `LAYOUT` macro are defined in the struct(s)
+[`SHADERBUILDER_STANDARD::TypeEncodings`](https://github.com/CarloWood/linuxviewer/blob/master/src/vulkan/shader_builder/basic_types.h#L21)
+or it can be a type that was declared using `LAYOUT_DECLARATION` itself!
+
+Most notably, the "builtin" types start with an upper case: `Float`, `Double`, `Bool`, `Int`, etc.
+because, unfortunately, using lowercases won't compile.
+
+You can specify an array by adding square brackets with the array size (which obviously must be a constexpr)
+after the type. For example: `LAYOUT(vec4[5], my_array)` defines a `vec4 my_array[5];` member.
+{% endcapture %}{% include lv_important.html %}
 
 Note that we explicitly specify that this is `per_vertex_data`,
 which both, influences the memory layout and specifies the input rate;
@@ -85,25 +101,33 @@ the other option for vertex buffers is `per_instance_data`.
 
 ```cpp
 // Struct describing data type and format of vertex attributes.
-struct VertexData
+STRUCT_DECLARATION(VertexData)
 {
-  glsl::vec2 m_position;
-  glsl::vec3 m_color;
+  MEMBER(0, vec2, m_position);
+  MEMBER(1, vec3, m_color);
 };
 ```
 This is the actual C++ struct with the per-vertex data.
 We're going to make a vertex buffer with three of these,
-as if an array `VertexData buffer[3];`.
+as if the vertex buffer were an array `VertexData buffer[3];`.
+
+{% capture tip_content %}
+The first argument of the first `MEMBER` must be 0.
+Each subsequent line must increment the value by 1.
+The next line would be `MEMBER(2, ...);` and then `MEMBER(3, ...);` and so on.
+
+The remaining arguments must be a verbatim copy of the arguments used for the corresponding `LAYOUT` macros.
+{% endcapture %}{% include lv_important.html %}
 
 The position here is stored as a `vec2` because, just
-like it was hardcoded in the vertex shader, we only
+like it was hardcoded in the vertex shader; we only
 store an x- and y-value.
 
 The color is stored as a `vec3`, a vector of three floats for the RGB values,
 also just like as it was hardcoded in the shader.
 
 Note that like this the data will be interleaved, alternating
-position and colors. It would totally be possible to make
+position and colors. It would [totally be possible](#page_hello_two_vertex_buffers) to make
 two vertex buffers, one with the position and one with the
 colors; in which case it more closely resembles the layout
 used in <span class="command">hello_triangle</span>.
@@ -175,6 +199,11 @@ we'll fill all data in one go, hence that `next_batch()` returns the full amount
 ```
 This last function copies the data from the static tables into the `VertexData` objects
 of the vertex buffer.
+
+Even though the type of `m_position` and `m_color` are complex templates
+the make sure the memory layout of each object matches what the GPU expects,
+they are *derived* from the types `glsl::vec2` and `glsl::vec3`
+respectively and those types can also be assigned to them.
 
 ### Triangle.cxx ###
 
@@ -416,9 +445,9 @@ LAYOUT_DECLARATION(VertexPosition, per_vertex_data)
 };
 
 // Struct describing data type and format of vertex attributes.
-struct VertexPosition
+STRUCT_DECLARATION(VertexPosition)
 {
-  glsl::vec2 m_position;
+  MEMBER(0, vec2, m_position);
 };
 ```
 
@@ -439,9 +468,9 @@ LAYOUT_DECLARATION(VertexColor, per_vertex_data)
 };
 
 // Struct describing data type and format of vertex attributes.
-struct VertexColor
+STRUCT_DECLARATION(VertexColor)
 {
-  glsl::vec3 m_color;
+  MEMBER(0, vec3, m_color);
 };
 ```
 
