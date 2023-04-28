@@ -337,6 +337,10 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
 
 void AddShaderStage::cache_descriptor_set_layouts(shader_builder::ShaderInfoCache& shader_info_cache)
 {
+  // We should only get here after compilation, and thus after preprocessing, which fills this map.
+  ASSERT(m_set_index_hint_map2);
+  shader_info_cache.copy(m_set_index_hint_map2);
+
   declaration_contexts_container_t const& declaration_contexts =
     m_per_stage_declaration_contexts[ShaderStageFlag_to_ShaderStageIndex(shader_info_cache.stage())];
 
@@ -363,9 +367,7 @@ void AddShaderStage::retrieve_descriptor_set_layouts(shader_builder::ShaderInfoC
     if (!(descriptor_set_layout_binding.stage_flags() & shader_stage))
       continue;
     descriptor::SetIndex set_index = descriptor_set_layout_binding.cached_set_index();
-    // Paranoia check: it's easier to assert here then to crash later.
-    ASSERT(m_set_index_hint_map2);
-    descriptor::SetIndexHint set_index_hint = m_set_index_hint_map2->reverse_convert(set_index);
+    descriptor::SetIndexHint set_index_hint = shader_info_cache.m_set_index_hint_map4.reverse_convert(set_index);
     descriptor_set_layout_binding.push_back_descriptor_set_layout_binding(pipeline_factory, set_index_hint);
   }
 }

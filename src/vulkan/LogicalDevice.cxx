@@ -1024,11 +1024,27 @@ std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::alloca
 
   std::vector<descriptor::FrameResourceCapableDescriptorSet> descriptor_sets;
   auto raw_descriptor_set = raw_descriptor_sets.begin();
+#ifdef CWDEBUG
+  Dout(dc::shaderresource, "Returning: ");
+  int printed = 0;
+#endif
   for (n = 0; n < vhv_descriptor_set_layouts.size(); ++n)
   {
     size_t nfrs = set_index_has_frame_resource_pairs[n].second ? number_of_frame_resources.get_value() : 1;
     descriptor_sets.emplace_back(raw_descriptor_set, raw_descriptor_set + nfrs);
     raw_descriptor_set += nfrs;
+#ifdef CWDEBUG
+    Dout(dc::shaderresource|continued_cf, "  using layout " << vhv_descriptor_set_layouts[n] << ":");
+    char const* prefix = "";
+    Dout(dc::continued, '{');
+    for (int i = printed; i < descriptor_sets.size(); ++i)
+    {
+      Dout(dc::continued, prefix << descriptor_sets[i]);
+      prefix = ", ";
+    }
+    Dout(dc::finish, '}');
+    printed = descriptor_sets.size();
+#endif
   }
 #ifdef CWDEBUG
   if (set_index_has_frame_resource_pairs.empty())
@@ -1051,7 +1067,6 @@ std::vector<descriptor::FrameResourceCapableDescriptorSet> LogicalDevice::alloca
           DebugSetName(descriptor_sets[n][frame_index], debug_name.object_name("[" + to_string(set_index_has_frame_resource_pairs[n].first) + "][" + to_string(frame_index) + "]"), this);
   }
 #endif
-  Dout(dc::shaderresource, "Returning: " << descriptor_sets);
   return descriptor_sets;
 }
 
@@ -1209,7 +1224,7 @@ vk::UniquePipelineCache LogicalDevice::create_pipeline_cache(
 {
   DoutEntering(dc::vulkan, "LogicalDevice::create_pipeline_cache(" << pipeline_cache_create_info << ")");
   vk::UniquePipelineCache pipeline_cache = m_device->createPipelineCacheUnique(pipeline_cache_create_info);
-  Debug(debug_set_object_name(*pipeline_cache, debug_name.object_name(), this));
+  Debug(debug_set_object_name(false, *pipeline_cache, debug_name.object_name(), this));
   return pipeline_cache;
 }
 

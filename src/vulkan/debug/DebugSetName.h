@@ -73,23 +73,24 @@ class AmbifixOwner : public Ambifix
 };
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const* logical_device);
+void debug_set_object_name(bool rename, ObjectType const& object, std::string const& name, LogicalDevice const* logical_device);
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, AmbifixOwner const& ambifix);
+void debug_set_object_name(bool rename, ObjectType const& object, AmbifixOwner const& ambifix);
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
+void debug_set_object_name(bool rename, ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
 
 template<ConceptUniqueVulkanHandle UniqueObjectType>
-void debug_set_object_name(UniqueObjectType const& object, AmbifixOwner const& ambifix);
+void debug_set_object_name(bool rename, UniqueObjectType const& object, AmbifixOwner const& ambifix);
 
 template<ConceptUniqueVulkanHandle UniqueObjectType>
-void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
+void debug_set_object_name(bool rename, UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device);
 
 } // namespace vulkan
 
-#define DebugSetName(...) do { using ::vulkan::as_postfix; using std::to_string; ::vulkan::debug_set_object_name(__VA_ARGS__); } while(0)
+#define DebugSetName(...) do { using ::vulkan::as_postfix; using std::to_string; ::vulkan::debug_set_object_name(false, __VA_ARGS__); } while(0)
+#define DebugSetNameAgain(...) do { using ::vulkan::as_postfix; using std::to_string; ::vulkan::debug_set_object_name(true, __VA_ARGS__); } while(0)
 
 #else // CWDEBUG
 #define DebugSetName(...) do { } while(0)
@@ -108,7 +109,7 @@ void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifi
 namespace vulkan {
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, std::string const& name, LogicalDevice const* logical_device)
+void debug_set_object_name(bool rename, ObjectType const& object, std::string const& name, LogicalDevice const* logical_device)
 {
   vk::DebugUtilsObjectNameInfoEXT name_info = {
     .objectType = object.objectType,
@@ -116,33 +117,31 @@ void debug_set_object_name(ObjectType const& object, std::string const& name, Lo
     .pObjectName = name.c_str()
   };
   logical_device->set_debug_name(name_info);
-  Dout(dc::vulkan, "Created object \"" << name << "\" with handle 0x" << std::hex << name_info.objectHandle << " and type " << libcwd::type_info_of<ObjectType>().demangled_name());
-  if (name.substr(0, 26) == "m_imgui.m_descriptor_set [")
-    Debug(attach_gdb());
+  Dout(dc::vulkan, (rename ? "Renamed object to \"" : "Created object \"") << name << "\" with handle 0x" << std::hex << name_info.objectHandle << " and type " << libcwd::type_info_of<ObjectType>().demangled_name());
 }
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, AmbifixOwner const& ambifix)
+void debug_set_object_name(bool rename, ObjectType const& object, AmbifixOwner const& ambifix)
 {
-  debug_set_object_name(object, ambifix.object_name(), ambifix.logical_device());
+  debug_set_object_name(rename, object, ambifix.object_name(), ambifix.logical_device());
 }
 
 template<ConceptVulkanHandle ObjectType>
-void debug_set_object_name(ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
+void debug_set_object_name(bool rename, ObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
 {
-  debug_set_object_name(object, ambifix.object_name(), logical_device);
+  debug_set_object_name(rename, object, ambifix.object_name(), logical_device);
 }
 
 template<ConceptUniqueVulkanHandle UniqueObjectType>
-void debug_set_object_name(UniqueObjectType const& object, AmbifixOwner const& ambifix)
+void debug_set_object_name(bool rename, UniqueObjectType const& object, AmbifixOwner const& ambifix)
 {
-  debug_set_object_name(*object, ambifix.object_name(), ambifix.logical_device());
+  debug_set_object_name(rename, *object, ambifix.object_name(), ambifix.logical_device());
 }
 
 template<ConceptUniqueVulkanHandle UniqueObjectType>
-void debug_set_object_name(UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
+void debug_set_object_name(bool rename, UniqueObjectType const& object, Ambifix const& ambifix, LogicalDevice const* logical_device)
 {
-  debug_set_object_name(*object, ambifix.object_name(), logical_device);
+  debug_set_object_name(rename, *object, ambifix.object_name(), logical_device);
 }
 
 } // namespace vulkan

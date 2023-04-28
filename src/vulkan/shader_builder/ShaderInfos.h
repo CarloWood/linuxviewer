@@ -2,8 +2,9 @@
 
 #include "ShaderInfo.h"
 #include "ShaderIndex.h"
-#include "../PushConstantRange.h"
 #include "ShaderResourceDeclaration.h"
+#include "../PushConstantRange.h"
+#include "../descriptor/SetIndexHintMap.h"
 #include "threadsafe/aithreadsafe.h"
 #include "statefultask/AIStatefulTaskMutex.h"
 #include "utils/Deque.h"
@@ -21,13 +22,20 @@ struct ShaderInfoCache : ShaderInfo
   // Cache of AddVertexShader::m_vertex_input_*_descriptions.
   std::vector<vk::VertexInputBindingDescription> m_vertex_input_binding_descriptions;
   std::vector<vk::VertexInputAttributeDescription> m_vertex_input_attribute_descriptions;
-  // Cache of AddShaderStage::m_per_stage_declaration_contexts[AddShaderStage::ShaderStageFlag_to_ShaderStageIndex(m_stage)]
-  //FIXME: finish this comment...
+  // Cache of the relevant part (the DescriptorSetLayoutBinding base class) of the ShaderResourceDeclaration's used by m_stage.
   std::vector<DescriptorSetLayoutBinding> m_descriptor_set_layouts;
+  // Cache of AddShaderStage::m_set_index_hint_map2.
+  descriptor::SetIndexHintMap m_set_index_hint_map4;
 
   // Moving is done during pre-initialization, like from register_shader_templates;
   // therefore we can ignore the mutex as well as m_shader_module (which will be NULL anyway).
   ShaderInfoCache(ShaderInfo&& shader_info) : ShaderInfo(std::move(shader_info)) { }
+
+  void copy(descriptor::SetIndexHintMap const* set_index_hint_map2)
+  {
+    ASSERT(m_set_index_hint_map4.empty());
+    m_set_index_hint_map4 = *set_index_hint_map2;
+  }
 
   void copy(std::vector<PushConstantRange> const& push_constant_ranges)
   {

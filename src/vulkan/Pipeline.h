@@ -31,7 +31,7 @@ class Pipeline
  public:
   Pipeline() = default;
   Pipeline(Pipeline&&) = default;
-  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t const& descriptor_sets, FrameResourceIndex const number_of_frame_resources
+  Pipeline(vk::PipelineLayout vh_layout, pipeline::Handle handle, descriptor_set_per_set_index_t&& descriptor_sets, FrameResourceIndex const number_of_frame_resources
       COMMA_CWDEBUG_ONLY(LogicalDevice const* logical_device)) :
     m_vh_layout(vh_layout), m_handle(handle)
   {
@@ -50,7 +50,8 @@ class Pipeline
         {
           vk::DescriptorSet vh_descriptor_set = descriptor_sets[set_index][frame_index];
           m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = vh_descriptor_set;
-          DebugSetName(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
+          // Because we moved the handle, rename it.
+          DebugSetNameAgain(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
         }
         else
         {
@@ -59,11 +60,14 @@ class Pipeline
           m_descriptor_set_per_set_index_per_frame_resource[frame_index][set_index] = vh_descriptor_set;
 #ifdef CWDEBUG
           if (frame_index.is_zero())
-            DebugSetName(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
+            // Because we moved the handle, rename it.
+            DebugSetNameAgain(vh_descriptor_set, Ambifix{"Pipeline::m_descriptor_set_per_set_index_per_frame_resource[" + to_string(frame_index) + "][" + to_string(set_index) + "]", as_postfix(this)}, logical_device);
 #endif
         }
       }
     }
+    // The content was copied to m_descriptor_set_per_set_index_per_frame_resource.
+    descriptor_sets.clear();
   }
 
   Pipeline& operator=(Pipeline&&) = default;

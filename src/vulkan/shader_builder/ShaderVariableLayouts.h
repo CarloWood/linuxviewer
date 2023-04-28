@@ -485,6 +485,13 @@ struct AlignAndResize : WrappedType<T>
 
   using WrappedType<T>::WrappedType;
 
+  // We want all of this to behave like a T, so might as well return a T& from the operator=.
+  template<typename U>
+  std::enable_if_t<std::is_assignable_v<T&, U const&>, T&> operator=(U const& other)
+  {
+    return static_cast<T&>(*this) = other;
+  }
+
   [[no_unique_address]] AlignedPadding<required_padding, enforced_alignment> __padding;
 };
 
@@ -550,6 +557,7 @@ struct PaddedAlignAndResize :
   AlignAndResize<T, layout_t<MembersTuple<member_index>>>
 {
   using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::AlignAndResize;
+  using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::operator=;
 };
 
 // Specialization for a required padding of zero.
@@ -557,6 +565,7 @@ template<typename T, template<int> class MembersTuple, int member_index>
 struct PaddedAlignAndResize<0, T, MembersTuple, member_index> : AlignAndResize<T, layout_t<MembersTuple<member_index>>>
 {
   using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::AlignAndResize;
+  using AlignAndResize<T, layout_t<MembersTuple<member_index>>>::operator=;
 };
 
 template<typename T, template<int> class MembersTuple, int member_index>

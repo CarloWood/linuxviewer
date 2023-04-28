@@ -581,8 +581,8 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
     vk::DescriptorType descriptor_type, uint32_t binding, uint32_t array_element, T const& write_descriptor_set_update_infos,
     uint32_t array_element_count, FrameResourceIndex number_of_frame_resources) const
 {
-  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_sets(" <<
-      descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " <<
+  DoutEntering(dc::shaderresource|dc::vulkan, "LogicalDevice::update_descriptor_sets<" << libcwd::type_info_of<T>().demangled_name() <<
+      ">(" << descriptor_set << ", " << descriptor_type << ", " << binding << ", " << array_element << ", " <<
       write_descriptor_set_update_infos << ", " << array_element_count << ", " << number_of_frame_resources << ")");
 
   vk::DescriptorImageInfo const* pImageInfo = nullptr;
@@ -633,7 +633,8 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
   {
     if (!descriptor_set.is_frame_resource())
     {
-      descriptor_writes.dstSet = static_cast<vk::DescriptorSet>(descriptor_set),
+      descriptor_writes.dstSet = static_cast<vk::DescriptorSet>(descriptor_set);
+      Dout(dc::vulkan, "Calling vk::Device::updateDescriptorSets(1, " << descriptor_writes << ", 0, nullptr)");
       m_device->updateDescriptorSets(1, &descriptor_writes, 0, nullptr);
     }
     else
@@ -642,6 +643,8 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
       utils::Vector<vk::WriteDescriptorSet, FrameResourceIndex> descriptor_writes_list(number_of_frame_resources.get_value(), descriptor_writes);
       for (FrameResourceIndex frame_index{0}; frame_index < number_of_frame_resources; ++frame_index)
         descriptor_writes_list[frame_index].dstSet = descriptor_set[frame_index];
+      Dout(dc::vulkan, "Calling vk::Device::updateDescriptorSets(" << number_of_frame_resources.get_value() << ", " <<
+          descriptor_writes_list << ", 0, nullptr)");
       m_device->updateDescriptorSets(number_of_frame_resources.get_value(), descriptor_writes_list.data(), 0, nullptr);
     }
   }
@@ -664,6 +667,7 @@ void LogicalDevice::update_descriptor_sets(descriptor::FrameResourceCapableDescr
       else if constexpr (std::is_same_v<T, std::vector<vk::BufferView>>, std::is_same_v<T, std::array<vk::BufferView, 1>>)
         pTexelBufferView += array_element_count;
     }
+    Dout(dc::vulkan, "Calling vk::Device::updateDescriptorSets(" << frame_resources << ", " << descriptor_writes_list << ", 0, nullptr)");
     m_device->updateDescriptorSets(frame_resources, descriptor_writes_list.data(), 0, nullptr);
   }
 }

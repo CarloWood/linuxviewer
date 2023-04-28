@@ -5,6 +5,7 @@
 #include "vk_utils/print_chain.h"
 #include "vk_utils/print_flags.h"
 #include "vk_utils/print_list.h"
+#include "vk_utils/print_pointer.h"
 #include <iostream>
 
 namespace vk {
@@ -12,6 +13,7 @@ namespace vk {
 using NAMESPACE_DEBUG::print_string;
 using vk_utils::print_api_version;
 using vk_utils::print_list;
+using vk_utils::print_pointer;
 
 std::ostream& operator<<(std::ostream& os, vk::AttachmentReference const& attachment_reference)
 {
@@ -371,6 +373,21 @@ std::ostream& operator<<(std::ostream& os, BufferCopy const& buffer_copy)
   os << "srcOffset:" << buffer_copy.srcOffset <<
       ", dstOffset:" << buffer_copy.dstOffset <<
       ", size:" << buffer_copy.size;
+  os << '}';
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, WriteDescriptorSet const& write_descriptor_set)
+{
+  os << '{';
+  os << "dstSet:" << write_descriptor_set.dstSet <<
+      ", dstBinding:" << write_descriptor_set.dstBinding <<
+      ", dstArrayElement:" << write_descriptor_set.dstArrayElement <<
+      ", descriptorCount:" << write_descriptor_set.descriptorCount <<
+      ", descriptorType:" << write_descriptor_set.descriptorType <<
+      ", pImageInfo:" << print_pointer(write_descriptor_set.pImageInfo) <<
+      ", pBufferInfo:" << print_pointer(write_descriptor_set.pBufferInfo) <<
+      ", pTexelBufferView:" << print_pointer(write_descriptor_set.pTexelBufferView);
   os << '}';
   return os;
 }
