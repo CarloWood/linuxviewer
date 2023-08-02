@@ -58,6 +58,7 @@ file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/math/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/descriptor/*.cxx
   ${CMAKE_CURRENT_SOURCE_DIR}/tracy/*.cxx
+  ${CMAKE_CURRENT_SOURCE_DIR}/VmaUsage.cxx
 )
 
 file(GLOB HEADER_FILES
@@ -122,6 +123,9 @@ if (OptionEnableLibcwd AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   # Required for vk_enums_reflection.cxx.
   set_source_files_properties(debug/vk_enums_reflection.cxx PROPERTIES COMPILE_FLAGS "-fbracket-depth=1024")
 endif ()
+
+# This include is needed to find headers included by vulkan/generated/vk_format_utils.cpp.
+set_source_files_properties(vk_utils/format.cxx PROPERTIES COMPILE_FLAGS "-isystem /usr/include/vulkan")
 
 # Require support for C++20.
 target_compile_features(vulkan_ObjLib

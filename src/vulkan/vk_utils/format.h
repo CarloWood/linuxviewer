@@ -1,7 +1,7 @@
 #pragma once
 
 #include "debug.h"
-#include <vulkan/vk_format_utils.h>
+#include <vulkan/generated/vk_format_utils.h>
 
 namespace vk_utils {
 

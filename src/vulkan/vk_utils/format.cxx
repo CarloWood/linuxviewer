@@ -8,4 +8,4 @@
 // Afterwards we have to undefine the macro again because otherwise other compiler
 // errors turn up!
 #undef VK_ENABLE_BETA_EXTENSIONS
-#include <vulkan/vk_format_utils.cpp>
+#include <vulkan/generated/vk_format_utils.cpp>
