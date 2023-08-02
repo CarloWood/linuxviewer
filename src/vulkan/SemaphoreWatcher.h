@@ -58,7 +58,7 @@ class SemaphoreWatcher : public BASE
   static constexpr AIStatefulTask::condition_type have_semaphores = 1;
 
  private:
-  using watch_set_type = aithreadsafe::Wrapper<SemaphoreWatcherWatchSet, aithreadsafe::policy::Primitive<std::mutex>>;
+  using watch_set_type = threadsafe::Unlocked<SemaphoreWatcherWatchSet, threadsafe::policy::Primitive<std::mutex>>;
   watch_set_type m_watch_set;
 
   void remove(watch_set_type::wat const& watch_set_w, SemaphoreWatcherIndex wsi, SemaphoreWatcherIndex wsi_last)

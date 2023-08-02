@@ -135,18 +135,18 @@ class LogicalDevice
   mutable descriptor_pool_t m_descriptor_pool;
 
   using descriptor_set_layouts_container_t = std::map<std::vector<vk::DescriptorSetLayoutBinding>, vk::UniqueDescriptorSetLayout, utils::VectorCompare<descriptor::LayoutBindingCompare>>;
-  using descriptor_set_layouts_t = aithreadsafe::Wrapper<descriptor_set_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  using descriptor_set_layouts_t = threadsafe::Unlocked<descriptor_set_layouts_container_t, threadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   // Using "threadsafe-"const for member functions that access this. Since the 'const' then only
   // means that it is thread-safe, we need to add a mutable here, so that it is possible to obtain a write-lock.
   mutable descriptor_set_layouts_t m_descriptor_set_layouts;
 
   // The same types as PipelineFactory::sorted_descriptor_set_layouts_container_t and sorted_descriptor_set_layouts_t.
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-  using sorted_descriptor_set_layouts_t = aithreadsafe::Wrapper<sorted_descriptor_set_layouts_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using sorted_descriptor_set_layouts_t = threadsafe::Unlocked<sorted_descriptor_set_layouts_container_t, threadsafe::policy::Primitive<std::mutex>>;
   using pipeline_layouts_container_key_t = std::pair<sorted_descriptor_set_layouts_container_t, std::vector<vk::PushConstantRange>>;
   using pipeline_layouts_container_t = std::map<pipeline_layouts_container_key_t, vk::UniquePipelineLayout,
         utils::PairCompare<descriptor::SetLayoutCompare, pipeline::PushConstantRangeCompare>>;
-  using pipeline_layouts_t = aithreadsafe::Wrapper<pipeline_layouts_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  using pipeline_layouts_t = threadsafe::Unlocked<pipeline_layouts_container_t, threadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   mutable pipeline_layouts_t m_pipeline_layouts;
 
   using number_of_partitions_t = std::array<std::array<pipeline::partitions::partition_count_t, pipeline::partitions::max_number_of_elements>, pipeline::partitions::max_number_of_elements>;

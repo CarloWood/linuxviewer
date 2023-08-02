@@ -1,6 +1,6 @@
 #include "sys.h"
 #include "colors.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include <map>
 #include <functional>
 
@@ -108,7 +108,7 @@ int get_next_color()
 }
 
 using container_type = std::map<uint64_t, int>;
-using name_hash_to_color_map_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
+using name_hash_to_color_map_type = threadsafe::Unlocked<container_type, threadsafe::policy::Primitive<std::mutex>>;
 static name_hash_to_color_map_type name_hash_to_color_map;
 
 int get_color(uint64_t hash)

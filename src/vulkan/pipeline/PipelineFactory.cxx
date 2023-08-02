@@ -11,7 +11,7 @@
 #include "shader_builder/shader_resource/CombinedImageSampler.h"
 #include "shader_builder/shader_resource/UniformBuffer.h"
 #include "vk_utils/TaskToTaskDeque.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "utils/at_scope_end.h"
 #include "utils/almost_equal.h"
 #ifdef CWDEBUG
@@ -795,7 +795,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
           // Realize (create or get from cache) the pipeline layout and return a suitable SetIndexHintMap.
           m_vh_pipeline_layout = m_owning_window->logical_device()->realize_pipeline_layout(
-              aithreadsafe::wat_cast(sorted_descriptor_set_layouts_r),
+              threadsafe::wat_cast(sorted_descriptor_set_layouts_r),
               m_largest_set_index_hint, m_set_index_hint_map1, sorted_push_constant_ranges);
         }
 

@@ -13,7 +13,7 @@
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"
 #include "threadpool/AIThreadPool.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "xcb-task/ConnectionBrokerKey.h"
 #include "utils/threading/Gate.h"
 #include "utils/DequeMemoryResource.h"
@@ -105,7 +105,7 @@ class Application
 
   // All windows.
   using window_list_container_t = std::vector<boost::intrusive_ptr<task::SynchronousWindow>>;
-  using window_list_t = aithreadsafe::Wrapper<window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using window_list_t = threadsafe::Unlocked<window_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   window_list_t m_window_list;
   bool m_window_created = false;                        // Set to true the first time a window is created.
 
@@ -138,7 +138,7 @@ class Application
 
   // All logical devices.
   using logical_device_list_container_t = std::vector<std::unique_ptr<LogicalDevice>>;
-  using logical_device_list_t = aithreadsafe::Wrapper<logical_device_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using logical_device_list_t = threadsafe::Unlocked<logical_device_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   logical_device_list_t m_logical_device_list;
 
   Directories m_directories;                            // Manager of directories for data, configuration, resources etc.
@@ -158,7 +158,7 @@ class Application
   };
 
   using pipeline_factory_list_container_t = std::map<std::u8string, PipelineCacheMerger>;
-  using pipeline_factory_list_t = aithreadsafe::Wrapper<pipeline_factory_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_factory_list_t = threadsafe::Unlocked<pipeline_factory_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   pipeline_factory_list_t m_pipeline_factory_list;
 
 #ifdef TRACY_ENABLE

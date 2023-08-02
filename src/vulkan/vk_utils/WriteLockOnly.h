@@ -1,18 +1,18 @@
 #pragma once
 
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 
 namespace vk_utils {
 
 template<typename T>
-struct WriteLockOnly : aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>
+struct WriteLockOnly : threadsafe::Unlocked<T, threadsafe::policy::Primitive<std::mutex>>
 {
  public:
-  using aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::Wrapper;
+  using threadsafe::Unlocked<T, threadsafe::policy::Primitive<std::mutex>>::Unlocked;
 
  private:
-  using typename aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::crat;
-  using typename aithreadsafe::Wrapper<T, aithreadsafe::policy::Primitive<std::mutex>>::rat;
+  using typename threadsafe::Unlocked<T, threadsafe::policy::Primitive<std::mutex>>::crat;
+  using typename threadsafe::Unlocked<T, threadsafe::policy::Primitive<std::mutex>>::rat;
 };
 
 } // namespace vk_utils

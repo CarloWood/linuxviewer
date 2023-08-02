@@ -55,7 +55,7 @@ struct UnlockedWindowExtent
   vk::Extent2D m_extent;        // The current extent of the window.
 };
 
-using WindowExtent = aithreadsafe::Wrapper<UnlockedWindowExtent, aithreadsafe::policy::Primitive<std::mutex>>;
+using WindowExtent = threadsafe::Unlocked<UnlockedWindowExtent, threadsafe::policy::Primitive<std::mutex>>;
 
 // ************************************************************ //
 // Window                                                       //

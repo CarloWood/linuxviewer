@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils/Badge.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #ifdef CWDEBUG
 #include <iosfwd>
 #endif
@@ -40,6 +40,6 @@ class UnlockedGraphicsSettings : private GraphicsSettingsPOD
 #endif
 };
 
-using GraphicsSettings = aithreadsafe::Wrapper<UnlockedGraphicsSettings, aithreadsafe::policy::Primitive<std::mutex>>;
+using GraphicsSettings = threadsafe::Unlocked<UnlockedGraphicsSettings, threadsafe::policy::Primitive<std::mutex>>;
 
 } // namespace vulkan

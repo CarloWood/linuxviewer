@@ -3,7 +3,7 @@
 #include "QueueRequestKey.h"
 #include "ImmediateSubmitQueue.h"
 #include "utils/UltraHash.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "threadsafe/AIReadWriteSpinLock.h"
 #include <boost/intrusive_ptr.hpp>
 #include <vector>
@@ -37,9 +37,9 @@ struct QueuePoolTasks
 class QueuePool
 {
   // The type of the global s_map that maps keys to instances.
-  using map_type = aithreadsafe::Wrapper<QueuePoolMap, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
+  using map_type = threadsafe::Unlocked<QueuePoolMap, threadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
   // The type of m_tasks.
-  using tasks_type = aithreadsafe::Wrapper<QueuePoolTasks, aithreadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
+  using tasks_type = threadsafe::Unlocked<QueuePoolTasks, threadsafe::policy::ReadWrite<AIReadWriteSpinLock>>;
 
  private:
   // Object that maps QueueRequestKey to QueuePool instance.

@@ -3,7 +3,7 @@
 
 #include "LogicalDevice.h"
 #include "queues/QueueFamilyProperties.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include <vector>
 
 namespace vulkan {

@@ -2,7 +2,7 @@
 #define COMMAND_BUFFER_H
 
 #include <vulkan/vulkan.hpp>
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #ifdef CWDEBUG
 #include <cstdint>      // uint64_t
 #include <iosfwd>

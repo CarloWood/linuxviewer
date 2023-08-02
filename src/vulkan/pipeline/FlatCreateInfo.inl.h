@@ -8,7 +8,7 @@ namespace vulkan::pipeline {
 
 template<typename T>
 //static
-std::vector<T> FlatCreateInfo::merge(aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<T>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>& input_list, characteristics_container_t const& characteristics)
+std::vector<T> FlatCreateInfo::merge(threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<T>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>& input_list, characteristics_container_t const& characteristics)
 {
   std::vector<T> result;
   typename std::remove_reference_t<decltype(input_list)>::wat input_list_w(input_list);

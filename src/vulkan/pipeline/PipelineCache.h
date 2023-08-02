@@ -5,7 +5,7 @@
 
 #include "../vk_utils/TaskToTaskDeque.h"
 #include "statefultask/AIStatefulTask.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "utils/nearest_multiple_of_power_of_two.h"
 #include "utils/ulong_to_base.h"
 #include <boost/serialization/serialization.hpp>

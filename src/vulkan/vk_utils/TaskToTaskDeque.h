@@ -52,7 +52,7 @@ class TaskToTaskDeque : public BASE
   using direct_base_type = TaskToTaskDeque<BASE, DATUM>;                // Not ours, but that of the derived class.
   using deque_allocator_type = utils::DequeAllocator<DATUM>;
   using container_type = std::deque<DATUM, deque_allocator_type>;
-  using new_data_type = aithreadsafe::Wrapper<container_type, aithreadsafe::policy::Primitive<std::mutex>>;
+  using new_data_type = threadsafe::Unlocked<container_type, threadsafe::policy::Primitive<std::mutex>>;
 
  private:
   utils::DequeAllocator<DATUM> m_datum_allocator{vulkan::Application::instance().deque512_nmr()};

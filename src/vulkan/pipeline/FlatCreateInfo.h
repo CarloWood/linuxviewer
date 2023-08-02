@@ -3,7 +3,7 @@
 #include "../PushConstantRange.h"
 #include "../descriptor/SetLayout.h"
 #include "../descriptor/SetIndexHintMap.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "utils/Vector.h"
 #include <vulkan/vulkan.hpp>
 #include <vector>
@@ -46,27 +46,27 @@ class FlatCreateInfo
   // Same type as in PipelineFactory.
   using characteristics_container_t = utils::Vector<boost::intrusive_ptr<task::CharacteristicRange>, pipeline::CharacteristicRangeIndex>;
 
-  using pipeline_shader_stage_create_infos_list_t = aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<vk::PipelineShaderStageCreateInfo>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_shader_stage_create_infos_list_t = threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<vk::PipelineShaderStageCreateInfo>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>;
   pipeline_shader_stage_create_infos_list_t m_pipeline_shader_stage_create_infos_list;
 
-  using vertex_input_binding_descriptions_list_t = aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<vk::VertexInputBindingDescription>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>;
+  using vertex_input_binding_descriptions_list_t = threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<vk::VertexInputBindingDescription>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>;
   vertex_input_binding_descriptions_list_t m_vertex_input_binding_descriptions_list;
 
-  using vertex_input_attribute_descriptions_list_t = aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<vk::VertexInputAttributeDescription>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>;
+  using vertex_input_attribute_descriptions_list_t = threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<vk::VertexInputAttributeDescription>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>;
   vertex_input_attribute_descriptions_list_t m_vertex_input_attribute_descriptions_list;
 
-  using pipeline_color_blend_attachment_states_list_t = aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<vk::PipelineColorBlendAttachmentState>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_color_blend_attachment_states_list_t = threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<vk::PipelineColorBlendAttachmentState>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>;
   pipeline_color_blend_attachment_states_list_t m_pipeline_color_blend_attachment_states_list;
 
-  using dynamic_states_list_t = aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<vk::DynamicState>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>;
+  using dynamic_states_list_t = threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<vk::DynamicState>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>;
   dynamic_states_list_t m_dynamic_states_list;
 
   using unlocked_push_constant_ranges_list_t = utils::Vector<CharacteristicDataCache<vulkan::PushConstantRange>,                         CharacteristicRangeIndex>;
-  using push_constant_ranges_list_t = aithreadsafe::Wrapper<unlocked_push_constant_ranges_list_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using push_constant_ranges_list_t = threadsafe::Unlocked<unlocked_push_constant_ranges_list_t, threadsafe::policy::Primitive<std::mutex>>;
   push_constant_ranges_list_t m_push_constant_ranges_list;
 
   template<typename T>
-  static std::vector<T> merge(aithreadsafe::Wrapper<utils::Vector<CharacteristicDataCache<T>, CharacteristicRangeIndex>, aithreadsafe::policy::Primitive<std::mutex>>& input_list, characteristics_container_t const& characteristics);
+  static std::vector<T> merge(threadsafe::Unlocked<utils::Vector<CharacteristicDataCache<T>, CharacteristicRangeIndex>, threadsafe::policy::Primitive<std::mutex>>& input_list, characteristics_container_t const& characteristics);
 
  public:
   vk::PipelineInputAssemblyStateCreateInfo m_pipeline_input_assembly_state_create_info;

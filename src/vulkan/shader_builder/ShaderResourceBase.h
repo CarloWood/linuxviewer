@@ -6,7 +6,7 @@
 #include "../descriptor/SetLayoutBinding.h"
 #include "../descriptor/DescriptorUpdateInfo.h"
 #include "../pipeline/ShaderResourcePlusCharacteristicIndex.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "threadsafe/AIReadWriteMutex.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
@@ -100,7 +100,7 @@ class ShaderResourceBase
   mutable AIStatefulTaskMutex m_create_access_mutex;
   std::atomic_bool m_created{false};
   descriptor::SetKey const m_descriptor_set_key;
-  using set_layout_bindings_to_handles_t = aithreadsafe::Wrapper<set_layout_bindings_to_handles_container_t, aithreadsafe::policy::ReadWrite<AIReadWriteMutex>>;
+  using set_layout_bindings_to_handles_t = threadsafe::Unlocked<set_layout_bindings_to_handles_container_t, threadsafe::policy::ReadWrite<AIReadWriteMutex>>;
   mutable set_layout_bindings_to_handles_t m_set_layout_bindings_to_handles;
 
  protected:

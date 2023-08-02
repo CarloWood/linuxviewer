@@ -11,7 +11,7 @@
 #include "../shader_builder/ShaderIndex.h"
 #include "statefultask/AIStatefulTask.h"
 #include "statefultask/RunningTasksTracker.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "utils/MultiLoop.h"
 #include "utils/Vector.h"
 #include "utils/Badge.h"
@@ -50,7 +50,7 @@ class PipelineFactory : public AIStatefulTask
   using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
   using characteristics_container_t = utils::Vector<boost::intrusive_ptr<CharacteristicRange>, pipeline::CharacteristicRangeIndex>;
   // The same as CharacteristicRange::pipeline_index_t.
-  using pipeline_index_t = aithreadsafe::Wrapper<pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_index_t = threadsafe::Unlocked<pipeline::Index, threadsafe::policy::Primitive<std::mutex>>;
 
   static constexpr condition_type pipeline_cache_set_up = 0x1;
   static constexpr condition_type fully_initialized = 0x2;
@@ -127,7 +127,7 @@ class PipelineFactory : public AIStatefulTask
 #endif
   };
   using added_shader_resource_plus_characteristic_list_container_t = utils::Vector<ShaderResourcePlusCharacteristicPlusPreferredAndUndesirableSetKeyPreferences, pipeline::ShaderResourcePlusCharacteristicIndex>;
-  using added_shader_resource_plus_characteristic_list_t = aithreadsafe::Wrapper<added_shader_resource_plus_characteristic_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using added_shader_resource_plus_characteristic_list_t = threadsafe::Unlocked<added_shader_resource_plus_characteristic_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   added_shader_resource_plus_characteristic_list_t m_added_shader_resource_plus_characteristic_list;
 
   bool test_and_set_prepared(pipeline::ShaderResourcePlusCharacteristicIndex index, added_shader_resource_plus_characteristic_list_t::rat const& added_shader_resource_plus_characteristic_list_r)
@@ -145,7 +145,7 @@ class PipelineFactory : public AIStatefulTask
   using set_key_to_set_index_hint_container_t = std::map<descriptor::SetKey, descriptor::SetIndexHint>;
   set_key_to_set_index_hint_container_t m_set_key_to_set_index_hint;     // Maps descriptor::SetKey's to descriptor::SetIndexHint's.
   using glsl_id_to_shader_resource_container_t = std::map<std::string, shader_builder::ShaderResourceDeclaration, std::less<>>;
-  using glsl_id_to_shader_resource_t = aithreadsafe::Wrapper<glsl_id_to_shader_resource_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using glsl_id_to_shader_resource_t = threadsafe::Unlocked<glsl_id_to_shader_resource_container_t, threadsafe::policy::Primitive<std::mutex>>;
   glsl_id_to_shader_resource_t m_glsl_id_to_shader_resource;  // Set index hint needs to be updated afterwards.
   descriptor::SetKeyToShaderResourceDeclaration m_shader_resource_set_key_to_shader_resource_declaration;
      // Maps descriptor::SetKey's to shader resource declaration object used for the current pipeline.
@@ -154,7 +154,7 @@ class PipelineFactory : public AIStatefulTask
      // because nobody is writing to it anymore by then.
 
   using sorted_descriptor_set_layouts_container_t = std::vector<descriptor::SetLayout>;
-  using sorted_descriptor_set_layouts_t = aithreadsafe::Wrapper<sorted_descriptor_set_layouts_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using sorted_descriptor_set_layouts_t = threadsafe::Unlocked<sorted_descriptor_set_layouts_container_t, threadsafe::policy::Primitive<std::mutex>>;
   sorted_descriptor_set_layouts_t m_sorted_descriptor_set_layouts;      // A Vector of SetLayout objects, containing vk::DescriptorSetLayout
                                                                         // handles and the vk::DescriptorSetLayoutBinding objects, stored in
                                                                         // a sorted vector, that they were created from.

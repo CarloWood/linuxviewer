@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils/threading/FIFOBuffer.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include <iosfwd>
 #include <cstdint>
 #include <atomic>
@@ -206,7 +206,7 @@ struct UnlockedWheelOffset
   }
 };
 
-using WheelOffset = aithreadsafe::Wrapper<UnlockedWheelOffset, aithreadsafe::policy::Primitive<std::mutex>>;
-using MovedMousePosition = aithreadsafe::Wrapper<MousePosition, aithreadsafe::policy::Primitive<std::mutex>>;
+using WheelOffset = threadsafe::Unlocked<UnlockedWheelOffset, threadsafe::policy::Primitive<std::mutex>>;
+using MovedMousePosition = threadsafe::Unlocked<MousePosition, threadsafe::policy::Primitive<std::mutex>>;
 
 } // namespace vulkan

@@ -6,7 +6,7 @@
 #include "utils/AIRefCount.h"
 #include "utils/Vector.h"
 #include "statefultask/AIStatefulTask.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include <iosfwd>
 #include <bit>
 
@@ -50,7 +50,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   condition_type m_needs_signals{do_fill};      // The signals that are required by the derived class.
 
   using index_type = int;                       // An index into the range that uniquely defines the value of the characteristic.
-  using pipeline_index_t = aithreadsafe::Wrapper<pipeline::Index, aithreadsafe::policy::Primitive<std::mutex>>;
+  using pipeline_index_t = threadsafe::Unlocked<pipeline::Index, threadsafe::policy::Primitive<std::mutex>>;
 
  protected:
   PipelineFactory* m_owning_factory;

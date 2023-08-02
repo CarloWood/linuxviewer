@@ -187,7 +187,7 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
 #endif
 
   using child_window_list_container_t = std::vector<SynchronousWindow*>;
-  using child_window_list_t = aithreadsafe::Wrapper<child_window_list_container_t, aithreadsafe::policy::Primitive<std::mutex>>;
+  using child_window_list_t = threadsafe::Unlocked<child_window_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   mutable child_window_list_t m_child_window_list;                      // List with child windows.
 
   GraphicsSettingsPOD m_graphics_settings;                              // Cached copy of global graphics settings; should be synchronized at the start of the render loop.

@@ -5,7 +5,7 @@
 #include "ShaderResourceDeclaration.h"
 #include "../PushConstantRange.h"
 #include "../descriptor/SetIndexHintMap.h"
-#include "threadsafe/aithreadsafe.h"
+#include "threadsafe/threadsafe.h"
 #include "statefultask/AIStatefulTaskMutex.h"
 #include "utils/Deque.h"
 #include <map>
@@ -64,6 +64,6 @@ struct UnlockedShaderInfos
   std::map<std::size_t, ShaderIndex> hash_to_index;     // A map from ShaderInfo hash values to their index into deque.
 };
 
-using ShaderInfos = aithreadsafe::Wrapper<UnlockedShaderInfos, aithreadsafe::policy::Primitive<std::mutex>>;
+using ShaderInfos = threadsafe::Unlocked<UnlockedShaderInfos, threadsafe::policy::Primitive<std::mutex>>;
 
 } // namespace vulkan::shader_builder
