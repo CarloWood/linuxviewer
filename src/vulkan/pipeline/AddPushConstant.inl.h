@@ -95,6 +95,7 @@ void AddPushConstant::add_push_constant(PushConstantRange const& push_constant_r
         int rc;
         char const* const demangled_type = abi::__cxa_demangle(typeid(MemberLayout).name(), 0, 0, &rc);
         Dout(dc::vulkan, "Calling add_push_constant_member(" << demangled_type << ")");
+        std::free(demangled_type);
 #endif
         static constexpr int member_index = MemberLayout::member_index;
         add_push_constant_member(std::get<member_index>(layouts));

@@ -1052,11 +1052,6 @@ void SynchronousWindow::create_frame_resources()
 
   vulkan::FrameResourceIndex const number_of_frame_resources = this->number_of_frame_resources();
 
-#if 0 //FIXME: is this how I want to do this? Overlapping as in "overlapping frames", or "frames in flight".
-  // Create all overlapping descriptor sets.
-  auto overlapping_descriptor_sets = allocate_descriptor_sets();
-#endif
-
   Dout(dc::vulkan, "Creating " << number_of_frame_resources.get_value() << " frame resources.");
   m_frame_resources_list.resize(number_of_frame_resources.get_value());
   for (vulkan::FrameResourceIndex i = m_frame_resources_list.ibegin(); i != m_frame_resources_list.iend(); ++i)

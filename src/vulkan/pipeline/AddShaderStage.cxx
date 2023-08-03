@@ -310,7 +310,7 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
     shader_info_cache.m_shader_module = spirv_cache.create_module({}, owning_window->logical_device()
         COMMA_CWDEBUG_ONLY("m_per_stage_shader_module[" + to_string(shader_info.stage()) + "]" + ambifix));
 
-    if (pipeline_factory)
+    if (pipeline_factory)       // This is nullptr for imgui.
     {
       // Add data to shader_info_cache that might be needed by other pipeline factories
       // because they will no longer call preprocess* after the shader module handle is set.

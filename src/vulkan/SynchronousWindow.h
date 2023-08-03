@@ -366,6 +366,11 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
   void cache_logical_device() { m_logical_device = get_logical_device(); }
 
   // Accessors.
+  std::u8string const& get_title() const
+  {
+     return m_title;
+  }
+
   vk::SurfaceKHR vh_surface() const
   {
     return m_presentation_surface.vh_surface();

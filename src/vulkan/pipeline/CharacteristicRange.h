@@ -133,6 +133,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   index_type fill_index() const { return m_fill_index; }
   condition_type needs_signals() const { return m_needs_signals; }
   void begin_new_pipeline() { reset_push_constant_ranges(); reset_vertex_shader_location_contex(); }
+  SynchronousWindow const* owning_window() const { return m_owning_window; }
 
  protected:
   inline void add_combined_image_sampler(shader_builder::shader_resource::CombinedImageSampler const& combined_image_sampler,
@@ -182,6 +183,7 @@ class CharacteristicRange : public AIStatefulTask, public virtual pipeline::Char
   // Override of CharacteristicRangeBridge.
   inline shader_builder::ShaderResourceDeclaration* realize_shader_resource_declaration(std::string glsl_id_full, vk::DescriptorType descriptor_type, shader_builder::ShaderResourceBase const& shader_resource, descriptor::SetIndexHint set_index_hint) final;
 
+ public:
   PipelineFactory* get_owning_factory() const final { return m_owning_factory; }
 
 #ifdef CWDEBUG

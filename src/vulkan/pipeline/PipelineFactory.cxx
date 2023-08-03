@@ -883,6 +883,7 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 
           // At this point all Characteristics must have finished.
           // Create the (next) pipeline...
+
 #if -0
           // Dump the FlatCreateInfo object to a file.
           {
@@ -961,7 +962,8 @@ void PipelineFactory::multiplex_impl(state_type run_state)
 #endif
 
           // Create and then store the graphics pipeline.
-          m_pipeline = m_owning_window->logical_device()->create_graphics_pipeline(m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
+          m_pipeline = m_owning_window->logical_device()->create_graphics_pipeline(
+              m_pipeline_cache_task->vh_pipeline_cache(), pipeline_create_info
               COMMA_CWDEBUG_ONLY(m_owning_window->debug_name_prefix("PipelineFactory::m_pipeline")));
 
 #if CW_DEBUG
@@ -1637,7 +1639,8 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
     Dout(dc::shaderresource, "Loop over all shader resources - in reverse - with index " << set_index);
     for (int i = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index].size() - 1; i >= 0; --i)
     {
-      ShaderResourcePlusCharacteristic const& shader_resource_plus_characteristic = m_added_shader_resource_plus_characteristics_per_used_set_index[set_index][i];
+      ShaderResourcePlusCharacteristic const& shader_resource_plus_characteristic =
+        m_added_shader_resource_plus_characteristics_per_used_set_index[set_index][i];
       ShaderResourceBase const* shader_resource = shader_resource_plus_characteristic.shader_resource();
       bool first_shader_resource = i == 0;
       SetKey const set_key = shader_resource->descriptor_set_key();
@@ -1648,7 +1651,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
       ASSERT(!set_index.undefined());
       ASSERT(set_index == m_set_index_hint_map1.convert(set_index_hint));
 
-      auto shader_resource_declaration_ptr = get_declaration(set_key);
+      shader_builder::ShaderResourceDeclaration const* shader_resource_declaration_ptr = get_declaration(set_key);
       bool has_binding = shader_resource_declaration_ptr->has_binding();
       Dout(dc::shaderresource|continued_cf, "shader_resource = " << shader_resource << " (" <<
           NAMESPACE_DEBUG::print_string(shader_resource->debug_name()) << "); set_index = " << set_index << "; ");

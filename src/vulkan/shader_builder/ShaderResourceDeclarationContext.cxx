@@ -114,7 +114,7 @@ void ShaderResourceDeclarationContext::add_declarations_for_stage(DeclarationsSt
         // } MyUniformBuffer;
 
         oss << "layout(set = " << set_index.get_value() << ", binding = " << binding << ") uniform "
-          "u_s" << set_index.get_value() << "b" << binding << " {\n";
+          "u_s" << set_index.get_value() << "b" << binding << " { // " << shader_resource_declaration->glsl_id() << "\n";
 
         std::string const& prefix = shader_resource_declaration->glsl_id();
         ShaderResourceBase const& base = shader_resource_declaration->shader_resource();

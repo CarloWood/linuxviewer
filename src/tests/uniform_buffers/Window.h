@@ -213,12 +213,12 @@ void main()
     // Inform the application about the shaders that we use.
     // This will call hash() on each ShaderInfo object (which may only called once), and then store it only when that hash doesn't exist yet.
     // Since the hash is calculated over the template code (excluding generated declaration), the declarations are fixed for given template
-    // code. The declaration determine the mapping between descriptor set, and binding number, and shader variable.
+    // code. The declarations determine the mapping between descriptor set, binding number, and shader variable.
     auto indices = application().register_shaders(std::move(shader_info));
 
     // Copy the returned "shader indices" into our local array.
     ASSERT(indices.size() == m_shader_indices.size());
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < m_shader_indices.size(); ++i)
       m_shader_indices[static_cast<LocalShaderIndex>(i)] = indices[i];
   }
 

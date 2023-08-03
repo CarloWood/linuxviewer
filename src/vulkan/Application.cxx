@@ -327,12 +327,14 @@ void Application::run()
 }
 
 // This member function isn't really const; it is thread-safe.
-std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vector<shader_builder::ShaderInfo>&& new_shader_info_list) /*threadsafe-*/const
+std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vector<shader_builder::ShaderInfo>&& new_shader_info_list)
+  /*threadsafe-*/const
 {
   DoutEntering(dc::vulkan, "Application::register_shaders(" << new_shader_info_list << ")");
   using namespace shader_builder;
-  // The word 'new' here purely refers to the fact that they are passed to this function as new ShaderInfo objects (so we are allowed to call hash());
-  // if the hash of any of the 'new' ShaderInfo object is already known then we return the old ShaderIndex and discard the ShaderInfo object.
+  // The word 'new' here purely refers to the fact that they are passed to this function as new ShaderInfo objects
+  // (so we are allowed to call hash()); if the hash of any of the 'new' ShaderInfo object is already known then we
+  // return the old ShaderIndex and discard the ShaderInfo object.
   size_t const number_of_new_shaders = new_shader_info_list.size();
   // Calculate the hash of each new ShaderInfo objects.
   std::vector<std::size_t> hashes(number_of_new_shaders);
