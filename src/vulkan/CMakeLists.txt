@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.12...3.19)
+cmake_minimum_required(VERSION 3.15...3.30)
 
-include(AICxxProject)
+include(AICxxProject NO_POLICY_SCOPE)
 
 find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
@@ -39,12 +39,6 @@ endif ()
 
 # This project is an OBJECT-library, used by other git submodules and the main project.
 add_library(vulkan_ObjLib OBJECT)
-
-# Set SOURCE_DIR to the current directory.
-set_property(
-  TARGET vulkan_ObjLib
-  PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-)
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12...3.19)
+cmake_minimum_required(VERSION 3.15...3.30)
 
 project(data_types
   DESCRIPTION "LinuxViewer protocol data_types."
@@ -19,12 +19,6 @@ find_package(Boost REQUIRED COMPONENTS)
 
 # This project is an OBJECT-library, used by other git submodules and the main project.
 add_library(data_types_ObjLib OBJECT)
-
-# Set SOURCE_DIR to the current directory.
-set_property(
-  TARGET data_types_ObjLib
-  PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-)
 
 # The list of source files.
 target_sources(data_types_ObjLib

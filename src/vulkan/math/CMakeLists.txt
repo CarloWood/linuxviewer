@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.0...3.30)
 project(myproject)
  
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)

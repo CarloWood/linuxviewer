@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12...3.19)
+cmake_minimum_required(VERSION 3.15...3.30)
 
 include(AICxxProject)
 
@@ -10,12 +10,6 @@ find_package(magic_enum REQUIRED)
 #
 
 add_library(shader_builder_ObjLib OBJECT)
-
-# Set SOURCE_DIR to the current directory.
-set_property(
-  TARGET shader_builder_ObjLib
-  PROPERTY SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-)
 
 file(GLOB SOURCE_FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx
