@@ -34,7 +34,7 @@ Then proceed with installing the required packages:
 sudo pacman -S --needed base-devel git cmake ninja
 sudo pacman -S --needed boost sparsehash eigen systemd
 sudo pacman -S --needed blas lapack libxml++ libxcb libxkbcommon-x11 xorgproto xcb-proto
-sudo pacman -S --needed shaderc vulkan-headers vulkan-icd-loader vulkan-validation-layers
+sudo pacman -S --needed shaderc vulkan-headers vulkan-icd-loader vulkan-validation-layers vulkan-utility-libraries
 ```
 
 Note that <span class="command">ninja</span> is an alternative <span class="command">make</span>

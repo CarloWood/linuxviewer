@@ -25,7 +25,7 @@
 #include "utils/at_scope_end.h"
 #endif
 #include "tracy/CwTracy.h"
-#include <vulkan/generated/vk_format_utils.h>
+#include <vulkan/utility/vk_format_utils.h>
 #include <algorithm>
 #include "debug.h"
 
