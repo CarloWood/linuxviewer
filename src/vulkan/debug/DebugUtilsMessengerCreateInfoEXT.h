@@ -8,7 +8,7 @@ namespace vulkan {
 class DebugUtilsMessengerCreateInfoEXT : public vk_defaults::DebugUtilsMessengerCreateInfoEXT
 {
  public:
-  DebugUtilsMessengerCreateInfoEXT(PFN_vkDebugUtilsMessengerCallbackEXT user_call_back, void* user_data);
+  DebugUtilsMessengerCreateInfoEXT(vk::PFN_DebugUtilsMessengerCallbackEXT user_call_back, void* user_data);
 };
 
 } // namespace vulkan

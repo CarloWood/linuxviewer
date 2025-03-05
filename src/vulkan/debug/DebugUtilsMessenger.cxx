@@ -53,7 +53,7 @@ struct ValidationError
   std::string url;
   std::vector<std::string> unknown_object_names;
 
-  ValidationError(VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData);
+  ValidationError(vk::DebugUtilsMessengerCallbackDataEXT const* pCallbackData);
 
   void parse(std::string_view input);
 
@@ -126,7 +126,7 @@ std::string Token::to_string(ValidationError& validation_error) const
   return m_text;
 }
 
-ValidationError::ValidationError(VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData)
+ValidationError::ValidationError(vk::DebugUtilsMessengerCallbackDataEXT const* pCallbackData)
 {
   unknown_object_names.reserve(8);
   for (int i = 0; i < pCallbackData->objectCount; ++i)
@@ -298,16 +298,16 @@ void ValidationError::parse(std::string_view message)
 // Default callback function for debug output from vulkan layers.
 //static
 VkBool32 DebugUtilsMessenger::debugCallback(
-    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    VkDebugUtilsMessageTypeFlagsEXT messageType,
-    VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+    vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    vk::DebugUtilsMessageTypeFlagsEXT messageType,
+    vk::DebugUtilsMessengerCallbackDataEXT const* pCallbackData,
     void* UNUSED_ARG(user_data))
 {
   char const* color_end = "";
   libcwd::channel_ct* dcp;
   unsigned short indent;
   bool print_finish = true;
-  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+  if (messageSeverity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
   {
     // Ignore this "error". See https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/1340
     if (pCallbackData->messageIdNumber == 0x7cd0911d)
@@ -350,7 +350,7 @@ VkBool32 DebugUtilsMessenger::debugCallback(
       color_end = "\e[39;49m";
     }
   }
-  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+  else if (messageSeverity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
   {
     // Can do this when using BestPractices validation layer - but that seems pretty meaningless.
 #if 0
@@ -374,7 +374,7 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     Dout(dc::vkwarning|dc::warning|continued_cf, "\e[31m" << pCallbackData->pMessage);
     color_end = "\e[39;49m";
   }
-  else if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
+  else if (messageSeverity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo)
   {
     dcp = &DEBUGCHANNELS::dc::vkinfo;
     Dout(dc::vkinfo|continued_cf, pCallbackData->pMessage);
@@ -397,7 +397,7 @@ VkBool32 DebugUtilsMessenger::debugCallback(
     }
   }
 
-  if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+  if (messageSeverity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
   {
     if (NAMESPACE_DEBUG::being_traced())
       DoutFatal(dc::core, "Trap point");

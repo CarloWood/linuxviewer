@@ -16,9 +16,9 @@ class DebugUtilsMessenger
 
   // The default debug callback for debug messages from vulkan.
   static VkBool32 debugCallback(
-      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-      VkDebugUtilsMessageTypeFlagsEXT messageType,
-      VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+      vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+      vk::DebugUtilsMessageTypeFlagsEXT messageType,
+      vk::DebugUtilsMessengerCallbackDataEXT const* pCallbackData,
       void* pUserData);
 
   // The life time of the vulkan instance that is passed to prepare must be longer

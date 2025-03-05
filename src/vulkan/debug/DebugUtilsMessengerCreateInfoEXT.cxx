@@ -3,7 +3,7 @@
 
 namespace vulkan {
 
-DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(PFN_vkDebugUtilsMessengerCallbackEXT user_call_back, void* user_data)
+DebugUtilsMessengerCreateInfoEXT::DebugUtilsMessengerCreateInfoEXT(vk::PFN_DebugUtilsMessengerCallbackEXT user_call_back, void* user_data)
 {
   if (pfnUserCallback == nullptr && pUserData == nullptr)
   {
