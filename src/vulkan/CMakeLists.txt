@@ -114,8 +114,8 @@ target_compile_definitions(vulkan_ObjLib
 )
 
 if (OptionEnableLibcwd AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-  # Required for vk_enums_reflection.cxx.
-  set_source_files_properties(debug/vk_enums_reflection.cxx PROPERTIES COMPILE_FLAGS "-fbracket-depth=1024")
+  # Required for vk_enums_reflection.cxx for vk::StructureType which has more than 1300 elements.
+  set_source_files_properties(debug/vk_enums_reflection.cxx PROPERTIES COMPILE_FLAGS "-fbracket-depth=1500")
 endif ()
 
 # This include is needed to find headers included by vulkan/generated/vk_format_utils.cpp.
