@@ -46,7 +46,7 @@ BEGIN {
       }
       else
       {
-        enum_name = gensub(/\s*(\w+)\s*(=[^,]*)?(,)?\s*/, "\\1", "g")
+        enum_name = gensub(/\s*(\w+)\s*(VULKAN_HPP_DEPRECATED_[0-9]+\(\s*"[^"]*"\s*\))?\s*(=[^,]*)?(,)?\s*/, "\\1", "g")
         if (need_comma)
         {
           if (saw_directive)
@@ -55,7 +55,7 @@ BEGIN {
             printf(",\n");
         }
         printf("  %s::%s", enum_type, enum_name);
-        comma = gensub(/\s*(\w+)\s*(=[^,]*)?(,)?\s*/, "\\3", "g")
+        comma = gensub(/\s*(\w+)\s*(VULKAN_HPP_DEPRECATED_[0-9]+\(\s*"[^"]*"\s*\))?\s*(=[^,]*)?(,)?\s*/, "\\4", "g")
         if (comma == ",")
           need_comma = 1;
         else
