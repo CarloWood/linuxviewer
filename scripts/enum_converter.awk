@@ -1,6 +1,12 @@
 BEGIN {
   inside_namespace = 0;
   inside_enum = 0;
+  printf("#include \"utils/macros.h\"\n")
+  printf("PRAGMA_DIAGNOSTIC_PUSH_IGNORE_deprecated_declarations\n")
+}
+
+END {
+  printf("PRAGMA_DIAGNOSTIC_POP\n")
 }
 
 # Detect the end of an enum declaration, and print ')' instead of '};'.
