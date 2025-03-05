@@ -4,12 +4,14 @@
 #define VULKAN_KIND_DEBUG_MEMBERS
 #else
 
+#include <iostream>
+
 #define VULKAN_KIND_PRINT_ON_MEMBERS \
   void print_on(std::ostream& os) const \
   { \
-    os << '{'; \
+    os.put('{'); \
     print_members(os); \
-    os << '}'; \
+    os.put('}'); \
   } \
   void print_members(std::ostream& os) const;
 
