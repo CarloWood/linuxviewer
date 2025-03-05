@@ -16,13 +16,12 @@ namespace vulkan {
 class DispatchLoader
 {
  private:
-  vk::DynamicLoader m_dynamic_loader;
+  vk::detail::DynamicLoader m_dynamic_loader;
 
  public:
   DispatchLoader()
   {
-    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = m_dynamic_loader.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
-    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(m_dynamic_loader);
   }
 
   void load(vk::Instance vh_instance)
