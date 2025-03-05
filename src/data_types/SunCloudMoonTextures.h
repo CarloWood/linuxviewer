@@ -15,7 +15,7 @@ class SunCloudMoonTextures
   xmlrpc_SunCloudMoonTextures_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
  public:
-  enum members {
+  enum members : unsigned char {
     xmlrpc_SunCloudMoonTextures_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 

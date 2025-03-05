@@ -13,9 +13,50 @@
 #include <sstream>
 #endif
 
+std::string_view to_string(shaderc_shader_kind kind)
+{
+  switch (kind)
+  {
+    AI_CASE_RETURN(shaderc_vertex_shader);
+    AI_CASE_RETURN(shaderc_fragment_shader);
+    AI_CASE_RETURN(shaderc_compute_shader);
+    AI_CASE_RETURN(shaderc_geometry_shader);
+    AI_CASE_RETURN(shaderc_tess_control_shader);
+    AI_CASE_RETURN(shaderc_tess_evaluation_shader);
+    AI_CASE_RETURN(shaderc_glsl_infer_from_source);
+    AI_CASE_RETURN(shaderc_glsl_default_vertex_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_fragment_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_compute_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_geometry_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_tess_control_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_tess_evaluation_shader);
+    AI_CASE_RETURN(shaderc_spirv_assembly);
+    AI_CASE_RETURN(shaderc_raygen_shader);
+    AI_CASE_RETURN(shaderc_anyhit_shader);
+    AI_CASE_RETURN(shaderc_closesthit_shader);
+    AI_CASE_RETURN(shaderc_miss_shader);
+    AI_CASE_RETURN(shaderc_intersection_shader);
+    AI_CASE_RETURN(shaderc_callable_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_raygen_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_anyhit_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_closesthit_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_miss_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_intersection_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_callable_shader);
+    AI_CASE_RETURN(shaderc_task_shader);
+    AI_CASE_RETURN(shaderc_mesh_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_task_shader);
+    AI_CASE_RETURN(shaderc_glsl_default_mesh_shader);
+  }
+  AI_NEVER_REACHED
+}
+
 std::ostream& operator<<(std::ostream& os, shaderc_shader_kind kind)
 {
-  return os << magic_enum::enum_name(kind);
+  // We can't use magic_enum here because that results in the error:
+  // magic_enum.hpp:371:12: error: integer value 129 is outside the valid range of values [0, 31] for the enumeration type 'shaderc_shader_kind' [-Wenum-constexpr-conversion]
+
+  return os << to_string(kind);
 }
 
 namespace vulkan::shader_builder {

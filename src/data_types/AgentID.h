@@ -13,7 +13,7 @@ class AgentID
   xmlrpc_AgentID_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
  public:
-  enum members {
+  enum members : unsigned char {
     xmlrpc_AgentID_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 

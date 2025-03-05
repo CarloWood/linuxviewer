@@ -15,7 +15,7 @@ class Buddy
   xmlrpc_Buddy_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
  public:
-  enum members {
+  enum members : unsigned char {
     xmlrpc_Buddy_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 

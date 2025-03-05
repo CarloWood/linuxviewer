@@ -15,7 +15,7 @@ class InitialOutfit
   xmlrpc_InitialOutfit_FOREACH_MEMBER(XMLRPC_DECLARE_MEMBER)
 
  public:
-  enum members {
+  enum members : unsigned char {
     xmlrpc_InitialOutfit_FOREACH_MEMBER(XMLRPC_DECLARE_ENUMERATOR)
   };
 
