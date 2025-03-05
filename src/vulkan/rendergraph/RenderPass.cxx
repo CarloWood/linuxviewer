@@ -294,7 +294,7 @@ void RenderPass::add_attachments_to(std::set<Attachment const*, Attachment::Comp
 void RenderPass::set_is_present_on_attachment_sink_with_index(AttachmentIndex index)
 {
   for (AttachmentNode& node : m_known_attachments)
-    if (node.is_sink() &&  node.render_graph_attachment_index() == index)
+    if (node.is_sink() &&  static_cast<AttachmentIndex>(node.render_graph_attachment_index()) == index)
       node.set_is_present();
 }
 
