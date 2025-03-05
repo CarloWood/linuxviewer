@@ -22,6 +22,9 @@ class ShaderResourceVariable final : public ShaderVariable
 #ifdef CWDEBUG
  public:
   void print_on(std::ostream& os) const override;
+
+  // Used by PipelineFactoryGraph.
+  ShaderResourceDeclaration const* shader_resource_declaration_ptr() const { return m_shader_resource_declaration_ptr; }
 #endif
 };
 

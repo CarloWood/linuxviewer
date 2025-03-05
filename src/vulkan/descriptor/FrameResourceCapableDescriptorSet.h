@@ -2,11 +2,18 @@
 
 #include "../FrameResourceIndex.h"
 #include "utils/Vector.h"
+#include "utils/Badge.h"
 #include <vulkan/vulkan.hpp>
 #ifdef CWDEBUG
 #include "../debug/vulkan_print_on.h"
 #endif
 #include "debug.h"
+
+#ifdef CWDEBUG
+namespace vulkan::pipeline {
+class PipelineFactoryGraph;
+} // namespace vulkan::pipeline
+#endif
 
 namespace vulkan::descriptor {
 
@@ -29,6 +36,14 @@ class FrameResourceCapableDescriptorSetAsKey
   {
     return lhs.m_key == rhs.m_key;
   }
+
+#ifdef CWDEBUG
+  // Accessor for the graph.
+  VkDescriptorSet vh_descriptor_set(utils::Badge<pipeline::PipelineFactoryGraph>) const
+  {
+    return m_key;
+  }
+#endif
 };
 
 class FrameResourceCapableDescriptorSet
