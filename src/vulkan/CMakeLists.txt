@@ -118,9 +118,6 @@ if (OptionEnableLibcwd AND ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   set_source_files_properties(debug/vk_enums_reflection.cxx PROPERTIES COMPILE_FLAGS "-fbracket-depth=1500")
 endif ()
 
-# This include is needed to find headers included by vulkan/generated/vk_format_utils.cpp.
-set_source_files_properties(vk_utils/format.cxx PROPERTIES COMPILE_FLAGS "-isystem /usr/include/vulkan")
-
 # Require support for C++20.
 target_compile_features(vulkan_ObjLib
   PUBLIC cxx_std_20
