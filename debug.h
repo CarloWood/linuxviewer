@@ -30,7 +30,7 @@ using utils::has_print_on::operator<<;
 
 #endif // HAVE_UTILS_CONFIG_H
 
-#if defined(CWDEBUG) && !defined(DOXYGEN)
+#ifndef DOXYGEN
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct vulkan;
 extern channel_ct shaderresource;

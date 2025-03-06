@@ -188,7 +188,8 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
       if (source.find(match_string) != std::string_view::npos)
       {
         Dout(dc::finish, "(found)");
-        declaration_contexts.insert(shader_variable->is_used_in(shader_info.stage(), this));
+        shader_builder::DeclarationContext* declaration_context = shader_variable->is_used_in(shader_info.stage(), this);
+        declaration_contexts.insert(declaration_context);
       }
       else
         Dout(dc::finish, "(not found)");

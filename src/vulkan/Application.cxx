@@ -366,6 +366,7 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
     }
   }
 
+  new_shader_info_list.clear();
   return new_indices;
 }
 
