@@ -66,6 +66,10 @@ FactoryCharacteristicId FactoryHandle::add_characteristic(task::SynchronousWindo
   CHARACTERISTIC* ptr = new CHARACTERISTIC(owning_window, std::forward<ARGS>(args)...);
   ptr->set_needs_signals();
   task::PipelineFactory* pipeline_factory = owning_window->pipeline_factory(m_factory_index);
+#ifdef CWDEBUG
+  Application::instance().pipeline_factory_graph().add_characteristic(owning_window, m_factory_index, ptr,
+      ::NAMESPACE_DEBUG::type_name_of<CHARACTERISTIC>());
+#endif
   return pipeline_factory->add_characteristic(ptr);
 }
 

@@ -745,6 +745,10 @@ void PipelineFactory::multiplex_impl(state_type run_state)
               (m_running_characteristic_tasks & (1ULL << i.get_value())))
             ++m_number_of_running_characteristic_tasks;
         }
+#ifdef CWDEBUG
+        Application::instance().pipeline_factory_graph().add_pipeline(m_owning_window, m_pipeline_factory_index,
+            *pipeline_index_t::rat{m_pipeline_index}, m_characteristics);
+#endif
         // Send the do_preprocess signal to the Characteristic tasks, if any.
         {
           bool sent_do_preprocess_signal = m_number_of_running_characteristic_tasks > 0;
@@ -881,10 +885,15 @@ void PipelineFactory::multiplex_impl(state_type run_state)
           // End pipeline layout creation
           //-----------------------------------------------------------------
 
+#ifdef CWDEBUG
+          Application::instance().pipeline_factory_graph().add_descriptor_sets(m_owning_window, m_pipeline_factory_index,
+              *pipeline_index_t::rat{m_pipeline_index}, m_descriptor_set_per_set_index);
+#endif
+
           // At this point all Characteristics must have finished.
           // Create the (next) pipeline...
 
-#if -0
+#if -1
           // Dump the FlatCreateInfo object to a file.
           {
             std::stringstream ss;
@@ -1617,12 +1626,19 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
   vulkan::LogicalDevice const* logical_device = m_owning_window->logical_device();
   std::vector<FrameResourceCapableDescriptorSet> missing_descriptor_sets;
   if (!missing_descriptor_set_layouts.empty())
+  {
     missing_descriptor_sets = logical_device->allocate_descriptor_sets(
         m_owning_window->number_of_frame_resources(),
         missing_descriptor_set_layouts, missing_descriptor_set_unbounded_descriptor_array_sizes,
         set_index_has_frame_resource_pairs, logical_device->get_descriptor_pool()
         COMMA_CWDEBUG_ONLY(Ambifix{"PipelineFactory::m_descriptor_set_per_set_index", as_postfix(this)}));
            // Note: the debug name is changed when copying this vector to the Pipeline it will be used with.
+#ifdef CWDEBUG
+    Application::instance().pipeline_factory_graph().add_descriptor_sets(m_owning_window,
+        missing_descriptor_sets, missing_descriptor_set_layouts, set_index_has_frame_resource_pairs,
+        missing_descriptor_set_unbounded_descriptor_array_sizes);
+#endif
+  }
   // Idem.
   ASSERT(missing_descriptor_sets.size() == missing_descriptor_set_layouts.size());
   for (int i = 0; i < missing_descriptor_sets.size(); ++i)
@@ -1682,6 +1698,10 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
                 binding,
                 new_descriptor_set->second
               });
+#ifdef CWDEBUG
+          Application::instance().pipeline_factory_graph().updated_descriptor_set(
+              shader_resource_declaration_ptr, m_descriptor_set_per_set_index[set_index]);
+#endif
 
           // Find the corresponding SetLayout.
           sorted_descriptor_set_layouts_t::rat sorted_descriptor_set_layouts_r(m_sorted_descriptor_set_layouts);

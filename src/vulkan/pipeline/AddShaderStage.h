@@ -178,7 +178,7 @@ class AddShaderStage : public virtual CharacteristicRangeBridge, public virtual 
   void replace_shader(shader_builder::ShaderIndex remove_shader_index, shader_builder::ShaderIndex add_shader_index);
 
   // Called from *UserCode*PipelineCharacteristic_initialize.
-  void preprocess1(shader_builder::ShaderInfo const& shader_info);
+  void preprocess1(shader_builder::ShaderIndex shader_index, shader_builder::ShaderInfo const& shader_info);
 
   // Create glsl code from template source code.
   //

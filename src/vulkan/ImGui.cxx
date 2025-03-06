@@ -201,8 +201,8 @@ class ImGuiPipelineCharacteristic : public pipeline::AddVertexShader
     ShaderCompiler compiler;
     SPIRVCache spirv_cache;
 
-    preprocess1(owning_window->application().get_shader_info(vertex_shader_index));
-    preprocess1(owning_window->application().get_shader_info(fragment_shader_index));
+    preprocess1(vertex_shader_index, owning_window->application().get_shader_info(vertex_shader_index));
+    preprocess1(fragment_shader_index, owning_window->application().get_shader_info(fragment_shader_index));
 
     //realize_shaders
     compiler.initialize();

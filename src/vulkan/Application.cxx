@@ -356,6 +356,10 @@ std::vector<shader_builder::ShaderIndex> Application::register_shaders(std::vect
       duplicates += ibp.second;
     }
   }
+#ifdef CWDEBUG
+  if (new_shader_info_list.size() != 2 || new_shader_info_list[0].name() != "imgui.vert.glsl")
+    m_pipeline_factory_graph.add_shader_template_codes(new_shader_info_list, hashes, new_indices);
+#endif
   {
     shader_builder::ShaderInfos::wat shader_infos_w(m_shader_infos);
     // Move the new ShaderInfo objects into m_shader_infos.
@@ -385,6 +389,9 @@ void Application::run_pipeline_factory(boost::intrusive_ptr<task::PipelineFactor
     pipeline_factory_list_t::wat pipeline_factory_list_w(m_pipeline_factory_list);
     pipeline_factory_list_w->operator[](window->pipeline_cache_name()).window_list.push_back(window);
   }
+#ifdef CWDEBUG
+  m_pipeline_factory_graph.add_factory(window, window->get_title(), index);  // window/index uniquely defines a pipeline factory.
+#endif
   factory->run(m_medium_priority_queue);
 }
 
@@ -444,6 +451,12 @@ void Application::pipeline_factory_done(task::SynchronousWindow const* window, b
     // We merged all pipeline caches. Now make it write to disk.
     ASSERT(merged_pipeline_cache->running());
     merged_pipeline_cache->set_producer_finished();
+#ifdef CWDEBUG
+    // Write the pipeline factory graph.
+    std::filesystem::path dot_filename = path_of(Directory::runtime) / (pipeline_cache_name + u8".dot");
+    m_pipeline_factory_graph.generate_dot_file(dot_filename);
+    Dout(dc::factorygraph, "Wrote pipeline factory graph dot file to " << dot_filename << ".");
+#endif
   }
 }
 

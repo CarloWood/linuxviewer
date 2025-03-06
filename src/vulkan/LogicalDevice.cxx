@@ -1312,6 +1312,9 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
         ASSERT(ibp.second);
         iter = ibp.first;
         Dout(dc::shaderresource, "Created handle " << *iter->second << " with key: " << sorted_descriptor_set_layout_bindings << ".");
+#ifdef CWDEBUG
+        Application::instance().pipeline_factory_graph().add_descriptor_set_layout(*iter->second, sorted_descriptor_set_layout_bindings);
+#endif
       }
       else
       {

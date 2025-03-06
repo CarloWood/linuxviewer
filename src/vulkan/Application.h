@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <deque>
 #ifdef CWDEBUG
+#include "pipeline/PipelineFactoryGraph.h"
 #include "debug/DebugUtilsMessenger.h"
 #include "cwds/debug_ostream_operators.h"
 #endif
@@ -161,6 +162,10 @@ class Application
   using pipeline_factory_list_t = threadsafe::Unlocked<pipeline_factory_list_container_t, threadsafe::policy::Primitive<std::mutex>>;
   pipeline_factory_list_t m_pipeline_factory_list;
 
+#ifdef CWDEBUG
+  pipeline::PipelineFactoryGraph m_pipeline_factory_graph;
+#endif
+
 #ifdef TRACY_ENABLE
   task::SynchronousWindow* m_tracy_window{};
 #endif
@@ -230,6 +235,10 @@ class Application
   bool debug_CopyDataToImage() const { return m_CopyDataToImage; }
   bool debug_ImmediateSubmitQueue() const { return m_ImmediateSubmitQueue; }
   bool debug_CombinedImageSamplerUpdater() const { return m_CombinedImageSamplerUpdater; }
+
+  // Accessor.
+  pipeline::PipelineFactoryGraph const& pipeline_factory_graph() const { return m_pipeline_factory_graph; }
+  pipeline::PipelineFactoryGraph& pipeline_factory_graph() { return m_pipeline_factory_graph; }
 #endif
 
   // Closes all windows - resulting in the termination of the application.

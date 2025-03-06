@@ -48,6 +48,7 @@ struct ShaderResourceDeclarationContext final : DeclarationContext
 
 #ifdef CWDEBUG
   std::map<ShaderResourceDeclaration const*, uint32_t> const& bindings() const { return m_bindings; }
+  descriptor::SetIndex convert(descriptor::SetIndexHint set_index_hint) const { return m_set_index_hint_map3->convert(set_index_hint); }
 
   void print_on(std::ostream& os) const;
 #endif

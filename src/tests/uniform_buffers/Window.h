@@ -84,7 +84,7 @@ class Window : public vulkan::task::SynchronousWindow
 
   vulkan::FrameResourceIndex number_of_frame_resources() const override
   {
-    return vulkan::FrameResourceIndex{10};
+    return vulkan::FrameResourceIndex{2}; // FIXME: was 10
   }
 
   vulkan::SwapchainIndex number_of_swapchain_images() const override

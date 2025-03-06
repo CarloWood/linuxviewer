@@ -86,7 +86,7 @@ vk::ShaderStageFlags AddShaderStage::preprocess_shaders_and_realize_descriptor_s
     }
     // These calls fill PipelineFactory::m_sorted_descriptor_set_layouts with arbitrary binding numbers
     // (in the order that they are found in the shader template code).
-    preprocess1(shader_info_cache);
+    preprocess1(shader_index, shader_info_cache);
     preprocessed_stages |= shader_info_cache.stage();
   }
 
@@ -145,9 +145,9 @@ bool AddShaderStage::realize_shaders(
   return true;
 }
 
-void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
+void AddShaderStage::preprocess1(shader_builder::ShaderIndex shader_index, shader_builder::ShaderInfo const& shader_info)
 {
-  DoutEntering(dc::vulkan, "AddShaderStage::preprocess1(" << shader_info << ") [" << this << "]");
+  DoutEntering(dc::vulkan, "AddShaderStage::preprocess1(" << shader_index << ", " << shader_info << ") [" << this << "]");
 
   std::string_view const source = shader_info.glsl_template_code();
 
@@ -190,6 +190,10 @@ void AddShaderStage::preprocess1(shader_builder::ShaderInfo const& shader_info)
         Dout(dc::finish, "(found)");
         shader_builder::DeclarationContext* declaration_context = shader_variable->is_used_in(shader_info.stage(), this);
         declaration_contexts.insert(declaration_context);
+#ifdef CWDEBUG
+        Application::instance().pipeline_factory_graph().
+          add_shader_template_code_to_shader_resource_edge(shader_index, /*shader_info,*/ shader_variable, declaration_context);
+#endif
       }
       else
         Dout(dc::finish, "(not found)");
@@ -318,6 +322,10 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
       update(shader_info_cache);
       cache_descriptor_set_layouts(shader_info_cache);
       pipeline_factory->add_compiled_shader_known_by_this_factory({}, shader_index);
+
+#ifdef CWDEBUG
+      Application::instance().pipeline_factory_graph().add_shader_module(*shader_info_cache.m_shader_module, shader_index);
+#endif
     }
 
     // Set an atomic boolean for the sake of optimizing preprocessing away.
@@ -327,6 +335,13 @@ void AddShaderStage::realize_shader(task::PipelineFactory* pipeline_factory,
     // compiling it afterwards.
     shader_info_cache.set_compiled();
   }
+
+#ifdef CWDEBUG
+  task::CharacteristicRange const* characteristic_range =
+    dynamic_cast<task::CharacteristicRange const*>(static_cast<CharacteristicRangeBridge const*>(this));
+  if (characteristic_range)   // This is nullptr for ImGui.
+    Application::instance().pipeline_factory_graph().add_characteristic_to_shader_edge(shader_index, characteristic_range);
+#endif
 
   m_shader_stage_create_infos.push_back(vk::PipelineShaderStageCreateInfo{
     .flags = vk::PipelineShaderStageCreateFlags(0),
