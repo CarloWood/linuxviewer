@@ -2,7 +2,7 @@ BEGIN {
   inside_namespace = 0;
   inside_enum = 0;
   printf("#include \"utils/macros.h\"\n")
-  printf("PRAGMA_DIAGNOSTIC_PUSH_IGNORE_deprecated_declarations\n")
+  printf("PRAGMA_DIAGNOSTIC_PUSH_IGNORE(\"-Wdeprecated-declarations\")\n")
 }
 
 END {
