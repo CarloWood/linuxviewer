@@ -81,15 +81,52 @@ fi
 
 if test -z "$AUTOGEN_CMAKE_ONLY"; then
   # Run the autotool commands.
-  exec cwm4/scripts/bootstrap.sh
-elif test -n "$CMAKE_CONFIGURE_OPTIONS"; then
-  # I uses bash functions 'configure' and 'make' basically passing $CMAKE_CONFIGURE_OPTIONS
-  # to cmake and running 'make' inside build-release; see below.
-  echo "Now run: configure && make"
-else
-  echo "To make a Release build, run:"
-  echo "mkdir build-Release"
-  echo "cd build-Release"
-  echo "cmake .."
-  echo "make"
+  cwm4/scripts/bootstrap.sh
+fi
+
+if [ -r ".build-instructions" ]; then
+  # Set sensible values for:
+  # REPOBASE                            : the root of the project (repository base).
+  # BUILDDIR                            : the directory that will be used to build the project.
+  # CMAKE_CONFIG                        : one of Debug, RelWithDebInfo, RelWithDebug, BetaTest or Release.
+  # CMAKE_CONFIGURE_OPTIONS_STR         : other options, separated by '|' symbols.
+  # CONFIGURE_OPTIONS                   : options for the autotools `configure` script (if any).
+  source "./.build-instructions"
+
+  # Convert CMAKE_CONFIGURE_OPTIONS_STR back to an array.
+  # If you use a bash array locally for your options, then convert them to CMAKE_CONFIGURE_OPTIONS_STR
+  # for the sake of these printed instructions (if you want) with:
+  # export CMAKE_CONFIGURE_OPTIONS_STR=$(printf "%s|" "${CMAKE_CONFIGURE_OPTIONS[@]}")
+  IFS='|' read -ra CMAKE_CONFIGURE_OPTIONS <<< "$CMAKE_CONFIGURE_OPTIONS_STR"
+fi
+
+if [ -e CMakeLists.txt ]; then
+  echo -e "\nBuilding with cmake:\n"
+  echo "To make a $CMAKE_CONFIG build, run:"
+  [ -d "$BUILDDIR" ] || echo "mkdir $BUILDDIR"
+  echo -n "cmake -S \"$REPOBASE\" -B \"$BUILDDIR\" -DCMAKE_BUILD_TYPE=\"$CMAKE_CONFIG\""
+  # Put quotes around options that contain spaces.
+  for option in "${CMAKE_CONFIGURE_OPTIONS[@]}"; do
+    if [[ $option == *" "* ]]; then
+        printf ' "%s"' "$option"
+    else
+        printf ' %s' "$option"
+    fi
+  done
+  echo
+  echo "cmake --build "$BUILDDIR" --config "$CMAKE_CONFIG" --parallel $(nproc)"
+fi
+
+if [ -e Makefile.am ]; then
+  echo -e "\nBuilding with autotools:\n"
+  project_name=$(basename "$PWD")
+  # Give general instructions for building using autotools.
+  [ -d ../$project_name-objdir ] || echo "mkdir ../$project_name-objdir"
+  echo "cd ../$project_name-objdir"
+  echo -n "../$project_name/configure --enable-maintainer-mode "
+  if [ -n "$CONFIGURE_OPTIONS" ]; then
+    echo "$CONFIGURE_OPTIONS"
+  else
+    echo "[--help]"
+  fi
 fi

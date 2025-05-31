@@ -47,7 +47,7 @@ Every time `create_root_window` is called a `int` "cookie" must be passed.
 This cookie is matched against the cookies used in the virtual
 function `prepare_logical_device` of `LogicalDevice` (see above) in order
 to determine which presentation queue family to use for that window (and related windows)
-and there should be defined in the `LogicalDevice` class.
+and therefore should be defined in the `LogicalDevice` class.
 
 ```cpp
  public:

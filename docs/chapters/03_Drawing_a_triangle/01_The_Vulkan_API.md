@@ -105,7 +105,7 @@ In this context, the swapchain image is used as an (output) color attachment.
 
 <a id="imageless-framebuffer"></a>
 {% capture tip_content %}
-The `vk::Framebuffer` that is used rendering by Linuxviewer is encapsulated by `vulkan::RenderPass`
+The `vk::Framebuffer` that is used for rendering by Linuxviewer is encapsulated by `vulkan::RenderPass`
 that stores a unique pointer to an
 [imageless framebuffer](https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkPhysicalDeviceImagelessFramebufferFeaturesKHR.html).
 Consequently, Vulkan 1.3 is required as is support for this feature by the physical device.
