@@ -1,7 +1,7 @@
 #pragma once
 
 #include "utils/Vector.h"
-#include "cwds/debug.h"
+#include "debug.h"
 
 NAMESPACE_DEBUG_CHANNELS_START
 extern channel_ct setindexhint;
