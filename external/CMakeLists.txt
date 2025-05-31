@@ -36,6 +36,7 @@ target_sources(imgui_ObjLib
     "${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.h"
 )
 
+get_target_property(CWDS_INTERFACE_INCLUDE_DIRECTORIES AICxx::cwds INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(imgui_ObjLib
   PUBLIC
     # Because the .cpp files use #include "xyz.h", expecting the source directory to be "${CMAKE_CURRENT_SOURCE_DIR}/imgui".
@@ -45,6 +46,8 @@ target_include_directories(imgui_ObjLib
   PRIVATE
     # In order to find lvimconfig.h while compiling imgui.
     "${CMAKE_SOURCE_DIR}"
+    # lvimconfig.h includes debug.h for which we need the following include directory.
+    "${CWDS_INTERFACE_INCLUDE_DIRECTORIES}"
 )
 
 # This is needed to add debug output to Dear ImGui itself (branch libcwd).
