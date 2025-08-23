@@ -1252,16 +1252,24 @@ void LogicalDevice::merge_pipeline_caches(vk::PipelineCache vh_pipeline_cache, s
 {
   vk::Result result = m_device->mergePipelineCaches(vh_pipeline_cache, static_cast<uint32_t>(vhv_pipeline_caches.size()), vhv_pipeline_caches.data());
   if (AI_UNLIKELY(result != vk::Result::eSuccess))
+  {
 #ifdef CWDEBUG
-    THROW_ALERTC(result, "[DEVICE]->mergePipelineCaches([DST], [SRCS])", AIArgs("[DEVICE]", this->debug_name())("[DST]", vh_pipeline_cache)("[SRCS]", vhv_pipeline_caches));
+    std::ostringstream srcs;
+    {
+      LIBCWD_USING_OSTREAM_PRELUDE
+      srcs << vhv_pipeline_caches;
+    }
+    THROW_ALERTC(result, "[DEVICE]->mergePipelineCaches([DST], [SRCS])", AIArgs("[DEVICE]", this->debug_name())("[DST]", vh_pipeline_cache)("[SRCS]", srcs.str()));
 #else
     THROW_ALERTC(result, "LogicalDevice::mergePipelineCaches([DST], <[N] other pipeline caches>)", AIArgs("[DST]", vh_pipeline_cache)("[N]", vhv_pipeline_caches.size()));
 #endif
+  }
 }
 
 #ifdef CWDEBUG
 void LogicalDevice::print_members(std::ostream& os, char const* prefix) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << prefix <<
       "m_vh_physical_device:"   << m_vh_physical_device <<
     ", m_device:\""             << debug_name() << "\" [" << *m_device << "]"
@@ -1303,9 +1311,15 @@ vk::DescriptorSetLayout LogicalDevice::realize_descriptor_set_layout(descriptor:
       auto iter = descriptor_set_layouts_r->find(sorted_descriptor_set_layout_bindings);
       if (iter == descriptor_set_layouts_r->end())
       {
+#ifdef CWDEBUG
+        std::ostringstream oss;
+        {
+          LIBCWD_USING_OSTREAM_PRELUDE
+          oss << sorted_descriptor_set_layout_bindings;
+        }
+#endif
         vk::UniqueDescriptorSetLayout layout = create_descriptor_set_layout(sorted_descriptor_set_layout_bindings_and_flags
-            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" +
-                boost::lexical_cast<std::string>(sorted_descriptor_set_layout_bindings) + "]")));
+            COMMA_CWDEBUG_ONLY(debug_name_prefix("m_descriptor_set_layouts[" + oss.str() + "]")));
         descriptor_set_layouts_t::wat descriptor_set_layouts_w(descriptor_set_layouts_r);
         auto ibp = descriptor_set_layouts_w->try_emplace(sorted_descriptor_set_layout_bindings, std::move(layout));
         // We just used find and couldn't find it?!

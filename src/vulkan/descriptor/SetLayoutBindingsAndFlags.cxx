@@ -67,6 +67,7 @@ void SetLayoutBindingsAndFlags::insert(vk::DescriptorSetLayoutBinding const& des
 #ifdef CWDEBUG
 void SetLayoutBindingsAndFlags::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_sorted_bindings:" << m_sorted_bindings <<
       ", m_binding_flags:" << m_binding_flags <<

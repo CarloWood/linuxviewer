@@ -10,6 +10,7 @@ namespace vulkan {
 #ifdef CWDEBUG
 void VertexBuffers::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_memory:" << m_memory <<
       ", m_binding_count:" << m_binding_count <<

@@ -1,8 +1,15 @@
 #pragma once
 
+#ifdef CWDEBUG
+#include "utils/has_print_on.h"
+#endif
 #include "debug.h"
 
 namespace vk_utils {
+#ifdef CWDEBUG
+// This class defines a print_on method.
+using utils::has_print_on::operator<<;
+#endif
 
 class ConsecutiveRange
 {

@@ -152,6 +152,7 @@ void ShaderResourceDeclarationContext::cache_descriptor_set_layouts(ShaderInfoCa
 #ifdef CWDEBUG
 void ShaderResourceDeclarationContext::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_next_binding:" << m_next_binding <<
       ", m_bindings:" << m_bindings <<

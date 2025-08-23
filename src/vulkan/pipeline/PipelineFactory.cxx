@@ -1706,6 +1706,7 @@ void PipelineFactory::allocate_update_add_handles_and_unlocking(
 #ifdef CWDEBUG
 void PipelineFactory::ShaderResourcePlusCharacteristicPlusPreferredAndUndesirableSetKeyPreferences::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_shader_resource_plus_characteristic:" << m_shader_resource_plus_characteristic <<
       ", m_preferred_descriptor_sets:" << m_preferred_descriptor_sets <<

@@ -149,6 +149,7 @@ void PartitionIteratorExplode::SetIterator::print_on(std::ostream& os) const
 
 void PartitionIteratorExplode::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_orig:" << m_orig <<
       ", m_pair_triplet_iterators:" << m_pair_triplet_iterators;

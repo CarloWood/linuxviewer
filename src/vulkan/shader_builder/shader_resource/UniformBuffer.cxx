@@ -52,6 +52,7 @@ void UniformBufferBase::prepare_shader_resource_declaration(descriptor::SetIndex
 #ifdef CWDEBUG
 void UniformBufferBase::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "(ShaderResourceBase)";
   ShaderResourceBase::print_on(os);

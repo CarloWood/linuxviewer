@@ -1,7 +1,7 @@
 #include "sys.h"
 #include "statefultask/DefaultMemoryPagePool.h"
-#include "utils/DequeAllocator.h"
-#include "utils/NodeMemoryPool.h"
+#include "memory/DequeAllocator.h"
+#include "memory/NodeMemoryPool.h"
 #include "utils/log2.h"
 #include <deque>
 #include <list>
@@ -31,8 +31,8 @@ int main()
 #endif
 
 #if 0
-  utils::NodeMemoryPool pool(32);
-  utils::Allocator<Foo, utils::NodeMemoryPool> alloc(pool);
+  ::memory::NodeMemoryPool pool(32);
+  ::memory::Allocator<Foo, memory::NodeMemoryPool> alloc(pool);
   std::shared_ptr<Foo> ptr = std::allocate_shared<Foo>(alloc, 42);
   std::list<Foo, decltype(alloc)> v(3, alloc);
 
@@ -45,11 +45,11 @@ int main()
 
 #if 1
   AIMemoryPagePool mpp;
-  utils::DequeMemoryResource::Initialization dmri(mpp.instance());      // For the internal tables of all std::deque<T, utils::Allocator<T>>'s.
-  utils::NodeMemoryResource nmr1(AIMemoryPagePool::instance());         // For the fixed size element allocation.
-  utils::NodeMemoryResource nmr2(AIMemoryPagePool::instance());         // For the fixed size element allocation.
-  utils::DequeAllocator<Foo> alloc1(nmr1);
-  utils::DequeAllocator<Foo> alloc2(nmr2);
+  ::memory::DequeMemoryResource::Initialization dmri(mpp.instance());      // For the internal tables of all std::deque<T, memory::Allocator<T>>'s.
+  ::memory::NodeMemoryResource nmr1(AIMemoryPagePool::instance());         // For the fixed size element allocation.
+  ::memory::NodeMemoryResource nmr2(AIMemoryPagePool::instance());         // For the fixed size element allocation.
+  ::memory::DequeAllocator<Foo> alloc1(nmr1);
+  ::memory::DequeAllocator<Foo> alloc2(nmr2);
 
   std::deque<Foo, decltype(alloc1)> d1(10000, alloc1);
   std::deque<Foo, decltype(alloc1)> d2(1000, 42, alloc1);

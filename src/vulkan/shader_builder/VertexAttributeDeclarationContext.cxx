@@ -53,6 +53,7 @@ void VertexAttributeDeclarationContext::add_declarations_for_stage(DeclarationsS
 #ifdef CWDEBUG
 void VertexAttributeDeclarationContext::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_next_location:" << m_next_location <<
       ", m_locations:" << m_locations;

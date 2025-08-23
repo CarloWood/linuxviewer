@@ -4,7 +4,7 @@
 #include "../Application.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/AIStatefulTask.h"
-#include "utils/DequeAllocator.h"
+#include "memory/DequeAllocator.h"
 #include <deque>
 #include <algorithm>
 
@@ -22,7 +22,7 @@ namespace vk_utils {
 // See MoveNewPipelines for an example implementation.
 //
 // This class uses AIMemoryPagePool and therefore uses Application::m_mpp.
-// It also uses utils::DequeAllocator which relies on Application::m_dmri.
+// It also uses ::memory::DequeAllocator which relies on Application::m_dmri.
 //
 // The producer task can add more `Datum` objects by passing rvalue-references to `have_new_datum`.
 // After the last call to `have_new_datum` it should call `set_producer_finished` (this can be
@@ -50,12 +50,12 @@ class TaskToTaskDeque : public BASE
 
  protected:
   using direct_base_type = TaskToTaskDeque<BASE, DATUM>;                // Not ours, but that of the derived class.
-  using deque_allocator_type = utils::DequeAllocator<DATUM>;
+  using deque_allocator_type = ::memory::DequeAllocator<DATUM>;
   using container_type = std::deque<DATUM, deque_allocator_type>;
   using new_data_type = threadsafe::Unlocked<container_type, threadsafe::policy::Primitive<std::mutex>>;
 
  private:
-  utils::DequeAllocator<DATUM> m_datum_allocator{vulkan::Application::instance().deque512_nmr()};
+  deque_allocator_type m_datum_allocator{vulkan::Application::instance().deque512_nmr()};
   new_data_type m_new_data{m_datum_allocator};
   std::atomic_bool m_producer_finished = false;
 

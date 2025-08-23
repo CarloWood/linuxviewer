@@ -9,6 +9,7 @@ namespace vulkan::descriptor {
 #ifdef CWDEBUG
 void FrameResourceCapableDescriptorSet::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   if (m_descriptor_set.size() == 1)
     os << static_cast<vk::DescriptorSet>(*this);
   else

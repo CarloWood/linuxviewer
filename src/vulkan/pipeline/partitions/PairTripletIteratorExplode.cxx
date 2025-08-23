@@ -62,6 +62,7 @@ Score PairTripletIteratorExplode::score_difference() const
 #ifdef CWDEBUG
 void PairTripletIteratorExplode::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "  m_orig: " << m_orig << '\n';
   for (method_A_container_t::const_iterator iter = m_method_A->begin(); iter != m_method_A->end(); ++iter)

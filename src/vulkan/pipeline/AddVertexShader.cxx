@@ -157,6 +157,7 @@ void AddVertexShader::add_vertex_input_bindings(VertexBuffers const& vertex_buff
 #ifdef CWDEBUG
 void AddVertexShader::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_vertex_input_binding_descriptions:" << m_vertex_input_binding_descriptions <<
       ", m_vertex_input_attribute_descriptions:" << m_vertex_input_attribute_descriptions <<

@@ -52,6 +52,7 @@ void DescriptorSetLayoutBinding::print_on(std::ostream& os) const
 
 void ShaderResourceDeclaration::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   DescriptorSetLayoutBinding::print_on(os);
   os << ", m_glsl_id:\"" << m_glsl_id <<

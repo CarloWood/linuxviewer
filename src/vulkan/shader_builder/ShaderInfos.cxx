@@ -7,6 +7,7 @@ namespace vulkan::shader_builder {
 #ifdef CWDEBUG
 void ShaderInfoCache::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   ShaderInfo::print_on(os);
   os << "shader_module:" << *m_shader_module <<

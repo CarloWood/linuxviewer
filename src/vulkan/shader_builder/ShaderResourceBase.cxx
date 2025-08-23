@@ -44,6 +44,7 @@ void SetMutexAndSetHandles::unlock_descriptor_sets(AIStatefulTask const* task)
 
 void SetMutexAndSetHandles::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_descriptor_sets:" << m_descriptor_sets <<
       ", m_debug_have_lock:" << m_debug_have_lock;
@@ -52,6 +53,7 @@ void SetMutexAndSetHandles::print_on(std::ostream& os) const
 
 void ShaderResourceBase::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_created:" << std::boolalpha << m_created.load(std::memory_order::relaxed) <<
       ", m_descriptor_set_key:" << m_descriptor_set_key <<

@@ -186,6 +186,7 @@ Partition PartitionTask::random()
 #ifdef CWDEBUG
 void PartitionTask::print_on(std::ostream& os) const
 {
+  LIBCWD_USING_OSTREAM_PRELUDE
   os << '{';
   os << "m_number_of_elements:" << static_cast<int>(m_number_of_elements) <<
       ", m_set23_to_score:" << m_set23_to_score <<
