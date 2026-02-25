@@ -19,7 +19,7 @@ BINARY_DIR="$1"
 sed -e 's/\${CMAKE_BINARY_DIR}/'"${BINARY_DIR//\//\\/}"'/' _config.yml.in | envsubst > .generated/_config.temp.yml
 
 INCREMENTAL=
-CONFIG="$REPOBASE/docs/_config.yml"
+CONFIG="$REPOROOT/docs/_config.yml"
 
 if [ -e "${CONFIG}" ] && cmp -s "${CONFIG}" .generated/_config.temp.yml ; then
   #FIXME: uncomment this ...   INCREMENTAL="--incremental"
