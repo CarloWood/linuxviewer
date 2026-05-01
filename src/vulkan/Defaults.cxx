@@ -92,7 +92,6 @@ void InstanceCreateInfo::print_members(std::ostream& os, char const* prefix) con
 
   os <<
     ", enabledLayerCount:"       << enabledLayerCount <<
-    ", ppEnabledLayerNames:"     << print_list(ppEnabledLayerNames, enabledLayerCount) <<
     ", enabledExtensionCount:"   << enabledExtensionCount <<
     ", ppEnabledExtensionNames:" << print_list(ppEnabledExtensionNames, enabledExtensionCount);
 }
@@ -138,13 +137,6 @@ void DeviceCreateInfo::print_members(std::ostream& os, char const* prefix) const
     if (i > 0)
       os << ',';
     static_cast<DeviceQueueCreateInfo const&>(pQueueCreateInfos[i]).print_members(os, "");
-  }
-  os << ">, ppEnabledLayerNames:<";
-  for (int i = 0; i < enabledLayerCount; ++i)
-  {
-    if (i > 0)
-      os << ',';
-    os << '"' << ppEnabledLayerNames[i] << '"';
   }
   os << ">, ppEnabledExtensionNames:<";
   for (int i = 0; i < enabledExtensionCount; ++i)
