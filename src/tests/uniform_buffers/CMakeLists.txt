@@ -5,8 +5,15 @@ project(linux_vulkan_engine
 
 include(AICxxProject)
 
-# Required for reflection_test2.
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# Eigen2 is required for reflection_test2.
+
+# First try Eigen [5.0, 6.0).
+find_package(Eigen3 5.0 QUIET NO_MODULE)
+
+# If not found, accept Eigen [3.3, 4.0). There is no Eigen3 version 4.x.
+if (NOT Eigen3_FOUND)
+  find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+endif()
 
 #==============================================================================
 # RESOURCES
