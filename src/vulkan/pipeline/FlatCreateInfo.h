@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CharacteristicRangeCategory.h"
 #include "../PushConstantRange.h"
 #include "../descriptor/SetLayout.h"
 #include "../descriptor/SetIndexHintMap.h"
@@ -22,7 +23,7 @@ class CharacteristicRange;
 } // namespace vulkan::task
 
 namespace pipeline {
-using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
+using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRangeCategory>;
 
 namespace {
 struct NoPushConstant { };

@@ -4,7 +4,7 @@
 
 namespace vulkan {
 
-struct BindingCategory;
+struct BindingCategory { };
 using VertexBufferBindingIndex = utils::VectorIndex<BindingCategory>;
 
 } // namespace vulkan

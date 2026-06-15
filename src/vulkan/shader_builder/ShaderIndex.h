@@ -4,7 +4,7 @@
 
 namespace vulkan::shader_builder {
 
-struct ShaderIndexCategory;
+struct ShaderIndexCategory { };
 using ShaderIndex = utils::VectorIndex<ShaderIndexCategory>;
 
 } // namespace vulkan::shader_builder

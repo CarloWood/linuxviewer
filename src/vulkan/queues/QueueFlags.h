@@ -36,7 +36,6 @@ enum class QueueFlagBits : VkQueueFlags
 
 } // namespace vulkan
 
-#if 0 // FIXME: is this really necessary?
 // Limit reflection of vulkan::QueueFlagBits to the explicit queue flag values.
 // This avoids enchantum's missing-value check looking past the synthetic ePresentation bit.
 template<>
@@ -45,7 +44,6 @@ struct enchantum::enum_traits<vulkan::QueueFlagBits>
   static constexpr auto min = 0;
   static constexpr auto max = static_cast<std::underlying_type_t<vulkan::QueueFlagBits>>(vulkan::QueueFlagBits::ePresentation);
 };
-#endif
 
 namespace vk {
 

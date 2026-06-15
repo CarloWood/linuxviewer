@@ -4,7 +4,7 @@
 
 namespace vulkan::pipeline {
 
-struct ShaderResourcePlusCharacteristicIndexCategory;
+struct ShaderResourcePlusCharacteristicIndexCategory { };
 using ShaderResourcePlusCharacteristicIndex = utils::VectorIndex<ShaderResourcePlusCharacteristicIndexCategory>;
 
 } // namespace vulkan::pipeline

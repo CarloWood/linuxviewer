@@ -9,6 +9,7 @@
 #include "shader_builder/VertexAttribute.h"
 #include "shader_builder/ShaderInfos.h"
 #include "descriptor/SetKeyContext.h"
+#include "pipeline/PipelineFactoryCategory.h"
 #include "statefultask/DefaultMemoryPagePool.h"
 #include "statefultask/Broker.h"
 #include "statefultask/RunningTasksTracker.h"
@@ -38,7 +39,6 @@ class Scope;
 namespace vulkan {
 
 namespace task {
-class PipelineFactory;
 class PipelineCache;
 class SynchronousWindow;
 } // namespace task
@@ -52,7 +52,7 @@ class Application
   // The same types as used in SynchronousWindow.
   using request_cookie_type = QueueRequest::cookies_type;
   using xcb_connection_broker_type = ::task::Broker<::task::XcbConnection>;
-  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
+  using PipelineFactoryIndex = utils::VectorIndex<task::PipelineFactoryCategory>;
 
   // Set up the thread pool for the application.
   static constexpr int default_number_of_threads = 8;                           // Use a thread pool of 8 threads.

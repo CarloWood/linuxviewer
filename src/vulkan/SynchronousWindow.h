@@ -448,7 +448,7 @@ class SynchronousWindow : public AIStatefulTask, protected SynchronousEngine
   using PipelineFactoryIndex = pipeline::Handle::PipelineFactoryIndex;
 
  protected:
-  utils::Vector<boost::intrusive_ptr<PipelineFactory>> m_pipeline_factories;
+  utils::Vector<boost::intrusive_ptr<PipelineFactory>, PipelineFactoryIndex> m_pipeline_factories;
   utils::Vector<utils::Vector<vk::UniquePipeline, pipeline::Index>, PipelineFactoryIndex> m_pipelines;
 //  std::map<FlatPipelineLayout, vk::UniquePipelineLayout> m_pipeline_layouts;
 

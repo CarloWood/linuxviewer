@@ -9,10 +9,9 @@
 
 namespace vulkan {
 
-struct QueueRequest;
-
 // An index for Vectors containing QueueRequest's or QueueReply's.
-using QueueRequestIndex = utils::VectorIndex<QueueRequest>;
+struct QueueRequestCategory { };
+using QueueRequestIndex = utils::VectorIndex<QueueRequestCategory>;
 
 struct QueueRequest
 {

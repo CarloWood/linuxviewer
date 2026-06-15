@@ -1,6 +1,8 @@
 #ifndef VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 #define VULKAN_PIPELINE_CHARACTERISTIC_RANGE_H
 
+#include "IndexCategory.h"
+#include "CharacteristicRangeCategory.h"
 #include "CharacteristicRangeBridge.h"
 #include "../shader_builder/ShaderIndex.h"
 #include "utils/AIRefCount.h"
@@ -24,16 +26,14 @@ class SetKeyPreference;
 } // namespace descriptor
 
 namespace task {
-class CharacteristicRange;
 class PipelineFactory;
 class SynchronousWindow;
 } // namespace task
 
 namespace pipeline {
 class FlatCreateInfo;
-struct IndexCategory;
 using Index = utils::VectorIndex<IndexCategory>;
-using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
+using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRangeCategory>;
 } // namespace pipeline
 
 namespace task {

@@ -41,7 +41,7 @@ class RenderPass
 
  private:
   std::string m_name;                                                   // Human readable name of this render pass.
-  utils::Vector<AttachmentNode> m_known_attachments;                    // Vector with all known attachments of this render pass.
+  utils::Vector<AttachmentNode, pAttachmentsIndex> m_known_attachments; // Vector with all known attachments of this render pass.
   pAttachmentsIndex m_next_index{0};                                    // The next attachment index to use for a new attachment node.
   std::vector<Attachment const*> m_remove_or_dontcare_attachments;      // Temporary storage for attachments listed with `[-attachment]`.
   RenderPassStream m_stream;                                            // Helper object that operator-> points to.
@@ -82,7 +82,7 @@ class RenderPass
   // Graph generation.
   void add_incoming_vertex(RenderPass* node) { m_incoming_vertices.insert(node); }
   void add_outgoing_vertex(RenderPass* node) { m_outgoing_vertices.insert(node); }
-  utils::Vector<AttachmentNode> const& known_attachments() const { return m_known_attachments; }
+  utils::Vector<AttachmentNode, pAttachmentsIndex> const& known_attachments() const { return m_known_attachments; }
 
   // Allow using raw RenderPass objects to add render graph vertices between render passes.
   friend RenderPassStream& operator>>(RenderPassStream& stream, RenderPass& render_pass) { stream.link(render_pass.m_stream); return render_pass.m_stream; }

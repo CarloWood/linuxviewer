@@ -7,7 +7,6 @@
 #include <boost/intrusive_ptr.hpp>
 
 namespace vulkan::task {
-class PipelineFactory;
 class SynchronousWindow;
 } // namespace vulkan::task
 
@@ -16,7 +15,7 @@ namespace vulkan::pipeline {
 class FactoryHandle
 {
  public:
-  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
+  using PipelineFactoryIndex = utils::VectorIndex<task::PipelineFactoryCategory>;
 
  private:
   PipelineFactoryIndex m_factory_index;

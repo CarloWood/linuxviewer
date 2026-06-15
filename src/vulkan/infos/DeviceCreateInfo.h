@@ -36,7 +36,7 @@ class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
   friend class vk::StructureChain;
 
  private:
-  utils::Vector<QueueRequest> m_queue_requests = {};    // Required queue flags. The default is used when this is empty.
+  utils::Vector<QueueRequest, QueueRequestIndex> m_queue_requests = {};    // Required queue flags. The default is used when this is empty.
   QueueFlags m_queue_flags = QueueFlagBits::none;       // Bitwise-OR of all queue_flags in m_queue_requests.
   std::vector<char const*> m_device_extensions;
 #ifdef CWDEBUG
@@ -92,7 +92,7 @@ class DeviceCreateInfo : protected vk_defaults::DeviceCreateInfo
   }
 
   // Accessor.
-  utils::Vector<QueueRequest> const& get_queue_requests() const
+  utils::Vector<QueueRequest, QueueRequestIndex> const& get_queue_requests() const
   {
     return m_queue_requests;
   }

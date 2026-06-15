@@ -5,6 +5,8 @@
 
 namespace vulkan {
 
+struct FrameResourcesData;
+
 // Struct for managing the frame rendering process.
 struct CurrentFrameData
 {

@@ -1,6 +1,7 @@
 #ifndef PIPELINE_PIPELINE_FACTORY_H
 #define PIPELINE_PIPELINE_FACTORY_H
 
+#include "CharacteristicRangeCategory.h"
 #include "FlatCreateInfo.h"
 #include "../Pipeline.h"
 #include "ShaderResourcePlusCharacteristic.h"
@@ -31,7 +32,7 @@ class CharacteristicRange;
 namespace pipeline {
 class FactoryCharacteristicId;
 class AddShaderStage;
-using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
+using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRangeCategory>;
 } // namespace pipeline
 
 namespace shader_builder::shader_resource {
@@ -47,7 +48,7 @@ class MoveNewPipelines;
 class PipelineFactory : public AIStatefulTask
 {
  public:
-  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<PipelineFactory>>;
+  using PipelineFactoryIndex = utils::VectorIndex<PipelineFactoryCategory>;
   using characteristics_container_t = utils::Vector<boost::intrusive_ptr<CharacteristicRange>, pipeline::CharacteristicRangeIndex>;
   // The same as CharacteristicRange::pipeline_index_t.
   using pipeline_index_t = threadsafe::Unlocked<pipeline::Index, threadsafe::policy::Primitive<std::mutex>>;

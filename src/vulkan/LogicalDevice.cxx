@@ -48,7 +48,7 @@ bool QueueFamilies::is_compatible_with(DeviceCreateInfo const& device_create_inf
   }
 
   // Run over all queue requests.
-  utils::Vector<QueueRequest> queue_requests = device_create_info.get_queue_requests();
+  utils::Vector<QueueRequest, QueueRequestIndex> queue_requests = device_create_info.get_queue_requests();
   size_t const number_of_requests = queue_requests.size();
   utils::Vector<std::vector<QueueFamilyPropertiesIndex>, QueueRequestIndex> queue_families_by_request(number_of_requests);
   QueueRequestIndex queue_request_index(0);    // index into queue_families_by_request.
@@ -562,7 +562,7 @@ void LogicalDevice::prepare(
   // Construct a vector with the priority of each queue, per given queue family.
   std::map<QueueFamilyPropertiesIndex, std::vector<float>> priorities_per_family;
   // A handy reference to the requests.
-  utils::Vector<QueueRequest> const& queue_requests = std::as_const(device_create_info).get_queue_requests();
+  utils::Vector<QueueRequest, QueueRequestIndex> const& queue_requests = std::as_const(device_create_info).get_queue_requests();
   for (auto qri = queue_requests.ibegin(); qri != queue_requests.iend(); ++qri)
   {
     // A handy reference to the request and reply.

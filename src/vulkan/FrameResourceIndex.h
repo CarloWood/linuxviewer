@@ -5,8 +5,8 @@
 
 namespace vulkan {
 
-struct FrameResourcesData;
-using FrameResourceIndex = utils::VectorIndex<FrameResourcesData>;
+struct FrameResourcesCategory { };
+using FrameResourceIndex = utils::VectorIndex<FrameResourcesCategory>;
 
 std::string to_string(FrameResourceIndex);
 inline std::ostream& operator<<(std::ostream& os, FrameResourceIndex index) { return os << to_string(index); }

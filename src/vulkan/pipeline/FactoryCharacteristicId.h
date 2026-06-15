@@ -1,16 +1,13 @@
 #pragma once
 
+#include "PipelineFactoryCategory.h"
+#include "CharacteristicRangeCategory.h"
 #include "../vk_utils/ConsecutiveRange.h"
 #include "utils/Vector.h"
 #include <boost/intrusive_ptr.hpp>
 #include "debug.h"
 
 namespace vulkan {
-
-namespace task {
-class PipelineFactory;
-class CharacteristicRange;
-} // namespace task
 
 namespace pipeline {
 
@@ -21,8 +18,8 @@ namespace pipeline {
 class FactoryCharacteristicId
 {
  public:
-  using PipelineFactoryIndex = utils::VectorIndex<boost::intrusive_ptr<task::PipelineFactory>>;
-  using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRange>;
+  using PipelineFactoryIndex = utils::VectorIndex<task::PipelineFactoryCategory>;
+  using CharacteristicRangeIndex = utils::VectorIndex<task::CharacteristicRangeCategory>;
 
  private:
   PipelineFactoryIndex m_factory_index;

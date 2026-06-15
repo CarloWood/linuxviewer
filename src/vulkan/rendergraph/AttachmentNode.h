@@ -10,7 +10,7 @@ namespace vulkan::rendergraph {
 
 class Attachment;
 class RenderPass;
-class AttachmentNode;
+struct AttachmentNodeCategory { };
 
 // AttachmentsIndex.
 //
@@ -22,7 +22,7 @@ using AttachmentIndex = utils::VectorIndex<Attachment const*>;
 //
 // A wrapper around a size_t that can be used into a vector of attachments known by given render pass.
 //
-using pAttachmentsIndex = utils::VectorIndex<AttachmentNode>;
+using pAttachmentsIndex = utils::VectorIndex<AttachmentNodeCategory>;
 
 // AttachmentNode.
 //

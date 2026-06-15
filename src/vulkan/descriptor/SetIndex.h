@@ -14,7 +14,7 @@ namespace vulkan::descriptor {
 // A temporary descriptor set index that has a bijective relationship with SetIndex,
 // which is only determined at set layout realization.
 //
-struct SetIndexHintCategory;
+struct SetIndexHintCategory { };
 using SetIndexHint = utils::VectorIndex<SetIndexHintCategory>;
 
 // SetIndex
@@ -25,7 +25,7 @@ using SetIndexHint = utils::VectorIndex<SetIndexHintCategory>;
 // (the first argument of LogicalDevice::create_pipeline_layout) that stores
 // vk::DescriptorSetLayout elements for each DescriptorSet.
 //
-class SetLayout;
-using SetIndex = utils::VectorIndex<vulkan::descriptor::SetLayout>;
+struct SetLayoutCategory { };
+using SetIndex = utils::VectorIndex<SetLayoutCategory>;
 
 } // namespace vulkan::descriptor
