@@ -14,7 +14,7 @@ project(linuxviewer
 #==============================================================================
 # Begin of gitache configuration.
 
-set(GITACHE_PACKAGES magic_enum blaze libcwd_r wolfssl)
+set(GITACHE_PACKAGES blaze libcwd_r wolfssl)
 
 # Is libfarmhash installed somewhere in a default path?
 find_library(
@@ -106,6 +106,9 @@ endif ()
 # End of CONFIG FILES section.
 
 #==============================================================================
+
+# Make enchantum available before aicxx submodules that expose enum string conversion helpers.
+add_subdirectory(enchantum)
 
 # Declare aicxx submodules.
 include(AICxxSubmodules)

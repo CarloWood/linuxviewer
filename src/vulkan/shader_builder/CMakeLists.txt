@@ -10,8 +10,6 @@ if (NOT Eigen3_FOUND)
   find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 endif()
 
-find_package(magic_enum REQUIRED)
-
 #==============================================================================
 # BUILD PROJECT
 #
@@ -67,7 +65,6 @@ target_link_libraries(shader_builder_ObjLib
     AICxx::utils
     farmhash::farmhash
     Eigen3::Eigen
-    magic_enum::magic_enum
     Tracy::TracyClient
 )
 

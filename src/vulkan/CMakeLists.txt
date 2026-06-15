@@ -16,7 +16,6 @@ endif()
 find_package(Boost REQUIRED COMPONENTS serialization)
 
 find_package(PkgConfig REQUIRED)
-find_package(magic_enum REQUIRED)
 
 # Prepend shaderc_ROOT in case this package was installed by gitache.
 set(stored_CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH}")

@@ -3,7 +3,6 @@
 #include "VertexAttribute.h"
 #include "pipeline/AddShaderStage.h"
 #include "shader_builder/VertexAttributeDeclarationContext.h"
-#include <magic_enum.hpp>
 #include <sstream>
 #include <functional>
 #ifdef CWDEBUG

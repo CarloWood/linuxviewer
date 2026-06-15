@@ -5,7 +5,6 @@
 #include "utils/AIAlert.h"
 #include "utils/at_scope_end.h"
 #include <shaderc/shaderc.hpp>
-#include <magic_enum.hpp>
 #include <fstream>
 #include <functional>
 #include "debug.h"
@@ -53,9 +52,7 @@ std::string_view to_string(shaderc_shader_kind kind)
 
 std::ostream& operator<<(std::ostream& os, shaderc_shader_kind kind)
 {
-  // We can't use magic_enum here because that results in the error:
-  // magic_enum.hpp:371:12: error: integer value 129 is outside the valid range of values [0, 31] for the enumeration type 'shaderc_shader_kind' [-Wenum-constexpr-conversion]
-
+  // Note using enchantum for legacy reasons.
   return os << to_string(kind);
 }
 

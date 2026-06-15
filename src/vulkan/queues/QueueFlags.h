@@ -1,9 +1,10 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
-#include <magic_enum.hpp>
+#include <enchantum/enchantum.hpp>
 #include <boost/preprocessor/list/for_each.hpp>
 #include <boost/preprocessor/variadic/to_list.hpp>
+#include <cstddef>
 #include <type_traits>
 
 #define VULKAN_QUEUE_FLAGS_DECLARE_BASE_ELEMENT(n, Type, name) \
@@ -17,9 +18,9 @@ namespace vulkan {
 template<typename BaseEnum>
 struct QueueFlagBitsBase
 {
-  static constexpr size_t count = magic_enum::enum_count<BaseEnum>();
-  static constexpr BaseEnum last = magic_enum::enum_value<BaseEnum>(count - 1);
-  static constexpr std::underlying_type_t<BaseEnum> last_value = magic_enum::enum_integer(last);
+  static constexpr std::size_t count = enchantum::count<BaseEnum>;
+  static constexpr BaseEnum last = enchantum::values<BaseEnum>[count - 1];
+  static constexpr std::underlying_type_t<BaseEnum> last_value = enchantum::to_underlying(last);
 };
 
 // Define enum class vulkan::QueueFlagBits that is extended with ePresentation.
@@ -34,6 +35,17 @@ enum class QueueFlagBits : VkQueueFlags
 };
 
 } // namespace vulkan
+
+#if 0 // FIXME: is this really necessary?
+// Limit reflection of vulkan::QueueFlagBits to the explicit queue flag values.
+// This avoids enchantum's missing-value check looking past the synthetic ePresentation bit.
+template<>
+struct enchantum::enum_traits<vulkan::QueueFlagBits>
+{
+  static constexpr auto min = 0;
+  static constexpr auto max = static_cast<std::underlying_type_t<vulkan::QueueFlagBits>>(vulkan::QueueFlagBits::ePresentation);
+};
+#endif
 
 namespace vk {
 

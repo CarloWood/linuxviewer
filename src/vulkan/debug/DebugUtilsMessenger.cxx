@@ -2,7 +2,7 @@
 
 #include "Defaults.h"
 #include "DebugUtilsMessenger.h"
-#include <magic_enum.hpp>
+#include <enchantum/enchantum.hpp>
 #include <string_view>
 #include <vector>
 #include <regex>
@@ -94,7 +94,7 @@ std::string Token::to_string(ValidationError& validation_error) const
 
       VkObjectType object_type = VK_OBJECT_TYPE_UNKNOWN;
       std::string object_type_name = "e" + std::string(object_type_sv.substr(2));
-      auto object_type_opt = magic_enum::enum_cast<vk::ObjectType>(object_type_name);
+      auto object_type_opt = enchantum::cast<vk::ObjectType>(object_type_name);
       if (object_type_opt.has_value())
         object_type = static_cast<VkObjectType>(object_type_opt.value());
 

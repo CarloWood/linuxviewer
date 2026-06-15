@@ -79,3 +79,6 @@
 	path = memory
 	url = https://github.com/CarloWood/memory.git
 	branch = master
+[submodule "enchantum"]
+	path = enchantum
+	url = https://github.com/ZXShady/enchantum.git

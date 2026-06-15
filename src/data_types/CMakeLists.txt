@@ -84,7 +84,6 @@ target_link_libraries(data_types_ObjLib
     AICxx::utils
   PUBLIC
     blaze::blaze
-    magic_enum::magic_enum
 )
 
 # Create an ALIAS target.

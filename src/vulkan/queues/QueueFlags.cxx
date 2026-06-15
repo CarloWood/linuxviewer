@@ -6,7 +6,7 @@ namespace vulkan {
 
 void QueueFlags::print_on(std::ostream& os) const
 {
-  static constexpr auto& entries = magic_enum::enum_entries<QueueFlagBits>();
+  static constexpr auto& entries = enchantum::entries<QueueFlagBits>;
   char const* prefix = "";
   for (auto&& entry : entries)
     if (!!operator&(entry.first))

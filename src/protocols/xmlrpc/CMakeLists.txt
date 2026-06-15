@@ -43,9 +43,7 @@ target_link_libraries(protocols_xmlrpc_ObjLib
   PRIVATE
     AICxx::utils
     blaze::blaze
-    magic_enum::magic_enum
 )
 
 # Create an ALIAS target.
 add_library(LinuxViewer::xmlrpc ALIAS protocols_xmlrpc_ObjLib)
-

@@ -6,7 +6,6 @@ include(AICxxProject)
 
 find_package(farmhash REQUIRED)
 find_package(blaze REQUIRED)
-find_package(magic_enum REQUIRED)
 
 # Use --disable-new-dtags when linking executables. This is to avoid setting the RUNPATH
 # entry in the dynamic section of executables when using -rpath. As a result the path
